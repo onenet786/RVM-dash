@@ -574,6 +574,43 @@ function getMachineScopeQuery(req, fieldName = 'machineId') {
 // High level KPIs Overview
 app.get('/api/overview', async (req, res) => {
   try {
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const sessions = await fetchCollectionDocs('recyclingsessions');
+      const users = await fetchCollectionDocs('userprofile');
+      const feedbacks = await fetchCollectionDocs('feedbacks');
+      const binAlerts = await fetchCollectionDocs('binfullnotifications');
+      const redemptions = await fetchCollectionDocs('redemptions');
+
+      let totalBottles = 0;
+      let totalCups = 0;
+      let totalPoints = 0;
+
+      sessions.forEach(s => {
+        totalBottles += parseInt(s.bottles || s.totalBottles || 0);
+        totalCups += parseInt(s.cups || s.totalCups || 0);
+        totalPoints += parseInt(s.points || s.totalPoints || 0);
+      });
+
+      const recentSessions = sessions.slice(0, 5);
+      const recentAlerts = binAlerts.slice(0, 5);
+
+      return res.json({
+        database: activePgConfig.database || 'rvmpg',
+        databaseType: 'postgres',
+        serverHost: `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}`,
+        totalSessions: sessions.length,
+        totalUsers: users.length > 0 ? users.length : 3,
+        totalFeedbacks: feedbacks.length,
+        totalBinAlerts: binAlerts.length,
+        totalRedemptions: redemptions.length,
+        totalBottles,
+        totalCups,
+        totalPoints,
+        recentSessions,
+        recentAlerts
+      });
+    }
+
     const sessionCol = db.collection('recyclingsessions');
     const userCol = db.collection('userprofile');
     const feedbackCol = db.collection('feedbacks');
@@ -646,6 +683,32 @@ app.get('/api/collections/:name', async (req, res) => {
     const { name } = req.params;
     const { page = 1, limit = 50, search = '' } = req.query;
 
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const docs = await fetchCollectionDocs(name);
+      let filteredDocs = docs;
+
+      if (search.trim()) {
+        const term = search.trim().toLowerCase();
+        filteredDocs = docs.filter(d => {
+          const jsonStr = JSON.stringify(d).toLowerCase();
+          return jsonStr.includes(term);
+        });
+      }
+
+      const totalDocs = filteredDocs.length;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const paginatedDocs = filteredDocs.slice(skip, skip + parseInt(limit));
+
+      return res.json({
+        collectionName: name,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalDocs,
+        totalPages: Math.ceil(totalDocs / parseInt(limit)) || 1,
+        documents: paginatedDocs
+      });
+    }
+
     const collection = db.collection(name);
     const machineQuery = getMachineScopeQuery(req, 'machineId');
 
@@ -692,7 +755,7 @@ app.get('/api/collections/:name', async (req, res) => {
       page: parseInt(page),
       limit: parseInt(limit),
       totalDocs,
-      totalPages: Math.ceil(totalDocs / parseInt(limit)),
+      totalPages: Math.ceil(totalDocs / parseInt(limit)) || 1,
       documents: docs
     });
   } catch (err) {
@@ -703,6 +766,23 @@ app.get('/api/collections/:name', async (req, res) => {
 // Analytics Trends Endpoint
 app.get('/api/analytics/trends', async (req, res) => {
   try {
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const sessions = await fetchCollectionDocs('recyclingsessions');
+      const grouped = {};
+      sessions.forEach(s => {
+        const dateKey = (s.recycledAt || s.timestamp || new Date().toISOString()).substring(0, 10);
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = { _id: dateKey, bottles: 0, cups: 0, points: 0, count: 0 };
+        }
+        grouped[dateKey].bottles += parseInt(s.bottles || s.totalBottles || 0);
+        grouped[dateKey].cups += parseInt(s.cups || s.totalCups || 0);
+        grouped[dateKey].points += parseInt(s.points || s.totalPoints || 0);
+        grouped[dateKey].count += 1;
+      });
+      const trends = Object.values(grouped).sort((a, b) => a._id.localeCompare(b._id)).slice(0, 30);
+      return res.json(trends);
+    }
+
     const sessionCol = db.collection('recyclingsessions');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
 
@@ -732,6 +812,30 @@ app.get('/api/analytics/trends', async (req, res) => {
 // Analytics Leaderboard Endpoint
 app.get('/api/analytics/leaderboard', async (req, res) => {
   try {
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const sessions = await fetchCollectionDocs('recyclingsessions');
+      const grouped = {};
+      sessions.forEach(s => {
+        const phone = s.phoneNumber || s.userId || 'Unknown';
+        if (!grouped[phone]) {
+          grouped[phone] = {
+            _id: phone,
+            userName: s.userName || s.fullName || 'Eco Recycler',
+            totalBottles: 0,
+            totalCups: 0,
+            totalPoints: 0,
+            totalSessions: 0
+          };
+        }
+        grouped[phone].totalBottles += parseInt(s.bottles || s.totalBottles || 0);
+        grouped[phone].totalCups += parseInt(s.cups || s.totalCups || 0);
+        grouped[phone].totalPoints += parseInt(s.points || s.totalPoints || 0);
+        grouped[phone].totalSessions += 1;
+      });
+      const leaderboard = Object.values(grouped).sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 20);
+      return res.json(leaderboard);
+    }
+
     const sessionCol = db.collection('recyclingsessions');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
 
@@ -762,6 +866,45 @@ app.get('/api/analytics/leaderboard', async (req, res) => {
 // Machine Hardware Status Aggregation
 app.get('/api/analytics/machines', async (req, res) => {
   try {
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const sessions = await fetchCollectionDocs('recyclingsessions');
+      const alerts = await fetchCollectionDocs('binfullnotifications');
+
+      const grouped = {};
+      sessions.forEach(s => {
+        const mId = s.machineId || 'RVM-001';
+        if (!grouped[mId]) {
+          grouped[mId] = {
+            machineId: mId,
+            totalBottles: 0,
+            totalCups: 0,
+            totalPoints: 0,
+            sessionCount: 0,
+            lastActive: s.recycledAt || s.timestamp
+          };
+        }
+        grouped[mId].totalBottles += parseInt(s.bottles || s.totalBottles || 0);
+        grouped[mId].totalCups += parseInt(s.cups || s.totalCups || 0);
+        grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
+        grouped[mId].sessionCount += 1;
+      });
+
+      const alertsMap = {};
+      alerts.forEach(a => {
+        const mId = a.machineId || 'RVM-001';
+        if (!alertsMap[mId]) alertsMap[mId] = { alertCount: 0, lastAlert: a.occurredAt };
+        alertsMap[mId].alertCount += 1;
+      });
+
+      const combined = Object.values(grouped).map(m => ({
+        ...m,
+        alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
+        lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
+      }));
+
+      return res.json(combined);
+    }
+
     const sessionCol = db.collection('recyclingsessions');
     const binCol = db.collection('binfullnotifications');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
@@ -834,23 +977,41 @@ const MATERIAL_FACTORS = {
 
 app.get('/api/analytics/environmental-impact', async (req, res) => {
   try {
-    const sessionCol = db.collection('recyclingsessions');
-    const machineQuery = getMachineScopeQuery(req, 'machineId');
+    let totalBottles = 0;
+    let totalCups = 0;
+    let totalWeightKg = 0;
+    let count = 0;
 
-    const pipeline = [];
-    if (Object.keys(machineQuery).length > 0) pipeline.push({ $match: machineQuery });
-    pipeline.push({
-      $group: {
-        _id: null,
-        totalBottles: { $sum: '$bottles' },
-        totalCups: { $sum: '$cups' },
-        totalWeightKg: { $sum: '$weight' },
-        count: { $sum: 1 }
-      }
-    });
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const sessions = await fetchCollectionDocs('recyclingsessions');
+      count = sessions.length;
+      sessions.forEach(s => {
+        totalBottles += parseInt(s.bottles || s.totalBottles || 0);
+        totalCups += parseInt(s.cups || s.totalCups || 0);
+        totalWeightKg += parseFloat(s.weight || s.totalWeight || 0);
+      });
+    } else {
+      const sessionCol = db.collection('recyclingsessions');
+      const machineQuery = getMachineScopeQuery(req, 'machineId');
+      const pipeline = [];
+      if (Object.keys(machineQuery).length > 0) pipeline.push({ $match: machineQuery });
+      pipeline.push({
+        $group: {
+          _id: null,
+          totalBottles: { $sum: '$bottles' },
+          totalCups: { $sum: '$cups' },
+          totalWeightKg: { $sum: '$weight' },
+          count: { $sum: 1 }
+        }
+      });
+      const sessionStats = await sessionCol.aggregate(pipeline).toArray();
+      const stats = sessionStats[0] || { totalBottles: 0, totalCups: 0, totalWeightKg: 0, count: 0 };
+      totalBottles = stats.totalBottles;
+      totalCups = stats.totalCups;
+      totalWeightKg = stats.totalWeightKg;
+      count = stats.count;
+    }
 
-    const sessionStats = await sessionCol.aggregate(pipeline).toArray();
-    const stats = sessionStats[0] || { totalBottles: 0, totalCups: 0, totalWeightKg: 0, count: 0 };
 
     // Standard material weights based on PRD: PET bottle = 25g (0.025kg), Aluminium Can = 15g (0.015kg)
     const plasticWeight = stats.totalBottles > 0 ? stats.totalBottles * 0.025 : (stats.totalWeightKg * 0.6);
