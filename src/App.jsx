@@ -16,22 +16,13 @@ export default function App() {
   const [health, setHealth] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('rvm_theme') || 'cyber-dark');
 
-  // Authentication State
+  // Authentication State (sessionStorage: demands re-login on browser window restart)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const savedUser = localStorage.getItem('rvm_auth_user');
+      const savedUser = sessionStorage.getItem('rvm_auth_user');
       if (savedUser) return JSON.parse(savedUser);
     } catch (e) {}
-    // Default fallback to Master Developer (onenet)
-    return {
-      username: 'onenet',
-      fullName: 'Master Developer (onenet)',
-      email: 'onenet@rvm-dash.io',
-      roleId: 'super_admin',
-      roleName: 'Super Admin / Master Dev',
-      assignedMachines: ['*'],
-      modules: ['overview', 'esg_impact', 'analytics', 'machines', 'feedbacks', 'users', 'db_switcher', 'db_backup', 'security']
-    };
+    return null; // Force login modal on fresh browser session
   });
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
@@ -69,13 +60,23 @@ export default function App() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (e) {}
+    sessionStorage.removeItem('rvm_auth_token');
+    sessionStorage.removeItem('rvm_auth_user');
     localStorage.removeItem('rvm_auth_token');
     localStorage.removeItem('rvm_auth_user');
     setCurrentUser(null);
     setIsLoggedOut(true);
   };
 
+
   const renderContent = () => {
+    const isMasterDev = currentUser?.username === 'onenet';
+
+    // Block non-onenet users from master administrative tabs
+    if (!isMasterDev && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab)) {
+      return <OverviewTab />;
+    }
+
     if (activeTab === 'overview') {
       return <OverviewTab />;
     }
@@ -89,15 +90,16 @@ export default function App() {
     if (activeTab === 'machines') {
       return <MachineHealthTab />;
     }
-    if (activeTab === 'security') {
+    if (activeTab === 'security' && isMasterDev) {
       return <SecurityTab />;
     }
-    if (activeTab === 'db_switcher') {
+    if (activeTab === 'db_switcher' && isMasterDev) {
       return <DbSwitcherTab onRefreshHealth={fetchHealth} />;
     }
-    if (activeTab === 'db_backup') {
+    if (activeTab === 'db_backup' && isMasterDev) {
       return <DbBackupTab onRefreshHealth={fetchHealth} />;
     }
+
 
     if (activeTab.startsWith('col_')) {
       const colName = activeTab.replace('col_', '');

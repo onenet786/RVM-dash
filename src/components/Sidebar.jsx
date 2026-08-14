@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser }) {
+  const isMasterDev = currentUser?.username === 'onenet';
   
   const getCollectionCount = (colName) => {
     if (!health?.collections) return null;
@@ -17,13 +18,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
-    { id: 'security', label: 'User & Security RBAC', icon: Lock },
-    { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
-    { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
+    ...(isMasterDev ? [
+      { id: 'security', label: 'User & Security RBAC', icon: Lock },
+      { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
+      { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
+    ] : [])
   ];
-
-
-
 
   const defaultCollections = [
     { id: 'col_recyclingsessions', name: 'recyclingsessions', label: 'Recycling Sessions', icon: Recycle },
@@ -31,8 +31,11 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
     { id: 'col_feedbacks', name: 'feedbacks', label: 'User Feedbacks', icon: MessageSquare },
     { id: 'col_binfullnotifications', name: 'binfullnotifications', label: 'Bin Full Alerts', icon: AlertTriangle },
     { id: 'col_redemptions', name: 'redemptions', label: 'Redemptions', icon: Trophy },
-    { id: 'col_adminaccounts', name: 'adminaccounts', label: 'Admin Accounts', icon: Shield },
+    ...(isMasterDev ? [
+      { id: 'col_adminaccounts', name: 'adminaccounts', label: 'Admin Accounts', icon: Shield }
+    ] : [])
   ];
+
 
   // Merge any additional collections from MongoDB
   const collectionNamesInDefault = new Set(defaultCollections.map(c => c.name));

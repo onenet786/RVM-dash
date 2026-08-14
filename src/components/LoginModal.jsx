@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, Eye, EyeOff, LogIn, Cpu, AlertTriangle, Key } from 'lucide-react';
 
 export default function LoginModal({ onLoginSuccess }) {
-  const [username, setUsername] = useState('onenet');
-  const [password, setPassword] = useState('Admin&86');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,8 +24,8 @@ export default function LoginModal({ onLoginSuccess }) {
 
       const json = await res.json();
       if (res.ok && json.success) {
-        localStorage.setItem('rvm_auth_token', json.token);
-        localStorage.setItem('rvm_auth_user', JSON.stringify(json.user));
+        sessionStorage.setItem('rvm_auth_token', json.token);
+        sessionStorage.setItem('rvm_auth_user', JSON.stringify(json.user));
         if (onLoginSuccess) onLoginSuccess(json.user, json.token);
       } else {
         throw new Error(json.error || 'Authentication failed');
@@ -35,12 +35,6 @@ export default function LoginModal({ onLoginSuccess }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const setPreset = (userStr, passStr) => {
-    setUsername(userStr);
-    setPassword(passStr);
-    setError(null);
   };
 
   return (
@@ -71,7 +65,7 @@ export default function LoginModal({ onLoginSuccess }) {
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4 text-xs">
           
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider t-text-muted block mb-1.5 flex items-center gap-1.5">
@@ -80,9 +74,11 @@ export default function LoginModal({ onLoginSuccess }) {
             </label>
             <input
               type="text"
+              name="username_input"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. onenet or operator_lahore"
+              placeholder="Enter username"
+              autoComplete="off"
               className="w-full t-bg-sec border t-border rounded-xl px-4 py-3 t-text-primary font-mono text-xs focus:border-emerald-500 focus:outline-none transition-all shadow-inner"
               required
             />
@@ -96,10 +92,13 @@ export default function LoginModal({ onLoginSuccess }) {
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                name="password_input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
+                autoComplete="new-password"
                 className="w-full t-bg-sec border t-border rounded-xl px-4 py-3 pr-11 t-text-primary font-mono text-xs focus:border-cyan-500 focus:outline-none transition-all shadow-inner"
+                required
               />
               <button
                 type="button"
@@ -120,39 +119,6 @@ export default function LoginModal({ onLoginSuccess }) {
             {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
           </button>
         </form>
-
-        {/* Quick Fill Preset Buttons */}
-        <div className="pt-3 border-t t-border space-y-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider t-text-muted block text-center">
-            Quick Fill Demo Credentials
-          </span>
-          
-          <div className="grid grid-cols-3 gap-2 text-[11px]">
-            <button
-              onClick={() => setPreset('onenet', 'Admin&86')}
-              className="p-2 t-bg-sec hover:t-bg-hover border border-emerald-500/30 rounded-xl text-center transition-all"
-            >
-              <span className="font-extrabold text-emerald-400 block">Master Dev</span>
-              <span className="text-[9px] t-text-muted mono">onenet</span>
-            </button>
-
-            <button
-              onClick={() => setPreset('operator_lahore', 'password123')}
-              className="p-2 t-bg-sec hover:t-bg-hover border border-cyan-500/30 rounded-xl text-center transition-all"
-            >
-              <span className="font-extrabold text-cyan-400 block">Operator</span>
-              <span className="text-[9px] t-text-muted mono">lahore</span>
-            </button>
-
-            <button
-              onClick={() => setPreset('analyst_lead', 'password123')}
-              className="p-2 t-bg-sec hover:t-bg-hover border border-amber-500/30 rounded-xl text-center transition-all"
-            >
-              <span className="font-extrabold text-amber-400 block">Analyst</span>
-              <span className="text-[9px] t-text-muted mono">analyst</span>
-            </button>
-          </div>
-        </div>
 
       </div>
     </div>

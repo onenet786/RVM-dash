@@ -290,6 +290,142 @@ app.post('/api/admin/restart-server', async (req, res) => {
   }
 });
 
+// One-Way Database Sync Endpoint: rvmapp (Source) -> ONS-RVM (Target)
+app.post('/api/admin/sync-databases', async (req, res) => {
+  let sourceClient = null;
+  let targetClient = null;
+
+  try {
+    const { username, password, syncMode = 'upsert', collections = 'all' } = req.body;
+
+    if (!validateMasterCredentials(username, password)) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials (username: onenet)' });
+    }
+
+    const sourceUri = DB_PRESETS['rvmapp'].uri;
+    const sourceDbName = DB_PRESETS['rvmapp'].dbName;
+    const targetUri = DB_PRESETS['ONS-RVM'].uri;
+    const targetDbName = DB_PRESETS['ONS-RVM'].dbName;
+
+    console.log(`[Database Sync Started] Syncing FROM "${sourceDbName}" TO "${targetDbName}" (Mode: ${syncMode})`);
+
+    // Connect to source database (rvmapp)
+    sourceClient = new MongoClient(sourceUri, { serverSelectionTimeoutMS: 15000 });
+    await sourceClient.connect();
+    const sourceDb = sourceClient.db(sourceDbName);
+
+    // Connect to target database (ONS-RVM)
+    targetClient = new MongoClient(targetUri, { serverSelectionTimeoutMS: 15000 });
+    await targetClient.connect();
+    const targetDb = targetClient.db(targetDbName);
+
+    const sourceCollections = await sourceDb.listCollections().toArray();
+    let collectionsToSync = sourceCollections.map(c => c.name);
+
+    if (Array.isArray(collections) && collections.length > 0) {
+      collectionsToSync = collectionsToSync.filter(name => collections.includes(name));
+    }
+
+    let totalDocsSynced = 0;
+    const syncDetails = [];
+
+    for (const colName of collectionsToSync) {
+      const sourceCol = sourceDb.collection(colName);
+      const targetCol = targetDb.collection(colName);
+
+      const docs = await sourceCol.find({}).toArray();
+      if (docs.length === 0) {
+        syncDetails.push({ name: colName, count: 0, status: 'empty' });
+        continue;
+      }
+
+      if (syncMode === 'replace') {
+        try {
+          await targetCol.deleteMany({});
+        } catch (e) {}
+      }
+
+      // Prepare documents with ObjectId handling
+      const preparedDocs = docs.map(d => {
+        const docCopy = { ...d };
+        if (docCopy._id && typeof docCopy._id === 'string' && docCopy._id.length === 24) {
+          try {
+            docCopy._id = new ObjectId(docCopy._id);
+          } catch (e) {}
+        }
+        return docCopy;
+      });
+
+      if (syncMode === 'replace') {
+        const BATCH_SIZE = 500;
+        let inserted = 0;
+        for (let i = 0; i < preparedDocs.length; i += BATCH_SIZE) {
+          const batch = preparedDocs.slice(i, i + BATCH_SIZE);
+          try {
+            const result = await targetCol.insertMany(batch, { ordered: false });
+            inserted += result.insertedCount || batch.length;
+          } catch (e) {
+            if (e.insertedCount) inserted += e.insertedCount;
+          }
+        }
+        totalDocsSynced += inserted;
+        syncDetails.push({ name: colName, count: inserted, status: 'replaced' });
+      } else {
+        // Upsert / Merge Mode using bulkWrite
+        const bulkOps = preparedDocs.map(doc => ({
+          updateOne: {
+            filter: { _id: doc._id },
+            update: { $set: doc },
+            upsert: true
+          }
+        }));
+
+        const BATCH_SIZE = 500;
+        let upsertedCount = 0;
+        for (let i = 0; i < bulkOps.length; i += BATCH_SIZE) {
+          const batch = bulkOps.slice(i, i + BATCH_SIZE);
+          try {
+            const bulkRes = await targetCol.bulkWrite(batch, { ordered: false });
+            upsertedCount += (bulkRes.upsertedCount || 0) + (bulkRes.modifiedCount || 0) + (bulkRes.matchedCount || 0);
+          } catch (e) {
+            if (e.result) upsertedCount += (e.result.nUpserted || 0) + (e.result.nModified || 0);
+          }
+        }
+        totalDocsSynced += docs.length;
+        syncDetails.push({ name: colName, count: docs.length, status: 'upserted' });
+      }
+    }
+
+    // Refresh health cache if active DB is ONS-RVM
+    if (currentDbName === 'ONS-RVM') {
+      await connectDB(true);
+    }
+
+    res.json({
+      success: true,
+      message: `One-way sync completed successfully! ${totalDocsSynced} documents across ${syncDetails.length} collections synced FROM "${sourceDbName}" TO "${targetDbName}".`,
+      sourceDatabase: sourceDbName,
+      targetDatabase: targetDbName,
+      syncMode,
+      totalCollectionsSynced: syncDetails.length,
+      totalDocumentsSynced: totalDocsSynced,
+      syncDetails
+    });
+
+  } catch (err) {
+    console.error('[One-Way DB Sync Error]', err);
+    res.status(500).json({ error: 'One-way database sync failed', details: err.message });
+  } finally {
+    if (sourceClient) {
+      try { await sourceClient.close(true); } catch (e) {}
+    }
+    if (targetClient) {
+      try { await targetClient.close(true); } catch (e) {}
+    }
+  }
+});
+
+
 function getMachineScopeQuery(req, fieldName = 'machineId') {
   const param = req.query.assignedMachines || req.query.machineId;
   if (!param) return {};
