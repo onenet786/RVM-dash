@@ -5,12 +5,36 @@ import OverviewTab from './components/OverviewTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import MachineHealthTab from './components/MachineHealthTab';
 import DbBackupTab from './components/DbBackupTab';
+import DbSwitcherTab from './components/DbSwitcherTab';
+import SecurityTab from './components/SecurityTab';
+import EnvironmentalImpactTab from './components/EnvironmentalImpactTab';
 import DataTable from './components/DataTable';
+import LoginModal from './components/LoginModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('rvm_theme') || 'cyber-dark');
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('rvm_auth_user');
+      if (savedUser) return JSON.parse(savedUser);
+    } catch (e) {}
+    // Default fallback to Master Developer (onenet)
+    return {
+      username: 'onenet',
+      fullName: 'Master Developer (onenet)',
+      email: 'onenet@rvm-dash.io',
+      roleId: 'super_admin',
+      roleName: 'Super Admin / Master Dev',
+      assignedMachines: ['*'],
+      modules: ['overview', 'esg_impact', 'analytics', 'machines', 'feedbacks', 'users', 'db_switcher', 'db_backup', 'security']
+    };
+  });
+
+  const [isLoggedOut, setIsLoggedOut] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -35,15 +59,41 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleLoginSuccess = (user, token) => {
+    setCurrentUser(user);
+    setIsLoggedOut(false);
+    setActiveTab('overview');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
+    localStorage.removeItem('rvm_auth_token');
+    localStorage.removeItem('rvm_auth_user');
+    setCurrentUser(null);
+    setIsLoggedOut(true);
+  };
+
   const renderContent = () => {
     if (activeTab === 'overview') {
       return <OverviewTab />;
     }
+    if (activeTab === 'esg_impact') {
+      return <EnvironmentalImpactTab />;
+    }
     if (activeTab === 'analytics') {
       return <AnalyticsTab />;
     }
+
     if (activeTab === 'machines') {
       return <MachineHealthTab />;
+    }
+    if (activeTab === 'security') {
+      return <SecurityTab />;
+    }
+    if (activeTab === 'db_switcher') {
+      return <DbSwitcherTab onRefreshHealth={fetchHealth} />;
     }
     if (activeTab === 'db_backup') {
       return <DbBackupTab onRefreshHealth={fetchHealth} />;
@@ -74,14 +124,21 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-screen t-bg-app flex flex-col font-sans transition-colors duration-300">
       
+      {/* Login Portal Modal overlay when logged out */}
+      {(isLoggedOut || !currentUser) && (
+        <LoginModal onLoginSuccess={handleLoginSuccess} />
+      )}
+
       {/* Top Navbar */}
       <Navbar 
         health={health} 
         onRefresh={fetchHealth} 
         theme={theme}
         setTheme={setTheme}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -91,6 +148,7 @@ export default function App() {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           health={health} 
+          currentUser={currentUser}
         />
 
         {/* Main Content Area */}

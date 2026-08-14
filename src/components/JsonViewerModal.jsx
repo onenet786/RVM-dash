@@ -1,22 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  X, Copy, Check, Code, LayoutGrid, Calendar, Phone, User, 
-  Wine, Coffee, Award, Cpu, AlertTriangle, MessageSquare, Image as ImageIcon, Shield, Hash, Clock
+  X, LayoutGrid, Calendar, Phone, User, 
+  Wine, Coffee, Award, Cpu, AlertTriangle, Hash
 } from 'lucide-react';
 
-export default function JsonViewerModal({ document: doc, onClose, title = "Document Details" }) {
-  const [activeTab, setActiveTab] = useState('formatted'); // 'formatted' | 'raw'
-  const [copied, setCopied] = useState(false);
-
+export default function JsonViewerModal({ document: doc, onClose, title = "Document Details Inspector" }) {
   if (!doc) return null;
-
-  const jsonString = JSON.stringify(doc, null, 2);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(jsonString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const formatKeyName = (key) => {
     if (key === '_id') return 'Document ID';
@@ -173,109 +162,59 @@ export default function JsonViewerModal({ document: doc, onClose, title = "Docum
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* View Mode Switcher */}
-            <div className="flex items-center t-bg-surface p-1 rounded-xl border t-border">
-              <button
-                onClick={() => setActiveTab('formatted')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'formatted'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 't-text-muted hover:t-text-primary'
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Formatted Details
-              </button>
-              <button
-                onClick={() => setActiveTab('raw')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'raw'
-                    ? 'bg-emerald-600 text-white shadow-md'
-                    : 't-text-muted hover:t-text-primary'
-                }`}
-              >
-                <Code className="w-3.5 h-3.5" />
-                Raw JSON
-              </button>
-            </div>
-
-            <button
-              onClick={onClose}
-              className="p-2 t-text-muted hover:t-text-primary t-bg-sec rounded-xl border t-border transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 t-text-muted hover:t-text-primary t-bg-sec rounded-xl border t-border transition-all"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Modal Body */}
+        {/* Modal Body - Formatted Details Cards */}
         <div className="p-6 overflow-y-auto flex-1 t-bg-sec space-y-4">
           
-          {activeTab === 'formatted' ? (
-            <div className="space-y-4">
-              
-              {(doc.bottles !== undefined || doc.cups !== undefined || doc.points !== undefined) && (
-                <div className="grid grid-cols-3 gap-3 p-4 t-bg-surface rounded-2xl border t-border">
-                  {doc.bottles !== undefined && (
-                    <div className="text-center p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                      <span className="text-[10px] uppercase font-bold t-text-muted block">Bottles</span>
-                      <span className="text-lg font-extrabold text-emerald-400 mono">{doc.bottles}</span>
-                    </div>
-                  )}
-                  {doc.cups !== undefined && (
-                    <div className="text-center p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                      <span className="text-[10px] uppercase font-bold t-text-muted block">Cups</span>
-                      <span className="text-lg font-extrabold text-amber-400 mono">{doc.cups}</span>
-                    </div>
-                  )}
-                  {doc.points !== undefined && (
-                    <div className="text-center p-2.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
-                      <span className="text-[10px] uppercase font-bold t-text-muted block">Points</span>
-                      <span className="text-lg font-extrabold text-cyan-400 mono">{doc.points}</span>
-                    </div>
-                  )}
+          {(doc.bottles !== undefined || doc.cups !== undefined || doc.points !== undefined) && (
+            <div className="grid grid-cols-3 gap-3 p-4 t-bg-surface rounded-2xl border t-border">
+              {doc.bottles !== undefined && (
+                <div className="text-center p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                  <span className="text-[10px] uppercase font-bold t-text-muted block">Bottles</span>
+                  <span className="text-lg font-extrabold text-emerald-400 mono">{doc.bottles}</span>
                 </div>
               )}
-
-              {/* Formatted Key-Value Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {keys.map((key) => {
-                  if (key === '__v') return null;
-                  return (
-                    <div 
-                      key={key}
-                      className="p-3.5 t-bg-surface border t-border rounded-2xl flex flex-col justify-between gap-1.5 hover:t-bg-hover transition-all"
-                    >
-                      <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">
-                        {formatKeyName(key)}
-                      </span>
-                      <div>
-                        {renderFormattedValue(key, doc[key])}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-            </div>
-          ) : (
-            <div className="relative">
-              <div className="absolute right-3 top-3">
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold t-text-primary t-bg-surface border t-border rounded-lg transition-all"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? "Copied" : "Copy JSON"}
-                </button>
-              </div>
-
-              <pre className="p-5 font-mono text-xs text-emerald-400 t-bg-surface rounded-2xl border t-border leading-relaxed overflow-x-auto">
-                {jsonString}
-              </pre>
+              {doc.cups !== undefined && (
+                <div className="text-center p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                  <span className="text-[10px] uppercase font-bold t-text-muted block">Cups</span>
+                  <span className="text-lg font-extrabold text-amber-400 mono">{doc.cups}</span>
+                </div>
+              )}
+              {doc.points !== undefined && (
+                <div className="text-center p-2.5 bg-cyan-500/10 rounded-xl border border-cyan-500/20">
+                  <span className="text-[10px] uppercase font-bold t-text-muted block">Points</span>
+                  <span className="text-lg font-extrabold text-cyan-400 mono">{doc.points}</span>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Formatted Key-Value Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {keys.map((key) => {
+              if (key === '__v') return null;
+              return (
+                <div 
+                  key={key}
+                  className="p-3.5 t-bg-surface border t-border rounded-2xl flex flex-col justify-between gap-1.5 hover:t-bg-hover transition-all"
+                >
+                  <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">
+                    {formatKeyName(key)}
+                  </span>
+                  <div>
+                    {renderFormattedValue(key, doc[key])}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
         </div>
 

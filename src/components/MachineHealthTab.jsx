@@ -6,10 +6,22 @@ export default function MachineHealthTab() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getMachinesQuery = () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      if (!u.assignedMachines) return '';
+      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+      if (arr.includes('*')) return '';
+      return `?assignedMachines=${encodeURIComponent(arr.join(','))}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   const fetchMachines = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/analytics/machines');
+      const res = await fetch(`/api/analytics/machines${getMachinesQuery()}`);
       if (res.ok) {
         setMachines(await res.json());
       }
@@ -19,6 +31,7 @@ export default function MachineHealthTab() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchMachines();

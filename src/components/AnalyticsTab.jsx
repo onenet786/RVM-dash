@@ -8,10 +8,22 @@ export default function AnalyticsTab() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getMachinesQuery = () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      if (!u.assignedMachines) return '';
+      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+      if (arr.includes('*')) return '';
+      return `?assignedMachines=${encodeURIComponent(arr.join(','))}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/analytics/leaderboard');
+      const res = await fetch(`/api/analytics/leaderboard${getMachinesQuery()}`);
       if (res.ok) {
         setLeaderboard(await res.json());
       }
@@ -21,6 +33,7 @@ export default function AnalyticsTab() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchAnalytics();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Recycle, Wine, Coffee, Award, Users, AlertTriangle, MessageSquare, 
-  TrendingUp, Activity, Sparkles, RefreshCw
+  TrendingUp, Activity, Sparkles, RefreshCw, Server, HardDrive, ShieldCheck
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
@@ -9,19 +9,36 @@ import {
 
 export default function OverviewTab() {
   const [overview, setOverview] = useState(null);
+  const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const getMachinesQuery = () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      if (!u.assignedMachines) return '';
+      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+      if (arr.includes('*')) return '';
+      return `?assignedMachines=${encodeURIComponent(arr.join(','))}`;
+    } catch (e) {
+      return '';
+    }
+  };
 
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const [ovRes, trRes] = await Promise.all([
-        fetch('/api/overview'),
-        fetch('/api/analytics/trends')
+      const query = getMachinesQuery();
+      const [ovRes, trRes, hlRes] = await Promise.all([
+        fetch(`/api/overview${query}`),
+        fetch(`/api/analytics/trends${query}`),
+        fetch('/api/health')
       ]);
+
 
       if (ovRes.ok) setOverview(await ovRes.json());
       if (trRes.ok) setTrends(await trRes.json());
+      if (hlRes.ok) setHealth(await hlRes.json());
     } catch (err) {
       console.error('Error fetching overview', err);
     } finally {
@@ -42,10 +59,43 @@ export default function OverviewTab() {
     );
   }
 
+  const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
+  const dbName = health?.database || 'ONS-RVM';
+
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Header Banner */}
+      {/* Connected Server & DB Info Banner */}
+      <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-cyan-500/30">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
+            <Server className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Active MongoDB Connection</div>
+            <div className="text-xs font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
+              <span>Cluster Host: <span className="text-cyan-400">{serverHost}</span></span>
+              <span>•</span>
+              <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
+              <span>•</span>
+              <span>Location: <span className="text-amber-400 font-bold">{health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-bold border border-amber-500/20 flex items-center gap-1.5">
+            📍 {health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}
+          </span>
+          <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-bold border border-emerald-500/20 flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            MongoDB Atlas Live
+          </span>
+        </div>
+
+      </div>
+
+      {/* Main Header Banner */}
       <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-emerald-500/20 glow-emerald">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">

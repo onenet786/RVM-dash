@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Activity, RefreshCw, Palette, Sun, Moon, Sparkles, Check } from 'lucide-react';
+import { Database, Activity, RefreshCw, Palette, Sun, Moon, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck } from 'lucide-react';
 
-export default function Navbar({ health, onRefresh, theme, setTheme }) {
+export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout }) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
@@ -13,6 +13,9 @@ export default function Navbar({ health, onRefresh, theme, setTheme }) {
   }, []);
 
   const isOnline = health?.status === 'online';
+  const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
+  const dbName = health?.database || 'ONS-RVM';
+  const serverLoc = health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
 
   const themesList = [
     { id: 'cyber-dark', label: 'Cyber Emerald', icon: Moon, color: 'bg-emerald-500', desc: 'Midnight Obsidian & Emerald Glow' },
@@ -27,9 +30,9 @@ export default function Navbar({ health, onRefresh, theme, setTheme }) {
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-6 py-3 transition-colors duration-300">
       <div className="flex items-center justify-between">
         
-        {/* Left Brand */}
+        {/* Left Brand & Server Host, DB, Location Info */}
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40">
+          <div className="p-2 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0">
             <Database className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -39,17 +42,36 @@ export default function Navbar({ health, onRefresh, theme, setTheme }) {
                 PRO DEV
               </span>
             </div>
-            <p className="text-[11px] t-text-muted mono">Database: <span className="text-emerald-400 font-semibold">{health?.database || 'rvmapp'}</span></p>
+            
+            <div className="flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
+              <span className="flex items-center gap-1 text-cyan-400 font-semibold">
+                <Server className="w-3 h-3" />
+                {serverHost}
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                <HardDrive className="w-3 h-3" />
+                DB: {dbName}
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-amber-400 font-bold">
+                <MapPin className="w-3 h-3 text-amber-400" />
+                Region: {serverLoc}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Right Status Indicators & Controls */}
+        {/* Right Status Indicators, User Profile & Controls */}
         <div className="flex items-center gap-3">
           
           {/* DB Status Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs">
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs">
             <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 pulse-glow shadow-md shadow-emerald-400/50' : 'bg-rose-500'}`} />
-            <span className="t-text-secondary font-medium">{isOnline ? 'MongoDB Atlas Connected' : 'Disconnected'}</span>
+            <div className="flex items-center gap-1.5 font-semibold">
+              <span className="t-text-primary">{isOnline ? 'MongoDB Atlas' : 'Disconnected'}</span>
+              <span className="text-emerald-400 font-bold">({dbName})</span>
+            </div>
           </div>
 
           {/* Clock */}
@@ -62,7 +84,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme }) {
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="flex items-center gap-2 px-3.5 py-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-sm"
+              className="flex items-center gap-2 px-3 py-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-sm"
               title="Switch Dashboard Color Theme"
             >
               <Palette className="w-4 h-4 text-amber-400" />
@@ -109,6 +131,29 @@ export default function Navbar({ health, onRefresh, theme, setTheme }) {
           >
             <RefreshCw className="w-4 h-4 text-emerald-400" />
           </button>
+
+          {/* User Profile Badge & Logout Button */}
+          {currentUser && (
+            <div className="flex items-center gap-2.5 pl-3 border-l t-border">
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-xs font-extrabold t-text-primary leading-tight">{currentUser.fullName || currentUser.username}</span>
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-end gap-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  {currentUser.roleName || currentUser.roleId}
+                </span>
+              </div>
+              
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-xl text-xs font-bold transition-all shadow-sm"
+                title="Sign Out of Dashboard"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Sign Out</span>
+              </button>
+            </div>
+          )}
+
         </div>
 
       </div>

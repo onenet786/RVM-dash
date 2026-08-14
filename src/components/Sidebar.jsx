@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, HardDrive
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, HardDrive, ArrowRightLeft, Lock, Leaf
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, health }) {
+export default function Sidebar({ activeTab, setActiveTab, health, currentUser }) {
   
   const getCollectionCount = (colName) => {
     if (!health?.collections) return null;
@@ -14,10 +14,16 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
 
   const navItems = [
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
+    { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'security', label: 'User & Security RBAC', icon: Lock },
+    { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
     { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
   ];
+
+
+
 
   const defaultCollections = [
     { id: 'col_recyclingsessions', name: 'recyclingsessions', label: 'Recycling Sessions', icon: Recycle },

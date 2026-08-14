@@ -27,6 +27,18 @@ export default function DataTable({ collectionName, displayName }) {
     return () => clearTimeout(handler);
   }, [search]);
 
+  const getMachinesParam = () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      if (!u.assignedMachines) return '';
+      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+      if (arr.includes('*')) return '';
+      return arr.join(',');
+    } catch (e) {
+      return '';
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -39,7 +51,13 @@ export default function DataTable({ collectionName, displayName }) {
         sortOrder
       });
 
+      const machines = getMachinesParam();
+      if (machines) {
+        queryParams.append('assignedMachines', machines);
+      }
+
       const res = await fetch(`/api/collections/${collectionName}?${queryParams}`);
+
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const json = await res.json();
       
