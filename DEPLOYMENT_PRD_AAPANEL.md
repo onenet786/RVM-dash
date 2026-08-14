@@ -195,19 +195,40 @@ bash deploy-aapanel.sh
 
 ## 5. Troubleshooting & Common Notices
 
-### Q: How to resolve `EPERM, Operation not permitted: /www/wwwroot/rvm-dash/dist/.user.ini` during `npm run build`?
-- **Root Cause**: aaPanel places an immutable `.user.ini` anti-cross-site lock file (`chattr +i`) inside `dist/`. When Vite attempts to delete/empty `dist/`, Node.js throws `EPERM`.
-- **Solution 1 (Configured in Codebase)**: We set `build.emptyOutDir: false` in `vite.config.js` so Vite doesn't attempt to delete `.user.ini`.
-- **Solution 2 (Server Command)**: Unlock and remove `.user.ini` before running build:
+### Q: How to resolve `error: Your local changes to the following files would be overwritten by merge: server/index.js`?
+- **Root Cause**: Local edits were made to `server/index.js` on the server.
+- **Solution**: Reset local edits and pull latest code from branch `B2`:
   ```bash
   cd /www/wwwroot/rvm-dash
-  chattr -i dist/.user.ini 2>/dev/null || true
-  rm -f dist/.user.ini 2>/dev/null || true
+  git checkout -- server/index.js
   git pull origin B2
-  bash deploy-aapanel.sh
+  npm run build
+  ```
+  *Or force reset to branch B2*:
+  ```bash
+  cd /www/wwwroot/rvm-dash
+  git fetch origin B2
+  git reset --hard origin/B2
+  npm run build
+  ```
+
+### Q: How to resolve `502 Bad Gateway` error on `https://isprvm.binishaqsoft.com`?
+- **Root Cause**: Nginx cannot connect to the Node.js backend on `http://127.0.0.1:5009` because the process is stopped or port `5009` is mismatched.
+- **Solution 1 (aaPanel GUI)**:
+  - Go to aaPanel ➔ **Website** ➔ **Node project** tab.
+  - Find `rvm-master-dashboard` (or `isprvm.binishaqsoft.com`).
+  - If status is **Stopped**, click **Start** or **Restart**.
+  - Click **Settings**: Verify **Project Port** is set to `5009`.
+- **Solution 2 (Server Terminal PM2 Command)**:
+  ```bash
+  cd /www/wwwroot/rvm-dash
+  pm2 reload ecosystem.config.cjs --env production || pm2 start ecosystem.config.cjs --env production
+  pm2 save
   ```
 
 ---
+
+
 
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
