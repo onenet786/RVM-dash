@@ -56,15 +56,16 @@
    - **Password / Token**: `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` (`ghp_xxxxxxxxxxxx`)
    - **Target Directory**: `rvm-dash`
 
-#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated)
+#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated - Branch B2)
 ```bash
 cd /www/wwwroot
-# Embed your GitHub Web Personal Access Token (PAT) for seamless non-interactive clone:
-git clone https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
+# Clone branch B2 using your GitHub Web Personal Access Token (PAT):
+git clone -b B2 https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
 cd rvm-dash
 npm install --production=false
 npm run build
 ```
+
 
 
 ---
@@ -191,21 +192,26 @@ bash deploy-aapanel.sh
 
 ---
 
-## 5. Troubleshooting & Common Notices
-
-### Q: What does `(!) Some chunks are larger than 500 kB after minification` mean during `npm run build`?
-- **Answer**: This is a **warning notice (not a fatal error)** informing you that vendor libraries (React, Recharts, Lucide icons) compiled into a bundle size over 500 kB.
-- **Fix Applied**: We updated `vite.config.js` with `build.chunkSizeWarningLimit: 1200`.
-- **To Apply on Server**: Run the following update commands in your server terminal:
+### Q: How to resolve `error: The following untracked working tree files would be overwritten by merge: dist/index.html` during `git pull`?
+- **Answer**: The local `dist/` build directory on the server has generated files that conflict with incoming changes.
+- **Solution**: Remove the local untracked `dist/` directory before pulling:
   ```bash
   cd /www/wwwroot/rvm-dash
-  git pull origin main
+  git clean -fd dist/
+  git pull origin B2
+  bash deploy-aapanel.sh
+  ```
+  *Or force reset to branch B2*:
+  ```bash
+  git fetch origin B2
+  git reset --hard origin/B2
   bash deploy-aapanel.sh
   ```
 
 ---
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
+
 
 | Port | Protocol | Usage | aaPanel Security Action |
 | :--- | :--- | :--- | :--- |
