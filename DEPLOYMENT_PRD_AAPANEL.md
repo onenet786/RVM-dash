@@ -1,7 +1,7 @@
 # Production Deployment PRD: RVM Master Developer Dashboard
 **Target Infrastructure**: Dedicated Ubuntu Linux Server with aaPanel Control Panel  
 **Application Stack**: Node.js ES Modules (Express API), MongoDB Atlas Cluster, Vite React Frontend (SPA), PM2 Process Manager, Nginx Reverse Proxy  
-**Document Version**: 3.0 (August 2026 - Port 3131 Update)
+**Document Version**: 4.0 (August 2026 - Port 5009 Update)
 
 ---
 
@@ -15,10 +15,10 @@
 [ Ubuntu Dedicated Server + aaPanel ]
   ├── Nginx Reverse Proxy (Ports 80/443)
   │     ├── Static Frontend Bundle (/www/wwwroot/rvm-dash/dist)
-  │     └── Reverse Proxy /api/ ➔ http://127.0.0.1:3131
+  │     └── Reverse Proxy /api/ ➔ http://127.0.0.1:5009
   │
   ├── aaPanel Node Project Manager (PM2 Engine)
-  │     └── [rvm-master-dashboard] process running server/index.js (Port 3131)
+  │     └── [rvm-master-dashboard] process running server/index.js (Port 5009)
   │
   └── Environment Connections
         ├── Primary Master Cluster: ONS-RVM (cluster0.ktted0m.mongodb.net)
@@ -82,13 +82,12 @@ npm run build
 | **Node Version** | `v18.x` or `v20.x` | Select version installed in Node Version Manager |
 | **Name** | `rvm-master-dashboard` | PM2 Process Display Name |
 | **Run Opt / Start Command** | `node server/index.js` (or `npm run start`) | **IMPORTANT**: Type `node server/index.js` to ensure Node interpreter invocation |
-| **Project Port** | `3131` | Internal Express backend API port |
+| **Project Port** | `5009` | Internal Express backend API port |
 | **User** | `www` (or `root`) | Linux process execution user |
 | **Auto Start** | `Enabled` / `Checked` | Ensures auto-restart on server reboot |
 | **Domain Name** | `rvm.yourdomain.com` | Domain name bound to this Node site |
 
 4. Click **Submit** / **OK** to save and launch the PM2 process.
-
 
 ---
 
@@ -100,7 +99,7 @@ npm run build
 
 ```ini
 NODE_ENV=production
-PORT=3131
+PORT=5009
 MONGODB_URI=mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority
 MONGODB_DBNAME=ONS-RVM
 JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
@@ -138,9 +137,9 @@ server {
     index index.html;
     client_max_body_size 50M;
 
-    # Backend API Reverse Proxy (Port 3131)
+    # Backend API Reverse Proxy (Port 5009)
     location /api/ {
-        proxy_pass http://127.0.0.1:3131/api/;
+        proxy_pass http://127.0.0.1:5009/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -179,7 +178,7 @@ bash deploy-aapanel.sh
 
 1. **Verify Backend API**:
    ```bash
-   curl http://127.0.0.1:3131/api/health
+   curl http://127.0.0.1:5009/api/health
    ```
    *Expected Output*: `{ "status": "online", "database": "ONS-RVM", ... }`
 
@@ -190,6 +189,8 @@ bash deploy-aapanel.sh
    Open `https://rvm.yourdomain.com` in your browser.
 
 ---
+
+## 5. Troubleshooting & Common Notices
 
 ### Q: How to resolve `Permission denied` when running `server/index.js` via aaPanel Node Project Manager GUI?
 - **Cause**: aaPanel executes `server/index.js` as a raw Linux binary script without specifying the `node` runtime executable.
@@ -207,15 +208,13 @@ bash deploy-aapanel.sh
 
 ---
 
-
 ## 6. Security Firewall Rules (aaPanel Security Tab)
-
 
 | Port | Protocol | Usage | aaPanel Security Action |
 | :--- | :--- | :--- | :--- |
 | **80** | TCP | HTTP (Redirects to HTTPS) | **Accept** / **Allow** |
 | **443** | TCP | HTTPS Dashboard Access | **Accept** / **Allow** |
-| **3131** | TCP | Node Express Backend Internal API | **Internal Only** (Keep blocked externally) |
+| **5009** | TCP | Node Express Backend Internal API | **Internal Only** (Keep blocked externally) |
 | **27017** | TCP | MongoDB Atlas Outbound SRV | **Outbound Accept** |
 
 ---

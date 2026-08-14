@@ -30,7 +30,7 @@ if [ ! -f .env ]; then
   cp .env.example .env || cat <<EOT > .env
 MONGODB_URI=mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority
 MONGODB_DBNAME=ONS-RVM
-PORT=3131
+PORT=5009
 JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
 EOT
 fi
@@ -45,5 +45,4 @@ else
   nohup "$NODE_CMD" server/index.js > server.log 2>&1 &
 fi
 
-
-echo "✅ [SUCCESS] Deployment Completed! Dashboard API is running on http://127.0.0.1:3131"
+echo "✅ [SUCCESS] Deployment Completed! Dashboard API is running on http://127.0.0.1:5009"
