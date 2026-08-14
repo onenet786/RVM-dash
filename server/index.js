@@ -246,17 +246,41 @@ app.get('/api/admin/presets', (req, res) => {
   });
 });
 
+async function ensurePostgresDatabase(pgConfig) {
+  try {
+    const client = new pg.Client(pgConfig);
+    await client.connect();
+    await client.end();
+    return true;
+  } catch (err) {
+    if (err.message && (err.message.includes('does not exist') || err.code === '3D000')) {
+      console.log(`[PostgreSQL Auto-Create] Target database "${pgConfig.database}" does not exist. Creating database...`);
+      const defaultPgConfig = { ...pgConfig, database: 'postgres' };
+      const defaultClient = new pg.Client(defaultPgConfig);
+      await defaultClient.connect();
+      await defaultClient.query(`CREATE DATABASE "${pgConfig.database}";`);
+      await defaultClient.end();
+
+      const client = new pg.Client(pgConfig);
+      await client.connect();
+      await client.end();
+      return true;
+    }
+    throw err;
+  }
+}
+
 // Admin Switch Database Endpoint (Protected by username: onenet / password: Admin&86)
 app.post('/api/admin/switch-db', async (req, res) => {
   try {
-    const { username, password, targetPreset, customUri, customDbName, pgHost, pgPort, pgUser, pgPassword, pgDatabase } = req.body;
+    const { username, password, targetPreset, customUri, customDbName, pgHost, pgPort, pgUser, pgPassword, pgDatabase, pgConnString } = req.body;
 
     if (!validateMasterCredentials(username, password)) {
       return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials (username: onenet)' });
     }
 
     if (targetPreset === 'rvm_postgres' || req.body.targetDbType === 'postgres') {
-      const pgConfig = {
+      const pgConfig = pgConnString ? { connectionString: pgConnString } : {
         host: pgHost || process.env.PG_HOST || '127.0.0.1',
         port: parseInt(pgPort || process.env.PG_PORT || '5432'),
         user: pgUser || process.env.PG_USER || 'postgres',
@@ -264,23 +288,28 @@ app.post('/api/admin/switch-db', async (req, res) => {
         database: pgDatabase || process.env.PG_DATABASE || 'rvm_postgres'
       };
 
-      const testClient = new pg.Client(pgConfig);
-      await testClient.connect();
-      await testClient.end();
+      try {
+        await ensurePostgresDatabase(pgConfig);
+      } catch (pgErr) {
+        return res.status(400).json({
+          error: `PostgreSQL Connection Failed: ${pgErr.message}. Please verify PostgreSQL service is running on ${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432} and credentials are correct.`
+        });
+      }
 
       activeDbType = 'postgres';
       activePgConfig = pgConfig;
-      currentDbName = pgConfig.database;
+      currentDbName = pgConfig.database || 'rvm_postgres';
 
       return res.json({
         success: true,
-        message: `Successfully authenticated as "onenet". Runtime database switched to PostgreSQL database "${pgConfig.database}" on host "${pgConfig.host}:${pgConfig.port}".`,
-        database: pgConfig.database,
+        message: `Successfully authenticated as "onenet". Runtime database switched to PostgreSQL database "${currentDbName}" on host "${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}".`,
+        database: currentDbName,
         databaseType: 'postgres',
-        serverHost: `${pgConfig.host}:${pgConfig.port}`,
+        serverHost: `${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}`,
         serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' }
       });
     }
+
 
     let newUri = '';
     let newDbName = '';

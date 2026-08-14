@@ -71,9 +71,16 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
         body: JSON.stringify({
           username,
           password,
-          targetPreset
+          targetPreset,
+          pgHost,
+          pgPort,
+          pgUser,
+          pgPassword,
+          pgDatabase,
+          pgConnString
         })
       });
+
 
       const data = await res.json();
       if (res.ok && data.success) {
