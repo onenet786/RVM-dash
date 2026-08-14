@@ -122,16 +122,18 @@ JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
 ```nginx
 server {
     listen 80;
-    server_name rvm.yourdomain.com;
+    listen [::]:80;
+    server_name isprvm.binishaqsoft.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name rvm.yourdomain.com;
+    listen [::]:443 ssl http2;
+    server_name isprvm.binishaqsoft.com;
 
-    ssl_certificate /www/server/panel/vhost/cert/rvm.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /www/server/panel/vhost/cert/rvm.yourdomain.com/privkey.pem;
+    ssl_certificate /www/server/panel/vhost/cert/isprvm.binishaqsoft.com/fullchain.pem;
+    ssl_certificate_key /www/server/panel/vhost/cert/isprvm.binishaqsoft.com/privkey.pem;
 
     root /www/wwwroot/rvm-dash/dist;
     index index.html;
@@ -149,7 +151,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # SPA Client Fallback
+    # SPA Client Fallback (Prevents 404 Not Found)
     location / {
         try_files $uri $uri/ /index.html;
     }
@@ -158,8 +160,9 @@ server {
 
 4. **Enable Free SSL**:
    - Open Site Settings ➔ **SSL** ➔ Select **Let's Encrypt** tab.
-   - Select domain `rvm.yourdomain.com` ➔ Click **Apply**.
+   - Select domain `isprvm.binishaqsoft.com` ➔ Click **Apply**.
    - Enable **Force HTTPS** toggle.
+
 
 ---
 
@@ -192,21 +195,20 @@ bash deploy-aapanel.sh
 
 ## 5. Troubleshooting & Common Notices
 
-### Q: How to resolve `Permission denied` when running `server/index.js` via aaPanel Node Project Manager GUI?
-- **Cause**: aaPanel executes `server/index.js` as a raw Linux binary script without specifying the `node` runtime executable.
-- **Solution 1 (In aaPanel GUI)**:
-  - In aaPanel ➔ **Website** ➔ **Node project** tab: Click **Settings** (or Edit) on `rvm-master-dashboard`.
-  - Set **Run Opt / Start Command** to: `node server/index.js` (or select `npm run start`), NOT just `server/index.js`.
-- **Solution 2 (File Permission & Shebang)**:
-  - We added `#!/usr/bin/env node` to the top of `server/index.js`. Run permissions fix in terminal:
-    ```bash
-    cd /www/wwwroot/rvm-dash
-    chmod +x server/index.js
-    git clean -fd dist/
-    git pull origin B2
-    ```
+### Q: How to resolve `EPERM, Operation not permitted: /www/wwwroot/rvm-dash/dist/.user.ini` during `npm run build`?
+- **Root Cause**: aaPanel places an immutable `.user.ini` anti-cross-site lock file (`chattr +i`) inside `dist/`. When Vite attempts to delete/empty `dist/`, Node.js throws `EPERM`.
+- **Solution 1 (Configured in Codebase)**: We set `build.emptyOutDir: false` in `vite.config.js` so Vite doesn't attempt to delete `.user.ini`.
+- **Solution 2 (Server Command)**: Unlock and remove `.user.ini` before running build:
+  ```bash
+  cd /www/wwwroot/rvm-dash
+  chattr -i dist/.user.ini 2>/dev/null || true
+  rm -f dist/.user.ini 2>/dev/null || true
+  git pull origin B2
+  bash deploy-aapanel.sh
+  ```
 
 ---
+
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
 

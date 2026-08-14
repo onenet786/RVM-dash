@@ -37,6 +37,12 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+const DIST_DIR = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+}
+
+
 let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
 let currentDbName = process.env.MONGODB_DBNAME || 'ONS-RVM';
 
@@ -1333,7 +1339,14 @@ app.get('/api/auth/me', async (req, res) => {
   }
 });
 
+if (fs.existsSync(DIST_DIR)) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`[RVM Master Dashboard Backend] Running on http://localhost:${PORT}`);
 });
+

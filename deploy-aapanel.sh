@@ -21,8 +21,13 @@ fi
 echo "📦 [2/5] Installing Dependencies..."
 npm install --production=false
 
-echo "⚡ [3/5] Building Vite Production Frontend Assets..."
+echo "⚡ [3/5] Unlocking aaPanel .user.ini & Building Vite Frontend Assets..."
+if [ -f "dist/.user.ini" ]; then
+  chattr -i dist/.user.ini 2>/dev/null || true
+  rm -f dist/.user.ini 2>/dev/null || true
+fi
 npm run build
+
 
 echo "🔒 [4/5] Verifying Environment Settings..."
 if [ ! -f .env ]; then
