@@ -26,6 +26,8 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
 
   const currentThemeObj = themesList.find(t => t.id === theme) || themesList[0];
 
+  const isMasterDev = currentUser?.username === 'onenet';
+
   return (
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
       <div className="flex items-center justify-between gap-2">
@@ -55,23 +57,33 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
             </div>
             
             <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
-              <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                <Server className="w-3 h-3" />
-                {serverHost}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <HardDrive className="w-3 h-3" />
-                DB: {dbName}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-amber-400 font-bold">
-                <MapPin className="w-3 h-3 text-amber-400" />
-                Region: {serverLoc}
-              </span>
+              {isMasterDev ? (
+                <>
+                  <span className="flex items-center gap-1 text-cyan-400 font-semibold">
+                    <Server className="w-3 h-3" />
+                    {serverHost}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                    <HardDrive className="w-3 h-3" />
+                    DB: {dbName}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                    <MapPin className="w-3 h-3 text-amber-400" />
+                    Region: {serverLoc}
+                  </span>
+                </>
+              ) : (
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <HardDrive className="w-3 h-3" />
+                  Database: {dbName}
+                </span>
+              )}
             </div>
           </div>
         </div>
+
 
         {/* Right Status Indicators, User Profile & Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
