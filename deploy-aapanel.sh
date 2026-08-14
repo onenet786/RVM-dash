@@ -18,10 +18,7 @@ if [ -d ".git" ]; then
   git pull origin B2 || git pull origin main || git pull origin master || true
 fi
 
-
-
 echo "📦 [2/5] Installing Dependencies..."
-
 npm install --production=false
 
 echo "⚡ [3/5] Building Vite Production Frontend Assets..."
@@ -33,7 +30,7 @@ if [ ! -f .env ]; then
   cp .env.example .env || cat <<EOT > .env
 MONGODB_URI=mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority
 MONGODB_DBNAME=ONS-RVM
-PORT=5000
+PORT=3131
 JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
 EOT
 fi
@@ -47,4 +44,4 @@ else
   nohup node server/index.js > server.log 2>&1 &
 fi
 
-echo "✅ [SUCCESS] Deployment Completed! Dashboard API is running on http://127.0.0.1:5000"
+echo "✅ [SUCCESS] Deployment Completed! Dashboard API is running on http://127.0.0.1:3131"
