@@ -190,21 +190,22 @@ bash deploy-aapanel.sh
 
 ---
 
-## 5. Troubleshooting & Common Notices
-
-### Q: How to resolve `error: The following untracked working tree files would be overwritten by merge: dist/index.html` during `git pull`?
-- **Answer**: The local `dist/` build directory on the server has generated files that conflict with incoming changes.
-- **Solution**: Remove the local untracked `dist/` directory before pulling:
+### Q: How to resolve `nohup: failed to run command 'server/index.js': Permission denied`?
+- **Cause**: Linux is attempting to execute `server/index.js` as an independent binary without invoking the `node` interpreter, or script execution permissions are missing.
+- **Solution**: Run `chmod +x deploy-aapanel.sh` and pull the latest script update:
   ```bash
   cd /www/wwwroot/rvm-dash
+  chmod +x deploy-aapanel.sh
   git clean -fd dist/
   git pull origin B2
   bash deploy-aapanel.sh
   ```
+- **In aaPanel Node Project Manager**: Make sure **Run Opt / Start Command** is set to `node server/index.js` (or select `npm run start`), NOT just `server/index.js`.
 
 ---
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
+
 
 | Port | Protocol | Usage | aaPanel Security Action |
 | :--- | :--- | :--- | :--- |

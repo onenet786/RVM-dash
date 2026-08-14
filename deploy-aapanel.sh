@@ -41,7 +41,9 @@ if command -v pm2 &> /dev/null; then
   pm2 save
 else
   echo "⚠️ PM2 not found globally, restarting node background task..."
-  nohup node server/index.js > server.log 2>&1 &
+  NODE_CMD="$(which node 2>/dev/null || echo "node")"
+  nohup "$NODE_CMD" server/index.js > server.log 2>&1 &
 fi
+
 
 echo "✅ [SUCCESS] Deployment Completed! Dashboard API is running on http://127.0.0.1:3131"
