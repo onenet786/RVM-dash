@@ -7,7 +7,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
 } from 'recharts';
 
-export default function OverviewTab() {
+export default function OverviewTab({ currentUser }) {
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
@@ -15,7 +15,7 @@ export default function OverviewTab() {
 
   const getMachinesQuery = () => {
     try {
-      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      const u = currentUser || JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
       if (!u.assignedMachines) return '';
       const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
       if (arr.includes('*')) return '';
@@ -34,7 +34,6 @@ export default function OverviewTab() {
         fetch(`/api/analytics/trends${query}`),
         fetch('/api/health')
       ]);
-
 
       if (ovRes.ok) setOverview(await ovRes.json());
       if (trRes.ok) setTrends(await trRes.json());
@@ -61,6 +60,8 @@ export default function OverviewTab() {
 
   const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
   const dbName = health?.database || 'ONS-RVM';
+  const isMasterDev = currentUser?.username === 'onenet';
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -72,28 +73,35 @@ export default function OverviewTab() {
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Active MongoDB Connection</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Active Database Connection</div>
             <div className="text-xs font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
-              <span>Cluster Host: <span className="text-cyan-400">{serverHost}</span></span>
-              <span>•</span>
-              <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
-              <span>•</span>
-              <span>Location: <span className="text-amber-400 font-bold">{health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}</span></span>
+              {isMasterDev ? (
+                <>
+                  <span>Cluster Host: <span className="text-cyan-400">{serverHost}</span></span>
+                  <span>•</span>
+                  <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
+                  <span>•</span>
+                  <span>Location: <span className="text-amber-400 font-bold">{health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}</span></span>
+                </>
+              ) : (
+                <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
+              )}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-bold border border-amber-500/20 flex items-center gap-1.5">
-            📍 {health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}
-          </span>
+          {isMasterDev && (
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-bold border border-amber-500/20 flex items-center gap-1.5">
+              📍 {health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}
+            </span>
+          )}
           <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-bold border border-emerald-500/20 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            MongoDB Atlas Live
+            🟢 Active ({dbName})
           </span>
         </div>
-
       </div>
+
 
       {/* Main Header Banner */}
       <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-emerald-500/20 glow-emerald">

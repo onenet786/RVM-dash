@@ -130,10 +130,13 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       {/* Footer Info */}
       <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-center mt-auto">
         <div className="text-[11px] font-bold t-text-primary">ISP RVM Master Hub</div>
-        <div className="text-[10px] t-text-muted">MongoDB Atlas Connected</div>
+        <div className="text-[10px] t-text-muted">
+          {isMasterDev ? `MongoDB Atlas (${health?.serverHost || 'cluster0.ktted0m.mongodb.net'})` : `Database: ${health?.database || 'ONS-RVM'}`}
+        </div>
       </div>
     </div>
   );
+
 
   return (
     <>

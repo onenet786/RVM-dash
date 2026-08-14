@@ -76,12 +76,13 @@ export default function App() {
 
     // Block non-onenet users from master administrative tabs
     if (!isMasterDev && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab)) {
-      return <OverviewTab />;
+      return <OverviewTab currentUser={currentUser} />;
     }
 
     if (activeTab === 'overview') {
-      return <OverviewTab />;
+      return <OverviewTab currentUser={currentUser} />;
     }
+
     if (activeTab === 'esg_impact') {
       return <EnvironmentalImpactTab />;
     }
