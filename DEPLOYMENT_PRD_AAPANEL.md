@@ -1,7 +1,7 @@
 # Production Deployment PRD: RVM Master Developer Dashboard
 **Target Infrastructure**: Dedicated Ubuntu Linux Server with aaPanel Control Panel  
 **Application Stack**: Node.js ES Modules (Express API), MongoDB Atlas Cluster, Vite React Frontend (SPA), PM2 Process Manager, Nginx Reverse Proxy  
-**Document Version**: 2.0 (August 2026 - aaPanel Node Project Manager Spec)
+**Document Version**: 3.0 (August 2026 - Port 3131 Update)
 
 ---
 
@@ -15,10 +15,10 @@
 [ Ubuntu Dedicated Server + aaPanel ]
   ├── Nginx Reverse Proxy (Ports 80/443)
   │     ├── Static Frontend Bundle (/www/wwwroot/rvm-dash/dist)
-  │     └── Reverse Proxy /api/ ➔ http://127.0.0.1:5000
+  │     └── Reverse Proxy /api/ ➔ http://127.0.0.1:3131
   │
   ├── aaPanel Node Project Manager (PM2 Engine)
-  │     └── [rvm-master-dashboard] process running server/index.js (Port 5000)
+  │     └── [rvm-master-dashboard] process running server/index.js (Port 3131)
   │
   └── Environment Connections
         ├── Primary Master Cluster: ONS-RVM (cluster0.ktted0m.mongodb.net)
@@ -66,8 +66,6 @@ npm install --production=false
 npm run build
 ```
 
-
-
 ---
 
 ### Step 2: Configure aaPanel Node Project Manager (GUI Method)
@@ -84,7 +82,7 @@ npm run build
 | **Node Version** | `v18.x` or `v20.x` | Select version installed in Node Version Manager |
 | **Name** | `rvm-master-dashboard` | PM2 Process Display Name |
 | **Run Opt / Start Command** | `server/index.js` (or `npm run start`) | Server entry point script |
-| **Project Port** | `5000` | Internal Express backend API port |
+| **Project Port** | `3131` | Internal Express backend API port |
 | **User** | `www` (or `root`) | Linux process execution user |
 | **Auto Start** | `Enabled` / `Checked` | Ensures auto-restart on server reboot |
 | **Domain Name** | `rvm.yourdomain.com` | Domain name bound to this Node site |
@@ -101,7 +99,7 @@ npm run build
 
 ```ini
 NODE_ENV=production
-PORT=5000
+PORT=3131
 MONGODB_URI=mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority
 MONGODB_DBNAME=ONS-RVM
 JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
@@ -139,9 +137,9 @@ server {
     index index.html;
     client_max_body_size 50M;
 
-    # Backend API Reverse Proxy
+    # Backend API Reverse Proxy (Port 3131)
     location /api/ {
-        proxy_pass http://127.0.0.1:5000/api/;
+        proxy_pass http://127.0.0.1:3131/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -180,7 +178,7 @@ bash deploy-aapanel.sh
 
 1. **Verify Backend API**:
    ```bash
-   curl http://127.0.0.1:5000/api/health
+   curl http://127.0.0.1:3131/api/health
    ```
    *Expected Output*: `{ "status": "online", "database": "ONS-RVM", ... }`
 
@@ -192,6 +190,8 @@ bash deploy-aapanel.sh
 
 ---
 
+## 5. Troubleshooting & Common Notices
+
 ### Q: How to resolve `error: The following untracked working tree files would be overwritten by merge: dist/index.html` during `git pull`?
 - **Answer**: The local `dist/` build directory on the server has generated files that conflict with incoming changes.
 - **Solution**: Remove the local untracked `dist/` directory before pulling:
@@ -201,23 +201,16 @@ bash deploy-aapanel.sh
   git pull origin B2
   bash deploy-aapanel.sh
   ```
-  *Or force reset to branch B2*:
-  ```bash
-  git fetch origin B2
-  git reset --hard origin/B2
-  bash deploy-aapanel.sh
-  ```
 
 ---
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
 
-
 | Port | Protocol | Usage | aaPanel Security Action |
 | :--- | :--- | :--- | :--- |
 | **80** | TCP | HTTP (Redirects to HTTPS) | **Accept** / **Allow** |
 | **443** | TCP | HTTPS Dashboard Access | **Accept** / **Allow** |
-| **5000** | TCP | Node Express Backend Internal API | **Internal Only** (Keep blocked externally) |
+| **3131** | TCP | Node Express Backend Internal API | **Internal Only** (Keep blocked externally) |
 | **27017** | TCP | MongoDB Atlas Outbound SRV | **Outbound Accept** |
 
 ---
@@ -230,4 +223,3 @@ bash deploy-aapanel.sh
 - 🔒 **`rvmapp` Restoration Denial Protection Rule** (Read-Only Source Protection)
 - 🔄 **One-Way Database Sync Engine** (`rvmapp` ➔ `ONS-RVM`)
 - 🌿 **Audited ESG Environmental Carbon Impact & Equivalency Calculators** (Trees Planted & Car Miles Avoided)
-
