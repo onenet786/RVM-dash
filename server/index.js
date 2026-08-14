@@ -1367,8 +1367,8 @@ async function fetchCollectionDocs(colName) {
       await client.end();
       return res.rows.map(r => {
         const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
+        delete parsed.id; // Keep _id as the single primary ID field
         if (!parsed._id) parsed._id = r.id;
-        if (!parsed.id) parsed.id = r.id;
         return parsed;
       });
     } catch (e) {
@@ -1396,7 +1396,8 @@ async function saveDocToEngine(colName, doc) {
       );
     `);
     const idStr = doc._id ? doc._id.toString() : (doc.id ? doc.id.toString() : new ObjectId().toString());
-    const docToSave = { _id: idStr, id: idStr, ...doc };
+    const docToSave = { ...doc, _id: idStr };
+    delete docToSave.id; // Single primary _id field
     const docJson = JSON.stringify(docToSave);
     await client.query(`
       INSERT INTO "${tableName}" (id, data, synced_at)
@@ -1426,11 +1427,13 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
     const res = await client.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
     if (res.rows.length > 0) {
       const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
-      const updatedData = { _id: res.rows[0].id, id: res.rows[0].id, ...existingData, ...updateFields };
+      const updatedData = { ...existingData, ...updateFields, _id: res.rows[0].id };
+      delete updatedData.id;
       await client.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
     } else {
       const idStr = matchVal;
-      const docToSave = { _id: idStr, id: idStr, [matchKey]: matchVal, ...updateFields };
+      const docToSave = { [matchKey]: matchVal, ...updateFields, _id: idStr };
+      delete docToSave.id;
       await client.query(`
         INSERT INTO "${tableName}" (id, data, synced_at)
         VALUES ($1, $2, NOW())
@@ -1440,6 +1443,7 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
     await client.end();
     return true;
   }
+
 
 
   if (!db) await connectDB();
@@ -1751,7 +1755,6 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
     const newId = new ObjectId().toString();
     const newUser = {
       _id: newId,
-      id: newId,
       username,
       fullName: fullName || username,
       email: email || `${username}@rvm-dash.io`,
@@ -1761,6 +1764,7 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
       status: 'active',
       createdAt: new Date().toISOString()
     };
+
 
 
     await saveDocToEngine('adminaccounts', newUser);
