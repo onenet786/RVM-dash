@@ -12,7 +12,13 @@ echo "🚀 [1/5] Starting Production Deployment for RVM Master Dashboard..."
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
 
+echo "🔄 Pulling Latest Code Changes from Repository..."
+if [ -d ".git" ]; then
+  git pull origin main || git pull origin master || true
+fi
+
 echo "📦 [2/5] Installing Dependencies..."
+
 npm install --production=false
 
 echo "⚡ [3/5] Building Vite Production Frontend Assets..."
