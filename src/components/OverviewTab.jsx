@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Recycle, Wine, Coffee, Award, Users, AlertTriangle, MessageSquare, 
-  TrendingUp, Activity, ArrowUpRight, Sparkles, RefreshCw
+  TrendingUp, Activity, Sparkles, RefreshCw
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
@@ -20,8 +20,8 @@ export default function OverviewTab() {
         fetch('/api/analytics/trends')
       ]);
 
-      if (ovRes.ok) setOverview(await ovRes.ok ? await ovRes.json() : null);
-      if (trRes.ok) setTrends(await trRes.ok ? await trRes.json() : []);
+      if (ovRes.ok) setOverview(await ovRes.json());
+      if (trRes.ok) setTrends(await trRes.json());
     } catch (err) {
       console.error('Error fetching overview', err);
     } finally {
@@ -35,7 +35,7 @@ export default function OverviewTab() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
         <p className="text-sm font-semibold">Loading MongoDB Live Dashboard Metrics...</p>
       </div>
@@ -54,17 +54,17 @@ export default function OverviewTab() {
               <Sparkles className="w-4 h-4 text-emerald-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Master Developer Dashboard</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
               Reverse Vending Machine System Analytics
             </h1>
-            <p className="text-xs md:text-sm text-slate-400 mt-1">
+            <p className="text-xs md:text-sm t-text-secondary mt-1">
               Real-time monitoring of recycling sessions, material throughput, user participation, and machine status.
             </p>
           </div>
 
           <button
             onClick={fetchOverview}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-950"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-950/40 shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Metrics
@@ -78,14 +78,14 @@ export default function OverviewTab() {
         {/* Total Bottles */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-emerald-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Plastic Bottles</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Plastic Bottles</span>
             <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
               <Wine className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold text-white mono">{overview?.totalBottles ?? 0}</div>
-            <p className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-medium">
+            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalBottles ?? 0}</div>
+            <p className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-semibold">
               <TrendingUp className="w-3.5 h-3.5" /> Total PET Bottles Recycled
             </p>
           </div>
@@ -94,14 +94,14 @@ export default function OverviewTab() {
         {/* Total Cups */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-amber-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recyclable Cups</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Recyclable Cups</span>
             <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
               <Coffee className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold text-white mono">{overview?.totalCups ?? 0}</div>
-            <p className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 font-medium">
+            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalCups ?? 0}</div>
+            <p className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 font-semibold">
               <TrendingUp className="w-3.5 h-3.5" /> Total Cups Collected
             </p>
           </div>
@@ -110,14 +110,14 @@ export default function OverviewTab() {
         {/* Total Points */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-cyan-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Points Rewarded</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Points Rewarded</span>
             <div className="p-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
               <Award className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold text-white mono">{overview?.totalPoints ?? 0}</div>
-            <p className="text-[11px] text-cyan-400 flex items-center gap-1 mt-1 font-medium">
+            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalPoints ?? 0}</div>
+            <p className="text-[11px] text-cyan-400 flex items-center gap-1 mt-1 font-semibold">
               <TrendingUp className="w-3.5 h-3.5" /> Total User Loyalty Points
             </p>
           </div>
@@ -126,14 +126,14 @@ export default function OverviewTab() {
         {/* Total Sessions */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-purple-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Sessions</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Total Sessions</span>
             <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
               <Recycle className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold text-white mono">{overview?.totalSessions ?? 0}</div>
-            <p className="text-[11px] text-purple-400 flex items-center gap-1 mt-1 font-medium">
+            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalSessions ?? 0}</div>
+            <p className="text-[11px] text-purple-400 flex items-center gap-1 mt-1 font-semibold">
               <Activity className="w-3.5 h-3.5" /> Active RVM Transactions
             </p>
           </div>
@@ -147,8 +147,8 @@ export default function OverviewTab() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white mono">{overview?.totalUsers ?? 0}</div>
-            <div className="text-xs text-slate-400">Registered Eco Users</div>
+            <div className="text-xl font-bold t-text-primary mono">{overview?.totalUsers ?? 0}</div>
+            <div className="text-xs t-text-secondary font-medium">Registered Eco Users</div>
           </div>
         </div>
 
@@ -157,8 +157,8 @@ export default function OverviewTab() {
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white mono">{overview?.totalBinAlerts ?? 0}</div>
-            <div className="text-xs text-slate-400">Bin Full Notifications</div>
+            <div className="text-xl font-bold t-text-primary mono">{overview?.totalBinAlerts ?? 0}</div>
+            <div className="text-xs t-text-secondary font-medium">Bin Full Notifications</div>
           </div>
         </div>
 
@@ -167,8 +167,8 @@ export default function OverviewTab() {
             <MessageSquare className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white mono">{overview?.totalFeedbacks ?? 0}</div>
-            <div className="text-xs text-slate-400">User Feedbacks Submitted</div>
+            <div className="text-xl font-bold t-text-primary mono">{overview?.totalFeedbacks ?? 0}</div>
+            <div className="text-xs t-text-secondary font-medium">User Feedbacks Submitted</div>
           </div>
         </div>
       </div>
@@ -177,17 +177,17 @@ export default function OverviewTab() {
       <div className="glass-panel p-6 rounded-3xl space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white tracking-wide">Recycling Material Throughput</h3>
-            <p className="text-xs text-slate-400">Daily PET Bottles and Recyclable Cups volume</p>
+            <h3 className="text-base font-bold t-text-primary tracking-wide">Recycling Material Throughput</h3>
+            <p className="text-xs t-text-secondary">Daily PET Bottles and Recyclable Cups volume</p>
           </div>
-          <span className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
             Daily Aggregates
           </span>
         </div>
 
         <div className="h-72 w-full pt-4">
           {trends.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-xs text-slate-500">
+            <div className="h-full flex items-center justify-center text-xs t-text-muted">
               No daily trends data available yet.
             </div>
           ) : (
@@ -203,12 +203,12 @@ export default function OverviewTab() {
                     <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="_id" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                <XAxis dataKey="_id" stroke="var(--text-muted)" fontSize={11} />
+                <YAxis stroke="var(--text-muted)" fontSize={11} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} 
-                  itemStyle={{ color: '#f3f4f6' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '12px' }} 
+                  itemStyle={{ color: 'var(--text-primary)' }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                 <Area type="monotone" dataKey="bottles" name="Bottles" stroke="#10b981" fillOpacity={1} fill="url(#colorBottles)" strokeWidth={2} />
@@ -224,26 +224,26 @@ export default function OverviewTab() {
         
         {/* Recent Recycling Sessions */}
         <div className="glass-panel p-5 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <div className="flex items-center justify-between border-b t-border pb-3">
+            <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-400" />
               Recent Recycling Transactions
             </h3>
-            <span className="text-[11px] text-slate-400">Latest 5</span>
+            <span className="text-[11px] t-text-muted font-bold">Latest 5</span>
           </div>
 
           <div className="space-y-2.5">
             {(!overview?.recentSessions || overview.recentSessions.length === 0) ? (
-              <p className="text-xs text-slate-500 py-4 text-center">No recent sessions.</p>
+              <p className="text-xs t-text-muted py-4 text-center">No recent sessions.</p>
             ) : (
               overview.recentSessions.map(session => (
-                <div key={session._id} className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between hover:border-slate-700 transition-all">
+                <div key={session._id} className="p-3 t-bg-sec border t-border rounded-xl flex items-center justify-between hover:border-emerald-500/30 transition-all">
                   <div>
-                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                    <div className="text-xs font-semibold t-text-primary flex items-center gap-2">
                       <span>{session.userName || 'Anonymous'}</span>
-                      <span className="mono text-[10px] text-slate-400">{session.phoneNumber}</span>
+                      <span className="mono text-[10px] t-text-muted">{session.phoneNumber}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
+                    <div className="text-[11px] t-text-muted mt-0.5">
                       {new Date(session.recycledAt || session._id).toLocaleString()}
                     </div>
                   </div>
@@ -267,29 +267,29 @@ export default function OverviewTab() {
 
         {/* Recent Bin Full Alerts */}
         <div className="glass-panel p-5 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <div className="flex items-center justify-between border-b t-border pb-3">
+            <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-400" />
               Bin Full Operational Alerts
             </h3>
-            <span className="text-[11px] text-slate-400">Latest Alerts</span>
+            <span className="text-[11px] t-text-muted font-bold">Latest Alerts</span>
           </div>
 
           <div className="space-y-2.5">
             {(!overview?.recentAlerts || overview.recentAlerts.length === 0) ? (
-              <p className="text-xs text-slate-500 py-4 text-center">No bin full notifications recorded.</p>
+              <p className="text-xs t-text-muted py-4 text-center">No bin full notifications recorded.</p>
             ) : (
               overview.recentAlerts.map(alert => (
-                <div key={alert._id} className="p-3 bg-slate-950/70 border border-rose-500/20 rounded-xl flex items-center justify-between">
+                <div key={alert._id} className="p-3 t-bg-sec border border-rose-500/20 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-white">
-                        Machine ID: <span className="mono text-rose-300">{alert.machineId}</span>
+                      <div className="text-xs font-semibold t-text-primary">
+                        Machine ID: <span className="mono text-rose-400">{alert.machineId}</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] t-text-muted">
                         {new Date(alert.occurredAt).toLocaleString()}
                       </div>
                     </div>

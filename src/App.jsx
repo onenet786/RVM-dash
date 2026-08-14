@@ -4,11 +4,19 @@ import Sidebar from './components/Sidebar';
 import OverviewTab from './components/OverviewTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import MachineHealthTab from './components/MachineHealthTab';
+import DbBackupTab from './components/DbBackupTab';
 import DataTable from './components/DataTable';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('rvm_theme') || 'cyber-dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('rvm_theme', theme);
+  }, [theme]);
 
   const fetchHealth = async () => {
     try {
@@ -37,14 +45,18 @@ export default function App() {
     if (activeTab === 'machines') {
       return <MachineHealthTab />;
     }
+    if (activeTab === 'db_backup') {
+      return <DbBackupTab onRefreshHealth={fetchHealth} />;
+    }
 
     if (activeTab.startsWith('col_')) {
       const colName = activeTab.replace('col_', '');
       const displayNames = {
         recyclingsessions: 'Recycling Sessions Table',
-        users: 'Registered Users Table',
+        userprofile: 'Registered User Profiles Table',
         feedbacks: 'User Feedbacks Log Table',
         binfullnotifications: 'Bin Full Alerts Table',
+        redemptions: 'Redemptions Table',
         adminaccounts: 'Admin Accounts Table',
         settings: 'System Settings Table'
       };
@@ -62,10 +74,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen flex flex-col font-sans transition-colors duration-300">
       
       {/* Top Navbar */}
-      <Navbar health={health} onRefresh={fetchHealth} />
+      <Navbar 
+        health={health} 
+        onRefresh={fetchHealth} 
+        theme={theme}
+        setTheme={setTheme}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         
@@ -77,7 +94,7 @@ export default function App() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>

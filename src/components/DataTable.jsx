@@ -19,7 +19,6 @@ export default function DataTable({ collectionName, displayName }) {
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  // Handle search debounce
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -68,18 +67,11 @@ export default function DataTable({ collectionName, displayName }) {
     }
   };
 
-  // Export helper
   const handleExportCSV = () => {
     if (!data || data.length === 0) return;
-    
-    // Extract headers
     const keys = Array.from(new Set(data.flatMap(d => Object.keys(d))));
-    const csvRows = [];
+    const csvRows = [keys.join(',')];
     
-    // Header line
-    csvRows.push(keys.join(','));
-    
-    // Rows
     data.forEach(row => {
       const values = keys.map(k => {
         const val = row[k];
@@ -98,14 +90,12 @@ export default function DataTable({ collectionName, displayName }) {
     a.click();
   };
 
-  // Dynamically determine table columns based on collection structure
   const getColumns = () => {
     if (data.length === 0) return ['_id'];
     const keys = new Set();
     data.forEach(item => {
       Object.keys(item).forEach(k => keys.add(k));
     });
-    // Put _id first, then standard attributes
     const keyArray = Array.from(keys);
     return keyArray.sort((a, b) => {
       if (a === '_id') return -1;
@@ -116,18 +106,18 @@ export default function DataTable({ collectionName, displayName }) {
 
   const renderCellContent = (key, val) => {
     if (val === null || val === undefined) {
-      return <span className="text-slate-600 italic">null</span>;
+      return <span className="t-text-muted italic text-xs">null</span>;
     }
     
     if (key === '_id') {
-      return <span className="mono text-xs font-semibold text-emerald-400">{String(val)}</span>;
+      return <span className="mono text-xs font-bold text-emerald-400">{String(val)}</span>;
     }
 
     if (key.toLowerCase().includes('date') || key.toLowerCase().includes('at')) {
       const d = new Date(val);
       if (!isNaN(d.getTime())) {
         return (
-          <div className="flex items-center gap-1.5 text-slate-300 text-xs">
+          <div className="flex items-center gap-1.5 t-text-secondary text-xs">
             <Calendar className="w-3.5 h-3.5 text-cyan-400" />
             {d.toLocaleString()}
           </div>
@@ -138,7 +128,7 @@ export default function DataTable({ collectionName, displayName }) {
     if (key === 'gender') {
       const isMale = val === 'male';
       return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
           isMale ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-pink-500/10 text-pink-400 border border-pink-500/20'
         }`}>
           {val}
@@ -148,9 +138,7 @@ export default function DataTable({ collectionName, displayName }) {
 
     if (key === 'binType') {
       return (
-        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-          val === 'cup' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-        }`}>
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
           <AlertTriangle className="w-3 h-3" />
           {val.toUpperCase()} BIN FULL
         </span>
@@ -158,18 +146,18 @@ export default function DataTable({ collectionName, displayName }) {
     }
 
     if (typeof val === 'number') {
-      return <span className="mono font-bold text-cyan-300">{val}</span>;
+      return <span className="mono font-bold text-cyan-400">{val}</span>;
     }
 
     if (typeof val === 'object') {
       return (
-        <span className="mono text-xs text-purple-300 bg-purple-950/40 px-2 py-0.5 rounded border border-purple-500/20">
+        <span className="mono text-xs text-purple-400 bg-purple-950/30 px-2 py-0.5 rounded border border-purple-500/20">
           {JSON.stringify(val).slice(0, 30)}...
         </span>
       );
     }
 
-    return <span className="text-slate-200 text-xs truncate max-w-xs block">{String(val)}</span>;
+    return <span className="t-text-primary text-xs truncate max-w-xs block font-medium">{String(val)}</span>;
   };
 
   const columns = getColumns();
@@ -184,20 +172,20 @@ export default function DataTable({ collectionName, displayName }) {
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="flex items-center gap-2">
             <Database className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-white tracking-wide">{displayName || collectionName}</h2>
+            <h2 className="text-lg font-bold t-text-primary tracking-wide">{displayName || collectionName}</h2>
             <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full mono">
               {totalDocs} records
             </span>
           </div>
 
           <div className="relative flex-1 md:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 t-text-muted" />
             <input
               type="text"
               placeholder={`Search in ${collectionName}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-950/80 border border-slate-700/70 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full pl-9 pr-4 py-1.5 text-xs t-bg-sec border t-border rounded-xl t-text-primary placeholder:t-text-muted focus:outline-none focus:border-emerald-500 transition-all font-medium"
             />
           </div>
         </div>
@@ -207,7 +195,7 @@ export default function DataTable({ collectionName, displayName }) {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-xl transition-all disabled:opacity-50"
+            className="p-2 t-text-secondary hover:t-text-primary t-bg-sec hover:t-bg-hover border t-border rounded-xl transition-all disabled:opacity-50"
             title="Refresh Table Data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
@@ -216,7 +204,7 @@ export default function DataTable({ collectionName, displayName }) {
           <button
             onClick={handleExportCSV}
             disabled={data.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/30 rounded-xl transition-all disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl transition-all disabled:opacity-40"
           >
             <Download className="w-3.5 h-3.5" />
             Export CSV
@@ -225,11 +213,11 @@ export default function DataTable({ collectionName, displayName }) {
       </div>
 
       {/* Main Table Container */}
-      <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+      <div className="glass-panel rounded-2xl overflow-hidden border t-border shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 text-[11px] uppercase tracking-wider font-bold">
+              <tr className="t-bg-sec border-b t-border t-text-muted text-[11px] uppercase tracking-wider font-bold">
                 <th className="py-3 px-4 w-12 text-center">View</th>
                 {columns.map(col => (
                   <th 
@@ -239,19 +227,19 @@ export default function DataTable({ collectionName, displayName }) {
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{col}</span>
-                      <ArrowUpDown className="w-3 h-3 text-slate-600" />
+                      <ArrowUpDown className="w-3 h-3 t-text-muted" />
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y t-border">
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length + 1} className="py-12 text-center text-slate-400">
+                  <td colSpan={columns.length + 1} className="py-12 text-center t-text-secondary">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
-                      <p className="text-xs font-medium">Fetching documents from MongoDB...</p>
+                      <p className="text-xs font-semibold">Fetching documents from MongoDB...</p>
                     </div>
                   </td>
                 </tr>
@@ -266,9 +254,9 @@ export default function DataTable({ collectionName, displayName }) {
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 1} className="py-12 text-center text-slate-500">
+                  <td colSpan={columns.length + 1} className="py-12 text-center t-text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Database className="w-6 h-6 text-slate-600" />
+                      <Database className="w-6 h-6 t-text-muted" />
                       <p className="text-xs font-semibold">No records found matching query.</p>
                     </div>
                   </td>
@@ -277,13 +265,13 @@ export default function DataTable({ collectionName, displayName }) {
                 data.map((doc, idx) => (
                   <tr 
                     key={doc._id || idx}
-                    className="hover:bg-slate-800/40 transition-colors group"
+                    className="hover:t-bg-hover transition-colors group"
                   >
                     <td className="py-2.5 px-4 text-center">
                       <button
                         onClick={() => setSelectedDoc(doc)}
-                        className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
-                        title="Inspect Document JSON"
+                        className="p-1.5 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-all"
+                        title="Inspect Document Details"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -301,9 +289,9 @@ export default function DataTable({ collectionName, displayName }) {
         </div>
 
         {/* Footer Pagination */}
-        <div className="px-6 py-3 bg-slate-950/80 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+        <div className="px-6 py-3 t-bg-sec border-t t-border flex items-center justify-between text-xs t-text-secondary">
           <div>
-            Showing <span className="text-slate-200 font-semibold">{data.length}</span> of <span className="text-slate-200 font-semibold">{totalDocs}</span> documents
+            Showing <span className="t-text-primary font-bold">{data.length}</span> of <span className="t-text-primary font-bold">{totalDocs}</span> documents
           </div>
 
           <div className="flex items-center gap-4">
@@ -315,7 +303,7 @@ export default function DataTable({ collectionName, displayName }) {
                   setLimit(Number(e.target.value));
                   setPage(1);
                 }}
-                className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 focus:outline-none focus:border-emerald-500"
+                className="t-bg-surface border t-border t-text-primary rounded-lg px-2 py-1 focus:outline-none focus:border-emerald-500 font-semibold"
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>
@@ -328,19 +316,19 @@ export default function DataTable({ collectionName, displayName }) {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all"
+                className="p-1.5 rounded-lg t-bg-surface hover:t-bg-hover t-text-secondary disabled:opacity-30 border t-border transition-all"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <span className="px-2 font-mono">
+              <span className="px-2 font-mono font-bold">
                 Page {page} of {totalPages}
               </span>
 
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-30 disabled:hover:bg-slate-800 transition-all"
+                className="p-1.5 rounded-lg t-bg-surface hover:t-bg-hover t-text-secondary disabled:opacity-30 border t-border transition-all"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

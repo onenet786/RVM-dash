@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, HardDrive
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health }) {
@@ -16,6 +16,7 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
   ];
 
   const defaultCollections = [
@@ -38,15 +39,14 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
 
   const collectionItems = [...defaultCollections, ...dynamicCollections];
 
-
   return (
-    <aside className="w-64 bg-slate-950/90 border-r border-slate-800/80 flex flex-col justify-between shrink-0 p-4 space-y-6">
+    <aside className="w-64 t-bg-surface border-r t-border flex flex-col justify-between shrink-0 p-4 space-y-6 transition-colors duration-300">
       
       <div className="space-y-6">
         
         {/* Main Section */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-3">
+          <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-2 px-3">
             Core Dashboards
           </div>
           <nav className="space-y-1">
@@ -57,14 +57,14 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                     isActive 
-                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-950/50' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md' 
+                      : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-500'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 't-text-muted'}`} />
                     <span>{item.label}</span>
                   </div>
                   {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
@@ -76,7 +76,7 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
 
         {/* MongoDB Tables / Collections Browser */}
         <div>
-          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2 px-3">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider t-text-muted mb-2 px-3">
             <span>MongoDB Tables</span>
             <span className="text-emerald-400 mono">{health?.collectionsCount || 0}</span>
           </div>
@@ -90,19 +90,19 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive 
-                      ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-md shadow-cyan-950/50' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md' 
+                      : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-cyan-400' : 't-text-muted'}`} />
                     <span className="truncate">{item.label}</span>
                   </div>
                   {count !== null && (
                     <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md mono ${
-                      isActive ? 'bg-cyan-400/20 text-cyan-200' : 'bg-slate-900 text-slate-400'
+                      isActive ? 'bg-cyan-500/30 text-cyan-300' : 't-bg-sec t-text-muted'
                     }`}>
                       {count}
                     </span>
@@ -116,9 +116,9 @@ export default function Sidebar({ activeTab, setActiveTab, health }) {
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1 text-center">
-        <div className="text-[11px] font-bold text-slate-300">ISP RVM Master Hub</div>
-        <div className="text-[10px] text-slate-500">MongoDB Atlas Connection Live</div>
+      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-center">
+        <div className="text-[11px] font-bold t-text-primary">ISP RVM Master Hub</div>
+        <div className="text-[10px] t-text-muted">MongoDB Atlas Connected</div>
       </div>
 
     </aside>

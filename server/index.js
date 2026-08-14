@@ -3,6 +3,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { MongoClient, ObjectId } from 'mongodb';
 import dns from 'dns';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const BACKUPS_DIR = path.join(__dirname, '..', 'backups');
+
+if (!fs.existsSync(BACKUPS_DIR)) {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+}
+
 
 // Fix Windows DNS SRV lookup for MongoDB Atlas (+srv URIs)
 try {
@@ -391,6 +403,147 @@ app.get('/api/analytics/machines', async (req, res) => {
   }
 });
 
+// ==========================================
+// DATABASE BACKUP & RESTORE UTILITY ENDPOINTS
+// ==========================================
+
+// Create Full Database Backup Snapshot
+app.get('/api/db/backup', async (req, res) => {
+
+  try {
+    const collections = await db.listCollections().toArray();
+    const backupData = {
+      database: DB_NAME,
+      exportedAt: new Date().toISOString(),
+      collections: {}
+    };
+
+    let totalDocsCount = 0;
+    const collectionsStats = [];
+
+    for (const colInfo of collections) {
+      const colName = colInfo.name;
+      const docs = await db.collection(colName).find({}).toArray();
+      backupData.collections[colName] = docs;
+      totalDocsCount += docs.length;
+      collectionsStats.push({ name: colName, count: docs.length });
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${DB_NAME}_backup_${timestamp}.json`;
+    const filePath = path.join(BACKUPS_DIR, filename);
+
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    fs.writeFileSync(filePath, jsonStr, 'utf-8');
+
+    if (req.query.download === 'true') {
+      return res.download(filePath, filename);
+    }
+
+    res.json({
+      success: true,
+      filename,
+      timestamp: backupData.exportedAt,
+      sizeBytes: Buffer.byteLength(jsonStr),
+      totalCollections: collections.length,
+      totalDocuments: totalDocsCount,
+      collectionsStats
+    });
+  } catch (err) {
+    console.error('[Backup Error]', err);
+    res.status(500).json({ error: 'Failed to generate backup', details: err.message });
+  }
+});
+
+// List All Local Backup Snapshots
+app.get('/api/db/backups', (req, res) => {
+  try {
+    const files = fs.readdirSync(BACKUPS_DIR);
+    const backups = files
+      .filter(f => f.endsWith('.json'))
+      .map(filename => {
+        const filePath = path.join(BACKUPS_DIR, filename);
+        const stat = fs.statSync(filePath);
+        return {
+          filename,
+          sizeBytes: stat.size,
+          createdAt: stat.birthtime || stat.mtime
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json(backups);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download Specific Backup File
+app.get('/api/db/download/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(BACKUPS_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Backup file not found' });
+    }
+    res.download(filePath, filename);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restore Database from Uploaded JSON / Selected Snapshot
+app.post('/api/db/restore', async (req, res) => {
+  try {
+    const { backupData, mode = 'replace' } = req.body;
+
+    if (!backupData || !backupData.collections) {
+      return res.status(400).json({ error: 'Invalid backup format. Missing "collections" object.' });
+    }
+
+    const restoredCollections = [];
+    let totalRestoredDocs = 0;
+
+    for (const [colName, docs] of Object.entries(backupData.collections)) {
+      if (!Array.isArray(docs)) continue;
+      const collection = db.collection(colName);
+
+      if (mode === 'replace') {
+        await collection.deleteMany({});
+      }
+
+      if (docs.length > 0) {
+        // Convert string _id back to ObjectId if applicable
+        const preparedDocs = docs.map(d => {
+          const docCopy = { ...d };
+          if (docCopy._id && typeof docCopy._id === 'string' && docCopy._id.length === 24) {
+            try {
+              docCopy._id = new ObjectId(docCopy._id);
+            } catch (e) {}
+          }
+          return docCopy;
+        });
+
+        await collection.insertMany(preparedDocs);
+      }
+
+      restoredCollections.push({ name: colName, count: docs.length });
+      totalRestoredDocs += docs.length;
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully restored ${totalRestoredDocs} documents across ${restoredCollections.length} collections.`,
+      restoredCollections,
+      totalRestoredDocs
+    });
+  } catch (err) {
+    console.error('[Restore Error]', err);
+    res.status(500).json({ error: 'Failed to restore database', details: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[RVM Master Dashboard Backend] Running on http://localhost:${PORT}`);
 });
+

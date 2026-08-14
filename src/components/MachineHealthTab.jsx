@@ -34,13 +34,13 @@ export default function MachineHealthTab() {
             <Cpu className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Hardware Fleet Monitoring</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-white">Reverse Vending Machine Status</h2>
-          <p className="text-xs text-slate-400 mt-1">Operational health, bin level sensors, and machine activity diagnostics.</p>
+          <h2 className="text-2xl font-extrabold t-text-primary">Reverse Vending Machine Status</h2>
+          <p className="text-xs t-text-secondary mt-1">Operational health, bin level sensors, and machine activity diagnostics.</p>
         </div>
 
         <button
           onClick={fetchMachines}
-          className="p-2 text-slate-300 hover:text-white bg-slate-800 border border-slate-700 rounded-xl transition-all"
+          className="p-2 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -49,11 +49,11 @@ export default function MachineHealthTab() {
       {/* Machine Fleet Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
-          <div className="col-span-full py-12 flex justify-center text-slate-400">
+          <div className="col-span-full py-12 flex justify-center t-text-muted">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
           </div>
         ) : machines.length === 0 ? (
-          <div className="col-span-full glass-panel p-8 text-center text-slate-500 rounded-2xl">
+          <div className="col-span-full glass-panel p-8 text-center t-text-muted rounded-2xl">
             No registered machines currently reporting data.
           </div>
         ) : (
@@ -74,8 +74,8 @@ export default function MachineHealthTab() {
                       <Server className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-white text-sm mono">{m.machineId}</h4>
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <h4 className="font-bold t-text-primary text-sm mono">{m.machineId}</h4>
+                      <span className="text-[11px] t-text-muted flex items-center gap-1">
                         <Clock className="w-3 h-3 text-cyan-400" />
                         {m.lastActive ? new Date(m.lastActive).toLocaleTimeString() : 'Unknown'}
                       </span>
@@ -83,38 +83,38 @@ export default function MachineHealthTab() {
                   </div>
 
                   <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-full ${
-                    hasAlerts ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    hasAlerts ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   }`}>
                     {hasAlerts ? 'Alert Triggered' : 'Operational'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                <div className="grid grid-cols-2 gap-2 text-xs t-bg-sec p-3 rounded-xl border t-border">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Total Sessions</span>
-                    <span className="font-bold text-white mono">{m.sessionCount}</span>
+                    <span className="t-text-muted block text-[10px] font-bold">Total Sessions</span>
+                    <span className="font-bold t-text-primary mono">{m.sessionCount}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Points Issued</span>
-                    <span className="font-bold text-cyan-300 mono">{m.totalPoints}</span>
+                    <span className="t-text-muted block text-[10px] font-bold">Points Issued</span>
+                    <span className="font-bold text-cyan-400 mono">{m.totalPoints}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Bottles</span>
+                    <span className="t-text-muted block text-[10px] font-bold">Bottles</span>
                     <span className="font-bold text-emerald-400 mono">{m.totalBottles}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Cups</span>
+                    <span className="t-text-muted block text-[10px] font-bold">Cups</span>
                     <span className="font-bold text-amber-400 mono">{m.totalCups}</span>
                   </div>
                 </div>
 
                 {hasAlerts && (
-                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between text-xs text-rose-300">
-                    <span className="flex items-center gap-1.5 font-semibold">
+                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between text-xs text-rose-400">
+                    <span className="flex items-center gap-1.5 font-bold">
                       <AlertTriangle className="w-4 h-4 text-rose-400" />
                       {m.alertCount} Bin Full Alert(s)
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] t-text-muted">
                       {m.lastAlert ? new Date(m.lastAlert).toLocaleDateString() : ''}
                     </span>
                   </div>

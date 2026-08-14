@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Trophy, Users, RefreshCw, BarChart2, PieChart as PieIcon, Shield } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, PieChart, Pie 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell 
 } from 'recharts';
 
 export default function AnalyticsTab() {
@@ -30,7 +30,7 @@ export default function AnalyticsTab() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
         <p className="text-sm font-semibold">Computing Advanced Analytics & Leaderboards...</p>
       </div>
@@ -54,13 +54,13 @@ export default function AnalyticsTab() {
             <Trophy className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Leaderboard & Insights</span>
           </div>
-          <h2 className="text-2xl font-extrabold text-white">Top Recycler Insights</h2>
-          <p className="text-xs text-slate-400 mt-1">Ranking eco-champions by cumulative points and material volume.</p>
+          <h2 className="text-2xl font-extrabold t-text-primary">Top Recycler Insights</h2>
+          <p className="text-xs t-text-secondary mt-1">Ranking eco-champions by cumulative points and material volume.</p>
         </div>
 
         <button
           onClick={fetchAnalytics}
-          className="p-2 text-slate-300 hover:text-white bg-slate-800 border border-slate-700 rounded-xl transition-all"
+          className="p-2 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -71,7 +71,7 @@ export default function AnalyticsTab() {
         
         {/* Leaderboard Chart */}
         <div className="lg:col-span-2 glass-panel p-6 rounded-3xl space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <h3 className="text-base font-bold t-text-primary flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-cyan-400" />
             Top 8 Champions Points Comparison
           </h3>
@@ -79,11 +79,11 @@ export default function AnalyticsTab() {
           <div className="h-80 w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 25 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} interval={0} angle={-25} textAnchor="end" />
-                <YAxis stroke="#94a3b8" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} interval={0} angle={-25} textAnchor="end" />
+                <YAxis stroke="var(--text-muted)" fontSize={11} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }} 
+                  contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '12px' }} 
                 />
                 <Bar dataKey="points" name="Total Points" radius={[8, 8, 0, 0]}>
                   {chartData.map((entry, index) => (
@@ -98,7 +98,7 @@ export default function AnalyticsTab() {
         {/* Top 3 Podiums */}
         <div className="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2 mb-4">
+            <h3 className="text-base font-bold t-text-primary flex items-center gap-2 mb-4">
               <Award className="w-5 h-5 text-amber-400" />
               Top Eco Champions
             </h3>
@@ -109,10 +109,10 @@ export default function AnalyticsTab() {
                   key={champion._id} 
                   className={`p-4 rounded-2xl border flex items-center justify-between ${
                     rank === 0 
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' 
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
                       : rank === 1 
-                      ? 'bg-slate-800/80 border-slate-700 text-slate-200' 
-                      : 'bg-orange-950/20 border-orange-600/30 text-orange-300'
+                      ? 't-bg-sec border t-border t-text-primary' 
+                      : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -122,14 +122,14 @@ export default function AnalyticsTab() {
                       #{rank + 1}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-white">{champion.userName || 'Anonymous User'}</div>
-                      <div className="text-xs text-slate-400 mono">{champion._id}</div>
+                      <div className="font-bold text-sm t-text-primary">{champion.userName || 'Anonymous User'}</div>
+                      <div className="text-xs t-text-muted mono">{champion._id}</div>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <div className="font-extrabold text-base mono">{champion.totalPoints} pts</div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] t-text-muted font-medium">
                       {champion.totalBottles} bottles • {champion.totalCups} cups
                     </div>
                   </div>
@@ -138,7 +138,7 @@ export default function AnalyticsTab() {
             </div>
           </div>
 
-          <div className="p-3 bg-emerald-950/40 border border-emerald-500/20 rounded-xl text-center text-xs text-emerald-300 font-medium">
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center text-xs text-emerald-400 font-semibold">
             Keep rewarding users to promote sustainable recycling habit!
           </div>
         </div>
@@ -146,12 +146,12 @@ export default function AnalyticsTab() {
 
       {/* Leaderboard Detailed Table */}
       <div className="glass-panel p-6 rounded-3xl space-y-4">
-        <h3 className="text-base font-bold text-white">Full Leaderboard Ranking</h3>
+        <h3 className="text-base font-bold t-text-primary">Full Leaderboard Ranking</h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold">
+              <tr className="border-b t-border t-text-muted uppercase tracking-wider font-bold">
                 <th className="py-3 px-4">Rank</th>
                 <th className="py-3 px-4">User Name</th>
                 <th className="py-3 px-4">Phone Number</th>
@@ -161,16 +161,16 @@ export default function AnalyticsTab() {
                 <th className="py-3 px-4 text-right">Points</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y t-border">
               {leaderboard.map((user, idx) => (
-                <tr key={user._id} className="hover:bg-slate-800/40">
+                <tr key={user._id} className="hover:t-bg-hover">
                   <td className="py-3 px-4 font-bold text-emerald-400 mono">#{idx + 1}</td>
-                  <td className="py-3 px-4 font-semibold text-white">{user.userName || 'Anonymous'}</td>
-                  <td className="py-3 px-4 mono text-slate-300">{user._id}</td>
-                  <td className="py-3 px-4 text-center mono font-semibold">{user.totalSessions}</td>
-                  <td className="py-3 px-4 text-center mono text-emerald-300">{user.totalBottles}</td>
-                  <td className="py-3 px-4 text-center mono text-amber-300">{user.totalCups}</td>
-                  <td className="py-3 px-4 text-right mono font-extrabold text-cyan-300 text-sm">{user.totalPoints}</td>
+                  <td className="py-3 px-4 font-bold t-text-primary">{user.userName || 'Anonymous'}</td>
+                  <td className="py-3 px-4 mono t-text-secondary">{user._id}</td>
+                  <td className="py-3 px-4 text-center mono font-semibold t-text-primary">{user.totalSessions}</td>
+                  <td className="py-3 px-4 text-center mono text-emerald-400 font-bold">{user.totalBottles}</td>
+                  <td className="py-3 px-4 text-center mono text-amber-400 font-bold">{user.totalCups}</td>
+                  <td className="py-3 px-4 text-right mono font-extrabold text-cyan-400 text-sm">{user.totalPoints}</td>
                 </tr>
               ))}
             </tbody>
