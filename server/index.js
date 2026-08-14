@@ -1363,9 +1363,14 @@ async function fetchCollectionDocs(colName) {
           synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      const res = await client.query(`SELECT data FROM "${tableName}"`);
+      const res = await client.query(`SELECT id, data FROM "${tableName}"`);
       await client.end();
-      return res.rows.map(r => typeof r.data === 'string' ? JSON.parse(r.data) : r.data);
+      return res.rows.map(r => {
+        const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
+        if (!parsed._id) parsed._id = r.id;
+        if (!parsed.id) parsed.id = r.id;
+        return parsed;
+      });
     } catch (e) {
       try { await client.end(); } catch(err){}
       return [];
@@ -1391,7 +1396,8 @@ async function saveDocToEngine(colName, doc) {
       );
     `);
     const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || doc.roleId || `gen_${Math.random()}`);
-    const docJson = JSON.stringify(doc);
+    const docToSave = { _id: idStr, id: idStr, ...doc };
+    const docJson = JSON.stringify(docToSave);
     await client.query(`
       INSERT INTO "${tableName}" (id, data, synced_at)
       VALUES ($1, $2, NOW())
@@ -1419,19 +1425,21 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
     const res = await client.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
     if (res.rows.length > 0) {
       const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
-      const updatedData = { ...existingData, ...updateFields };
+      const updatedData = { _id: res.rows[0].id, id: res.rows[0].id, ...existingData, ...updateFields };
       await client.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
     } else {
       const idStr = matchVal;
+      const docToSave = { _id: idStr, id: idStr, [matchKey]: matchVal, ...updateFields };
       await client.query(`
         INSERT INTO "${tableName}" (id, data, synced_at)
         VALUES ($1, $2, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
-      `, [idStr, JSON.stringify({ [matchKey]: matchVal, ...updateFields })]);
+      `, [idStr, JSON.stringify(docToSave)]);
     }
     await client.end();
     return true;
   }
+
 
   if (!db) await connectDB();
   const query = { [matchKey]: matchVal };
