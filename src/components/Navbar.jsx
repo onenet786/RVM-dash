@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Activity, RefreshCw, Palette, Sun, Moon, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck } from 'lucide-react';
+import { Database, Activity, RefreshCw, Palette, Sun, Moon, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu } from 'lucide-react';
 
-export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout }) {
+export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout, isMobileOpen, setIsMobileOpen }) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
@@ -27,23 +27,34 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   const currentThemeObj = themesList.find(t => t.id === theme) || themesList[0];
 
   return (
-    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-6 py-3 transition-colors duration-300">
-      <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
+      <div className="flex items-center justify-between gap-2">
         
         {/* Left Brand & Server Host, DB, Location Info */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0">
+        <div className="flex items-center gap-2.5">
+          
+          {/* Mobile Hamburger Drawer Toggle Button */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="lg:hidden p-2 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all"
+            title="Toggle Navigation Menu"
+          >
+            <Menu className="w-5 h-5 text-emerald-400" />
+          </button>
+
+          <div className="p-2 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0 hidden sm:flex">
             <Database className="w-5 h-5 text-white" />
           </div>
+
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-extrabold t-text-primary tracking-wide">RVM MASTER DASHBOARD</h1>
-              <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">
+              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">RVM MASTER DASHBOARD</h1>
+              <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
                 PRO DEV
               </span>
             </div>
             
-            <div className="flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
+            <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
               <span className="flex items-center gap-1 text-cyan-400 font-semibold">
                 <Server className="w-3 h-3" />
                 {serverHost}
@@ -63,7 +74,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
         </div>
 
         {/* Right Status Indicators, User Profile & Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           
           {/* DB Status Badge */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs">
@@ -75,7 +86,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           </div>
 
           {/* Clock */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs mono text-cyan-400">
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs mono text-cyan-400">
             <Activity className="w-3.5 h-3.5" />
             {timeStr}
           </div>
@@ -84,11 +95,11 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="flex items-center gap-2 px-3 py-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-sm"
               title="Switch Dashboard Color Theme"
             >
               <Palette className="w-4 h-4 text-amber-400" />
-              <span>{currentThemeObj.label}</span>
+              <span className="hidden sm:inline">{currentThemeObj.label}</span>
             </button>
 
             {showThemeMenu && (
@@ -123,32 +134,20 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
             )}
           </div>
 
-          {/* Refresh Button */}
-          <button
-            onClick={onRefresh}
-            className="p-2 t-text-secondary hover:t-text-primary t-bg-sec hover:t-bg-hover border t-border rounded-xl transition-all"
-            title="Ping MongoDB Server"
-          >
-            <RefreshCw className="w-4 h-4 text-emerald-400" />
-          </button>
-
-          {/* User Profile Badge & Logout Button */}
+          {/* User Profile & Logout */}
           {currentUser && (
-            <div className="flex items-center gap-2.5 pl-3 border-l t-border">
+            <div className="flex items-center gap-2 pl-2 border-l t-border">
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-xs font-extrabold t-text-primary leading-tight">{currentUser.fullName || currentUser.username}</span>
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center justify-end gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                  {currentUser.roleName || currentUser.roleId}
-                </span>
+                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">{currentUser.roleName || currentUser.roleId}</span>
               </div>
-              
+
               <button
                 onClick={onLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 rounded-xl text-xs font-bold transition-all shadow-sm"
-                title="Sign Out of Dashboard"
+                className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl border border-rose-500/20 transition-all flex items-center gap-1 text-xs font-bold"
+                title="Sign Out"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
                 <span className="hidden md:inline">Sign Out</span>
               </button>
             </div>

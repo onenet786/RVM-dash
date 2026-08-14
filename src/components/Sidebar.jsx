@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, HardDrive, ArrowRightLeft, Lock, Leaf
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, HardDrive, ArrowRightLeft, Lock, Leaf, X
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, health, currentUser }) {
+export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
   const isMasterDev = currentUser?.username === 'onenet';
   
   const getCollectionCount = (colName) => {
@@ -36,8 +36,6 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
     ] : [])
   ];
 
-
-  // Merge any additional collections from MongoDB
   const collectionNamesInDefault = new Set(defaultCollections.map(c => c.name));
   const dynamicCollections = (health?.collections || []).filter(c => !collectionNamesInDefault.has(c.name)).map(c => ({
     id: `col_${c.name}`,
@@ -48,9 +46,13 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
 
   const collectionItems = [...defaultCollections, ...dynamicCollections];
 
-  return (
-    <aside className="w-64 t-bg-surface border-r t-border flex flex-col justify-between shrink-0 p-4 space-y-6 transition-colors duration-300">
-      
+  const handleTabClick = (id) => {
+    setActiveTab(id);
+    if (setIsMobileOpen) setIsMobileOpen(false);
+  };
+
+  const renderContent = () => (
+    <div className="flex flex-col justify-between h-full space-y-6">
       <div className="space-y-6">
         
         {/* Main Section */}
@@ -58,6 +60,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
           <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-2 px-3">
             Core Dashboards
           </div>
+
           <nav className="space-y-1">
             {navItems.map(item => {
               const Icon = item.icon;
@@ -65,7 +68,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                     isActive 
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md' 
@@ -83,14 +86,14 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
           </nav>
         </div>
 
-        {/* MongoDB Tables / Collections Browser */}
+        {/* MongoDB Tables Browser */}
         <div>
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider t-text-muted mb-2 px-3">
             <span>MongoDB Tables</span>
             <span className="text-emerald-400 mono">{health?.collectionsCount || 0}</span>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto">
             {collectionItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -98,7 +101,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleTabClick(item.id)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive 
                       ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md' 
@@ -125,11 +128,42 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser }
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-center">
+      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-center mt-auto">
         <div className="text-[11px] font-bold t-text-primary">ISP RVM Master Hub</div>
         <div className="text-[10px] t-text-muted">MongoDB Atlas Connected</div>
       </div>
+    </div>
+  );
 
-    </aside>
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <aside className="hidden lg:flex w-64 t-bg-surface border-r t-border flex-col shrink-0 p-4 space-y-6 transition-colors duration-300">
+        {renderContent()}
+      </aside>
+
+      {/* Mobile Slide-Over Overlay Drawer */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-md animate-fade-in"
+            onClick={() => setIsMobileOpen(false)}
+          ></div>
+
+          <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-5 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
+            <div className="flex items-center justify-between border-b t-border pb-3 mb-2">
+              <span className="font-extrabold text-sm text-emerald-400">RVM Navigation</span>
+              <button 
+                onClick={() => setIsMobileOpen(false)}
+                className="p-1.5 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {renderContent()}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -15,8 +15,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('rvm_theme') || 'cyber-dark');
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Authentication State (sessionStorage: demands re-login on browser window restart)
+
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = sessionStorage.getItem('rvm_auth_user');
@@ -141,6 +143,8 @@ export default function App() {
         setTheme={setTheme}
         currentUser={currentUser}
         onLogout={handleLogout}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -151,16 +155,19 @@ export default function App() {
           setActiveTab={setActiveTab} 
           health={health} 
           currentUser={currentUser}
+          isMobileOpen={isMobileOpen}
+          setIsMobileOpen={setIsMobileOpen}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
             {renderContent()}
           </div>
         </main>
 
       </div>
+
     </div>
   );
 }
