@@ -81,13 +81,14 @@ npm run build
 | **Path** | `/www/wwwroot/rvm-dash` | Project root folder |
 | **Node Version** | `v18.x` or `v20.x` | Select version installed in Node Version Manager |
 | **Name** | `rvm-master-dashboard` | PM2 Process Display Name |
-| **Run Opt / Start Command** | `server/index.js` (or `npm run start`) | Server entry point script |
+| **Run Opt / Start Command** | `node server/index.js` (or `npm run start`) | **IMPORTANT**: Type `node server/index.js` to ensure Node interpreter invocation |
 | **Project Port** | `3131` | Internal Express backend API port |
 | **User** | `www` (or `root`) | Linux process execution user |
 | **Auto Start** | `Enabled` / `Checked` | Ensures auto-restart on server reboot |
 | **Domain Name** | `rvm.yourdomain.com` | Domain name bound to this Node site |
 
 4. Click **Submit** / **OK** to save and launch the PM2 process.
+
 
 ---
 
@@ -190,19 +191,22 @@ bash deploy-aapanel.sh
 
 ---
 
-### Q: How to resolve `nohup: failed to run command 'server/index.js': Permission denied`?
-- **Cause**: Linux is attempting to execute `server/index.js` as an independent binary without invoking the `node` interpreter, or script execution permissions are missing.
-- **Solution**: Run `chmod +x deploy-aapanel.sh` and pull the latest script update:
-  ```bash
-  cd /www/wwwroot/rvm-dash
-  chmod +x deploy-aapanel.sh
-  git clean -fd dist/
-  git pull origin B2
-  bash deploy-aapanel.sh
-  ```
-- **In aaPanel Node Project Manager**: Make sure **Run Opt / Start Command** is set to `node server/index.js` (or select `npm run start`), NOT just `server/index.js`.
+### Q: How to resolve `Permission denied` when running `server/index.js` via aaPanel Node Project Manager GUI?
+- **Cause**: aaPanel executes `server/index.js` as a raw Linux binary script without specifying the `node` runtime executable.
+- **Solution 1 (In aaPanel GUI)**:
+  - In aaPanel ➔ **Website** ➔ **Node project** tab: Click **Settings** (or Edit) on `rvm-master-dashboard`.
+  - Set **Run Opt / Start Command** to: `node server/index.js` (or select `npm run start`), NOT just `server/index.js`.
+- **Solution 2 (File Permission & Shebang)**:
+  - We added `#!/usr/bin/env node` to the top of `server/index.js`. Run permissions fix in terminal:
+    ```bash
+    cd /www/wwwroot/rvm-dash
+    chmod +x server/index.js
+    git clean -fd dist/
+    git pull origin B2
+    ```
 
 ---
+
 
 ## 6. Security Firewall Rules (aaPanel Security Tab)
 
