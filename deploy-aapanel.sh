@@ -14,9 +14,12 @@ cd "$PROJECT_DIR"
 
 echo "🔄 Pulling Latest Code Changes from Branch B2..."
 if [ -d ".git" ]; then
-  git clean -fd dist/ 2>/dev/null || rm -rf dist/
-  git pull origin B2 || git pull origin main || git pull origin master || true
+  git clean -fd dist/ 2>/dev/null || true
+  git checkout -- dist/ 2>/dev/null || true
+  git checkout -- server/index.js 2>/dev/null || true
+  git pull origin B2 || true
 fi
+
 
 echo "📦 [2/5] Installing Dependencies..."
 npm install --production=false
