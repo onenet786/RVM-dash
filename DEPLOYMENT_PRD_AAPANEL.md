@@ -191,7 +191,21 @@ bash deploy-aapanel.sh
 
 ---
 
-## 5. Security Firewall Rules (aaPanel Security Tab)
+## 5. Troubleshooting & Common Notices
+
+### Q: What does `(!) Some chunks are larger than 500 kB after minification` mean during `npm run build`?
+- **Answer**: This is a **warning notice (not a fatal error)** informing you that vendor libraries (React, Recharts, Lucide icons) compiled into a bundle size over 500 kB.
+- **Fix Applied**: We updated `vite.config.js` with `build.chunkSizeWarningLimit: 1200`.
+- **To Apply on Server**: Run the following update commands in your server terminal:
+  ```bash
+  cd /www/wwwroot/rvm-dash
+  git pull origin main
+  bash deploy-aapanel.sh
+  ```
+
+---
+
+## 6. Security Firewall Rules (aaPanel Security Tab)
 
 | Port | Protocol | Usage | aaPanel Security Action |
 | :--- | :--- | :--- | :--- |
@@ -202,7 +216,7 @@ bash deploy-aapanel.sh
 
 ---
 
-## 6. Summary of Deployed Features
+## 7. Summary of Deployed Features
 
 - 👑 **Master Developer Security & Auth Portal** (`onenet` / `Admin&86`)
 - 🛡️ **Role-Based Access Control (RBAC)** (*Super Admin*, *Fleet Operator*, *Analytics Analyst*, *Support Specialist*)
@@ -210,3 +224,4 @@ bash deploy-aapanel.sh
 - 🔒 **`rvmapp` Restoration Denial Protection Rule** (Read-Only Source Protection)
 - 🔄 **One-Way Database Sync Engine** (`rvmapp` ➔ `ONS-RVM`)
 - 🌿 **Audited ESG Environmental Carbon Impact & Equivalency Calculators** (Trees Planted & Car Miles Avoided)
+
