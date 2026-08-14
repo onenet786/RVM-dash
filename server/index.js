@@ -1395,7 +1395,7 @@ async function saveDocToEngine(colName, doc) {
         synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || doc.roleId || `gen_${Math.random()}`);
+    const idStr = doc._id ? doc._id.toString() : (doc.id ? doc.id.toString() : new ObjectId().toString());
     const docToSave = { _id: idStr, id: idStr, ...doc };
     const docJson = JSON.stringify(docToSave);
     await client.query(`
@@ -1403,6 +1403,7 @@ async function saveDocToEngine(colName, doc) {
       VALUES ($1, $2, NOW())
       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
     `, [idStr, docJson]);
+
     await client.end();
     return true;
   }
@@ -1747,7 +1748,10 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
     const roleDoc = roles.find(r => r.roleId === roleId);
     const roleName = roleDoc ? roleDoc.name : roleId;
 
+    const newId = new ObjectId().toString();
     const newUser = {
+      _id: newId,
+      id: newId,
       username,
       fullName: fullName || username,
       email: email || `${username}@rvm-dash.io`,
@@ -1757,6 +1761,7 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
       status: 'active',
       createdAt: new Date().toISOString()
     };
+
 
     await saveDocToEngine('adminaccounts', newUser);
     res.json({ success: true, message: `User "${username}" created and assigned role "${roleName}".`, user: newUser });

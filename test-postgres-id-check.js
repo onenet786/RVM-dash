@@ -5,7 +5,7 @@ dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 dotenv.config();
 
 async function testPostgresIdCheck() {
-  console.log('--- TESTING POSTGRESQL NON-NULL ID GENERATION & FETCH ---');
+  console.log('--- TESTING DISTINCT OBJECTID GENERATION FOR POSTGRESQL USERS ---');
 
   try {
     // 1. Switch to PostgreSQL Engine
@@ -29,24 +29,20 @@ async function testPostgresIdCheck() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: 'pral',
-        fullName: 'pral',
+        username: 'pral_officer',
+        fullName: 'PRAL Senior Officer',
         email: 'pral@123.co',
         roleId: 'fleet_operator',
         assignedMachines: ['RVM-001']
       })
     });
-    console.log('Create User pral Status:', createRes.status);
+    const createData = await createRes.json();
+    console.log('Created User Response:', JSON.stringify(createData.user, null, 2));
 
-    // 3. Fetch Users from PostgreSQL
-    const usersRes = await fetch('http://localhost:5009/api/security/users');
-    const usersData = await usersRes.json();
-    console.log('PostgreSQL Users List IDs:', usersData.map(u => ({ username: u.username, _id: u._id, id: u.id })));
+    // 3. Delete pral_officer user
+    await fetch('http://localhost:5009/api/security/users/pral_officer', { method: 'DELETE' });
 
-    // 4. Delete pral user
-    await fetch('http://localhost:5009/api/security/users/pral', { method: 'DELETE' });
-
-    // 5. Switch back to ONS-RVM
+    // 4. Switch back to ONS-RVM
     await fetch('http://localhost:5009/api/admin/switch-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
