@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import express from 'express';
 import cors from 'cors';
-
+import pg from 'pg';
 import dotenv from 'dotenv';
+
 import { MongoClient, ObjectId } from 'mongodb';
 import dns from 'dns';
 import fs from 'fs';
@@ -43,6 +44,9 @@ if (fs.existsSync(DIST_DIR)) {
 }
 
 
+let activeDbType = process.env.DB_TYPE || 'mongodb';
+let activePgConfig = null;
+
 let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
 let currentDbName = process.env.MONGODB_DBNAME || 'ONS-RVM';
 
@@ -53,25 +57,37 @@ let cachedGeo = null;
 const DB_PRESETS = {
   'ONS-RVM': {
     id: 'ONS-RVM',
+    type: 'mongodb',
     label: 'ONS-RVM Master Cluster',
     host: 'cluster0.ktted0m.mongodb.net',
     uri: 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority',
     dbName: 'ONS-RVM',
-    description: 'Primary ONS-RVM Database Cluster'
+    description: 'Primary ONS-RVM MongoDB Cluster'
   },
   'rvmapp': {
     id: 'rvmapp',
+    type: 'mongodb',
     label: 'MCSRWP Production rvmapp Cluster',
     host: 'cluster0.fuycg6c.mongodb.net',
     uri: 'mongodb+srv://mcsrwp_db_user:8ctdZ%23TjEx%26N%25H4@cluster0.fuycg6c.mongodb.net/rvmapp?retryWrites=true&w=majority',
     dbName: 'rvmapp',
-    description: 'Legacy Production rvmapp Database Cluster'
+    description: 'Legacy Production rvmapp MongoDB Cluster'
+  },
+  'rvm_postgres': {
+    id: 'rvm_postgres',
+    type: 'postgres',
+    label: 'PostgreSQL Dedicated Hosting Database',
+    host: process.env.PG_HOST || '127.0.0.1',
+    port: process.env.PG_PORT || 5432,
+    dbName: process.env.PG_DATABASE || 'rvm_postgres',
+    description: 'Dedicated PostgreSQL Relational Database running on Ubuntu Hosting Server'
   }
 };
 
 function validateMasterCredentials(username, password) {
   return username === 'onenet' && password === 'Admin&86';
 }
+
 
 function writeEnvFile(uri, dbName) {
   const envPath = path.join(__dirname, '..', '.env');
@@ -233,41 +249,67 @@ app.get('/api/admin/presets', (req, res) => {
 // Admin Switch Database Endpoint (Protected by username: onenet / password: Admin&86)
 app.post('/api/admin/switch-db', async (req, res) => {
   try {
-    const { username, password, targetPreset, customUri, customDbName } = req.body;
+    const { username, password, targetPreset, customUri, customDbName, pgHost, pgPort, pgUser, pgPassword, pgDatabase } = req.body;
 
     if (!validateMasterCredentials(username, password)) {
       return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials (username: onenet)' });
     }
 
+    if (targetPreset === 'rvm_postgres' || req.body.targetDbType === 'postgres') {
+      const pgConfig = {
+        host: pgHost || process.env.PG_HOST || '127.0.0.1',
+        port: parseInt(pgPort || process.env.PG_PORT || '5432'),
+        user: pgUser || process.env.PG_USER || 'postgres',
+        password: pgPassword || process.env.PG_PASSWORD || '',
+        database: pgDatabase || process.env.PG_DATABASE || 'rvm_postgres'
+      };
+
+      const testClient = new pg.Client(pgConfig);
+      await testClient.connect();
+      await testClient.end();
+
+      activeDbType = 'postgres';
+      activePgConfig = pgConfig;
+      currentDbName = pgConfig.database;
+
+      return res.json({
+        success: true,
+        message: `Successfully authenticated as "onenet". Runtime database switched to PostgreSQL database "${pgConfig.database}" on host "${pgConfig.host}:${pgConfig.port}".`,
+        database: pgConfig.database,
+        databaseType: 'postgres',
+        serverHost: `${pgConfig.host}:${pgConfig.port}`,
+        serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' }
+      });
+    }
+
     let newUri = '';
     let newDbName = '';
 
-    if (targetPreset && DB_PRESETS[targetPreset]) {
+    if (targetPreset && DB_PRESETS[targetPreset] && DB_PRESETS[targetPreset].type === 'mongodb') {
       newUri = DB_PRESETS[targetPreset].uri;
       newDbName = DB_PRESETS[targetPreset].dbName;
     } else if (customUri && customDbName) {
       newUri = customUri;
       newDbName = customDbName;
     } else {
-      return res.status(400).json({ error: 'Please specify a valid database preset or custom URI & DB Name' });
+      newUri = DB_PRESETS['ONS-RVM'].uri;
+      newDbName = DB_PRESETS['ONS-RVM'].dbName;
     }
 
-    // Persist to .env file
     writeEnvFile(newUri, newDbName);
-
-    // Update current in-memory connection variables
     currentUri = newUri;
     currentDbName = newDbName;
+    activeDbType = 'mongodb';
 
-    // Force reconnect MongoDB client
     await connectDB(true);
 
     const location = await getMongoDBServerLocation(db);
 
     res.json({
       success: true,
-      message: `Successfully authenticated as "onenet". Database switched to "${newDbName}" on server "${getSanitizedHost(newUri)}".`,
+      message: `Successfully authenticated as "onenet". Database switched to MongoDB "${newDbName}" on server "${getSanitizedHost(newUri)}".`,
       database: newDbName,
+      databaseType: 'mongodb',
       serverHost: getSanitizedHost(newUri),
       serverLocation: location
     });
@@ -276,6 +318,7 @@ app.post('/api/admin/switch-db', async (req, res) => {
     res.status(500).json({ error: 'Failed to switch database connection', details: err.message });
   }
 });
+
 
 // Admin Restart API Server Endpoint (Protected by username: onenet / password: Admin&86)
 app.post('/api/admin/restart-server', async (req, res) => {
@@ -871,6 +914,113 @@ app.get('/api/db/download/:filename', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Test PostgreSQL Database Connection
+app.post('/api/admin/test-postgres', async (req, res) => {
+  const { host, port, user, password, database, connectionString } = req.body || {};
+  const pgConfig = connectionString ? { connectionString } : {
+    host: host || process.env.PG_HOST || '127.0.0.1',
+    port: parseInt(port || process.env.PG_PORT || '5432'),
+    user: user || process.env.PG_USER || 'postgres',
+    password: password || process.env.PG_PASSWORD || '',
+    database: database || process.env.PG_DATABASE || 'postgres',
+    ssl: req.body?.ssl ? { rejectUnauthorized: false } : false
+  };
+
+  const client = new pg.Client(pgConfig);
+  try {
+    await client.connect();
+    const result = await client.query('SELECT version(), current_database(), current_user;');
+    await client.end();
+    res.json({
+      success: true,
+      message: 'PostgreSQL Database Connection Successful!',
+      database: result.rows[0].current_database,
+      user: result.rows[0].current_user,
+      version: result.rows[0].version
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: `PostgreSQL Connection Failed: ${err.message}`
+    });
+  }
+});
+
+// Sync Data FROM Active MongoDB TO PostgreSQL Database
+app.post('/api/admin/sync-postgres', async (req, res) => {
+  const { host, port, user, password, database, connectionString } = req.body || {};
+  const pgConfig = connectionString ? { connectionString } : {
+    host: host || process.env.PG_HOST || '127.0.0.1',
+    port: parseInt(port || process.env.PG_PORT || '5432'),
+    user: user || process.env.PG_USER || 'postgres',
+    password: password || process.env.PG_PASSWORD || '',
+    database: database || process.env.PG_DATABASE || 'postgres',
+    ssl: req.body?.ssl ? { rejectUnauthorized: false } : false
+  };
+
+  const client = new pg.Client(pgConfig);
+  try {
+    await client.connect();
+
+    const activeDb = db;
+    const collections = await activeDb.listCollections().toArray();
+    let totalSyncedDocs = 0;
+    const syncedTables = [];
+
+    for (const colInfo of collections) {
+      const colName = colInfo.name;
+      const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      // Create relational table if not exists with JSONB column
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "${tableName}" (
+          id VARCHAR(255) PRIMARY KEY,
+          data JSONB NOT NULL,
+          synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      const docs = await activeDb.collection(colName).find({}).toArray();
+      let tableSyncedCount = 0;
+
+      for (const doc of docs) {
+        const idStr = doc._id ? doc._id.toString() : (doc.id || `gen_${Math.random()}`);
+        const docJson = JSON.stringify(doc);
+
+        await client.query(`
+          INSERT INTO "${tableName}" (id, data, synced_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (id) 
+          DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+        `, [idStr, docJson]);
+
+        tableSyncedCount++;
+      }
+
+      totalSyncedDocs += tableSyncedCount;
+      syncedTables.push({ name: colName, tableName, count: tableSyncedCount });
+    }
+
+    await client.end();
+
+    res.json({
+      success: true,
+      message: `Successfully synchronized ${totalSyncedDocs} documents across ${syncedTables.length} tables into PostgreSQL database "${pgConfig.database || 'PostgreSQL'}".`,
+      sourceMongoDb: activeDb ? activeDb.databaseName : currentDbName,
+      targetPostgresDb: pgConfig.database || 'PostgreSQL',
+      totalSyncedDocs,
+      syncedTables
+    });
+  } catch (err) {
+    console.error('[PostgreSQL Sync Error]', err);
+    res.status(500).json({
+      success: false,
+      error: `PostgreSQL Sync Failed: ${err.message}`
+    });
+  }
+});
+
 
 // Reusable Database Restore Execution Helper
 async function executeRestoreData(backupData, targetDb, mode = 'replace') {

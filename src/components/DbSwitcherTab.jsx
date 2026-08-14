@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Server, HardDrive, Lock, ShieldCheck, KeyRound, 
-  RotateCcw, ArrowRightLeft, CheckCircle2, AlertTriangle, RefreshCw, MapPin, Database, Zap, RefreshCcw
+  RotateCcw, ArrowRightLeft, CheckCircle2, AlertTriangle, RefreshCw, MapPin, Database, Zap, RefreshCcw, Layers
 } from 'lucide-react';
 
 export default function DbSwitcherTab({ onRefreshHealth }) {
@@ -14,8 +14,19 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
   const [submitting, setSubmitting] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncMode, setSyncMode] = useState('upsert'); // 'upsert' | 'replace'
+  const [syncMode, setSyncMode] = useState('upsert');
   const [message, setMessage] = useState(null);
+
+  // PostgreSQL Connection & Sync State
+  const [pgHost, setPgHost] = useState('127.0.0.1');
+  const [pgPort, setPgPort] = useState('5432');
+  const [pgUser, setPgUser] = useState('postgres');
+  const [pgPassword, setPgPassword] = useState('');
+  const [pgDatabase, setPgDatabase] = useState('rvm_postgres');
+  const [pgConnString, setPgConnString] = useState('');
+  const [pgTesting, setPgTesting] = useState(false);
+  const [pgSyncing, setPgSyncing] = useState(false);
+  const [pgResult, setPgResult] = useState(null);
 
   const fetchPresetsAndHealth = async () => {
     try {
@@ -64,16 +75,13 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
         })
       });
 
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setMessage({
-          type: 'success',
-          text: json.message
-        });
-        fetchPresetsAndHealth();
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage({ type: 'success', text: data.message });
+        await fetchPresetsAndHealth();
         if (onRefreshHealth) onRefreshHealth();
       } else {
-        throw new Error(json.error || json.details || 'Failed to switch database connection');
+        setMessage({ type: 'error', text: data.error || 'Failed to switch database' });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -86,23 +94,20 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
     try {
       setRestarting(true);
       setMessage(null);
-
       const res = await fetch('/api/admin/restart-server', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setMessage({
-          type: 'success',
-          text: json.message
-        });
-        fetchPresetsAndHealth();
-        if (onRefreshHealth) onRefreshHealth();
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: 'success', text: data.message });
+        setTimeout(() => {
+          fetchPresetsAndHealth();
+          if (onRefreshHealth) onRefreshHealth();
+        }, 1500);
       } else {
-        throw new Error(json.error || json.details || 'Failed to restart server connection');
+        setMessage({ type: 'error', text: data.error });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -111,7 +116,7 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
     }
   };
 
-  const handleSyncDatabases = async () => {
+  const handleOneWaySync = async () => {
     try {
       setSyncing(true);
       setMessage(null);
@@ -122,20 +127,19 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
         body: JSON.stringify({
           username,
           password,
-          syncMode
+          sourcePreset: 'rvmapp',
+          targetPreset: 'ONS-RVM',
+          mode: syncMode
         })
       });
 
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setMessage({
-          type: 'success',
-          text: json.message
-        });
-        fetchPresetsAndHealth();
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage({ type: 'success', text: data.message });
+        await fetchPresetsAndHealth();
         if (onRefreshHealth) onRefreshHealth();
       } else {
-        throw new Error(json.error || json.details || 'One-way sync failed');
+        setMessage({ type: 'error', text: data.error || 'Sync failed' });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -144,177 +148,296 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
     }
   };
 
+  const handleTestPostgres = async () => {
+    try {
+      setPgTesting(true);
+      setPgResult(null);
+      const res = await fetch('/api/admin/test-postgres', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: pgHost,
+          port: pgPort,
+          user: pgUser,
+          password: pgPassword,
+          database: pgDatabase,
+          connectionString: pgConnString
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPgResult({ success: true, message: data.message, database: data.database, user: data.user, version: data.version });
+      } else {
+        setPgResult({ success: false, message: data.error || 'PostgreSQL Connection Test Failed' });
+      }
+    } catch (err) {
+      setPgResult({ success: false, message: err.message });
+    } finally {
+      setPgTesting(false);
+    }
+  };
+
+  const handleSyncPostgres = async () => {
+    try {
+      setPgSyncing(true);
+      setPgResult(null);
+      const res = await fetch('/api/admin/sync-postgres', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: pgHost,
+          port: pgPort,
+          user: pgUser,
+          password: pgPassword,
+          database: pgDatabase,
+          connectionString: pgConnString
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPgResult({
+          success: true,
+          message: data.message,
+          syncedTables: data.syncedTables,
+          totalSyncedDocs: data.totalSyncedDocs
+        });
+      } else {
+        setPgResult({ success: false, message: data.error || 'PostgreSQL Data Sync Failed' });
+      }
+    } catch (err) {
+      setPgResult({ success: false, message: err.message });
+    } finally {
+      setPgSyncing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
+        <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
+        <p className="text-sm font-semibold">Loading Database Manager Presets...</p>
+      </div>
+    );
+  }
+
   const activeDb = healthInfo?.database || 'ONS-RVM';
   const activeHost = healthInfo?.serverHost || 'cluster0.ktted0m.mongodb.net';
-  const activeLocation = healthInfo?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Header */}
-      <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-emerald-500/20">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <ArrowRightLeft className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Master Developer Controls</span>
-          </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">Database Connection & One-Way Sync Manager</h2>
-          <p className="text-xs t-text-secondary mt-1">Switch cluster URIs, sync live data from rvmapp to ONS-RVM, or restart API connections.</p>
-        </div>
-
-        <button
-          onClick={fetchPresetsAndHealth}
-          className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl self-start md:self-auto"
-          title="Refresh Connection Status"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {/* Active Connection Banner */}
-      <div className="p-5 rounded-3xl border border-emerald-500/30 bg-emerald-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/30">
-            <Server className="w-6 h-6" />
-          </div>
+      {/* Header Banner */}
+      <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-emerald-500/20 glow-emerald">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Currently Connected Cluster</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-glow"></span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> Super Admin Control
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Connected: {activeDb}
+              </span>
             </div>
-            <h3 className="text-xl font-extrabold t-text-primary mono mt-0.5">{activeDb}</h3>
-            <p className="text-xs t-text-muted mono">{activeHost} • {activeLocation}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Alert Message Banner */}
-      {message && (
-        <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
-          message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-        }`}>
-          <div className="flex items-center gap-2 font-bold">
-            {message.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertTriangle className="w-4 h-4 text-rose-400" />}
-            <span>{message.text}</span>
-          </div>
-          <button onClick={() => setMessage(null)} className="t-text-muted hover:t-text-primary font-bold">Dismiss</button>
-        </div>
-      )}
-
-      {/* Master Developer Credentials Authentication */}
-      <div className="glass-panel p-6 rounded-3xl space-y-4 border border-cyan-500/20">
-        <div className="flex items-center gap-2 border-b t-border pb-3">
-          <Lock className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-bold t-text-primary">Master Developer Credentials Authentication</h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider t-text-muted block mb-1">Master Username</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="onenet"
-                className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary font-mono focus:border-cyan-500 focus:outline-none"
-              />
-              <KeyRound className="w-4 h-4 text-cyan-400 absolute right-3 top-3" />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-bold uppercase tracking-wider t-text-muted block mb-1">Master Password</label>
-            <div className="relative">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Admin&86"
-                className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary font-mono focus:border-cyan-500 focus:outline-none"
-              />
-              <ShieldCheck className="w-4 h-4 text-cyan-400 absolute right-3 top-3" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* One-Way Database Sync Card (rvmapp -> ONS-RVM) */}
-      <div className="glass-panel p-6 rounded-3xl space-y-4 border border-purple-500/30">
-        <div className="flex items-center justify-between border-b t-border pb-3">
-          <div className="flex items-center gap-2">
-            <RefreshCcw className="w-5 h-5 text-purple-400" />
-            <div>
-              <h3 className="text-base font-bold t-text-primary">One-Way Database Sync (rvmapp ➔ ONS-RVM)</h3>
-              <p className="text-xs t-text-secondary mt-0.5">Copy live production documents from rvmapp directly into target database ONS-RVM.</p>
-            </div>
-          </div>
-          <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-            ONE-WAY SYNC
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 t-bg-sec rounded-2xl border t-border text-xs">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase t-text-muted block">Source Database (Read-Only)</span>
-            <div className="flex items-center gap-2 font-mono font-bold text-amber-400 text-sm">
-              <Database className="w-4 h-4" />
-              rvmapp (cluster0.fuycg6c.mongodb.net)
-            </div>
-            <p className="text-[10px] t-text-muted">Production database. Unmodified during sync.</p>
-          </div>
-
-          <div className="space-y-1 border-t md:border-t-0 md:border-l t-border pt-3 md:pt-0 md:pl-4">
-            <span className="text-[10px] font-bold uppercase t-text-muted block">Target Database (Destination)</span>
-            <div className="flex items-center gap-2 font-mono font-bold text-emerald-400 text-sm">
-              <Database className="w-4 h-4" />
-              ONS-RVM (cluster0.ktted0m.mongodb.net)
-            </div>
-            <p className="text-[10px] t-text-muted">Master database. Receives synced documents.</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-          <div className="flex items-center gap-4 text-xs font-bold">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="syncMode"
-                value="upsert"
-                checked={syncMode === 'upsert'}
-                onChange={() => setSyncMode('upsert')}
-                className="text-purple-500 focus:ring-purple-500"
-              />
-              <span className="t-text-primary">Upsert / Merge Mode (Safe - Preserve existing ONS-RVM data)</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="syncMode"
-                value="replace"
-                checked={syncMode === 'replace'}
-                onChange={() => setSyncMode('replace')}
-                className="text-purple-500 focus:ring-purple-500"
-              />
-              <span className="t-text-secondary">Full Mirror Replace Mode</span>
-            </label>
+            <h1 className="text-2xl font-black t-text-primary tracking-tight mt-2">
+              Database Connection & PostgreSQL Sync Manager
+            </h1>
+            <p className="text-xs t-text-muted mt-1 max-w-2xl">
+              Switch runtime MongoDB cluster instances, stream one-way database sync, or synchronize data directly to PostgreSQL running on your hosting server.
+            </p>
           </div>
 
           <button
-            onClick={handleSyncDatabases}
-            disabled={syncing}
-            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-purple-950/40 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            onClick={fetchPresetsAndHealth}
+            className="px-4 py-2.5 t-bg-sec hover:t-bg-hover t-text-primary border t-border rounded-2xl text-xs font-bold flex items-center gap-2 transition-all"
           >
-            <RefreshCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing rvmapp ➔ ONS-RVM...' : 'Execute One-Way Sync (rvmapp ➔ ONS-RVM)'}
+            <RefreshCw className="w-4 h-4 text-emerald-400" /> Refresh Connection
           </button>
         </div>
       </div>
 
-      {/* Preset Switcher Selection Cards */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold t-text-primary">Configured Database Cluster Presets</h3>
+      {/* Message Feedback */}
+      {message && (
+        <div className={`p-4 rounded-2xl border text-xs font-semibold flex items-center gap-3 animate-fade-in ${
+          message.type === 'success' 
+            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' 
+            : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+        }`}>
+          {message.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />}
+          <span>{message.text}</span>
+        </div>
+      )}
+
+      {/* Section 1: PostgreSQL Hosting Server Sync Engine */}
+      <div className="glass-panel p-6 rounded-3xl space-y-5 border border-cyan-500/30 glow-cyan">
+        <div className="flex items-center justify-between border-b t-border pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-cyan-500/10 text-cyan-400 rounded-2xl border border-cyan-500/20">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black t-text-primary">🐘 PostgreSQL Hosting Server Sync Engine</h2>
+              <p className="text-xs t-text-muted mt-0.5">
+                Export and synchronize MongoDB collections into PostgreSQL tables on your local/remote server with UPSERT duplicate protection.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 text-[11px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-xl">
+            PostgreSQL v12+
+          </span>
+        </div>
+
+        {/* PostgreSQL Connection Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">PG Host</label>
+            <input
+              type="text"
+              value={pgHost}
+              onChange={(e) => setPgHost(e.target.value)}
+              placeholder="127.0.0.1"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-cyan-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">PG Port</label>
+            <input
+              type="text"
+              value={pgPort}
+              onChange={(e) => setPgPort(e.target.value)}
+              placeholder="5432"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-cyan-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">PG User</label>
+            <input
+              type="text"
+              value={pgUser}
+              onChange={(e) => setPgUser(e.target.value)}
+              placeholder="postgres"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-cyan-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">PG Password</label>
+            <input
+              type="password"
+              value={pgPassword}
+              onChange={(e) => setPgPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-cyan-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">PG Database Name</label>
+            <input
+              type="text"
+              value={pgDatabase}
+              onChange={(e) => setPgDatabase(e.target.value)}
+              placeholder="rvm_postgres"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-cyan-400 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* PostgreSQL Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t t-border">
+          <button
+            onClick={handleTestPostgres}
+            disabled={pgTesting}
+            className="w-full sm:w-auto px-5 py-2.5 t-bg-sec hover:t-bg-hover text-cyan-400 font-bold text-xs rounded-xl border t-border flex items-center justify-center gap-2 transition-all"
+          >
+            <Database className={`w-4 h-4 ${pgTesting ? 'animate-spin' : ''}`} />
+            {pgTesting ? 'Testing PostgreSQL...' : 'Test PostgreSQL Connection'}
+          </button>
+
+          <button
+            onClick={handleSyncPostgres}
+            disabled={pgSyncing}
+            className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-950/40 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          >
+            <Zap className={`w-4 h-4 ${pgSyncing ? 'animate-spin' : ''}`} />
+            {pgSyncing ? 'Synchronizing to PostgreSQL...' : `Sync MongoDB (${activeDb}) ➔ PostgreSQL`}
+          </button>
+        </div>
+
+        {/* PostgreSQL Test/Sync Feedback Result */}
+        {pgResult && (
+          <div className={`p-4 rounded-2xl border text-xs space-y-2 animate-fade-in ${
+            pgResult.success 
+              ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' 
+              : 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+          }`}>
+            <div className="flex items-center gap-2 font-bold">
+              {pgResult.success ? <CheckCircle2 className="w-4 h-4 text-cyan-400" /> : <AlertTriangle className="w-4 h-4 text-rose-400" />}
+              <span>{pgResult.message}</span>
+            </div>
+
+            {pgResult.syncedTables && (
+              <div className="pt-2 border-t border-cyan-500/20">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-2">
+                  Synchronized PostgreSQL Tables ({pgResult.totalSyncedDocs} Total Records):
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {pgResult.syncedTables.map((t) => (
+                    <div key={t.name} className="p-2 t-bg-sec rounded-lg border t-border text-center">
+                      <div className="text-[11px] font-bold text-emerald-400 truncate">{t.tableName}</div>
+                      <div className="text-[10px] t-text-muted">{t.count} Records</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Section 2: One-Way MongoDB Database Sync Engine */}
+      <div className="glass-panel p-6 rounded-3xl space-y-5 border border-purple-500/30 glow-purple">
+        <div className="flex items-center justify-between border-b t-border pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20">
+              <Zap className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black t-text-primary">One-Way MongoDB Sync Engine</h2>
+              <p className="text-xs t-text-muted mt-0.5">
+                Stream and synchronize all 18,000+ documents from <span className="text-cyan-400 font-bold">rvmapp</span> into <span className="text-emerald-400 font-bold">ONS-RVM</span>.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1 text-[11px] font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-xl">
+            Read-Only Protection Active
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 t-bg-sec border t-border rounded-2xl">
+          <div>
+            <div className="text-xs font-bold t-text-primary">Source: <span className="text-cyan-400">rvmapp</span> (Read-Only) ➔ Target: <span className="text-emerald-400">ONS-RVM</span></div>
+            <div className="text-[11px] t-text-muted mt-0.5">Syncs all recycling sessions, user profiles, feedbacks, redemptions, and alerts cleanly without data loss.</div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleOneWaySync}
+              disabled={syncing}
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-purple-950/40 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+              <RefreshCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Streaming Data Sync...' : 'Sync Data (rvmapp ➔ ONS-RVM)'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Runtime MongoDB Presets */}
+      <div className="glass-panel p-6 rounded-3xl space-y-6">
+        <div>
+          <h2 className="text-base font-bold t-text-primary">MongoDB Cluster Presets</h2>
+          <p className="text-xs t-text-muted mt-0.5">
+            Select a target database preset below and authorize with Master Developer credentials.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {presets.map((p) => {
