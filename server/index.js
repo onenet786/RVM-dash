@@ -79,7 +79,8 @@ const DB_PRESETS = {
     label: 'PostgreSQL Dedicated Hosting Database',
     host: process.env.PG_HOST || '127.0.0.1',
     port: process.env.PG_PORT || 5432,
-    dbName: process.env.PG_DATABASE || 'rvm_postgres',
+    dbName: process.env.PG_DATABASE || 'rvmpg',
+
     description: 'Dedicated PostgreSQL Relational Database running on Ubuntu Hosting Server'
   }
 };
@@ -89,11 +90,20 @@ function validateMasterCredentials(username, password) {
 }
 
 
-function writeEnvFile(uri, dbName) {
+function writeEnvFile(uri, dbName, dbType = 'mongodb', pgConfig = {}) {
   const envPath = path.join(__dirname, '..', '.env');
-  const content = `MONGODB_URI=${uri}\nMONGODB_DBNAME=${dbName}\nJWT_SECRET=rvm-isp-dev-secret-key-2026\nADMIN_USERNAME=admin\nADMIN_PASSWORD=adminpassword\nPORT=${PORT}\nVITE_API_URL=http://localhost:${PORT}\n`;
+  const pgHost = pgConfig.host || process.env.PG_HOST || '127.0.0.1';
+  const pgPort = pgConfig.port || process.env.PG_PORT || 5432;
+  const pgUser = pgConfig.user || process.env.PG_USER || 'postgres';
+  const pgPass = pgConfig.password || process.env.PG_PASSWORD || '';
+  const pgDb = pgConfig.database || process.env.PG_DATABASE || 'rvmpg';
+
+
+  const content = `DB_TYPE=${dbType}\nMONGODB_URI=${uri}\nMONGODB_DBNAME=${dbName}\nPG_HOST=${pgHost}\nPG_PORT=${pgPort}\nPG_USER=${pgUser}\nPG_PASSWORD=${pgPass}\nPG_DATABASE=${pgDb}\nJWT_SECRET=rvm-isp-dev-secret-key-2026\nADMIN_USERNAME=admin\nADMIN_PASSWORD=adminpassword\nPORT=${PORT}\nVITE_API_URL=http://localhost:${PORT}\n`;
   fs.writeFileSync(envPath, content, 'utf-8');
+  process.env.DB_TYPE = dbType;
 }
+
 
 async function connectDB(forceReconnect = false) {
   if (db && !forceReconnect) return db;
@@ -205,6 +215,38 @@ async function getMongoDBServerLocation(targetDb) {
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   try {
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const client = new pg.Client(activePgConfig);
+      await client.connect();
+      const tablesRes = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema='public' AND table_type='BASE TABLE';
+      `);
+      
+      const collectionsWithStats = [];
+      for (const row of tablesRes.rows) {
+        const countRes = await client.query(`SELECT COUNT(*) FROM "${row.table_name}";`);
+        collectionsWithStats.push({
+          name: row.table_name,
+          count: parseInt(countRes.rows[0].count || '0')
+        });
+      }
+      await client.end();
+
+      return res.json({
+        status: 'online',
+        databaseType: 'postgres',
+        database: activePgConfig.database || 'rvm_postgres',
+        serverHost: `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}`,
+        serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' },
+        ping: 'OK',
+        collectionsCount: collectionsWithStats.length,
+        collections: collectionsWithStats,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const admin = db.admin();
     const ping = await admin.ping();
     const collections = await db.listCollections().toArray();
@@ -219,6 +261,7 @@ app.get('/api/health', async (req, res) => {
 
     res.json({
       status: 'online',
+      databaseType: 'mongodb',
       database: currentDbName,
       serverHost: getSanitizedHost(currentUri),
       serverLocation: location,
@@ -236,6 +279,7 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
+
 
 // Admin DB Switcher Presets Info
 app.get('/api/admin/presets', (req, res) => {
@@ -285,7 +329,7 @@ app.post('/api/admin/switch-db', async (req, res) => {
         port: parseInt(pgPort || process.env.PG_PORT || '5432'),
         user: pgUser || process.env.PG_USER || 'postgres',
         password: pgPassword || process.env.PG_PASSWORD || '',
-        database: pgDatabase || process.env.PG_DATABASE || 'rvm_postgres'
+        database: pgDatabase || process.env.PG_DATABASE || 'rvmpg'
       };
 
       try {
@@ -298,7 +342,9 @@ app.post('/api/admin/switch-db', async (req, res) => {
 
       activeDbType = 'postgres';
       activePgConfig = pgConfig;
-      currentDbName = pgConfig.database || 'rvm_postgres';
+      currentDbName = pgConfig.database || 'rvmpg';
+
+      writeEnvFile(currentUri, currentDbName, 'postgres', pgConfig);
 
       return res.json({
         success: true,
@@ -325,10 +371,11 @@ app.post('/api/admin/switch-db', async (req, res) => {
       newDbName = DB_PRESETS['ONS-RVM'].dbName;
     }
 
-    writeEnvFile(newUri, newDbName);
+    writeEnvFile(newUri, newDbName, 'mongodb');
     currentUri = newUri;
     currentDbName = newDbName;
     activeDbType = 'mongodb';
+
 
     await connectDB(true);
 

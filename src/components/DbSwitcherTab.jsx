@@ -22,7 +22,8 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
   const [pgPort, setPgPort] = useState('5432');
   const [pgUser, setPgUser] = useState('postgres');
   const [pgPassword, setPgPassword] = useState('');
-  const [pgDatabase, setPgDatabase] = useState('rvm_postgres');
+  const [pgDatabase, setPgDatabase] = useState('rvmpg');
+
   const [pgConnString, setPgConnString] = useState('');
   const [pgTesting, setPgTesting] = useState(false);
   const [pgSyncing, setPgSyncing] = useState(false);
