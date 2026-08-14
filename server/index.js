@@ -1322,6 +1322,61 @@ const DEFAULT_RBAC_ROLES = [
 
 // Seed default roles and admin accounts if empty
 async function seedSecurityDefaults(targetDb) {
+  if (activeDbType === 'postgres' && activePgConfig) {
+    try {
+      const roles = await fetchCollectionDocs('roles');
+      if (roles.length === 0) {
+        for (const r of DEFAULT_RBAC_ROLES) {
+          await saveDocToEngine('roles', r);
+        }
+      }
+
+      const users = await fetchCollectionDocs('adminaccounts');
+      const defaultUsers = [
+        {
+          username: 'onenet',
+          fullName: 'Master Developer (onenet)',
+          email: 'onenet@rvm-dash.io',
+          roleId: 'super_admin',
+          roleName: 'Super Admin / Master Dev',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        },
+        {
+          username: 'bilalaaqueel',
+          fullName: 'Bilal Aqeel',
+          email: 'bilalaaqueel@gmail.com',
+          roleId: 'super_admin',
+          roleName: 'Super Admin / Master Dev',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        },
+        {
+          username: 'testingrvm',
+          fullName: 'testingrvm',
+          email: 'testingrvm@gmail.com',
+          roleId: 'fleet_operator',
+          roleName: 'RVM Fleet Operator',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        }
+      ];
+
+      for (const u of defaultUsers) {
+        const exists = users.find(x => x.username === u.username);
+        if (!exists) {
+          await saveDocToEngine('adminaccounts', u);
+        }
+      }
+    } catch (e) {
+      console.warn('[PostgreSQL Seed Warning]', e.message);
+    }
+    return;
+  }
+
   if (!targetDb || isWriteProtected(targetDb.databaseName, targetDb)) {
     return;
   }
@@ -1342,31 +1397,58 @@ async function seedSecurityDefaults(targetDb) {
           email: 'onenet@rvm-dash.io',
           roleId: 'super_admin',
           roleName: 'Super Admin / Master Dev',
-          assignedMachines: ['*'], // All RVM Machines
+          assignedMachines: ['*'],
           status: 'active',
           createdAt: new Date().toISOString()
         },
         {
-          username: 'operator_lahore',
-          fullName: 'Lahore RVM Fleet Manager',
-          email: 'lahore.ops@rvm-dash.io',
+          username: 'bilalaaqueel',
+          fullName: 'Bilal Aqeel',
+          email: 'bilalaaqueel@gmail.com',
+          roleId: 'super_admin',
+          roleName: 'Super Admin / Master Dev',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        },
+        {
+          username: 'testingrvm',
+          fullName: 'testingrvm',
+          email: 'testingrvm@gmail.com',
           roleId: 'fleet_operator',
           roleName: 'RVM Fleet Operator',
-          assignedMachines: ['RVM-PK-01', 'RVM-PK-02'],
-          status: 'active',
-          createdAt: new Date().toISOString()
-        },
-        {
-          username: 'analyst_lead',
-          fullName: 'Senior Operations Analyst',
-          email: 'analyst@rvm-dash.io',
-          roleId: 'analytics_analyst',
-          roleName: 'Analytics & Operations Analyst',
           assignedMachines: ['*'],
           status: 'active',
           createdAt: new Date().toISOString()
         }
       ]);
+    } else {
+      const existingBilal = await adminCol.findOne({ username: 'bilalaaqueel' });
+      if (!existingBilal) {
+        await adminCol.insertOne({
+          username: 'bilalaaqueel',
+          fullName: 'Bilal Aqeel',
+          email: 'bilalaaqueel@gmail.com',
+          roleId: 'super_admin',
+          roleName: 'Super Admin / Master Dev',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        });
+      }
+      const existingTesting = await adminCol.findOne({ username: 'testingrvm' });
+      if (!existingTesting) {
+        await adminCol.insertOne({
+          username: 'testingrvm',
+          fullName: 'testingrvm',
+          email: 'testingrvm@gmail.com',
+          roleId: 'fleet_operator',
+          roleName: 'RVM Fleet Operator',
+          assignedMachines: ['*'],
+          status: 'active',
+          createdAt: new Date().toISOString()
+        });
+      }
     }
   } catch (e) {
     console.warn('[RBAC Seed Warning]', e.message);
@@ -1376,7 +1458,7 @@ async function seedSecurityDefaults(targetDb) {
 // Security: Get all roles
 app.get('/api/security/roles', async (req, res) => {
   try {
-    if (activeDbType === 'mongodb') await seedSecurityDefaults(db);
+    await seedSecurityDefaults(db);
     const roles = await fetchCollectionDocs('roles');
     res.json(roles.length > 0 ? roles : DEFAULT_RBAC_ROLES);
   } catch (err) {
@@ -1404,13 +1486,14 @@ app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
 // Security: Get all admin users
 app.get('/api/security/users', async (req, res) => {
   try {
-    if (activeDbType === 'mongodb') await seedSecurityDefaults(db);
+    await seedSecurityDefaults(db);
     const users = await fetchCollectionDocs('adminaccounts');
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Security: Create new user with role assignment & machine scope
 app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
