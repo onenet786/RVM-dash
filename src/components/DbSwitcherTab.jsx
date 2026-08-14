@@ -85,12 +85,18 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setMessage({ type: 'success', text: data.message });
+        setMessage({ type: 'success', text: `${data.message} Reconnecting & refreshing live dashboard data...` });
         await fetchPresetsAndHealth();
         if (onRefreshHealth) onRefreshHealth();
+
+        // Refresh all dashboard tab data cleanly
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to switch database' });
       }
+
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     } finally {
