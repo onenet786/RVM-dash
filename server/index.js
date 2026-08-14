@@ -1105,13 +1105,15 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
 }
 
 function isWriteProtected(dbName, targetDb) {
-  if (dbName && dbName.toString().toLowerCase() === 'rvmapp') return true;
-  if (targetDb && targetDb.databaseName && targetDb.databaseName.toString().toLowerCase() === 'rvmapp') return true;
-  if (currentDbName && currentDbName.toString().toLowerCase() === 'rvmapp') return true;
-  return false;
+  if (activeDbType === 'postgres') return false;
+  const activeName = (dbName || (targetDb && targetDb.databaseName) || currentDbName || '').toString().toLowerCase();
+  return activeName === 'rvmapp';
 }
 
 function enforceReadOnlyProtection(req, res, next) {
+  if (activeDbType === 'postgres') {
+    return next();
+  }
   const activeName = (db ? db.databaseName : currentDbName) || '';
   if (isWriteProtected(activeName, db)) {
     console.warn(`[READ-ONLY PROTECTION ACTIVATED] Blocked ${req.method} ${req.path} on protected database "${activeName}"`);
@@ -1121,6 +1123,112 @@ function enforceReadOnlyProtection(req, res, next) {
   }
   next();
 }
+
+async function fetchCollectionDocs(colName) {
+  if (activeDbType === 'postgres' && activePgConfig) {
+    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const client = new pg.Client(activePgConfig);
+    try {
+      await client.connect();
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "${tableName}" (
+          id VARCHAR(255) PRIMARY KEY,
+          data JSONB NOT NULL,
+          synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      const res = await client.query(`SELECT data FROM "${tableName}"`);
+      await client.end();
+      return res.rows.map(r => typeof r.data === 'string' ? JSON.parse(r.data) : r.data);
+    } catch (e) {
+      try { await client.end(); } catch(err){}
+      return [];
+    }
+  }
+
+  // MongoDB Collection Query
+  if (!db) await connectDB();
+  return await db.collection(colName).find({}).toArray();
+}
+
+async function saveDocToEngine(colName, doc) {
+
+  if (activeDbType === 'postgres' && activePgConfig) {
+    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const client = new pg.Client(activePgConfig);
+    await client.connect();
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS "${tableName}" (
+        id VARCHAR(255) PRIMARY KEY,
+        data JSONB NOT NULL,
+        synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || doc.roleId || `gen_${Math.random()}`);
+    const docJson = JSON.stringify(doc);
+    await client.query(`
+      INSERT INTO "${tableName}" (id, data, synced_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+    `, [idStr, docJson]);
+    await client.end();
+    return true;
+  }
+
+  if (!db) await connectDB();
+  const query = doc.username ? { username: doc.username } : (doc.roleId ? { roleId: doc.roleId } : { _id: doc._id });
+  if (query.username || query.roleId) {
+    await db.collection(colName).updateOne(query, { $set: doc }, { upsert: true });
+  } else {
+    await db.collection(colName).insertOne(doc);
+  }
+  return true;
+}
+
+async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
+  if (activeDbType === 'postgres' && activePgConfig) {
+    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const client = new pg.Client(activePgConfig);
+    await client.connect();
+    const res = await client.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+    if (res.rows.length > 0) {
+      const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
+      const updatedData = { ...existingData, ...updateFields };
+      await client.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
+    } else {
+      const idStr = matchVal;
+      await client.query(`
+        INSERT INTO "${tableName}" (id, data, synced_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+      `, [idStr, JSON.stringify({ [matchKey]: matchVal, ...updateFields })]);
+    }
+    await client.end();
+    return true;
+  }
+
+  if (!db) await connectDB();
+  const query = { [matchKey]: matchVal };
+  await db.collection(colName).updateOne(query, { $set: updateFields });
+  return true;
+}
+
+async function deleteDocFromEngine(colName, matchKey, matchVal) {
+  if (activeDbType === 'postgres' && activePgConfig) {
+    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const client = new pg.Client(activePgConfig);
+    await client.connect();
+    await client.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+    await client.end();
+    return true;
+  }
+
+  if (!db) await connectDB();
+  const query = ObjectId.isValid(matchVal) ? { _id: new ObjectId(matchVal) } : { [matchKey]: matchVal };
+  await db.collection(colName).deleteOne(query);
+  return true;
+}
+
 
 // Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database
 app.post('/api/db/restore', enforceReadOnlyProtection, async (req, res) => {
@@ -1268,8 +1376,8 @@ async function seedSecurityDefaults(targetDb) {
 // Security: Get all roles
 app.get('/api/security/roles', async (req, res) => {
   try {
-    await seedSecurityDefaults(db);
-    const roles = await db.collection('roles').find({}).toArray();
+    if (activeDbType === 'mongodb') await seedSecurityDefaults(db);
+    const roles = await fetchCollectionDocs('roles');
     res.json(roles.length > 0 ? roles : DEFAULT_RBAC_ROLES);
   } catch (err) {
     res.json(DEFAULT_RBAC_ROLES);
@@ -1284,12 +1392,8 @@ app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
       return res.status(400).json({ error: 'Role name and roleId are required' });
     }
 
-    const rolesCol = db.collection('roles');
-    await rolesCol.updateOne(
-      { roleId },
-      { $set: { roleId, name, color: color || 'cyan', description, modules: modules || [], permissions: permissions || {} } },
-      { upsert: true }
-    );
+    const roleDoc = { roleId, name, color: color || 'cyan', description, modules: modules || [], permissions: permissions || {} };
+    await saveDocToEngine('roles', roleDoc);
 
     res.json({ success: true, message: `Role "${name}" updated successfully.` });
   } catch (err) {
@@ -1300,8 +1404,8 @@ app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
 // Security: Get all admin users
 app.get('/api/security/users', async (req, res) => {
   try {
-    await seedSecurityDefaults(db);
-    const users = await db.collection('adminaccounts').find({}).toArray();
+    if (activeDbType === 'mongodb') await seedSecurityDefaults(db);
+    const users = await fetchCollectionDocs('adminaccounts');
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1316,14 +1420,14 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
       return res.status(400).json({ error: 'Username and Role Assignment are required.' });
     }
 
-    const adminCol = db.collection('adminaccounts');
-    const existing = await adminCol.findOne({ username });
+    const existingUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = existingUsers.find(u => u.username === username);
     if (existing) {
       return res.status(400).json({ error: `User with username "${username}" already exists.` });
     }
 
-    const rolesCol = db.collection('roles');
-    const roleDoc = await rolesCol.findOne({ roleId });
+    const roles = await fetchCollectionDocs('roles');
+    const roleDoc = roles.find(r => r.roleId === roleId);
     const roleName = roleDoc ? roleDoc.name : roleId;
 
     const newUser = {
@@ -1337,7 +1441,7 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    await adminCol.insertOne(newUser);
+    await saveDocToEngine('adminaccounts', newUser);
     res.json({ success: true, message: `User "${username}" created and assigned role "${roleName}".`, user: newUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1349,16 +1453,12 @@ app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) =
   try {
     const { id } = req.params;
     const { roleId, status, assignedMachines, fullName, email, password } = req.body;
-    const adminCol = db.collection('adminaccounts');
-
-    let query = {};
-    if (ObjectId.isValid(id)) query = { _id: new ObjectId(id) };
-    else query = { username: id };
 
     const updateFields = {};
     if (roleId) {
       updateFields.roleId = roleId;
-      const roleDoc = await db.collection('roles').findOne({ roleId });
+      const roles = await fetchCollectionDocs('roles');
+      const roleDoc = roles.find(r => r.roleId === roleId);
       if (roleDoc) updateFields.roleName = roleDoc.name;
     }
     if (password && password.trim()) {
@@ -1370,7 +1470,7 @@ app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) =
     if (fullName) updateFields.fullName = fullName;
     if (email) updateFields.email = email;
 
-    await adminCol.updateOne(query, { $set: updateFields });
+    await updateDocInEngine('adminaccounts', 'username', id, updateFields);
     res.json({ success: true, message: `User account "${id}" updated successfully.` });
 
   } catch (err) {
@@ -1382,17 +1482,13 @@ app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) =
 app.delete('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) => {
   try {
     const { id } = req.params;
-    const adminCol = db.collection('adminaccounts');
-    let query = {};
-    if (ObjectId.isValid(id)) query = { _id: new ObjectId(id) };
-    else query = { username: id };
-
-    await adminCol.deleteOne(query);
+    await deleteDocFromEngine('adminaccounts', 'username', id);
     res.json({ success: true, message: 'User account removed.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // ==========================================
