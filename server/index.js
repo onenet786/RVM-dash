@@ -1186,22 +1186,36 @@ app.post('/api/admin/test-postgres', async (req, res) => {
 
 // Sync Data FROM Active MongoDB TO PostgreSQL Database
 app.post('/api/admin/sync-postgres', async (req, res) => {
-  const { host, port, user, password, database, connectionString } = req.body || {};
+  const { host, port, user, password, database, connectionString, mongoSourcePreset = 'rvmapp' } = req.body || {};
   const pgConfig = connectionString ? { connectionString } : {
     host: host || process.env.PG_HOST || '127.0.0.1',
     port: parseInt(port || process.env.PG_PORT || '5432'),
     user: user || process.env.PG_USER || 'postgres',
     password: password || process.env.PG_PASSWORD || '',
-    database: database || process.env.PG_DATABASE || 'postgres',
+    database: database || process.env.PG_DATABASE || 'rvmpg',
     ssl: req.body?.ssl ? { rejectUnauthorized: false } : false
   };
 
   const client = new pg.Client(pgConfig);
+  let sourceClient = null;
   try {
     await client.connect();
 
-    const activeDb = db;
-    const collections = await activeDb.listCollections().toArray();
+    // Determine source MongoDB database (default: rvmapp)
+    let sourceUri = DB_PRESETS['rvmapp'].uri;
+    let sourceDbName = 'rvmapp';
+
+    if (mongoSourcePreset === 'ONS-RVM') {
+      sourceUri = DB_PRESETS['ONS-RVM'].uri;
+      sourceDbName = 'ONS-RVM';
+    }
+
+    // Connect to source MongoDB database
+    sourceClient = new MongoClient(sourceUri, { serverSelectionTimeoutMS: 8000 });
+    await sourceClient.connect();
+    const sourceDb = sourceClient.db(sourceDbName);
+
+    const collections = await sourceDb.listCollections().toArray();
     let totalSyncedDocs = 0;
     const syncedTables = [];
 
@@ -1218,11 +1232,11 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         );
       `);
 
-      const docs = await activeDb.collection(colName).find({}).toArray();
+      const docs = await sourceDb.collection(colName).find({}).toArray();
       let tableSyncedCount = 0;
 
       for (const doc of docs) {
-        const idStr = doc._id ? doc._id.toString() : (doc.id || `gen_${Math.random()}`);
+        const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || `gen_${Math.random()}`);
         const docJson = JSON.stringify(doc);
 
         await client.query(`
@@ -1240,16 +1254,19 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
     }
 
     await client.end();
+    if (sourceClient) await sourceClient.close(true);
 
     res.json({
       success: true,
-      message: `Successfully synchronized ${totalSyncedDocs} documents across ${syncedTables.length} tables into PostgreSQL database "${pgConfig.database || 'PostgreSQL'}".`,
-      sourceMongoDb: activeDb ? activeDb.databaseName : currentDbName,
-      targetPostgresDb: pgConfig.database || 'PostgreSQL',
+      message: `Successfully synchronized ${totalSyncedDocs} documents across ${syncedTables.length} tables from MongoDB database "${sourceDbName}" into PostgreSQL database "${pgConfig.database || 'rvmpg'}".`,
+      sourceMongoDb: sourceDbName,
+      targetPostgresDb: pgConfig.database || 'rvmpg',
       totalSyncedDocs,
       syncedTables
     });
   } catch (err) {
+    if (sourceClient) try { await sourceClient.close(true); } catch(e){}
+    try { await client.end(); } catch(e){}
     console.error('[PostgreSQL Sync Error]', err);
     res.status(500).json({
       success: false,
@@ -1257,6 +1274,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
     });
   }
 });
+
 
 
 // Reusable Database Restore Execution Helper
