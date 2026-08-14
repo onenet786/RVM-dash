@@ -1104,22 +1104,28 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
   return { totalRestoredDocs, restoredCollections };
 }
 
-function isRestoreProtected(dbName, targetDb) {
-  if (dbName && dbName.toLowerCase() === 'rvmapp') return true;
-  if (targetDb && targetDb.databaseName && targetDb.databaseName.toLowerCase() === 'rvmapp') return true;
+function isWriteProtected(dbName, targetDb) {
+  if (dbName && dbName.toString().toLowerCase() === 'rvmapp') return true;
+  if (targetDb && targetDb.databaseName && targetDb.databaseName.toString().toLowerCase() === 'rvmapp') return true;
+  if (currentDbName && currentDbName.toString().toLowerCase() === 'rvmapp') return true;
   return false;
 }
 
+function enforceReadOnlyProtection(req, res, next) {
+  const activeName = (db ? db.databaseName : currentDbName) || '';
+  if (isWriteProtected(activeName, db)) {
+    console.warn(`[READ-ONLY PROTECTION ACTIVATED] Blocked ${req.method} ${req.path} on protected database "${activeName}"`);
+    return res.status(403).json({
+      error: `Data Mutation Denied: Database "${activeName}" is a protected production database and operates strictly in READ-ONLY mode. All write, update, insert, delete, and restore operations on "${activeName}" are strictly prohibited.`
+    });
+  }
+  next();
+}
+
 // Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database
-app.post('/api/db/restore', async (req, res) => {
+app.post('/api/db/restore', enforceReadOnlyProtection, async (req, res) => {
   try {
     const activeName = db ? db.databaseName : currentDbName;
-    if (isRestoreProtected(activeName, db)) {
-      return res.status(403).json({
-        error: `Restoration Denied: Database "${activeName}" is a protected production database. You can export backups from "${activeName}", but database restoration on "${activeName}" is strictly prohibited.`
-      });
-    }
-
     const { backupData, mode = 'replace' } = req.body;
     const result = await executeRestoreData(backupData, db, mode);
 
@@ -1137,14 +1143,10 @@ app.post('/api/db/restore', async (req, res) => {
 });
 
 // Direct Snapshot File Restoration Endpoint
-app.post('/api/db/restore-snapshot/:filename', async (req, res) => {
+app.post('/api/db/restore-snapshot/:filename', enforceReadOnlyProtection, async (req, res) => {
   try {
     const activeName = db ? db.databaseName : currentDbName;
-    if (isRestoreProtected(activeName, db)) {
-      return res.status(403).json({
-        error: `Restoration Denied: Database "${activeName}" is a protected production database. You can export backups from "${activeName}", but database restoration on "${activeName}" is strictly prohibited.`
-      });
-    }
+
 
     const { filename } = req.params;
     const filePath = path.join(BACKUPS_DIR, filename);
@@ -1212,6 +1214,9 @@ const DEFAULT_RBAC_ROLES = [
 
 // Seed default roles and admin accounts if empty
 async function seedSecurityDefaults(targetDb) {
+  if (!targetDb || isWriteProtected(targetDb.databaseName, targetDb)) {
+    return;
+  }
   try {
     const rolesCol = targetDb.collection('roles');
     const rolesCount = await rolesCol.countDocuments();
@@ -1272,7 +1277,7 @@ app.get('/api/security/roles', async (req, res) => {
 });
 
 // Security: Create/Update custom role
-app.post('/api/security/roles', async (req, res) => {
+app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
   try {
     const { roleId, name, color, description, modules, permissions } = req.body;
     if (!name || !roleId) {
@@ -1304,7 +1309,7 @@ app.get('/api/security/users', async (req, res) => {
 });
 
 // Security: Create new user with role assignment & machine scope
-app.post('/api/security/users', async (req, res) => {
+app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
   try {
     const { username, fullName, email, roleId, assignedMachines } = req.body;
     if (!username || !roleId) {
@@ -1340,10 +1345,10 @@ app.post('/api/security/users', async (req, res) => {
 });
 
 // Security: Update user account status or role
-app.put('/api/security/users/:id', async (req, res) => {
+app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) => {
   try {
     const { id } = req.params;
-    const { roleId, status, assignedMachines, fullName, email } = req.body;
+    const { roleId, status, assignedMachines, fullName, email, password } = req.body;
     const adminCol = db.collection('adminaccounts');
 
     let query = {};
@@ -1374,7 +1379,7 @@ app.put('/api/security/users/:id', async (req, res) => {
 });
 
 // Security: Delete user account
-app.delete('/api/security/users/:id', async (req, res) => {
+app.delete('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) => {
   try {
     const { id } = req.params;
     const adminCol = db.collection('adminaccounts');
@@ -1388,6 +1393,7 @@ app.delete('/api/security/users/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ==========================================
 // AUTHENTICATION & LOGIN/LOGOUT SESSION ENDPOINTS

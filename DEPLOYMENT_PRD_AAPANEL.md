@@ -56,15 +56,16 @@
    - **Password / Token**: `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` (`ghp_xxxxxxxxxxxx`)
    - **Target Directory**: `rvm-dash`
 
-#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated - Branch B2)
+#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated - Branch B3-4-Postgre)
 ```bash
 cd /www/wwwroot
-# Clone branch B2 using your GitHub Web Personal Access Token (PAT):
-git clone -b B2 https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
+# Clone branch B3-4-Postgre using your GitHub Web Personal Access Token (PAT):
+git clone -b B3-4-Postgre https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
 cd rvm-dash
 npm install --production=false
 npm run build
 ```
+
 
 ---
 
@@ -202,16 +203,17 @@ bash deploy-aapanel.sh
   cd /www/wwwroot/rvm-dash
   git clean -fd dist/
   git checkout -- .
-  git pull origin B2
+  git pull origin B3-4-Postgre
   npm run build
   ```
-  *Or force reset to match branch B2*:
+  *Or force reset to match branch B3-4-Postgre*:
   ```bash
   cd /www/wwwroot/rvm-dash
-  git fetch origin B2
-  git reset --hard origin/B2
+  git fetch origin B3-4-Postgre
+  git reset --hard origin/B3-4-Postgre
   npm run build
   ```
+
 
 
 ### Q: How to resolve `502 Bad Gateway` error on `https://isprvm.binishaqsoft.com`?

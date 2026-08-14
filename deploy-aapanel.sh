@@ -12,13 +12,14 @@ echo "🚀 [1/5] Starting Production Deployment for RVM Master Dashboard..."
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
 
-echo "🔄 Pulling Latest Code Changes from Branch B2..."
+echo "🔄 Pulling Latest Code Changes from Branch B3-4-Postgre..."
 if [ -d ".git" ]; then
   git clean -fd dist/ 2>/dev/null || true
   git checkout -- dist/ 2>/dev/null || true
   git checkout -- server/index.js 2>/dev/null || true
-  git pull origin B2 || true
+  git pull origin B3-4-Postgre || git pull origin B2 || true
 fi
+
 
 
 echo "📦 [2/5] Installing Dependencies..."
