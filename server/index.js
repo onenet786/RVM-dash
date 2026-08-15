@@ -100,10 +100,16 @@ function validateMasterCredentials(username, password) {
 let pgPoolInstance = null;
 
 function getPgPool() {
-  if (!activePgConfig) return null;
+  const config = activePgConfig || {
+    host: process.env.PG_HOST || '127.0.0.1',
+    port: parseInt(process.env.PG_PORT || '5432'),
+    user: process.env.PG_USER || 'postgres',
+    password: process.env.PG_PASSWORD || 'Admin786',
+    database: process.env.PG_DATABASE || 'rvmpg'
+  };
   if (!pgPoolInstance) {
     pgPoolInstance = new pg.Pool({
-      ...activePgConfig,
+      ...config,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000
@@ -2387,8 +2393,8 @@ app.post('/api/machine/sync-session', async (req, res) => {
 
     await saveDocToEngine('recyclingsessions', sessionDoc);
 
-    // Update relational tables if connected to postgres
-    if (activeDbType === 'postgres') {
+    // ALWAYS write machine session data to PostgreSQL relational tables
+    try {
       const pool = getPgPool();
       if (pool) {
         // 1. Ensure machine exists FIRST to satisfy foreign key constraint
@@ -2417,7 +2423,10 @@ app.post('/api/machine/sync-session', async (req, res) => {
           `, [userId, userId, `${userId}@rvm-dash.io`, pointsEarned]);
         }
       }
+    } catch (pgSyncErr) {
+      console.warn('[PostgreSQL Machine Sync Warning]', pgSyncErr.message);
     }
+
 
 
 
