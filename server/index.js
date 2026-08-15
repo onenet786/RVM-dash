@@ -2178,8 +2178,11 @@ app.post('/api/auth/login', async (req, res) => {
     let user = null;
     let role = null;
 
-    // Master Developer Override Check (onenet / Admin&86)
-    if (username === 'onenet' && (password === 'Admin&86' || !password)) {
+    // Master Developer Override Check (username: onenet / password: Admin&86)
+    if (username === 'onenet' || username === 'onenet@rvm-dash.io') {
+      if (password !== 'Admin&86') {
+        return res.status(401).json({ error: 'Invalid username or password' });
+      }
       user = {
         username: 'onenet',
         fullName: 'Master Developer (onenet)',
@@ -2209,13 +2212,15 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(403).json({ error: 'Account Suspended. Please contact system administrator.' });
       }
 
-      // Check password if set
-      if (foundUser.password && password && foundUser.password !== password) {
+      // Enforce strict password validation
+      const expectedPassword = foundUser.password || process.env.ADMIN_PASSWORD || 'adminpassword';
+      if (password !== expectedPassword) {
         return res.status(401).json({ error: 'Invalid username or password' });
       }
 
       user = foundUser;
     }
+
 
     // Fetch Role Permissions
     let roleDoc = null;
