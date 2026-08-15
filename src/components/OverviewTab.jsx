@@ -223,15 +223,15 @@ export default function OverviewTab({ currentUser }) {
             <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
               <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
                 <div className="text-[10px] t-text-muted">Small</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticSmall ?? 1}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
               </div>
               <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
                 <div className="text-[10px] t-text-muted">Medium</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticMedium ?? 3}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
               </div>
               <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
                 <div className="text-[10px] t-text-muted">Large</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticLarge ?? 4}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
               </div>
             </div>
           </div>
@@ -245,15 +245,15 @@ export default function OverviewTab({ currentUser }) {
             <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
               <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
                 <div className="text-[10px] t-text-muted">Small</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canSmall ?? 1}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canSmall ?? 0}</div>
               </div>
               <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
                 <div className="text-[10px] t-text-muted">Medium</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canMedium ?? 3}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canMedium ?? 0}</div>
               </div>
               <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
                 <div className="text-[10px] t-text-muted">Large</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canLarge ?? 4}</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canLarge ?? 0}</div>
               </div>
             </div>
           </div>
@@ -262,10 +262,10 @@ export default function OverviewTab({ currentUser }) {
           <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-purple-400">
               <span>📦 Paper Weight</span>
-              <span className="mono text-sm">{overview?.totalPaperGrams ?? 100} gGams</span>
+              <span className="mono text-sm">{overview?.totalPaperGrams ?? 0} gGams</span>
             </div>
             <div className="p-2 bg-purple-500/10 text-purple-300 rounded-xl border border-purple-500/20 text-center font-mono text-xs font-extrabold">
-              {((overview?.totalPaperGrams ?? 100) / 1000).toFixed(3)} kg Paper Collected
+              {((overview?.totalPaperGrams ?? 0) / 1000).toFixed(3)} kg Paper Collected
             </div>
           </div>
 
@@ -273,10 +273,10 @@ export default function OverviewTab({ currentUser }) {
           <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-cyan-400">
               <span>🧃 TetraPak Weight</span>
-              <span className="mono text-sm">{overview?.totalTetraPakGrams ?? 700} Grams</span>
+              <span className="mono text-sm">{overview?.totalTetraPakGrams ?? 0} Grams</span>
             </div>
             <div className="p-2 bg-cyan-500/10 text-cyan-300 rounded-xl border border-cyan-500/20 text-center font-mono text-xs font-extrabold">
-              {((overview?.totalTetraPakGrams ?? 700) / 1000).toFixed(3)} kg TetraPak Collected
+              {((overview?.totalTetraPakGrams ?? 0) / 1000).toFixed(3)} kg TetraPak Collected
             </div>
           </div>
 

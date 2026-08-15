@@ -792,13 +792,35 @@ app.get('/api/overview', async (req, res) => {
         totalPaperGrams += paperG;
         totalTetraPakGrams += tetraG;
 
-        plasticSmall += parseInt(s.plastic_small_count || (s.bottleSize === 'SMALL' ? pCnt : 0));
-        plasticMedium += parseInt(s.plastic_medium_count || (s.bottleSize === 'MEDIUM' ? pCnt : 0));
-        plasticLarge += parseInt(s.plastic_large_count || (s.bottleSize === 'LARGE' ? pCnt : 0));
+        let ps = parseInt(s.plastic_small_count || 0);
+        let pm = parseInt(s.plastic_medium_count || 0);
+        let pl = parseInt(s.plastic_large_count || 0);
 
-        canSmall += parseInt(s.can_small_count || (s.bottleSize === 'SMALL' ? aCnt : 0));
-        canMedium += parseInt(s.can_medium_count || (s.bottleSize === 'MEDIUM' ? aCnt : 0));
-        canLarge += parseInt(s.can_large_count || (s.bottleSize === 'LARGE' ? aCnt : 0));
+        if (ps === 0 && pm === 0 && pl === 0 && pCnt > 0) {
+          const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
+          if (bSize === 'SMALL') ps = pCnt;
+          else if (bSize === 'LARGE') pl = pCnt;
+          else pm = pCnt;
+        }
+
+        plasticSmall += ps;
+        plasticMedium += pm;
+        plasticLarge += pl;
+
+        let cs = parseInt(s.can_small_count || 0);
+        let cm = parseInt(s.can_medium_count || 0);
+        let cl = parseInt(s.can_large_count || 0);
+
+        if (cs === 0 && cm === 0 && cl === 0 && aCnt > 0) {
+          const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
+          if (bSize === 'SMALL') cs = aCnt;
+          else if (bSize === 'LARGE') cl = aCnt;
+          else cm = aCnt;
+        }
+
+        canSmall += cs;
+        canMedium += cm;
+        canLarge += cl;
       });
 
       const recentSessions = sessions.slice(0, 5);
@@ -891,13 +913,35 @@ app.get('/api/overview', async (req, res) => {
       totalPaperGrams += paperG;
       totalTetraPakGrams += tetraG;
 
-      plasticSmall += parseInt(s.plastic_small_count || (s.bottleSize === 'SMALL' ? pCnt : 0));
-      plasticMedium += parseInt(s.plastic_medium_count || (s.bottleSize === 'MEDIUM' ? pCnt : 0));
-      plasticLarge += parseInt(s.plastic_large_count || (s.bottleSize === 'LARGE' ? pCnt : 0));
+      let ps = parseInt(s.plastic_small_count || 0);
+      let pm = parseInt(s.plastic_medium_count || 0);
+      let pl = parseInt(s.plastic_large_count || 0);
 
-      canSmall += parseInt(s.can_small_count || (s.bottleSize === 'SMALL' ? aCnt : 0));
-      canMedium += parseInt(s.can_medium_count || (s.bottleSize === 'MEDIUM' ? aCnt : 0));
-      canLarge += parseInt(s.can_large_count || (s.bottleSize === 'LARGE' ? aCnt : 0));
+      if (ps === 0 && pm === 0 && pl === 0 && pCnt > 0) {
+        const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
+        if (bSize === 'SMALL') ps = pCnt;
+        else if (bSize === 'LARGE') pl = pCnt;
+        else pm = pCnt;
+      }
+
+      plasticSmall += ps;
+      plasticMedium += pm;
+      plasticLarge += pl;
+
+      let cs = parseInt(s.can_small_count || 0);
+      let cm = parseInt(s.can_medium_count || 0);
+      let cl = parseInt(s.can_large_count || 0);
+
+      if (cs === 0 && cm === 0 && cl === 0 && aCnt > 0) {
+        const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
+        if (bSize === 'SMALL') cs = aCnt;
+        else if (bSize === 'LARGE') cl = aCnt;
+        else cm = aCnt;
+      }
+
+      canSmall += cs;
+      canMedium += cm;
+      canLarge += cl;
     });
 
     // Recent 5 sessions
