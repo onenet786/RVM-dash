@@ -6,15 +6,26 @@ using System.Threading.Tasks;
 
 namespace RVMDesktopApp;
 
+public class SyncResult
+{
+    public bool IsSuccess { get; set; }
+    public int StatusCode { get; set; }
+    public string TargetUrl { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string SessionId { get; set; } = string.Empty;
+    public string RemoteDbEngine { get; set; } = "PostgreSQL (rvmpg)";
+    public string RemoteTables { get; set; } = "recycling_sessions, machines, users, recyclingsessions";
+}
+
 public static class CentralSyncService
 {
     private static readonly HttpClient _httpClient = new HttpClient();
     public static string CentralApiUrl { get; set; } = "http://localhost:5009";
 
     /// <summary>
-    /// Syncs local SQL Server recycling transactions to Central Master Dashboard API.
+    /// Syncs local SQL Server recycling transactions to Central Master Dashboard API with detailed status.
     /// </summary>
-    public static async Task<bool> SyncSessionToCentralAsync(
+    public static async Task<SyncResult> SyncSessionToCentralDetailedAsync(
         string machineId,
         string localSessionId,
         string mobileNumber,
@@ -25,6 +36,12 @@ public static class CentralSyncService
         int pointsEarned,
         double weightKg)
     {
+        var result = new SyncResult
+        {
+            TargetUrl = $"{CentralApiUrl.TrimEnd('/')}/api/machine/sync-session",
+            SessionId = localSessionId
+        };
+
         try
         {
             int totalItems = plasticCount + aluminiumCount + paperCardboardCount + glassCount;
@@ -50,14 +67,62 @@ public static class CentralSyncService
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            HttpResponseMessage response = await _httpClient.PostAsync($"{CentralApiUrl}/api/machine/sync-session", content);
-            return response.IsSuccessStatusCode;
+            HttpResponseMessage response = await _httpClient.PostAsync(result.TargetUrl, content);
+            result.StatusCode = (int)response.StatusCode;
+            result.IsSuccess = response.IsSuccessStatusCode;
+
+            string respText = await response.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(respText))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(respText);
+                    if (doc.RootElement.TryGetProperty("message", out var msgProp))
+                    {
+                        result.Message = msgProp.GetString() ?? respText;
+                    }
+                    else if (doc.RootElement.TryGetProperty("error", out var errProp))
+                    {
+                        result.Message = errProp.GetString() ?? respText;
+                    }
+                    else
+                    {
+                        result.Message = respText;
+                    }
+                }
+                catch
+                {
+                    result.Message = respText;
+                }
+            }
+            else
+            {
+                result.Message = response.IsSuccessStatusCode ? "Session synchronized successfully." : "HTTP Server Error";
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CentralSync Error] Failed to sync session: {ex.Message}");
-            return false;
+            result.IsSuccess = false;
+            result.StatusCode = 500;
+            result.Message = $"Connection Exception: {ex.Message}";
         }
+
+        return result;
+    }
+
+    public static async Task<bool> SyncSessionToCentralAsync(
+        string machineId,
+        string localSessionId,
+        string mobileNumber,
+        int plasticCount,
+        int aluminiumCount,
+        int paperCardboardCount,
+        int glassCount,
+        int pointsEarned,
+        double weightKg)
+    {
+        var res = await SyncSessionToCentralDetailedAsync(machineId, localSessionId, mobileNumber, plasticCount, aluminiumCount, paperCardboardCount, glassCount, pointsEarned, weightKg);
+        return res.IsSuccess;
     }
 
     /// <summary>
@@ -77,7 +142,7 @@ public static class CentralSyncService
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            HttpResponseMessage response = await _httpClient.PostAsync($"{CentralApiUrl}/api/machine/heartbeat", content);
+            HttpResponseMessage response = await _httpClient.PostAsync($"{CentralApiUrl.TrimEnd('/')}/api/machine/heartbeat", content);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -98,7 +163,7 @@ public static class CentralSyncService
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            HttpResponseMessage response = await _httpClient.PostAsync($"{CentralApiUrl}/api/user/verify-qr", content);
+            HttpResponseMessage response = await _httpClient.PostAsync($"{CentralApiUrl.TrimEnd('/')}/api/user/verify-qr", content);
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadAsStringAsync();

@@ -154,27 +154,36 @@ public partial class AdminWindow : Window
         LogConsole($"Item: {itemCount}x {size} {material} | Weight: {weightKg} kg | Points Calculated: {totalPoints}");
 
         // Step 1: Save local transaction
+        LogConsole($"💾 1. LOCAL SQL SERVER TRANSACTION:");
         try
         {
             DatabaseManager.SaveTransaction(sessionId, size, material, totalPoints, true);
+            LogConsole($"   -> Local Server: SQL Server 2012 (RVMDB)");
+            LogConsole($"   -> Table 'RVMDB.dbo.Transactions': Record Inserted 🟢 (Session ID: {sessionId})");
+
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 DatabaseManager.CreditWallet(userId, totalPoints, sessionId);
+                LogConsole($"   -> Table 'RVMDB.dbo.Wallets': Credited +{totalPoints} pts to user '{userId}' 🟢");
             }
-            LogConsole($"1. Local SQL Server Transaction: SAVED locally.");
         }
         catch (Exception ex)
         {
-            LogConsole($"1. Local SQL Server Notice: {ex.Message} (Proceeding to Central Sync)");
+            LogConsole($"   -> Local SQL Server Notice: {ex.Message} (Proceeding to Remote Central Sync)");
         }
 
-        // Step 2: Sync to Central Master Dashboard API
+        // Step 2: Sync to Remote Central Master Dashboard API
         int plasticCount = material.Contains("PLASTIC") ? itemCount : 0;
         int aluminiumCount = (material.Contains("CAN") || material.Contains("METAL")) ? itemCount : 0;
         int paperCount = material.Contains("PAPER") ? itemCount : 0;
         int glassCount = material.Contains("GLASS") ? itemCount : 0;
 
-        bool syncSuccess = await CentralSyncService.SyncSessionToCentralAsync(
+        CentralSyncService.CentralApiUrl = TxtServerUrl.Text.Trim();
+
+        LogConsole($"📡 2. REMOTE MASTER DASHBOARD POSTGRESQL SYNC:");
+        LogConsole($"   -> Endpoint: POST {CentralSyncService.CentralApiUrl.TrimEnd('/')}/api/machine/sync-session");
+
+        var syncRes = await CentralSyncService.SyncSessionToCentralDetailedAsync(
             machineId,
             sessionId.ToString(),
             userId,
@@ -186,17 +195,22 @@ public partial class AdminWindow : Window
             weightKg
         );
 
-
-        if (syncSuccess)
+        if (syncRes.IsSuccess)
         {
-            LogConsole($"2. Central Master Dashboard Sync (POST /api/machine/sync-session): SUCCESS 🟢");
-            LogConsole($"   -> Machine '{machineId}' transaction synced.");
-            LogConsole($"   -> User '{userId}' credited +{totalPoints} points on Central DB!");
+            LogConsole($"   -> Remote DB Engine: {syncRes.RemoteDbEngine}");
+            LogConsole($"   -> Target PostgreSQL Tables Populated:");
+            LogConsole($"      • recycling_sessions (Session ID: {machineId}_{sessionId})");
+            LogConsole($"      • machines (Machine ID: {machineId} | Total Bottles: +{itemCount})");
+            LogConsole($"      • users (User ID: {userId} | Points Balance: +{totalPoints})");
+            LogConsole($"      • recyclingsessions (JSONB Document Engine)");
+            LogConsole($"   -> Response: HTTP {syncRes.StatusCode} OK 🟢 ({syncRes.Message})");
         }
         else
         {
-            LogConsole($"2. Central Master Dashboard Sync: FAILED 🔴 (Verify central server URL or connection)");
+            LogConsole($"   -> Remote Sync Status: FAILED 🔴 (HTTP {syncRes.StatusCode})");
+            LogConsole($"   -> Error Details: {syncRes.Message}");
         }
+
 
         Load();
     }
