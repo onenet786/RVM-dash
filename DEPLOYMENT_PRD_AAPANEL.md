@@ -56,15 +56,16 @@
    - **Password / Token**: `YOUR_GITHUB_PERSONAL_ACCESS_TOKEN` (`ghp_xxxxxxxxxxxx`)
    - **Target Directory**: `rvm-dash`
 
-#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated - Branch B3-4-Postgre)
+#### Option B: aaPanel Web Terminal / SSH Command (Web Token Authenticated - Branch B4-Postgre-switching)
 ```bash
 cd /www/wwwroot
-# Clone branch B3-4-Postgre using your GitHub Web Personal Access Token (PAT):
-git clone -b B3-4-Postgre https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
+# Clone branch B4-Postgre-switching using your GitHub Web Personal Access Token (PAT):
+git clone -b B4-Postgre-switching https://YOUR_GITHUB_TOKEN@github.com/onenet786/RVM-dash.git rvm-dash
 cd rvm-dash
 npm install --production=false
 npm run build
 ```
+
 
 
 ---
@@ -203,16 +204,17 @@ bash deploy-aapanel.sh
   cd /www/wwwroot/rvm-dash
   git clean -fd dist/
   git checkout -- .
-  git pull origin B3-4-Postgre
+  git pull origin B4-Postgre-switching
   npm run build
   ```
-  *Or force reset to match branch B3-4-Postgre*:
+  *Or force reset to match branch B4-Postgre-switching*:
   ```bash
   cd /www/wwwroot/rvm-dash
-  git fetch origin B3-4-Postgre
-  git reset --hard origin/B3-4-Postgre
+  git fetch origin B4-Postgre-switching
+  git reset --hard origin/B4-Postgre-switching
   npm run build
   ```
+
 
 
 
