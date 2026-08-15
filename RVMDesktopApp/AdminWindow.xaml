@@ -2,10 +2,10 @@
     x:Class="RVMDesktopApp.AdminWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="RVM Admin"
+    Title="RVM Master Admin &amp; Live Communication Suite"
     Icon="Assets/RvmIcon.ico"
-    Width="1000"
-    Height="650"
+    Width="1100"
+    Height="720"
     Background="{StaticResource BrushBgDark}"
     WindowStartupLocation="CenterOwner">
     <Grid>
@@ -32,7 +32,7 @@
                         Stretch="Uniform"
                         Margin="0,0,14,0" />
                     <TextBlock
-                        Text="ADMIN PANEL"
+                        Text="RVM MASTER ADMIN &amp; HARDWARE TEST SUITE"
                         FontSize="18"
                         FontWeight="SemiBold"
                         Style="{StaticResource BaseText}"
@@ -58,7 +58,7 @@
 
         <!-- Content -->
         <Grid Grid.Row="1" Margin="32,24">
-            <TabControl>
+            <TabControl x:Name="AdminTabs">
                 <TabItem Header="Point Settings">
                     <Border
                         Style="{StaticResource CardBorder}"
@@ -70,7 +70,8 @@
                             CanUserAddRows="False" />
                     </Border>
                 </TabItem>
-                <TabItem Header="Transactions">
+
+                <TabItem Header="Transactions Log">
                     <Border
                         Style="{StaticResource CardBorder}"
                         Padding="0"
@@ -81,6 +82,157 @@
                             CanUserAddRows="False"
                             IsReadOnly="True" />
                     </Border>
+                </TabItem>
+
+                <!-- NEW TAB: Live Dashboard Sync & Manual Entry Simulator -->
+                <TabItem Header="⚡ Central Dashboard Simulator &amp; Test Suite">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="480" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Manual Entry Controls -->
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,16,0">
+                            <StackPanel>
+
+                                <!-- Server Connection Card -->
+                                <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock Text="1. CENTRAL DASHBOARD ENDPOINT" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8" />
+                                        <TextBlock Text="Central Server Base URL:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                        <TextBox x:Name="TxtServerUrl" Text="https://isprvm.binishaqsoft.com" Height="36" Padding="8,6" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" Content="🔌 Ping Connection &amp; Rules" Click="TestConnection_Click" Height="36" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                            <TextBlock Grid.Column="1" x:Name="TxtConnStatus" Text="Not Tested" Foreground="#94A3B8" VerticalAlignment="Center" FontWeight="SemiBold" Margin="4,0"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Manual Session Simulator Card -->
+                                <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock Text="2. MANUAL BOTTLE &amp; RECYCLING ENTRY" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,12" />
+                                        
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                                <TextBlock Text="Machine ID:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBox x:Name="TxtMachineId" Text="RVM-001" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <TextBlock Text="Mobile / QR Token:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBox x:Name="TxtUserId" Text="onenet" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                                <TextBlock Text="Material Type:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <ComboBox x:Name="CmbMaterial" Height="32" SelectedIndex="0" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
+                                                    <ComboBoxItem Content="PLASTIC" />
+                                                    <ComboBoxItem Content="CAN (Metal)" />
+                                                    <ComboBoxItem Content="GLASS" />
+                                                    <ComboBoxItem Content="PAPER" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <TextBlock Text="Bottle Size:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <ComboBox x:Name="CmbSize" Height="32" SelectedIndex="1" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
+                                                    <ComboBoxItem Content="SMALL" />
+                                                    <ComboBoxItem Content="MEDIUM" />
+                                                    <ComboBoxItem Content="LARGE" />
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                                <TextBlock Text="Item Count:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBox x:Name="TxtItemCount" Text="3" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <TextBlock Text="Weight (Kg):" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBox x:Name="TxtWeightKg" Text="0.150" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Button Content="🚀 Simulate Bottle Insert &amp; Sync to Dashboard" Click="SimulateInsert_Click" Height="40" Style="{StaticResource AccentButton}" Margin="0,0,0,8"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Hardware Telemetry Simulator Card -->
+                                <Border Style="{StaticResource CardBorder}" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="3. TELEMETRY &amp; QR HARDWARE SIMULATORS" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8" />
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" Content="📡 Send Heartbeat (85% Fill)" Click="SendHeartbeat_Click" Height="36" Style="{StaticResource ModernButton}" Margin="0,0,4,0"/>
+                                            <Button Grid.Column="1" Content="🔍 Verify QR Code Scanner" Click="VerifyQr_Click" Height="36" Style="{StaticResource ModernButton}" Margin="4,0,0,0"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Right Column: Live Output & Communication Console -->
+                        <Border Grid.Column="1" Style="{StaticResource CardBorder}" Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="🖥️ LIVE COMMUNICATION CONSOLE LOG" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBox
+                                    Grid.Row="1"
+                                    x:Name="TxtConsoleLog"
+                                    IsReadOnly="True"
+                                    TextWrapping="Wrap"
+                                    AcceptsReturn="True"
+                                    VerticalScrollBarVisibility="Auto"
+                                    FontFamily="Consolas"
+                                    FontSize="12"
+                                    Background="#020617"
+                                    Foreground="#38BDF8"
+                                    BorderBrush="#1E293B"
+                                    Padding="10"/>
+
+                                <Button
+                                    Grid.Row="2"
+                                    Content="Clear Console Log"
+                                    Click="ClearConsole_Click"
+                                    Height="32"
+                                    Style="{StaticResource ModernButton}"
+                                    Margin="0,10,0,0"
+                                    HorizontalAlignment="Right"/>
+                            </Grid>
+                        </Border>
+
+                    </Grid>
                 </TabItem>
             </TabControl>
         </Grid>
