@@ -155,12 +155,15 @@ async function initProductionPostgresSchemas() {
         paper_cardboard_count INT DEFAULT 0,
         total_weight_kg NUMERIC(8,3) DEFAULT 0,
         co2_avoided_kg NUMERIC(8,3) DEFAULT 0,
+        points_earned INT DEFAULT 0,
         session_status VARCHAR(20) DEFAULT 'completed',
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS points_earned INT DEFAULT 0;
       CREATE INDEX IF NOT EXISTS idx_sessions_machine_date ON recycling_sessions (machine_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sessions_date ON recycling_sessions (created_at DESC);
     `);
+
 
     // 3. Users Table with Unique Constraints & Indexes
     await pool.query(`
@@ -2388,12 +2391,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
-        await pool.query(`
-          INSERT INTO recycling_sessions (session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, total_weight_kg, co2_avoided_kg, points_earned, session_status)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'completed')
-          ON CONFLICT (session_id) DO NOTHING;
-        `, [sessionId, machineId, userId || 'anonymous', plasticCount, aluminiumCount, paperCardboardCount, weightKg, co2AvoidedKg, pointsEarned]);
-
+        // 1. Ensure machine exists FIRST to satisfy foreign key constraint
         await pool.query(`
           INSERT INTO machines (machine_id, name, location, status, total_bottles_recycled, total_weight_kg)
           VALUES ($1, $1, 'System Auto', 'active', $2, $3)
@@ -2403,13 +2401,24 @@ app.post('/api/machine/sync-session', async (req, res) => {
             last_ping_at = NOW();
         `, [machineId, totalBottles, weightKg]);
 
+        // 2. Insert into recycling_sessions table
+        await pool.query(`
+          INSERT INTO recycling_sessions (session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, total_weight_kg, co2_avoided_kg, points_earned, session_status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'completed')
+          ON CONFLICT (session_id) DO NOTHING;
+        `, [sessionId, machineId, userId || 'anonymous', plasticCount, aluminiumCount, paperCardboardCount, weightKg, co2AvoidedKg, pointsEarned]);
+
+        // 3. Upsert user points
         if (userId && userId !== 'anonymous') {
           await pool.query(`
-            UPDATE users SET points_balance = points_balance + $1 WHERE username = $2 OR user_id = $2;
-          `, [pointsEarned, userId]);
+            INSERT INTO users (user_id, username, full_name, email, points_balance, role_id, status)
+            VALUES ($1, $2, $2, $3, $4, 'fleet_operator', 'active')
+            ON CONFLICT (user_id) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance;
+          `, [userId, userId, `${userId}@rvm-dash.io`, pointsEarned]);
         }
       }
     }
+
 
 
     res.json({
