@@ -44,11 +44,18 @@ if (fs.existsSync(DIST_DIR)) {
 }
 
 
-let activeDbType = process.env.DB_TYPE || 'mongodb';
-let activePgConfig = null;
+let activeDbType = process.env.DB_TYPE || 'postgres';
+let activePgConfig = {
+  host: process.env.PG_HOST || '127.0.0.1',
+  port: parseInt(process.env.PG_PORT || '5432'),
+  user: process.env.PG_USER || 'postgres',
+  password: process.env.PG_PASSWORD || 'Admin786',
+  database: process.env.PG_DATABASE || 'rvmpg'
+};
 
 let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
-let currentDbName = process.env.MONGODB_DBNAME || 'ONS-RVM';
+let currentDbName = activeDbType === 'postgres' ? (activePgConfig.database || 'rvmpg') : (process.env.MONGODB_DBNAME || 'ONS-RVM');
+
 
 let dbClient = null;
 let db = null;
@@ -339,12 +346,27 @@ app.get('/api/health', async (req, res) => {
       
       const collectionsWithStats = [];
       for (const row of tablesRes.rows) {
-        const countRes = await client.query(`SELECT COUNT(*) FROM "${row.table_name}";`);
+        const tName = row.table_name;
+        let count = 0;
+        try {
+          const countRes = await client.query(`SELECT COUNT(*) FROM "${tName}";`);
+          count = parseInt(countRes.rows[0].count || '0');
+
+          if (tName === 'recycling_sessions') {
+            const altRes = await client.query(`SELECT COUNT(*) FROM recyclingsessions;`).catch(() => ({ rows: [{ count: 0 }] }));
+            count += parseInt(altRes.rows[0].count || '0');
+          } else if (tName === 'recyclingsessions') {
+            const altRes = await client.query(`SELECT COUNT(*) FROM recycling_sessions;`).catch(() => ({ rows: [{ count: 0 }] }));
+            count += parseInt(altRes.rows[0].count || '0');
+          }
+        } catch (cErr) {}
+
         collectionsWithStats.push({
-          name: row.table_name,
-          count: parseInt(countRes.rows[0].count || '0')
+          name: tName,
+          count
         });
       }
+
       await client.end();
 
       return res.json({
