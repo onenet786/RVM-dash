@@ -702,10 +702,14 @@ app.get('/api/overview', async (req, res) => {
       let totalPoints = 0;
 
       sessions.forEach(s => {
-        totalBottles += parseInt(s.bottles || s.totalBottles || 0);
-        totalCups += parseInt(s.cups || s.totalCups || 0);
-        totalPoints += parseInt(s.points || s.totalPoints || 0);
+        const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
+        const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
+        const cCount = parseInt(s.cups || s.totalCups || 0);
+        totalBottles += bCount;
+        totalCups += cCount;
+        totalPoints += pCount;
       });
+
 
       const recentSessions = sessions.slice(0, 5);
       const recentAlerts = binAlerts.slice(0, 5);
@@ -2194,6 +2198,13 @@ app.post('/api/machine/sync-session', async (req, res) => {
       machine_id: machineId || 'RVM-001',
       userId: userId || 'anonymous',
       user_id: userId || 'anonymous',
+      bottles: totalBottles,
+      totalBottles: totalBottles,
+      cups: 0,
+      totalCups: 0,
+      points: pointsEarned,
+      totalPoints: pointsEarned,
+      pointsEarned: pointsEarned,
       plasticCount,
       plastic_count: plasticCount,
       aluminiumCount,
@@ -2204,11 +2215,13 @@ app.post('/api/machine/sync-session', async (req, res) => {
       total_weight_kg: weightKg,
       co2AvoidedKg,
       co2_avoided_kg: co2AvoidedKg,
-      pointsEarned,
+      recycledAt: createdAt || new Date().toISOString(),
+      timestamp: createdAt || new Date().toISOString(),
       session_status: 'completed',
       createdAt: createdAt || new Date().toISOString(),
       created_at: createdAt || new Date().toISOString()
     };
+
 
     await saveDocToEngine('recyclingsessions', sessionDoc);
 
