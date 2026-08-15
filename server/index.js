@@ -1552,16 +1552,49 @@ async function fetchCollectionDocs(colName) {
         );
       `);
       const res = await pool.query(`SELECT id, data FROM "${tableName}"`);
-      return res.rows.map(r => {
+      const docs = res.rows.map(r => {
         const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
         delete parsed.id; // Keep _id as the single primary ID field
         if (!parsed._id) parsed._id = r.id;
         return parsed;
       });
+
+      if (tableName === 'recyclingsessions' || tableName === 'recycling_sessions') {
+        try {
+          const relRes = await pool.query(`SELECT * FROM recycling_sessions`);
+          const existingIds = new Set(docs.map(d => d._id || d.session_id));
+          relRes.rows.forEach(r => {
+            const sId = r.session_id;
+            if (!existingIds.has(sId)) {
+              docs.push({
+                _id: sId,
+                session_id: sId,
+                machineId: r.machine_id,
+                machine_id: r.machine_id,
+                userId: r.user_id,
+                user_id: r.user_id,
+                bottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
+                totalBottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
+                plasticCount: r.plastic_count,
+                aluminiumCount: r.aluminium_count,
+                paperCardboardCount: r.paper_cardboard_count,
+                points: r.points_earned,
+                totalPoints: r.points_earned,
+                pointsEarned: r.points_earned,
+                recycledAt: r.recycled_at || r.created_at,
+                timestamp: r.recycled_at || r.created_at
+              });
+            }
+          });
+        } catch (relErr) { /* ignore if table not initialized */ }
+      }
+
+      return docs;
     } catch (e) {
       return [];
     }
   }
+
 
   // MongoDB Collection Query
   if (!db) await connectDB();
@@ -2181,6 +2214,12 @@ app.post('/api/machine/sync-session', async (req, res) => {
       const pool = getPgPool();
       if (pool) {
         await pool.query(`
+          INSERT INTO recycling_sessions (session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, total_weight_kg, co2_avoided_kg, points_earned, session_status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'completed')
+          ON CONFLICT (session_id) DO NOTHING;
+        `, [sessionId, machineId, userId || 'anonymous', plasticCount, aluminiumCount, paperCardboardCount, weightKg, co2AvoidedKg, pointsEarned]);
+
+        await pool.query(`
           INSERT INTO machines (machine_id, name, location, status, total_bottles_recycled, total_weight_kg)
           VALUES ($1, $1, 'System Auto', 'active', $2, $3)
           ON CONFLICT (machine_id) DO UPDATE SET 
@@ -2196,6 +2235,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
         }
       }
     }
+
 
     res.json({
       success: true,

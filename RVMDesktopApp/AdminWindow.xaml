@@ -101,7 +101,7 @@
                                     <StackPanel>
                                         <TextBlock Text="1. CENTRAL DASHBOARD ENDPOINT" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8" />
                                         <TextBlock Text="Central Server Base URL:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
-                                        <TextBox x:Name="TxtServerUrl" Text="https://isprvm.binishaqsoft.com" Height="36" Padding="8,6" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                        <TextBox x:Name="TxtServerUrl" Text="http://localhost:5009" Height="36" Padding="8,6" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
