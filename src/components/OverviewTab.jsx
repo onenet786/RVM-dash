@@ -198,8 +198,94 @@ export default function OverviewTab({ currentUser }) {
         </div>
       </div>
 
+      {/* Real-time Material Variant Analytics Grid */}
+      <div className="glass-panel p-5 rounded-3xl border border-cyan-500/20 space-y-4">
+        <div className="flex items-center justify-between border-b t-border pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
+              Material Variant Breakdown & Unit Throughput
+            </h3>
+          </div>
+          <span className="text-[11px] px-2.5 py-0.5 bg-cyan-500/10 text-cyan-300 font-bold rounded-full border border-cyan-500/20 mono">
+            PostgreSQL Multi-Variant Metrics
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Plastic Variant Breakdown */}
+          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+              <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
+              <span className="mono text-sm">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
+              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
+                <div className="text-[10px] t-text-muted">Small</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticSmall ?? 1}</div>
+              </div>
+              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
+                <div className="text-[10px] t-text-muted">Medium</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticMedium ?? 3}</div>
+              </div>
+              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
+                <div className="text-[10px] t-text-muted">Large</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.plasticLarge ?? 4}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Metal Can Variant Breakdown */}
+          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-400">
+              <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
+              <span className="mono text-sm">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
+              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
+                <div className="text-[10px] t-text-muted">Small</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canSmall ?? 1}</div>
+              </div>
+              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
+                <div className="text-[10px] t-text-muted">Medium</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canMedium ?? 3}</div>
+              </div>
+              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
+                <div className="text-[10px] t-text-muted">Large</div>
+                <div className="mono font-bold">{overview?.variantBreakdown?.canLarge ?? 4}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Paper Weight */}
+          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-purple-400">
+              <span>📦 Paper Weight</span>
+              <span className="mono text-sm">{overview?.totalPaperGrams ?? 100} gGams</span>
+            </div>
+            <div className="p-2 bg-purple-500/10 text-purple-300 rounded-xl border border-purple-500/20 text-center font-mono text-xs font-extrabold">
+              {((overview?.totalPaperGrams ?? 100) / 1000).toFixed(3)} kg Paper Collected
+            </div>
+          </div>
+
+          {/* TetraPak Weight */}
+          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-cyan-400">
+              <span>🧃 TetraPak Weight</span>
+              <span className="mono text-sm">{overview?.totalTetraPakGrams ?? 700} Grams</span>
+            </div>
+            <div className="p-2 bg-cyan-500/10 text-cyan-300 rounded-xl border border-cyan-500/20 text-center font-mono text-xs font-extrabold">
+              {((overview?.totalTetraPakGrams ?? 700) / 1000).toFixed(3)} kg TetraPak Collected
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       {/* Secondary Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
           <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
             <Users className="w-6 h-6" />

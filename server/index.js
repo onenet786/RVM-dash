@@ -757,16 +757,49 @@ app.get('/api/overview', async (req, res) => {
       let totalBottles = 0;
       let totalCups = 0;
       let totalPoints = 0;
+      let totalPlastic = 0;
+      let totalCans = 0;
+      let totalPaperGrams = 0;
+      let totalTetraPakGrams = 0;
+      let totalGlass = 0;
+
+      let plasticSmall = 0;
+      let plasticMedium = 0;
+      let plasticLarge = 0;
+
+      let canSmall = 0;
+      let canMedium = 0;
+      let canLarge = 0;
 
       sessions.forEach(s => {
         const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
         const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
         const cCount = parseInt(s.cups || s.totalCups || 0);
+        
         totalBottles += bCount;
         totalCups += cCount;
         totalPoints += pCount;
-      });
 
+        const pCnt = parseInt(s.plasticCount || s.plastic_count || (s.bottleSize ? 1 : 0));
+        const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
+        const gCnt = parseInt(s.glassCount || s.glass_count || 0);
+        const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
+        const tetraG = parseInt(s.tetrapak_weight_grams || 0);
+
+        totalPlastic += pCnt;
+        totalCans += aCnt;
+        totalGlass += gCnt;
+        totalPaperGrams += paperG;
+        totalTetraPakGrams += tetraG;
+
+        plasticSmall += parseInt(s.plastic_small_count || (s.bottleSize === 'SMALL' ? pCnt : 0));
+        plasticMedium += parseInt(s.plastic_medium_count || (s.bottleSize === 'MEDIUM' ? pCnt : 0));
+        plasticLarge += parseInt(s.plastic_large_count || (s.bottleSize === 'LARGE' ? pCnt : 0));
+
+        canSmall += parseInt(s.can_small_count || (s.bottleSize === 'SMALL' ? aCnt : 0));
+        canMedium += parseInt(s.can_medium_count || (s.bottleSize === 'MEDIUM' ? aCnt : 0));
+        canLarge += parseInt(s.can_large_count || (s.bottleSize === 'LARGE' ? aCnt : 0));
+      });
 
       const recentSessions = sessions.slice(0, 5);
       const recentAlerts = binAlerts.slice(0, 5);
@@ -783,6 +816,21 @@ app.get('/api/overview', async (req, res) => {
         totalBottles,
         totalCups,
         totalPoints,
+        totalPlastic,
+        totalCans,
+        totalPaperGrams,
+        totalTetraPakGrams,
+        totalGlass,
+        variantBreakdown: {
+          plasticSmall,
+          plasticMedium,
+          plasticLarge,
+          canSmall,
+          canMedium,
+          canLarge,
+          paperGrams: totalPaperGrams,
+          tetraPakGrams: totalTetraPakGrams
+        },
         recentSessions,
         recentAlerts
       });
@@ -805,28 +853,55 @@ app.get('/api/overview', async (req, res) => {
     const totalBinAlerts = await binCol.countDocuments(machineQuery);
     const totalRedemptions = await redemptionCol.countDocuments();
 
-    // Aggregates for bottles, cups, points filtered by machine scope
-    const aggPipeline = [];
-    if (Object.keys(machineQuery).length > 0) aggPipeline.push({ $match: machineQuery });
-    aggPipeline.push({
-      $group: {
-        _id: null,
-        totalBottles: { $sum: '$bottles' },
-        totalCups: { $sum: '$cups' },
-        totalPoints: { $sum: '$points' }
-      }
+    const allSessions = await sessionCol.find(machineQuery).toArray();
+    let totalBottles = 0;
+    let totalCups = 0;
+    let totalPoints = 0;
+    let totalPlastic = 0;
+    let totalCans = 0;
+    let totalPaperGrams = 0;
+    let totalTetraPakGrams = 0;
+    let totalGlass = 0;
+
+    let plasticSmall = 0;
+    let plasticMedium = 0;
+    let plasticLarge = 0;
+    let canSmall = 0;
+    let canMedium = 0;
+    let canLarge = 0;
+
+    allSessions.forEach(s => {
+      const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
+      const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
+      const cCount = parseInt(s.cups || s.totalCups || 0);
+      
+      totalBottles += bCount;
+      totalCups += cCount;
+      totalPoints += pCount;
+
+      const pCnt = parseInt(s.plasticCount || s.plastic_count || 0);
+      const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
+      const gCnt = parseInt(s.glassCount || s.glass_count || 0);
+      const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
+      const tetraG = parseInt(s.tetrapak_weight_grams || 0);
+
+      totalPlastic += pCnt;
+      totalCans += aCnt;
+      totalGlass += gCnt;
+      totalPaperGrams += paperG;
+      totalTetraPakGrams += tetraG;
+
+      plasticSmall += parseInt(s.plastic_small_count || (s.bottleSize === 'SMALL' ? pCnt : 0));
+      plasticMedium += parseInt(s.plastic_medium_count || (s.bottleSize === 'MEDIUM' ? pCnt : 0));
+      plasticLarge += parseInt(s.plastic_large_count || (s.bottleSize === 'LARGE' ? pCnt : 0));
+
+      canSmall += parseInt(s.can_small_count || (s.bottleSize === 'SMALL' ? aCnt : 0));
+      canMedium += parseInt(s.can_medium_count || (s.bottleSize === 'MEDIUM' ? aCnt : 0));
+      canLarge += parseInt(s.can_large_count || (s.bottleSize === 'LARGE' ? aCnt : 0));
     });
 
-    const aggregateTotals = await sessionCol.aggregate(aggPipeline).toArray();
-
-    const totals = aggregateTotals[0] || { totalBottles: 0, totalCups: 0, totalPoints: 0 };
-
     // Recent 5 sessions
-    const recentSessions = await sessionCol
-      .find(machineQuery)
-      .sort({ recycledAt: -1, _id: -1 })
-      .limit(5)
-      .toArray();
+    const recentSessions = allSessions.sort((a, b) => new Date(b.recycledAt || b.createdAt || 0) - new Date(a.recycledAt || a.createdAt || 0)).slice(0, 5);
 
     // Recent 5 alerts
     const recentAlerts = await binCol
@@ -843,9 +918,25 @@ app.get('/api/overview', async (req, res) => {
       totalFeedbacks,
       totalBinAlerts,
       totalRedemptions,
-      totalBottles: totals.totalBottles,
-      totalCups: totals.totalCups,
-      totalPoints: totals.totalPoints,
+      totalBottles,
+      totalCups,
+      totalPoints,
+      totalPlastic,
+      totalCans,
+      totalPaperGrams,
+      totalTetraPakGrams,
+      totalGlass,
+      variantBreakdown: {
+        plasticSmall,
+        plasticMedium,
+        plasticLarge,
+        canSmall,
+        canMedium,
+        canLarge,
+        paperGrams: totalPaperGrams,
+        tetraPakGrams: totalTetraPakGrams
+      },
+      recentSessions,
       recentSessions,
       recentAlerts
     });
