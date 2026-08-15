@@ -100,7 +100,7 @@
                                 <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
                                     <StackPanel>
                                         <TextBlock Text="1. CENTRAL DASHBOARD ENDPOINT" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,8" />
-                                        <TextBlock Text="Central Server Base URL:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Central Server Base URL:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtServerUrl" Text="https://isprvm.binishaqsoft.com" Height="36" Padding="8,6" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -124,11 +124,11 @@
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                                <TextBlock Text="Machine ID:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Machine ID:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <TextBox x:Name="TxtMachineId" Text="RVM-001" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                                <TextBlock Text="Mobile / QR Token:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Mobile / QR Token:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <TextBox x:Name="TxtUserId" Text="onenet" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                             </StackPanel>
                                         </Grid>
@@ -139,7 +139,7 @@
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                                <TextBlock Text="Material Type:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Material Type:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <ComboBox x:Name="CmbMaterial" Height="32" SelectedIndex="0" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
                                                     <ComboBoxItem Content="PLASTIC" />
                                                     <ComboBoxItem Content="CAN (Metal)" />
@@ -148,7 +148,7 @@
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                                <TextBlock Text="Bottle Size:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Bottle Size:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <ComboBox x:Name="CmbSize" Height="32" SelectedIndex="1" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
                                                     <ComboBoxItem Content="SMALL" />
                                                     <ComboBoxItem Content="MEDIUM" />
@@ -163,11 +163,11 @@
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                                <TextBlock Text="Item Count:" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Item Count:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <TextBox x:Name="TxtItemCount" Text="3" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                                <TextBlock Text="Weight (Kg):" Style="{StaticResource DimText}" Margin="0,0,0,4" />
+                                                <TextBlock Text="Weight (Kg):" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <TextBox x:Name="TxtWeightKg" Text="0.150" Height="32" Padding="6,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                             </StackPanel>
                                         </Grid>
