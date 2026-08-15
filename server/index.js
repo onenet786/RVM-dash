@@ -2190,11 +2190,16 @@ app.post('/api/auth/login', async (req, res) => {
         status: 'active'
       };
     } else {
-      // Find in adminaccounts collection
-      const adminCol = db.collection('adminaccounts');
-      const foundUser = await adminCol.findOne({
-        $or: [{ username: username }, { email: username }]
-      });
+      let foundUser = null;
+      if (activeDbType === 'postgres') {
+        const users = await fetchCollectionDocs('adminaccounts');
+        foundUser = users.find(u => u.username === username || u.email === username);
+      } else if (db) {
+        const adminCol = db.collection('adminaccounts');
+        foundUser = await adminCol.findOne({
+          $or: [{ username: username }, { email: username }]
+        });
+      }
 
       if (!foundUser) {
         return res.status(401).json({ error: 'Invalid username or password' });
@@ -2213,8 +2218,14 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Fetch Role Permissions
-    const rolesCol = db.collection('roles');
-    const roleDoc = await rolesCol.findOne({ roleId: user.roleId });
+    let roleDoc = null;
+    if (activeDbType === 'postgres') {
+      const roles = await fetchCollectionDocs('roles');
+      roleDoc = roles.find(r => r.roleId === user.roleId);
+    } else if (db) {
+      const rolesCol = db.collection('roles');
+      roleDoc = await rolesCol.findOne({ roleId: user.roleId });
+    }
 
     const fallbackRole = DEFAULT_RBAC_ROLES.find(r => r.roleId === user.roleId) || DEFAULT_RBAC_ROLES[0];
     role = roleDoc || fallbackRole;
@@ -2260,17 +2271,39 @@ app.get('/api/auth/me', async (req, res) => {
     const username = usernameMatch ? usernameMatch[1] : 'onenet';
 
     await seedSecurityDefaults(db);
-    const adminCol = db.collection('adminaccounts');
-    const user = await adminCol.findOne({ username }) || {
-      username: 'onenet',
-      fullName: 'Master Developer (onenet)',
-      email: 'onenet@rvm-dash.io',
-      roleId: 'super_admin',
-      roleName: 'Super Admin / Master Dev',
-      assignedMachines: ['*']
-    };
 
-    const roleDoc = await db.collection('roles').findOne({ roleId: user.roleId }) || DEFAULT_RBAC_ROLES[0];
+    let user = null;
+    let roleDoc = null;
+
+    if (activeDbType === 'postgres') {
+      const users = await fetchCollectionDocs('adminaccounts');
+      user = users.find(u => u.username === username);
+      const roles = await fetchCollectionDocs('roles');
+      if (user) {
+        roleDoc = roles.find(r => r.roleId === user.roleId);
+      }
+    } else if (db) {
+      const adminCol = db.collection('adminaccounts');
+      user = await adminCol.findOne({ username });
+      if (user) {
+        roleDoc = await db.collection('roles').findOne({ roleId: user.roleId });
+      }
+    }
+
+    if (!user) {
+      user = {
+        username: 'onenet',
+        fullName: 'Master Developer (onenet)',
+        email: 'onenet@rvm-dash.io',
+        roleId: 'super_admin',
+        roleName: 'Super Admin / Master Dev',
+        assignedMachines: ['*']
+      };
+    }
+
+    if (!roleDoc) {
+      roleDoc = DEFAULT_RBAC_ROLES.find(r => r.roleId === user.roleId) || DEFAULT_RBAC_ROLES[0];
+    }
 
     res.json({
       authenticated: true,
@@ -2290,6 +2323,7 @@ app.get('/api/auth/me', async (req, res) => {
     res.status(401).json({ error: 'Invalid authentication session' });
   }
 });
+
 
 // ==========================================
 // RVM HARDWARE TELEMETRY & QR SCANNER API (PHASE 3)
