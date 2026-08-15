@@ -1572,6 +1572,124 @@ async function fetchCollectionDocs(colName) {
     const pool = getPgPool();
     if (!pool) return [];
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    // 1. Relational Table: recycling_sessions / recyclingsessions
+    if (tableName === 'recycling_sessions' || tableName === 'recyclingsessions') {
+      const docs = [];
+      try {
+        const jsonRes = await pool.query(`SELECT id, data FROM recyclingsessions;`).catch(() => ({ rows: [] }));
+        jsonRes.rows.forEach(r => {
+          const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
+          delete parsed.id;
+          if (!parsed._id) parsed._id = r.id;
+          docs.push(parsed);
+        });
+      } catch (e) {}
+
+      try {
+        const relRes = await pool.query(`SELECT * FROM recycling_sessions;`).catch(() => ({ rows: [] }));
+        const existingIds = new Set(docs.map(d => d._id || d.session_id));
+        relRes.rows.forEach(r => {
+          const sId = r.session_id;
+          if (!existingIds.has(sId)) {
+            docs.push({
+              _id: sId,
+              session_id: sId,
+              machineId: r.machine_id,
+              machine_id: r.machine_id,
+              userId: r.user_id,
+              user_id: r.user_id,
+              bottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
+              totalBottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
+              plasticCount: r.plastic_count,
+              aluminiumCount: r.aluminium_count,
+              paperCardboardCount: r.paper_cardboard_count,
+              points: r.points_earned,
+              totalPoints: r.points_earned,
+              pointsEarned: r.points_earned,
+              recycledAt: r.created_at,
+              timestamp: r.created_at
+            });
+          }
+        });
+      } catch (e) {}
+
+      return docs;
+    }
+
+    // 2. Relational Table: users / userprofile
+    if (tableName === 'users' || tableName === 'userprofile') {
+      const docs = [];
+      try {
+        const jsonRes = await pool.query(`SELECT id, data FROM userprofile;`).catch(() => ({ rows: [] }));
+        jsonRes.rows.forEach(r => {
+          const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
+          delete parsed.id;
+          if (!parsed._id) parsed._id = r.id;
+          docs.push(parsed);
+        });
+      } catch (e) {}
+
+      try {
+        const relRes = await pool.query(`SELECT * FROM users;`).catch(() => ({ rows: [] }));
+        const existingIds = new Set(docs.map(d => d._id || d.user_id || d.username));
+        relRes.rows.forEach(r => {
+          const uId = r.user_id || r.username;
+          if (!existingIds.has(uId)) {
+            docs.push({
+              _id: uId,
+              user_id: uId,
+              username: r.username,
+              fullName: r.full_name,
+              full_name: r.full_name,
+              email: r.email,
+              pointsBalance: r.points_balance,
+              points_balance: r.points_balance,
+              role: r.role_id,
+              status: r.status,
+              createdAt: r.created_at
+            });
+          }
+        });
+      } catch (e) {}
+
+      return docs;
+    }
+
+    // 3. Relational Table: machines
+    if (tableName === 'machines') {
+      try {
+        const relRes = await pool.query(`SELECT * FROM machines;`).catch(() => ({ rows: [] }));
+        return relRes.rows.map(r => ({
+          _id: r.machine_id,
+          machineId: r.machine_id,
+          name: r.name,
+          location: r.location,
+          status: r.status,
+          totalBottlesRecycled: r.total_bottles_recycled,
+          totalWeightKg: r.total_weight_kg,
+          lastPingAt: r.last_ping_at
+        }));
+      } catch (e) {}
+    }
+
+    // 4. Relational Table: machine_configs
+    if (tableName === 'machine_configs') {
+      try {
+        const relRes = await pool.query(`SELECT * FROM machine_configs;`).catch(() => ({ rows: [] }));
+        return relRes.rows.map(r => ({
+          _id: r.machine_id,
+          machineId: r.machine_id,
+          configVersion: r.config_version,
+          pointsPerPlastic: r.points_per_plastic,
+          pointsPerAluminium: r.points_per_aluminium,
+          pointsPerPaperKg: r.points_per_paper_kg,
+          updatedAt: r.updated_at
+        }));
+      } catch (e) {}
+    }
+
+    // 5. Dynamic JSONB Document Tables
     try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS "${tableName}" (
@@ -1581,48 +1699,17 @@ async function fetchCollectionDocs(colName) {
         );
       `);
       const res = await pool.query(`SELECT id, data FROM "${tableName}"`);
-      const docs = res.rows.map(r => {
+      return res.rows.map(r => {
         const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
         delete parsed.id; // Keep _id as the single primary ID field
         if (!parsed._id) parsed._id = r.id;
         return parsed;
       });
-
-      if (tableName === 'recyclingsessions' || tableName === 'recycling_sessions') {
-        try {
-          const relRes = await pool.query(`SELECT * FROM recycling_sessions`);
-          const existingIds = new Set(docs.map(d => d._id || d.session_id));
-          relRes.rows.forEach(r => {
-            const sId = r.session_id;
-            if (!existingIds.has(sId)) {
-              docs.push({
-                _id: sId,
-                session_id: sId,
-                machineId: r.machine_id,
-                machine_id: r.machine_id,
-                userId: r.user_id,
-                user_id: r.user_id,
-                bottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
-                totalBottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
-                plasticCount: r.plastic_count,
-                aluminiumCount: r.aluminium_count,
-                paperCardboardCount: r.paper_cardboard_count,
-                points: r.points_earned,
-                totalPoints: r.points_earned,
-                pointsEarned: r.points_earned,
-                recycledAt: r.recycled_at || r.created_at,
-                timestamp: r.recycled_at || r.created_at
-              });
-            }
-          });
-        } catch (relErr) { /* ignore if table not initialized */ }
-      }
-
-      return docs;
     } catch (e) {
       return [];
     }
   }
+
 
 
   // MongoDB Collection Query
