@@ -1,0 +1,227 @@
+<Application
+    x:Class="RVMDesktopApp.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    >
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <!-- ── Color Palette ── -->
+            <Color x:Key="BgDark">#0B1120</Color>
+            <Color x:Key="BgCard">#151E30</Color>
+            <Color x:Key="BgCardHover">#1B2740</Color>
+            <Color x:Key="AccentGreen">#22C55E</Color>
+            <Color x:Key="AccentCyan">#06B6D4</Color>
+            <Color x:Key="AccentGold">#F59E0B</Color>
+            <Color x:Key="AccentRed">#EF4444</Color>
+            <Color x:Key="TextPrimary">#F1F5F9</Color>
+            <Color x:Key="TextSecondary">#94A3B8</Color>
+            <Color x:Key="BorderDim">#1E293B</Color>
+
+            <SolidColorBrush x:Key="BrushBgDark" Color="{StaticResource BgDark}" />
+            <SolidColorBrush x:Key="BrushBgCard" Color="{StaticResource BgCard}" />
+            <SolidColorBrush x:Key="BrushBgCardHover" Color="{StaticResource BgCardHover}" />
+            <SolidColorBrush x:Key="BrushAccentGreen" Color="{StaticResource AccentGreen}" />
+            <SolidColorBrush x:Key="BrushAccentCyan" Color="{StaticResource AccentCyan}" />
+            <SolidColorBrush x:Key="BrushAccentGold" Color="{StaticResource AccentGold}" />
+            <SolidColorBrush x:Key="BrushAccentRed" Color="{StaticResource AccentRed}" />
+            <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource TextPrimary}" />
+            <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource TextSecondary}" />
+            <SolidColorBrush x:Key="BrushBorderDim" Color="{StaticResource BorderDim}" />
+
+            <!-- ── Typography ── -->
+            <FontFamily x:Key="AppFont">Segoe UI</FontFamily>
+
+            <!-- ── Base TextBlock Style ── -->
+            <Style x:Key="BaseText" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+            </Style>
+
+            <Style x:Key="SecondaryText" TargetType="TextBlock" BasedOn="{StaticResource BaseText}">
+                <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+            </Style>
+
+            <!-- ── Card Style ── -->
+            <Style x:Key="CardBorder" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="24" />
+            </Style>
+
+            <!-- ── Modern Button ── -->
+            <Style x:Key="ModernButton" TargetType="Button">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                <Setter Property="Background" Value="{StaticResource BrushBgCard}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                                <ContentPresenter
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource BrushBorderDim}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.45" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ── Accent Button (Cyan) ── -->
+            <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                <Setter Property="Background" Value="{StaticResource BrushAccentCyan}" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10"
+                                Padding="{TemplateBinding Padding}">
+                                <ContentPresenter
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.85" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.7" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ── DataGrid Modern Style ── -->
+            <Style TargetType="DataGrid">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="RowBackground" Value="{StaticResource BrushBgCard}" />
+                <Setter Property="AlternatingRowBackground" Value="#101828" />
+                <Setter Property="GridLinesVisibility" Value="Horizontal" />
+                <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="HeadersVisibility" Value="Column" />
+                <Setter Property="CanUserResizeColumns" Value="True" />
+                <Setter Property="ColumnHeaderHeight" Value="44" />
+            </Style>
+
+            <Style TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#0F172A" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="16,0" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="BorderThickness" Value="0,0,1,1" />
+            </Style>
+
+            <Style TargetType="DataGridCell">
+                <Setter Property="Padding" Value="16,0" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="DataGridCell">
+                            <Border
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter Property="Background" Value="#1B2740" />
+                        <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style TargetType="DataGridRow">
+                <Setter Property="Height" Value="40" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource BrushBgCardHover}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- ── TabControl Modern ── -->
+            <Style TargetType="TabControl">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{StaticResource BrushBorderDim}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+
+            <Style TargetType="TabItem">
+                <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Foreground" Value="{StaticResource BrushTextSecondary}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border
+                                x:Name="Bd"
+                                Background="Transparent"
+                                BorderThickness="0,0,0,2"
+                                BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                                <ContentPresenter
+                                    ContentSource="Header"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BrushAccentCyan}" />
+                                    <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{StaticResource BrushTextPrimary}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

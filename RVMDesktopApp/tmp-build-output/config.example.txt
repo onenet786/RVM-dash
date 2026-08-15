@@ -1,0 +1,6 @@
+# Copy this file to config.txt and adjust the SQL Server connection string.
+ConnectionString=Server=YOUR_SERVER;Database=RVMDB;Trusted_Connection=True;TrustServerCertificate=True;
+ArduinoPort=COM16
+ArduinoBaud=9600
+AdvertisementVideoFolder=Ads\Advertisements
+InstructionVideoFolder=Ads\Instructions
