@@ -9,10 +9,10 @@ namespace RVMDesktopApp;
 public static class CentralSyncService
 {
     private static readonly HttpClient _httpClient = new HttpClient();
-    public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
+    public static string CentralApiUrl { get; set; } = "http://localhost:5009";
 
     /// <summary>
-    /// Syncs local SQL Server 2012 recycling transactions to Central Master Dashboard API.
+    /// Syncs local SQL Server recycling transactions to Central Master Dashboard API.
     /// </summary>
     public static async Task<bool> SyncSessionToCentralAsync(
         string machineId,
@@ -20,10 +20,16 @@ public static class CentralSyncService
         string mobileNumber,
         int plasticCount,
         int aluminiumCount,
+        int paperCardboardCount,
+        int glassCount,
+        int pointsEarned,
         double weightKg)
     {
         try
         {
+            int totalItems = plasticCount + aluminiumCount + paperCardboardCount + glassCount;
+            if (totalItems <= 0) totalItems = 1;
+
             var payload = new
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
@@ -31,6 +37,12 @@ public static class CentralSyncService
                 userId = string.IsNullOrWhiteSpace(mobileNumber) ? "anonymous" : mobileNumber,
                 plasticCount = plasticCount,
                 aluminiumCount = aluminiumCount,
+                paperCardboardCount = paperCardboardCount,
+                glassCount = glassCount,
+                totalBottles = totalItems,
+                bottles = totalItems,
+                pointsEarned = pointsEarned > 0 ? pointsEarned : 30,
+                points = pointsEarned > 0 ? pointsEarned : 30,
                 weightKg = weightKg,
                 createdAt = DateTime.UtcNow.ToString("o")
             };

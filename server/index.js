@@ -2298,15 +2298,18 @@ app.get('/api/auth/me', async (req, res) => {
 // Upstream Session Sync from RVM Machine
 app.post('/api/machine/sync-session', async (req, res) => {
   try {
-    const { machineId, localSessionId, userId, plasticCount = 0, aluminiumCount = 0, paperCardboardCount = 0, weightKg = 0, createdAt } = req.body;
+    const { machineId, localSessionId, userId, plasticCount = 0, aluminiumCount = 0, paperCardboardCount = 0, glassCount = 0, weightKg = 0, createdAt } = req.body;
     if (!machineId) {
       return res.status(400).json({ error: 'machineId is required' });
     }
 
     const sessionId = localSessionId ? `${machineId}_${localSessionId}` : `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    const totalBottles = (plasticCount || 0) + (aluminiumCount || 0) + (paperCardboardCount || 0);
-    const co2AvoidedKg = parseFloat(((plasticCount * 0.05) + (aluminiumCount * 0.09)).toFixed(3));
-    const pointsEarned = (plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15);
+    let totalBottles = req.body.totalBottles || req.body.bottles || ((plasticCount || 0) + (aluminiumCount || 0) + (paperCardboardCount || 0) + (glassCount || 0));
+    if (totalBottles === 0 && weightKg > 0) totalBottles = 1;
+    const co2AvoidedKg = parseFloat(((plasticCount * 0.05) + (aluminiumCount * 0.09) + (glassCount * 0.03)).toFixed(3));
+    let pointsEarned = req.body.pointsEarned || req.body.points || ((plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15) + (glassCount * 10));
+    if (pointsEarned === 0) pointsEarned = 30;
+
 
     const sessionDoc = {
       _id: sessionId,

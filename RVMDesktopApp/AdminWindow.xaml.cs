@@ -171,6 +171,8 @@ public partial class AdminWindow : Window
         // Step 2: Sync to Central Master Dashboard API
         int plasticCount = material.Contains("PLASTIC") ? itemCount : 0;
         int aluminiumCount = (material.Contains("CAN") || material.Contains("METAL")) ? itemCount : 0;
+        int paperCount = material.Contains("PAPER") ? itemCount : 0;
+        int glassCount = material.Contains("GLASS") ? itemCount : 0;
 
         bool syncSuccess = await CentralSyncService.SyncSessionToCentralAsync(
             machineId,
@@ -178,8 +180,12 @@ public partial class AdminWindow : Window
             userId,
             plasticCount,
             aluminiumCount,
+            paperCount,
+            glassCount,
+            totalPoints,
             weightKg
         );
+
 
         if (syncSuccess)
         {
