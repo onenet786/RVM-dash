@@ -54,7 +54,8 @@ let activePgConfig = {
 };
 
 let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
-let currentDbName = activeDbType === 'postgres' ? (activePgConfig.database || 'rvmpg') : (process.env.MONGODB_DBNAME || 'ONS-RVM');
+let currentDbName = process.env.MONGODB_DBNAME || 'ONS-RVM';
+
 
 
 let dbClient = null;
@@ -259,18 +260,25 @@ async function connectDB(forceReconnect = false) {
   }
 }
 
-// Eagerly connect on process start
-connectDB().catch(err => console.error('[Initial Connect Failed]', err.message));
+// Eagerly connect on process start if MongoDB active
+if (activeDbType === 'mongodb') {
+  connectDB().catch(err => console.error('[Initial MongoDB Connect Failed]', err.message));
+} else {
+  console.log(`[PostgreSQL Engine] Default active database: "${activePgConfig?.database || 'rvmpg'}" on host "${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}"`);
+}
 
 // Ensure DB connected middleware
 app.use(async (req, res, next) => {
   try {
-    await connectDB();
+    if (activeDbType === 'mongodb') {
+      await connectDB();
+    }
     next();
   } catch (err) {
     res.status(500).json({ error: 'Database connection error', details: err.message });
   }
 });
+
 
 function getSanitizedHost(uri) {
   if (!uri) return 'Unknown Host';
