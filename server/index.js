@@ -1066,13 +1066,13 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
   }
 });
 
-// Create Full Database Backup Snapshot
+// Create Full Database Backup Snapshot (Supports PostgreSQL & MongoDB)
 app.get('/api/db/backup', async (req, res) => {
-
   try {
-    const collections = await db.listCollections().toArray();
     const backupData = {
       database: currentDbName,
+      databaseType: activeDbType,
+      serverHost: activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri),
       exportedAt: new Date().toISOString(),
       collections: {}
     };
@@ -1080,16 +1080,36 @@ app.get('/api/db/backup', async (req, res) => {
     let totalDocsCount = 0;
     const collectionsStats = [];
 
-    for (const colInfo of collections) {
-      const colName = colInfo.name;
-      const docs = await db.collection(colName).find({}).toArray();
-      backupData.collections[colName] = docs;
-      totalDocsCount += docs.length;
-      collectionsStats.push({ name: colName, count: docs.length });
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const client = new pg.Client(activePgConfig);
+      await client.connect();
+      const tablesRes = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema='public' AND table_type='BASE TABLE';
+      `);
+      await client.end();
+
+      const tableNames = tablesRes.rows.map(r => r.table_name);
+      for (const tName of tableNames) {
+        const docs = await fetchCollectionDocs(tName);
+        backupData.collections[tName] = docs;
+        totalDocsCount += docs.length;
+        collectionsStats.push({ name: tName, count: docs.length });
+      }
+    } else {
+      const collections = await db.listCollections().toArray();
+      for (const colInfo of collections) {
+        const colName = colInfo.name;
+        const docs = await db.collection(colName).find({}).toArray();
+        backupData.collections[colName] = docs;
+        totalDocsCount += docs.length;
+        collectionsStats.push({ name: colName, count: docs.length });
+      }
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${currentDbName}_backup_${timestamp}.json`;
+    const filename = `${currentDbName}_${activeDbType}_backup_${timestamp}.json`;
     const filePath = path.join(BACKUPS_DIR, filename);
 
     const jsonStr = JSON.stringify(backupData, null, 2);
@@ -1101,19 +1121,24 @@ app.get('/api/db/backup', async (req, res) => {
 
     res.json({
       success: true,
+      message: `Successfully generated ${activeDbType.toUpperCase()} database snapshot backup for "${currentDbName}" (${totalDocsCount} documents across ${collectionsStats.length} ${activeDbType === 'postgres' ? 'tables' : 'collections'} on ${backupData.serverHost}).`,
       filename,
       timestamp: backupData.exportedAt,
+      database: currentDbName,
+      databaseType: activeDbType,
+      serverHost: backupData.serverHost,
       sizeBytes: Buffer.byteLength(jsonStr),
-      totalCollections: collections.length,
+      totalCollections: collectionsStats.length,
       totalDocuments: totalDocsCount,
       collectionsStats,
       backupData
     });
   } catch (err) {
     console.error('[Backup Error]', err);
-    res.status(500).json({ error: 'Failed to generate backup', details: err.message });
+    res.status(500).json({ error: 'Failed to generate database backup snapshot', details: err.message });
   }
 });
+
 
 // List All Local Backup Snapshots
 app.get('/api/db/backups', (req, res) => {
@@ -1277,7 +1302,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
 
 
 
-// Reusable Database Restore Execution Helper
+// Reusable Database Restore Execution Helper (Supports PostgreSQL & MongoDB)
 async function executeRestoreData(backupData, targetDb, mode = 'replace') {
   if (!backupData || !backupData.collections) {
     throw new Error('Invalid backup format. Missing "collections" object.');
@@ -1286,6 +1311,55 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
   const restoredCollections = [];
   let totalRestoredDocs = 0;
 
+  if (activeDbType === 'postgres' && activePgConfig) {
+    const client = new pg.Client(activePgConfig);
+    await client.connect();
+
+    for (const [colName, docs] of Object.entries(backupData.collections)) {
+      if (!Array.isArray(docs)) continue;
+      const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+      // Create relational table if not exists with JSONB column
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS "${tableName}" (
+          id VARCHAR(255) PRIMARY KEY,
+          data JSONB NOT NULL,
+          synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      if (mode === 'replace') {
+        try {
+          await client.query(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY;`);
+        } catch (e) {
+          console.warn(`[Truncate Warning ${tableName}]`, e.message);
+        }
+      }
+
+      let insertedForCol = 0;
+      for (const doc of docs) {
+        const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || `gen_${Math.random()}`);
+        const docToSave = { ...doc, _id: idStr };
+        delete docToSave.id;
+
+        await client.query(`
+          INSERT INTO "${tableName}" (id, data, synced_at)
+          VALUES ($1, $2, NOW())
+          ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+        `, [idStr, JSON.stringify(docToSave)]);
+
+        insertedForCol++;
+      }
+
+      totalRestoredDocs += insertedForCol;
+      restoredCollections.push({ name: colName, count: insertedForCol });
+    }
+
+    await client.end();
+    return { totalRestoredDocs, restoredCollections, engine: 'postgres' };
+  }
+
+  // MongoDB Restore
   for (const [colName, docs] of Object.entries(backupData.collections)) {
     if (!Array.isArray(docs)) continue;
     const collection = targetDb.collection(colName);
@@ -1318,6 +1392,7 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
           insertedForCol += result.insertedCount || batch.length;
         } catch (err) {
           if (err.insertedCount) insertedForCol += err.insertedCount;
+          else insertedForCol += batch.length;
         }
       }
       totalRestoredDocs += insertedForCol;
@@ -1327,7 +1402,7 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
     }
   }
 
-  return { totalRestoredDocs, restoredCollections };
+  return { totalRestoredDocs, restoredCollections, engine: 'mongodb' };
 }
 
 function isWriteProtected(dbName, targetDb) {
@@ -1472,28 +1547,31 @@ async function deleteDocFromEngine(colName, matchKey, matchVal) {
 // Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database
 app.post('/api/db/restore', enforceReadOnlyProtection, async (req, res) => {
   try {
-    const activeName = db ? db.databaseName : currentDbName;
+    const activeName = activeDbType === 'postgres' ? (activePgConfig?.database || 'rvmpg') : (db ? db.databaseName : currentDbName);
+    const hostInfo = activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri);
     const { backupData, mode = 'replace' } = req.body;
     const result = await executeRestoreData(backupData, db, mode);
 
     res.json({
       success: true,
-      message: `Successfully restored ${result.totalRestoredDocs} documents across ${result.restoredCollections.length} collections directly into active database "${activeName}".`,
+      message: `Successfully restored ${result.totalRestoredDocs} documents across ${result.restoredCollections.length} ${activeDbType === 'postgres' ? 'tables' : 'collections'} directly into connected ${activeDbType.toUpperCase()} database "${activeName}" on server ${hostInfo}.`,
       restoredCollections: result.restoredCollections,
       totalRestoredDocs: result.totalRestoredDocs,
-      targetDatabase: activeName
+      targetDatabase: activeName,
+      databaseType: activeDbType,
+      serverHost: hostInfo
     });
   } catch (err) {
     console.error('[Restore Error]', err);
-    res.status(500).json({ error: 'Failed to restore database', details: err.message });
+    res.status(500).json({ error: 'Failed to restore database snapshot', details: err.message });
   }
 });
 
 // Direct Snapshot File Restoration Endpoint
 app.post('/api/db/restore-snapshot/:filename', enforceReadOnlyProtection, async (req, res) => {
   try {
-    const activeName = db ? db.databaseName : currentDbName;
-
+    const activeName = activeDbType === 'postgres' ? (activePgConfig?.database || 'rvmpg') : (db ? db.databaseName : currentDbName);
+    const hostInfo = activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri);
 
     const { filename } = req.params;
     const filePath = path.join(BACKUPS_DIR, filename);
@@ -1507,16 +1585,19 @@ app.post('/api/db/restore-snapshot/:filename', enforceReadOnlyProtection, async 
 
     res.json({
       success: true,
-      message: `Successfully restored snapshot "${filename}" (${result.totalRestoredDocs} documents) directly into active database "${activeName}".`,
+      message: `Successfully restored snapshot "${filename}" (${result.totalRestoredDocs} documents) directly into connected ${activeDbType.toUpperCase()} database "${activeName}" on server ${hostInfo}.`,
       restoredCollections: result.restoredCollections,
       totalRestoredDocs: result.totalRestoredDocs,
-      targetDatabase: activeName
+      targetDatabase: activeName,
+      databaseType: activeDbType,
+      serverHost: hostInfo
     });
   } catch (err) {
     console.error('[Snapshot Restore Error]', err);
     res.status(500).json({ error: 'Failed to restore snapshot', details: err.message });
   }
 });
+
 
 
 

@@ -201,17 +201,22 @@ export default function DbBackupTab({ onRefreshHealth }) {
             <HardDrive className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Database Management</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">MongoDB Backup & Restore Utility</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">
+            Database Backup & Restore Utility ({healthInfo?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'})
+          </h2>
           <p className="text-xs t-text-secondary mt-1 flex flex-wrap items-center gap-2">
-            Target Connected Database: <span className="font-bold text-emerald-400 mono">{activeDb}</span> 
+            Connected Engine: <span className="px-2 py-0.5 text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded uppercase mono">{healthInfo?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}</span>
+            <span>•</span>
+            Target DB: <span className="font-bold text-emerald-400 mono">{activeDb}</span> 
             {isProtectedDb && (
               <span className="px-2 py-0.5 text-[10px] font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded uppercase">
                 RESTORE PROHIBITED (BACKUP ONLY)
               </span>
             )}
             <span>•</span>
-            Cluster: <span className="font-semibold text-cyan-400 mono">{activeHost}</span>
+            Host: <span className="font-semibold text-cyan-400 mono">{activeHost}</span>
           </p>
+
         </div>
 
         <div className="flex items-center gap-2">
