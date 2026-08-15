@@ -88,7 +88,7 @@
                 <TabItem Header="⚡ Central Dashboard Simulator &amp; Test Suite">
                     <Grid Margin="0,16,0,0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="480" />
+                            <ColumnDefinition Width="520" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
@@ -107,8 +107,8 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Button Grid.Column="0" Content="🔌 Ping Connection &amp; Rules" Click="TestConnection_Click" Height="36" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
-                                            <TextBlock Grid.Column="1" x:Name="TxtConnStatus" Text="Not Tested" Foreground="#94A3B8" VerticalAlignment="Center" FontWeight="SemiBold" Margin="4,0"/>
+                                            <Button Grid.Column="0" Content="🔌 Ping Connection &amp; Rules" Click="TestConnection_Click" Height="40" Padding="8,4" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                            <TextBlock Grid.Column="1" x:Name="TxtConnStatus" Text="Not Tested" Foreground="#94A3B8" VerticalAlignment="Center" FontWeight="SemiBold" Margin="4,0,0,0"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
@@ -154,7 +154,6 @@
                                                     <ComboBoxItem Content="MEDIUM" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
                                                     <ComboBoxItem Content="LARGE" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
                                                 </ComboBox>
-
                                             </StackPanel>
                                         </Grid>
 
@@ -173,7 +172,7 @@
                                             </StackPanel>
                                         </Grid>
 
-                                        <Button Content="🚀 Simulate Bottle Insert &amp; Sync to Dashboard" Click="SimulateInsert_Click" Height="40" Style="{StaticResource AccentButton}" Margin="0,0,0,8"/>
+                                        <Button Content="🚀 Simulate Bottle Insert &amp; Sync to Dashboard" Click="SimulateInsert_Click" Height="42" Padding="8,4" Style="{StaticResource AccentButton}" Margin="0,0,0,8"/>
                                     </StackPanel>
                                 </Border>
 
@@ -186,11 +185,12 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
-                                            <Button Grid.Column="0" Content="📡 Send Heartbeat (85% Fill)" Click="SendHeartbeat_Click" Height="36" Style="{StaticResource ModernButton}" Margin="0,0,4,0"/>
-                                            <Button Grid.Column="1" Content="🔍 Verify QR Code Scanner" Click="VerifyQr_Click" Height="36" Style="{StaticResource ModernButton}" Margin="4,0,0,0"/>
+                                            <Button Grid.Column="0" Content="📡 Send Heartbeat (85% Fill)" Click="SendHeartbeat_Click" Height="40" Padding="6,4" Style="{StaticResource ModernButton}" Margin="0,0,4,0"/>
+                                            <Button Grid.Column="1" Content="🔍 Verify QR Code Scanner" Click="VerifyQr_Click" Height="40" Padding="6,4" Style="{StaticResource ModernButton}" Margin="4,0,0,0"/>
                                         </Grid>
                                     </StackPanel>
                                 </Border>
+
 
                             </StackPanel>
                         </ScrollViewer>
