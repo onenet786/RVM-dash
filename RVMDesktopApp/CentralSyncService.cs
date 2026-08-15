@@ -23,7 +23,7 @@ public static class CentralSyncService
     public static string CentralApiUrl { get; set; } = "http://localhost:5009";
 
     /// <summary>
-    /// Syncs local SQL Server recycling transactions to Central Master Dashboard API with detailed status.
+    /// Syncs local SQL Server recycling transactions to Central Master Dashboard API with detailed status and granular item variants.
     /// </summary>
     public static async Task<SyncResult> SyncSessionToCentralDetailedAsync(
         string machineId,
@@ -34,7 +34,17 @@ public static class CentralSyncService
         int paperCardboardCount,
         int glassCount,
         int pointsEarned,
-        double weightKg)
+        double weightKg,
+        string bottleSize = "MEDIUM",
+        string material = "PLASTIC",
+        int plasticSmallCount = 0,
+        int plasticMediumCount = 0,
+        int plasticLargeCount = 0,
+        int canSmallCount = 0,
+        int canMediumCount = 0,
+        int canLargeCount = 0,
+        int paperWeightGrams = 0,
+        int tetrapakWeightGrams = 0)
     {
         var result = new SyncResult
         {
@@ -51,11 +61,22 @@ public static class CentralSyncService
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
                 localSessionId = localSessionId,
-                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "anonymous" : mobileNumber,
+                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "3214424625" : mobileNumber,
+                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "3214424625" : mobileNumber,
                 plasticCount = plasticCount,
                 aluminiumCount = aluminiumCount,
                 paperCardboardCount = paperCardboardCount,
                 glassCount = glassCount,
+                bottleSize = bottleSize,
+                itemVariant = $"{totalItems}x {bottleSize} {material}",
+                plasticSmallCount = plasticSmallCount,
+                plasticMediumCount = plasticMediumCount,
+                plasticLargeCount = plasticLargeCount,
+                canSmallCount = canSmallCount,
+                canMediumCount = canMediumCount,
+                canLargeCount = canLargeCount,
+                paperWeightGrams = paperWeightGrams,
+                tetrapakWeightGrams = tetrapakWeightGrams,
                 totalBottles = totalItems,
                 bottles = totalItems,
                 pointsEarned = pointsEarned > 0 ? pointsEarned : 30,

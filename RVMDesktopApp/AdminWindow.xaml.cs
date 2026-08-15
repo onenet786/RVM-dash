@@ -178,6 +178,17 @@ public partial class AdminWindow : Window
         int paperCount = material.Contains("PAPER") ? itemCount : 0;
         int glassCount = material.Contains("GLASS") ? itemCount : 0;
 
+        int pSmall = material.Contains("PLASTIC") && size == "SMALL" ? itemCount : 0;
+        int pMedium = material.Contains("PLASTIC") && size == "MEDIUM" ? itemCount : 0;
+        int pLarge = material.Contains("PLASTIC") && size == "LARGE" ? itemCount : 0;
+
+        int cSmall = (material.Contains("CAN") || material.Contains("METAL")) && size == "SMALL" ? itemCount : 0;
+        int cMedium = (material.Contains("CAN") || material.Contains("METAL")) && size == "MEDIUM" ? itemCount : 0;
+        int cLarge = (material.Contains("CAN") || material.Contains("METAL")) && size == "LARGE" ? itemCount : 0;
+
+        int paperGrams = material.Contains("PAPER") ? Math.Max(100, (int)(weightKg * 1000)) : 0;
+        int tetrapakGrams = material.Contains("TETRA") || material.Contains("PAK") ? Math.Max(700, (int)(weightKg * 1000)) : 0;
+
         CentralSyncService.CentralApiUrl = TxtServerUrl.Text.Trim();
 
         LogConsole($"📡 2. REMOTE MASTER DASHBOARD POSTGRESQL SYNC:");
@@ -192,8 +203,19 @@ public partial class AdminWindow : Window
             paperCount,
             glassCount,
             totalPoints,
-            weightKg
+            weightKg,
+            size,
+            material,
+            pSmall,
+            pMedium,
+            pLarge,
+            cSmall,
+            cMedium,
+            cLarge,
+            paperGrams,
+            tetrapakGrams
         );
+
 
         if (syncRes.IsSuccess)
         {

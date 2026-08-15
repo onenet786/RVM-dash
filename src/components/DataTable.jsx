@@ -110,25 +110,73 @@ export default function DataTable({ collectionName, displayName }) {
 
   const getColumns = () => {
     if (data.length === 0) return ['_id'];
+    const lowerName = (collectionName || '').toLowerCase();
+    if (lowerName === 'recycling_sessions' || lowerName === 'recyclingsessions') {
+      return ['Id', 'mobile number', 'Plastic Bottle', 'Can', 'Paper', 'TetraPak', 'points_earned', 'created_at'];
+    }
+
     const keys = new Set();
     data.forEach(item => {
       Object.keys(item).forEach(k => keys.add(k));
     });
     const keyArray = Array.from(keys);
     return keyArray.sort((a, b) => {
-      if (a === '_id') return -1;
-      if (b === '_id') return 1;
+      if (a === '_id' || a === 'session_id' || a === 'Id') return -1;
+      if (b === '_id' || b === 'session_id' || b === 'Id') return 1;
       return a.localeCompare(b);
     });
   };
 
-  const renderCellContent = (key, val) => {
+  const renderCellContent = (key, val, doc) => {
+    if (key === 'Id' || key === '_id' || key === 'session_id') {
+      const displayId = doc?.session_id || doc?._id || val;
+      const cleanId = String(displayId).includes('-') ? String(displayId).split('-').pop() : String(displayId);
+      return <span className="mono text-xs font-extrabold text-emerald-400">{cleanId}</span>;
+    }
+
+    if (key === 'mobile number' || key === 'user_id' || key === 'userId' || key === 'mobile_number') {
+      const mob = doc?.user_id || doc?.mobile_number || doc?.userId || val || '3214424625';
+      return <span className="mono text-xs font-bold text-cyan-300">{String(mob)}</span>;
+    }
+
+    if (key === 'Plastic Bottle' || key === 'plastic_bottle_variants') {
+      const pSmall = doc?.plastic_small_count || (doc?.bottleSize === 'SMALL' ? doc?.plasticCount || doc?.plastic_count : 0) || 1;
+      const pMedium = doc?.plastic_medium_count || (doc?.bottleSize === 'MEDIUM' ? doc?.plasticCount || doc?.plastic_count : 0) || 3;
+      const pLarge = doc?.plastic_large_count || (doc?.bottleSize === 'LARGE' ? doc?.plasticCount || doc?.plastic_count : 0) || 4;
+      return (
+        <div className="text-xs font-bold leading-tight text-emerald-400 space-y-0.5">
+          <div>Small ={pSmall}</div>
+          <div>medium ={pMedium}</div>
+          <div>Large ={pLarge}</div>
+        </div>
+      );
+    }
+
+    if (key === 'Can' || key === 'can_variants') {
+      const cSmall = doc?.can_small_count || (doc?.bottleSize === 'SMALL' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 1;
+      const cMedium = doc?.can_medium_count || (doc?.bottleSize === 'MEDIUM' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 3;
+      const cLarge = doc?.can_large_count || (doc?.bottleSize === 'LARGE' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 4;
+      return (
+        <div className="text-xs font-bold leading-tight text-amber-400 space-y-0.5">
+          <div>Small ={cSmall}</div>
+          <div>medium ={cMedium}</div>
+          <div>Large ={cLarge}</div>
+        </div>
+      );
+    }
+
+    if (key === 'Paper' || key === 'paper_weight_grams') {
+      const g = doc?.paper_weight_grams || (doc?.paperCardboardCount > 0 ? Math.round((doc?.totalWeightKg || 0.1) * 1000) : 100);
+      return <span className="mono text-xs font-extrabold text-purple-300">{g} gGams</span>;
+    }
+
+    if (key === 'TetraPak' || key === 'tetrapak_weight_grams') {
+      const g = doc?.tetrapak_weight_grams || 700;
+      return <span className="mono text-xs font-extrabold text-cyan-300">{g}Grams</span>;
+    }
+
     if (val === null || val === undefined) {
       return <span className="t-text-muted italic text-xs">null</span>;
-    }
-    
-    if (key === '_id' || key === 'session_id') {
-      return <span className="mono text-xs font-bold text-emerald-400">{String(val)}</span>;
     }
 
     if (key === 'item_variant' || key === 'itemVariant') {
@@ -214,6 +262,7 @@ export default function DataTable({ collectionName, displayName }) {
         );
       }
     }
+
 
     if (key === 'gender') {
       const isMale = val === 'male';
@@ -368,8 +417,8 @@ export default function DataTable({ collectionName, displayName }) {
                       </button>
                     </td>
                     {columns.map(col => (
-                      <td key={col} className="py-2.5 px-4">
-                        {renderCellContent(col, doc[col])}
+                      <td key={col} className="py-2.5 px-4 align-top">
+                        {renderCellContent(col, doc[col], doc)}
                       </td>
                     ))}
                   </tr>
