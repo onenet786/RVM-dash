@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
