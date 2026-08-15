@@ -89,6 +89,119 @@ function validateMasterCredentials(username, password) {
   return username === 'onenet' && password === 'Admin&86';
 }
 
+let pgPoolInstance = null;
+
+function getPgPool() {
+  if (!activePgConfig) return null;
+  if (!pgPoolInstance) {
+    pgPoolInstance = new pg.Pool({
+      ...activePgConfig,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000
+    });
+    pgPoolInstance.on('error', (err) => {
+      console.warn('[PostgreSQL Pool Warning]', err.message);
+    });
+  }
+  return pgPoolInstance;
+}
+
+async function closePgPool() {
+  if (pgPoolInstance) {
+    try {
+      await pgPoolInstance.end();
+    } catch (e) {}
+    pgPoolInstance = null;
+  }
+}
+
+async function initProductionPostgresSchemas() {
+  if (activeDbType !== 'postgres' || !activePgConfig) return;
+  const pool = getPgPool();
+  if (!pool) return;
+
+  try {
+    // 1. Machines Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS machines (
+        machine_id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        location VARCHAR(200),
+        status VARCHAR(20) DEFAULT 'active',
+        bin_fill_percentage INT DEFAULT 0,
+        total_bottles_recycled BIGINT DEFAULT 0,
+        total_weight_kg NUMERIC(10,3) DEFAULT 0.000,
+        last_ping_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // 2. Recycling Sessions Table with Foreign Key & Indexes
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS recycling_sessions (
+        session_id VARCHAR(255) PRIMARY KEY,
+        machine_id VARCHAR(50) REFERENCES machines(machine_id) ON DELETE CASCADE,
+        user_id VARCHAR(100),
+        plastic_count INT DEFAULT 0,
+        aluminium_count INT DEFAULT 0,
+        paper_cardboard_count INT DEFAULT 0,
+        total_weight_kg NUMERIC(8,3) DEFAULT 0,
+        co2_avoided_kg NUMERIC(8,3) DEFAULT 0,
+        session_status VARCHAR(20) DEFAULT 'completed',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_sessions_machine_date ON recycling_sessions (machine_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_sessions_date ON recycling_sessions (created_at DESC);
+    `);
+
+    // 3. Users Table with Unique Constraints & Indexes
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        user_id VARCHAR(255) PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        full_name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        points_balance INT DEFAULT 0,
+        role_id VARCHAR(50) DEFAULT 'fleet_operator',
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+    `);
+
+    // 4. Downstream Points Config Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS machine_configs (
+        machine_id VARCHAR(50) PRIMARY KEY REFERENCES machines(machine_id) ON DELETE CASCADE,
+        config_version INT DEFAULT 1,
+        points_per_plastic INT DEFAULT 10,
+        points_per_aluminium INT DEFAULT 20,
+        points_per_paper_kg INT DEFAULT 15,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Seed default machine RVM-001 if empty
+    await pool.query(`
+      INSERT INTO machines (machine_id, name, location, status, bin_fill_percentage)
+      VALUES ('RVM-001', 'Islamabad Model RVM', 'G-9 Markaz, Islamabad', 'active', 25)
+      ON CONFLICT (machine_id) DO NOTHING;
+    `);
+
+    await pool.query(`
+      INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg)
+      VALUES ('RVM-001', 1, 10, 20, 15)
+      ON CONFLICT (machine_id) DO NOTHING;
+    `);
+
+    console.log('[PostgreSQL Schemas] Production relational tables and indexes initialized successfully.');
+  } catch (err) {
+    console.warn('[PostgreSQL Schemas Init Warning]', err.message);
+  }
+}
+
+
 
 function writeEnvFile(uri, dbName, dbType = 'mongodb', pgConfig = {}) {
   const envPath = path.join(__dirname, '..', '.env');
@@ -338,12 +451,12 @@ app.post('/api/admin/switch-db', async (req, res) => {
         return res.status(400).json({
           error: `PostgreSQL Connection Failed: ${pgErr.message}. Please verify PostgreSQL service is running on ${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432} and credentials are correct.`
         });
-      }
-
+      }      await closePgPool();
       activeDbType = 'postgres';
       activePgConfig = pgConfig;
       currentDbName = pgConfig.database || 'rvmpg';
 
+      await initProductionPostgresSchemas();
       writeEnvFile(currentUri, currentDbName, 'postgres', pgConfig);
 
       return res.json({
@@ -355,7 +468,6 @@ app.post('/api/admin/switch-db', async (req, res) => {
         serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' }
       });
     }
-
 
     let newUri = '';
     let newDbName = '';
@@ -371,13 +483,14 @@ app.post('/api/admin/switch-db', async (req, res) => {
       newDbName = DB_PRESETS['ONS-RVM'].dbName;
     }
 
+    await closePgPool();
     writeEnvFile(newUri, newDbName, 'mongodb');
     currentUri = newUri;
     currentDbName = newDbName;
     activeDbType = 'mongodb';
 
-
     await connectDB(true);
+
 
     const location = await getMongoDBServerLocation(db);
 
@@ -1427,19 +1540,18 @@ function enforceReadOnlyProtection(req, res, next) {
 
 async function fetchCollectionDocs(colName) {
   if (activeDbType === 'postgres' && activePgConfig) {
+    const pool = getPgPool();
+    if (!pool) return [];
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const client = new pg.Client(activePgConfig);
     try {
-      await client.connect();
-      await client.query(`
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS "${tableName}" (
           id VARCHAR(255) PRIMARY KEY,
           data JSONB NOT NULL,
           synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
       `);
-      const res = await client.query(`SELECT id, data FROM "${tableName}"`);
-      await client.end();
+      const res = await pool.query(`SELECT id, data FROM "${tableName}"`);
       return res.rows.map(r => {
         const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
         delete parsed.id; // Keep _id as the single primary ID field
@@ -1447,7 +1559,6 @@ async function fetchCollectionDocs(colName) {
         return parsed;
       });
     } catch (e) {
-      try { await client.end(); } catch(err){}
       return [];
     }
   }
@@ -1460,10 +1571,10 @@ async function fetchCollectionDocs(colName) {
 async function saveDocToEngine(colName, doc) {
 
   if (activeDbType === 'postgres' && activePgConfig) {
+    const pool = getPgPool();
+    if (!pool) return false;
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const client = new pg.Client(activePgConfig);
-    await client.connect();
-    await client.query(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS "${tableName}" (
         id VARCHAR(255) PRIMARY KEY,
         data JSONB NOT NULL,
@@ -1474,13 +1585,12 @@ async function saveDocToEngine(colName, doc) {
     const docToSave = { ...doc, _id: idStr };
     delete docToSave.id; // Single primary _id field
     const docJson = JSON.stringify(docToSave);
-    await client.query(`
+    await pool.query(`
       INSERT INTO "${tableName}" (id, data, synced_at)
       VALUES ($1, $2, NOW())
       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
     `, [idStr, docJson]);
 
-    await client.end();
     return true;
   }
 
@@ -1496,30 +1606,27 @@ async function saveDocToEngine(colName, doc) {
 
 async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
   if (activeDbType === 'postgres' && activePgConfig) {
+    const pool = getPgPool();
+    if (!pool) return false;
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const client = new pg.Client(activePgConfig);
-    await client.connect();
-    const res = await client.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+    const res = await pool.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
     if (res.rows.length > 0) {
       const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
       const updatedData = { ...existingData, ...updateFields, _id: res.rows[0].id };
       delete updatedData.id;
-      await client.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
+      await pool.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
     } else {
       const idStr = matchVal;
       const docToSave = { [matchKey]: matchVal, ...updateFields, _id: idStr };
       delete docToSave.id;
-      await client.query(`
+      await pool.query(`
         INSERT INTO "${tableName}" (id, data, synced_at)
         VALUES ($1, $2, NOW())
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
       `, [idStr, JSON.stringify(docToSave)]);
     }
-    await client.end();
     return true;
   }
-
-
 
   if (!db) await connectDB();
   const query = { [matchKey]: matchVal };
@@ -1529,11 +1636,10 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
 
 async function deleteDocFromEngine(colName, matchKey, matchVal) {
   if (activeDbType === 'postgres' && activePgConfig) {
+    const pool = getPgPool();
+    if (!pool) return false;
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const client = new pg.Client(activePgConfig);
-    await client.connect();
-    await client.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
-    await client.end();
+    await pool.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
     return true;
   }
 
@@ -1542,6 +1648,7 @@ async function deleteDocFromEngine(colName, matchKey, matchVal) {
   await db.collection(colName).deleteOne(query);
   return true;
 }
+
 
 
 // Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database
@@ -2027,6 +2134,203 @@ app.get('/api/auth/me', async (req, res) => {
   }
 });
 
+// ==========================================
+// RVM HARDWARE TELEMETRY & QR SCANNER API (PHASE 3)
+// ==========================================
+
+// Upstream Session Sync from RVM Machine
+app.post('/api/machine/sync-session', async (req, res) => {
+  try {
+    const { machineId, localSessionId, userId, plasticCount = 0, aluminiumCount = 0, paperCardboardCount = 0, weightKg = 0, createdAt } = req.body;
+    if (!machineId) {
+      return res.status(400).json({ error: 'machineId is required' });
+    }
+
+    const sessionId = localSessionId ? `${machineId}_${localSessionId}` : `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const totalBottles = (plasticCount || 0) + (aluminiumCount || 0) + (paperCardboardCount || 0);
+    const co2AvoidedKg = parseFloat(((plasticCount * 0.05) + (aluminiumCount * 0.09)).toFixed(3));
+    const pointsEarned = (plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15);
+
+    const sessionDoc = {
+      _id: sessionId,
+      session_id: sessionId,
+      machineId: machineId || 'RVM-001',
+      machine_id: machineId || 'RVM-001',
+      userId: userId || 'anonymous',
+      user_id: userId || 'anonymous',
+      plasticCount,
+      plastic_count: plasticCount,
+      aluminiumCount,
+      aluminium_count: aluminiumCount,
+      paperCardboardCount,
+      paper_cardboard_count: paperCardboardCount,
+      totalWeightKg: weightKg,
+      total_weight_kg: weightKg,
+      co2AvoidedKg,
+      co2_avoided_kg: co2AvoidedKg,
+      pointsEarned,
+      session_status: 'completed',
+      createdAt: createdAt || new Date().toISOString(),
+      created_at: createdAt || new Date().toISOString()
+    };
+
+    await saveDocToEngine('recyclingsessions', sessionDoc);
+
+    // Update relational tables if connected to postgres
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          INSERT INTO machines (machine_id, name, location, status, total_bottles_recycled, total_weight_kg)
+          VALUES ($1, $1, 'System Auto', 'active', $2, $3)
+          ON CONFLICT (machine_id) DO UPDATE SET 
+            total_bottles_recycled = machines.total_bottles_recycled + EXCLUDED.total_bottles_recycled,
+            total_weight_kg = machines.total_weight_kg + EXCLUDED.total_weight_kg,
+            last_ping_at = NOW();
+        `, [machineId, totalBottles, weightKg]);
+
+        if (userId && userId !== 'anonymous') {
+          await pool.query(`
+            UPDATE users SET points_balance = points_balance + $1 WHERE username = $2 OR user_id = $2;
+          `, [pointsEarned, userId]);
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      syncedLocalId: localSessionId || sessionId,
+      sessionId,
+      pointsEarned,
+      message: `Session ${localSessionId || sessionId} synchronized successfully into Central DB.`
+    });
+  } catch (err) {
+    console.error('[Session Sync Error]', err);
+    res.status(500).json({ error: 'Failed to sync session', details: err.message });
+  }
+});
+
+// Upstream Telemetry Heartbeat & Bin Level Alerts
+app.post('/api/machine/heartbeat', async (req, res) => {
+  try {
+    const { machineId, binFillPercentage = 0, status = 'active', temperatureCelsius } = req.body;
+    if (!machineId) return res.status(400).json({ error: 'machineId is required' });
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at)
+          VALUES ($1, $1, $2, $3, NOW())
+          ON CONFLICT (machine_id) DO UPDATE SET 
+            status = EXCLUDED.status,
+            bin_fill_percentage = EXCLUDED.bin_fill_percentage,
+            last_ping_at = NOW();
+        `, [machineId, status, binFillPercentage]);
+      }
+    }
+
+    if (binFillPercentage >= 80) {
+      await saveDocToEngine('binfullnotifications', {
+        _id: `alert_${machineId}_${Date.now()}`,
+        machineId,
+        binFillPercentage,
+        alertType: binFillPercentage >= 95 ? 'CRITICAL_BIN_FULL' : 'HIGH_BIN_FILL',
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      success: true,
+      machineId,
+      binFillPercentage,
+      status,
+      receivedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Downstream Config & Points Rules Endpoint
+app.get('/api/machine/config/:machineId', async (req, res) => {
+  try {
+    const { machineId } = req.params;
+    let config = {
+      machineId,
+      configVersion: 1,
+      pointsPerPlasticBottle: 10,
+      pointsPerAluminiumCan: 20,
+      pointsPerPaperKg: 15,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const result = await pool.query(`SELECT * FROM machine_configs WHERE machine_id = $1`, [machineId]);
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          config = {
+            machineId: row.machine_id,
+            configVersion: row.config_version,
+            pointsPerPlasticBottle: row.points_per_plastic,
+            pointsPerAluminiumCan: row.points_per_aluminium,
+            pointsPerPaperKg: row.points_per_paper_kg,
+            updatedAt: row.updated_at
+          };
+        }
+      }
+    }
+
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// QR Code Authenticator for RVM Machine Scanner
+app.post('/api/user/verify-qr', async (req, res) => {
+  try {
+    const { qrCodeToken, machineId } = req.body;
+    if (!qrCodeToken) return res.status(400).json({ error: 'qrCodeToken is required' });
+
+    const users = await fetchCollectionDocs('userprofile');
+    const userDoc = users.find(u => u.username === qrCodeToken || u._id === qrCodeToken || u.email === qrCodeToken || u.userId === qrCodeToken);
+
+    if (userDoc) {
+      return res.json({
+        valid: true,
+        userId: userDoc._id || userDoc.username,
+        username: userDoc.username,
+        fullName: userDoc.fullName || userDoc.username || 'Valued Recycler',
+        email: userDoc.email,
+        pointsBalance: userDoc.pointsBalance || userDoc.points || 0,
+        scannedAt: new Date().toISOString()
+      });
+    }
+
+    const adminUsers = await fetchCollectionDocs('adminaccounts');
+    const adminDoc = adminUsers.find(u => u.username === qrCodeToken || u.email === qrCodeToken);
+
+    if (adminDoc) {
+      return res.json({
+        valid: true,
+        userId: adminDoc._id || adminDoc.username,
+        username: adminDoc.username,
+        fullName: adminDoc.fullName || adminDoc.username,
+        email: adminDoc.email,
+        pointsBalance: 1000,
+        scannedAt: new Date().toISOString()
+      });
+    }
+
+    res.status(440).json({ valid: false, error: 'User QR Code invalid or expired' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 if (fs.existsSync(DIST_DIR)) {
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/')) return next();
@@ -2034,7 +2338,12 @@ if (fs.existsSync(DIST_DIR)) {
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[RVM Master Dashboard Backend] Running on http://localhost:${PORT}`);
+  if (activeDbType === 'postgres') {
+    await initProductionPostgresSchemas();
+  }
 });
+
+
 
