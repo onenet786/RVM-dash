@@ -159,6 +159,9 @@ async function initProductionPostgresSchemas() {
         plastic_count INT DEFAULT 0,
         aluminium_count INT DEFAULT 0,
         paper_cardboard_count INT DEFAULT 0,
+        glass_count INT DEFAULT 0,
+        item_variant VARCHAR(100),
+        bottle_size VARCHAR(50),
         total_weight_kg NUMERIC(8,3) DEFAULT 0,
         co2_avoided_kg NUMERIC(8,3) DEFAULT 0,
         points_earned INT DEFAULT 0,
@@ -166,9 +169,13 @@ async function initProductionPostgresSchemas() {
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
       ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS points_earned INT DEFAULT 0;
+      ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS glass_count INT DEFAULT 0;
+      ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS item_variant VARCHAR(100);
+      ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS bottle_size VARCHAR(50);
       CREATE INDEX IF NOT EXISTS idx_sessions_machine_date ON recycling_sessions (machine_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sessions_date ON recycling_sessions (created_at DESC);
     `);
+
 
 
     // 3. Users Table with Unique Constraints & Indexes
@@ -1609,6 +1616,23 @@ async function fetchCollectionDocs(colName) {
         relRes.rows.forEach(r => {
           const sId = r.session_id;
           if (!existingIds.has(sId)) {
+            const pCount = parseInt(r.plastic_count || 0);
+            const aCount = parseInt(r.aluminium_count || 0);
+            const paperCount = parseInt(r.paper_cardboard_count || 0);
+            const gCount = parseInt(r.glass_count || 0);
+            const bSize = r.bottle_size || 'MEDIUM';
+
+            let variant = r.item_variant;
+            if (!variant) {
+              if (pCount > 0) variant = `${pCount}x ${bSize} PLASTIC`;
+              else if (aCount > 0) variant = `${aCount}x CAN (Metal)`;
+              else if (paperCount > 0) variant = `${paperCount}x PAPER / TETRA PAK`;
+              else if (gCount > 0) variant = `${gCount}x ${bSize} GLASS`;
+              else variant = 'RECYCLABLE ITEM';
+            }
+
+            const totItems = pCount + aCount + paperCount + gCount;
+
             docs.push({
               _id: sId,
               session_id: sId,
@@ -1616,19 +1640,36 @@ async function fetchCollectionDocs(colName) {
               machine_id: r.machine_id,
               userId: r.user_id,
               user_id: r.user_id,
-              bottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
-              totalBottles: (r.plastic_count || 0) + (r.aluminium_count || 0) + (r.paper_cardboard_count || 0),
-              plasticCount: r.plastic_count,
-              aluminiumCount: r.aluminium_count,
-              paperCardboardCount: r.paper_cardboard_count,
-              points: r.points_earned,
-              totalPoints: r.points_earned,
-              pointsEarned: r.points_earned,
+              bottles: totItems,
+              totalBottles: totItems,
+              plasticCount: pCount,
+              plastic_count: pCount,
+              aluminiumCount: aCount,
+              aluminium_count: aCount,
+              paperCardboardCount: paperCount,
+              paper_cardboard_count: paperCount,
+              glassCount: gCount,
+              glass_count: gCount,
+              itemVariant: variant,
+              item_variant: variant,
+              bottleSize: bSize,
+              bottle_size: bSize,
+              totalWeightKg: parseFloat(r.total_weight_kg || 0),
+              total_weight_kg: parseFloat(r.total_weight_kg || 0),
+              co2AvoidedKg: parseFloat(r.co2_avoided_kg || 0),
+              co2_avoided_kg: parseFloat(r.co2_avoided_kg || 0),
+              points: parseInt(r.points_earned || 0),
+              totalPoints: parseInt(r.points_earned || 0),
+              pointsEarned: parseInt(r.points_earned || 0),
+              points_earned: parseInt(r.points_earned || 0),
+              session_status: r.session_status || 'completed',
               recycledAt: r.created_at,
+              created_at: r.created_at,
               timestamp: r.created_at
             });
           }
         });
+
       } catch (e) {}
 
       return docs;
@@ -2346,7 +2387,7 @@ app.get('/api/auth/me', async (req, res) => {
 // Upstream Session Sync from RVM Machine
 app.post('/api/machine/sync-session', async (req, res) => {
   try {
-    const { machineId, localSessionId, userId, plasticCount = 0, aluminiumCount = 0, paperCardboardCount = 0, glassCount = 0, weightKg = 0, createdAt } = req.body;
+    const { machineId, localSessionId, userId, plasticCount = 0, aluminiumCount = 0, paperCardboardCount = 0, glassCount = 0, weightKg = 0, bottleSize, itemVariant, createdAt } = req.body;
     if (!machineId) {
       return res.status(400).json({ error: 'machineId is required' });
     }
@@ -2358,6 +2399,15 @@ app.post('/api/machine/sync-session', async (req, res) => {
     let pointsEarned = req.body.pointsEarned || req.body.points || ((plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15) + (glassCount * 10));
     if (pointsEarned === 0) pointsEarned = 30;
 
+    const bSize = bottleSize || req.body.size || 'MEDIUM';
+    let variant = itemVariant || req.body.material;
+    if (!variant) {
+      if (plasticCount > 0) variant = `${plasticCount}x ${bSize} PLASTIC`;
+      else if (aluminiumCount > 0) variant = `${aluminiumCount}x CAN (Metal)`;
+      else if (paperCardboardCount > 0) variant = `${paperCardboardCount}x PAPER / TETRA PAK`;
+      else if (glassCount > 0) variant = `${glassCount}x ${bSize} GLASS`;
+      else variant = `${totalBottles}x ${bSize} RECYCLABLE ITEM`;
+    }
 
     const sessionDoc = {
       _id: sessionId,
@@ -2379,6 +2429,12 @@ app.post('/api/machine/sync-session', async (req, res) => {
       aluminium_count: aluminiumCount,
       paperCardboardCount,
       paper_cardboard_count: paperCardboardCount,
+      glassCount,
+      glass_count: glassCount,
+      itemVariant: variant,
+      item_variant: variant,
+      bottleSize: bSize,
+      bottle_size: bSize,
       totalWeightKg: weightKg,
       total_weight_kg: weightKg,
       co2AvoidedKg,
@@ -2409,10 +2465,10 @@ app.post('/api/machine/sync-session', async (req, res) => {
 
         // 2. Insert into recycling_sessions table
         await pool.query(`
-          INSERT INTO recycling_sessions (session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, total_weight_kg, co2_avoided_kg, points_earned, session_status)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'completed')
+          INSERT INTO recycling_sessions (session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, glass_count, item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'completed')
           ON CONFLICT (session_id) DO NOTHING;
-        `, [sessionId, machineId, userId || 'anonymous', plasticCount, aluminiumCount, paperCardboardCount, weightKg, co2AvoidedKg, pointsEarned]);
+        `, [sessionId, machineId, userId || 'anonymous', plasticCount, aluminiumCount, paperCardboardCount, glassCount, variant, bSize, weightKg, co2AvoidedKg, pointsEarned]);
 
         // 3. Upsert user points
         if (userId && userId !== 'anonymous') {
@@ -2426,6 +2482,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
     } catch (pgSyncErr) {
       console.warn('[PostgreSQL Machine Sync Warning]', pgSyncErr.message);
     }
+
 
 
 

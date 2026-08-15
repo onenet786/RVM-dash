@@ -294,31 +294,58 @@ export default function OverviewTab({ currentUser }) {
             {(!overview?.recentSessions || overview.recentSessions.length === 0) ? (
               <p className="text-xs t-text-muted py-4 text-center">No recent sessions.</p>
             ) : (
-              overview.recentSessions.map(session => (
-                <div key={session._id} className="p-3 t-bg-sec border t-border rounded-xl flex items-center justify-between hover:border-emerald-500/30 transition-all">
-                  <div>
-                    <div className="text-xs font-semibold t-text-primary flex items-center gap-2">
-                      <span>{session.userName || 'Anonymous'}</span>
-                      <span className="mono text-[10px] t-text-muted">{session.phoneNumber}</span>
-                    </div>
-                    <div className="text-[11px] t-text-muted mt-0.5">
-                      {new Date(session.recycledAt || session._id).toLocaleString()}
-                    </div>
-                  </div>
+              overview.recentSessions.map(session => {
+                const variantText = session.itemVariant || session.item_variant || (session.plasticCount > 0 ? `${session.plasticCount}x ${session.bottleSize || 'MEDIUM'} PLASTIC` : session.aluminiumCount > 0 ? `${session.aluminiumCount}x CAN (Metal)` : session.paperCardboardCount > 0 ? `${session.paperCardboardCount}x PAPER / TETRA PAK` : session.glassCount > 0 ? `${session.glassCount}x GLASS` : `${session.bottles || 1}x RECYCLABLE ITEM`);
+                const pCount = session.plasticCount || session.plastic_count || 0;
+                const aCount = session.aluminiumCount || session.aluminium_count || 0;
+                const paperCount = session.paperCardboardCount || session.paper_cardboard_count || 0;
+                const gCount = session.glassCount || session.glass_count || 0;
 
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded font-semibold border border-emerald-500/20">
-                      {session.bottles} bottles
-                    </span>
-                    <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-semibold border border-amber-500/20">
-                      {session.cups} cups
-                    </span>
-                    <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-300 rounded font-bold border border-cyan-500/20 mono">
-                      +{session.points} pts
-                    </span>
+                return (
+                  <div key={session._id || session.session_id} className="p-3 t-bg-sec border t-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-emerald-500/30 transition-all">
+                    <div>
+                      <div className="text-xs font-bold t-text-primary flex flex-wrap items-center gap-2">
+                        <span>User: <span className="text-emerald-400">{session.userName || session.userId || session.user_id || 'Anonymous'}</span></span>
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md uppercase">
+                          🏷️ {variantText}
+                        </span>
+                      </div>
+                      <div className="text-[11px] t-text-muted mt-1 flex items-center gap-3">
+                        <span>Machine: <strong className="t-text-primary">{session.machineId || session.machine_id || 'RVM-001'}</strong></span>
+                        <span>•</span>
+                        <span>{new Date(session.recycledAt || session.timestamp || session.created_at || Date.now()).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
+                      {pCount > 0 && (
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded font-bold border border-emerald-500/20 text-[11px]">
+                          🥤 {pCount} Plastic
+                        </span>
+                      )}
+                      {aCount > 0 && (
+                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-bold border border-amber-500/20 text-[11px]">
+                          🥫 {aCount} Can
+                        </span>
+                      )}
+                      {paperCount > 0 && (
+                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded font-bold border border-purple-500/20 text-[11px]">
+                          📦 {paperCount} Paper/Tetra
+                        </span>
+                      )}
+                      {gCount > 0 && (
+                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded font-bold border border-cyan-500/20 text-[11px]">
+                          🍾 {gCount} Glass
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 bg-emerald-600 text-white rounded font-extrabold shadow-sm mono text-[11px]">
+                        +{session.points || session.pointsEarned || session.points_earned || 30} pts
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
+
             )}
           </div>
         </div>

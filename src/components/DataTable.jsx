@@ -127,8 +127,80 @@ export default function DataTable({ collectionName, displayName }) {
       return <span className="t-text-muted italic text-xs">null</span>;
     }
     
-    if (key === '_id') {
+    if (key === '_id' || key === 'session_id') {
       return <span className="mono text-xs font-bold text-emerald-400">{String(val)}</span>;
+    }
+
+    if (key === 'item_variant' || key === 'itemVariant') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 uppercase tracking-wide">
+          🏷️ {String(val)}
+        </span>
+      );
+    }
+
+    if (key === 'bottle_size' || key === 'bottleSize') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          📏 {String(val).toUpperCase()}
+        </span>
+      );
+    }
+
+    if (key === 'plastic_count' || key === 'plasticCount') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          🥤 {val} Plastic
+        </span>
+      );
+    }
+
+    if (key === 'aluminium_count' || key === 'aluminiumCount') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          🥫 {val} Can
+        </span>
+      );
+    }
+
+    if (key === 'paper_cardboard_count' || key === 'paperCardboardCount') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          📦 {val} Paper/Tetra
+        </span>
+      );
+    }
+
+    if (key === 'glass_count' || key === 'glassCount') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+          🍾 {val} Glass
+        </span>
+      );
+    }
+
+    if (key === 'points_earned' || key === 'pointsEarned') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-extrabold bg-emerald-600 text-white shadow-sm mono">
+          ⭐ +{val} pts
+        </span>
+      );
+    }
+
+    if (key.toLowerCase().includes('weight')) {
+      return (
+        <span className="mono text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+          ⚖️ {val} kg
+        </span>
+      );
+    }
+
+    if (key.toLowerCase().includes('co2')) {
+      return (
+        <span className="mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+          🌱 {val} kg CO2
+        </span>
+      );
     }
 
     if (key.toLowerCase().includes('date') || key.toLowerCase().includes('at')) {
@@ -177,6 +249,7 @@ export default function DataTable({ collectionName, displayName }) {
 
     return <span className="t-text-primary text-xs truncate max-w-xs block font-medium">{String(val)}</span>;
   };
+
 
   const columns = getColumns();
 
