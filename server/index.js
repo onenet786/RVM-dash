@@ -210,7 +210,7 @@ async function initProductionPostgresSchemas() {
 
 
 
-function writeEnvFile(uri, dbName, dbType = 'mongodb', pgConfig = {}) {
+function writeEnvFile(uri, dbName, dbType = 'postgres', pgConfig = {}) {
   const envPath = path.join(__dirname, '..', '.env');
   const pgHost = pgConfig.host || process.env.PG_HOST || '127.0.0.1';
   const pgPort = pgConfig.port || process.env.PG_PORT || 5432;
