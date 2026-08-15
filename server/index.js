@@ -447,27 +447,30 @@ app.post('/api/admin/switch-db', async (req, res) => {
 
       try {
         await ensurePostgresDatabase(pgConfig);
-      } catch (pgErr) {
-        return res.status(400).json({
-          error: `PostgreSQL Connection Failed: ${pgErr.message}. Please verify PostgreSQL service is running on ${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432} and credentials are correct.`
+        await closePgPool();
+        activeDbType = 'postgres';
+        activePgConfig = pgConfig;
+        currentDbName = pgConfig.database || 'rvmpg';
+
+        await initProductionPostgresSchemas();
+        writeEnvFile(currentUri, currentDbName, 'postgres', pgConfig);
+
+        return res.json({
+          success: true,
+          message: `Successfully authenticated as "onenet". Runtime database switched to PostgreSQL database "${currentDbName}" on host "${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}".`,
+          database: currentDbName,
+          databaseType: 'postgres',
+          serverHost: `${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}`,
+          serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' }
         });
-      }      await closePgPool();
-      activeDbType = 'postgres';
-      activePgConfig = pgConfig;
-      currentDbName = pgConfig.database || 'rvmpg';
-
-      await initProductionPostgresSchemas();
-      writeEnvFile(currentUri, currentDbName, 'postgres', pgConfig);
-
-      return res.json({
-        success: true,
-        message: `Successfully authenticated as "onenet". Runtime database switched to PostgreSQL database "${currentDbName}" on host "${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}".`,
-        database: currentDbName,
-        databaseType: 'postgres',
-        serverHost: `${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432}`,
-        serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' }
-      });
+      } catch (pgErr) {
+        console.error('[PostgreSQL Switch Error]', pgErr);
+        return res.status(400).json({
+          error: `PostgreSQL Connection Failed: ${pgErr.message}. Please verify PostgreSQL service is running on ${pgConfig.host || '127.0.0.1'}:${pgConfig.port || 5432} and PostgreSQL password is correct.`
+        });
+      }
     }
+
 
     let newUri = '';
     let newDbName = '';
