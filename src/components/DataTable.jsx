@@ -140,40 +140,61 @@ export default function DataTable({ collectionName, displayName }) {
     }
 
     if (key === 'Plastic Bottle' || key === 'plastic_bottle_variants') {
-      const pSmall = doc?.plastic_small_count || (doc?.bottleSize === 'SMALL' ? doc?.plasticCount || doc?.plastic_count : 0) || 1;
-      const pMedium = doc?.plastic_medium_count || (doc?.bottleSize === 'MEDIUM' ? doc?.plasticCount || doc?.plastic_count : 0) || 3;
-      const pLarge = doc?.plastic_large_count || (doc?.bottleSize === 'LARGE' ? doc?.plasticCount || doc?.plastic_count : 0) || 4;
+      const pSmall = doc?.plastic_small_count ?? (doc?.bottleSize === 'SMALL' ? doc?.plasticCount ?? doc?.plastic_count ?? 0 : 0);
+      const pMedium = doc?.plastic_medium_count ?? (doc?.bottleSize === 'MEDIUM' ? doc?.plasticCount ?? doc?.plastic_count ?? 0 : 0);
+      const pLarge = doc?.plastic_large_count ?? (doc?.bottleSize === 'LARGE' ? doc?.plasticCount ?? doc?.plastic_count ?? 0 : 0);
+      const totPlastic = (pSmall + pMedium + pLarge) || (doc?.plasticCount || doc?.plastic_count || 0);
+
+      if (totPlastic <= 0) {
+        return <span className="t-text-muted text-xs font-semibold">-</span>;
+      }
+
       return (
         <div className="text-xs font-bold leading-tight text-emerald-400 space-y-0.5">
-          <div>Small ={pSmall}</div>
-          <div>medium ={pMedium}</div>
-          <div>Large ={pLarge}</div>
+          {pSmall > 0 && <div>Small ={pSmall}</div>}
+          {pMedium > 0 && <div>medium ={pMedium}</div>}
+          {pLarge > 0 && <div>Large ={pLarge}</div>}
+          {pSmall === 0 && pMedium === 0 && pLarge === 0 && (
+            <div>medium ={totPlastic}</div>
+          )}
         </div>
       );
     }
 
     if (key === 'Can' || key === 'can_variants') {
-      const cSmall = doc?.can_small_count || (doc?.bottleSize === 'SMALL' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 1;
-      const cMedium = doc?.can_medium_count || (doc?.bottleSize === 'MEDIUM' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 3;
-      const cLarge = doc?.can_large_count || (doc?.bottleSize === 'LARGE' ? doc?.aluminiumCount || doc?.aluminium_count : 0) || 4;
+      const cSmall = doc?.can_small_count ?? (doc?.bottleSize === 'SMALL' ? doc?.aluminiumCount ?? doc?.aluminium_count ?? 0 : 0);
+      const cMedium = doc?.can_medium_count ?? (doc?.bottleSize === 'MEDIUM' ? doc?.aluminiumCount ?? doc?.aluminium_count ?? 0 : 0);
+      const cLarge = doc?.can_large_count ?? (doc?.bottleSize === 'LARGE' ? doc?.aluminiumCount ?? doc?.aluminium_count ?? 0 : 0);
+      const totCans = (cSmall + cMedium + cLarge) || (doc?.aluminiumCount || doc?.aluminium_count || 0);
+
+      if (totCans <= 0) {
+        return <span className="t-text-muted text-xs font-semibold">-</span>;
+      }
+
       return (
         <div className="text-xs font-bold leading-tight text-amber-400 space-y-0.5">
-          <div>Small ={cSmall}</div>
-          <div>medium ={cMedium}</div>
-          <div>Large ={cLarge}</div>
+          {cSmall > 0 && <div>Small ={cSmall}</div>}
+          {cMedium > 0 && <div>medium ={cMedium}</div>}
+          {cLarge > 0 && <div>Large ={cLarge}</div>}
+          {cSmall === 0 && cMedium === 0 && cLarge === 0 && (
+            <div>medium ={totCans}</div>
+          )}
         </div>
       );
     }
 
     if (key === 'Paper' || key === 'paper_weight_grams') {
-      const g = doc?.paper_weight_grams || (doc?.paperCardboardCount > 0 ? Math.round((doc?.totalWeightKg || 0.1) * 1000) : 100);
+      const g = doc?.paper_weight_grams ?? (doc?.paperCardboardCount > 0 ? Math.round((doc?.totalWeightKg || 0.1) * 1000) : 0);
+      if (g <= 0) return <span className="t-text-muted text-xs font-semibold">-</span>;
       return <span className="mono text-xs font-extrabold text-purple-300">{g} gGams</span>;
     }
 
     if (key === 'TetraPak' || key === 'tetrapak_weight_grams') {
-      const g = doc?.tetrapak_weight_grams || 700;
+      const g = doc?.tetrapak_weight_grams ?? 0;
+      if (g <= 0) return <span className="t-text-muted text-xs font-semibold">-</span>;
       return <span className="mono text-xs font-extrabold text-cyan-300">{g}Grams</span>;
     }
+
 
     if (val === null || val === undefined) {
       return <span className="t-text-muted italic text-xs">null</span>;
