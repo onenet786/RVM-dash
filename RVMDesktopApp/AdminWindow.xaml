@@ -140,20 +140,21 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0" Margin="0,0,6,0">
                                                 <TextBlock Text="Material Type:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
-                                                <ComboBox x:Name="CmbMaterial" Height="32" SelectedIndex="0" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
-                                                    <ComboBoxItem Content="PLASTIC" />
-                                                    <ComboBoxItem Content="CAN (Metal)" />
-                                                    <ComboBoxItem Content="GLASS" />
-                                                    <ComboBoxItem Content="PAPER" />
+                                                <ComboBox x:Name="CmbMaterial" Height="32" SelectedIndex="0" Background="#F1F5F9" Foreground="#0F172A" FontWeight="Bold" VerticalContentAlignment="Center">
+                                                    <ComboBoxItem Content="PLASTIC" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="CAN (Metal)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="GLASS" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="PAPER" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">
                                                 <TextBlock Text="Bottle Size:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
-                                                <ComboBox x:Name="CmbSize" Height="32" SelectedIndex="1" Background="#0F172A" Foreground="White" VerticalContentAlignment="Center">
-                                                    <ComboBoxItem Content="SMALL" />
-                                                    <ComboBoxItem Content="MEDIUM" />
-                                                    <ComboBoxItem Content="LARGE" />
+                                                <ComboBox x:Name="CmbSize" Height="32" SelectedIndex="1" Background="#F1F5F9" Foreground="#0F172A" FontWeight="Bold" VerticalContentAlignment="Center">
+                                                    <ComboBoxItem Content="SMALL" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="MEDIUM" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="LARGE" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
                                                 </ComboBox>
+
                                             </StackPanel>
                                         </Grid>
 
