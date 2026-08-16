@@ -1208,8 +1208,24 @@ app.get('/api/analytics/machines', async (req, res) => {
         alertsMap[mId].alertCount += 1;
       });
 
+      // Fetch machines metadata (name & location)
+      const machineMetaMap = {};
+      const pool = getPgPool();
+      if (pool) {
+        try {
+          const metaRes = await pool.query(`SELECT machine_id, name, location FROM machines`);
+          metaRes.rows.forEach(row => {
+            machineMetaMap[row.machine_id] = { name: row.name, location: row.location };
+          });
+        } catch (e) {
+          // table might not exist yet
+        }
+      }
+
       const combined = Object.values(grouped).map(m => ({
         ...m,
+        name: machineMetaMap[m.machineId]?.name || `RVM Machine ${m.machineId}`,
+        location: machineMetaMap[m.machineId]?.location || 'Islamabad Campus',
         alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
         lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
       }));
@@ -1219,6 +1235,7 @@ app.get('/api/analytics/machines', async (req, res) => {
 
     const sessionCol = db.collection('recyclingsessions');
     const binCol = db.collection('binfullnotifications');
+    const machinesCol = db.collection('machines');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
 
     const sessionPipeline = [];
@@ -1247,6 +1264,11 @@ app.get('/api/analytics/machines', async (req, res) => {
     });
 
     const machineAlerts = await binCol.aggregate(alertPipeline).toArray();
+    const mongoMachines = await machinesCol.find().toArray();
+    const mongoMetaMap = {};
+    mongoMachines.forEach(m => {
+      if (m.machineId) mongoMetaMap[m.machineId] = m;
+    });
 
     const alertsMap = {};
     machineAlerts.forEach(a => {
@@ -1255,6 +1277,8 @@ app.get('/api/analytics/machines', async (req, res) => {
 
     const combined = machineSessions.map(m => ({
       machineId: m._id,
+      name: mongoMetaMap[m._id]?.name || `RVM Machine ${m._id}`,
+      location: mongoMetaMap[m._id]?.location || 'Islamabad Campus',
       totalBottles: m.totalBottles,
       totalCups: m.totalCups,
       totalPoints: m.totalPoints,
@@ -1265,6 +1289,63 @@ app.get('/api/analytics/machines', async (req, res) => {
     }));
 
     res.json(combined);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add or Register RVM Machine Name & Location
+app.post('/api/machines', async (req, res) => {
+  try {
+    const { machineId, name, location, status } = req.body;
+    if (!machineId) {
+      return res.status(400).json({ error: 'Machine ID is required' });
+    }
+
+    const machineName = name || `RVM Unit ${machineId}`;
+    const machineLocation = location || 'Main Entrance / Campus';
+    const machineStatus = status || 'ONLINE';
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS machines (
+            machine_id VARCHAR(100) PRIMARY KEY,
+            name VARCHAR(255),
+            location VARCHAR(255),
+            status VARCHAR(50) DEFAULT 'ONLINE',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await pool.query(`
+          INSERT INTO machines (machine_id, name, location, status, updated_at)
+          VALUES ($1, $2, $3, $4, NOW())
+          ON CONFLICT (machine_id)
+          DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, updated_at = NOW()
+        `, [machineId, machineName, machineLocation, machineStatus]);
+      }
+    } else {
+      const db = getDb();
+      if (db) {
+        await db.collection('machines').updateOne(
+          { machineId },
+          {
+            $set: {
+              machineId,
+              name: machineName,
+              location: machineLocation,
+              status: machineStatus,
+              updatedAt: new Date()
+            }
+          },
+          { upsert: true }
+        );
+      }
+    }
+
+    res.json({ message: 'Machine registered successfully', machineId, name: machineName, location: machineLocation });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

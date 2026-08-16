@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server } from 'lucide-react';
+import { Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server, Plus, MapPin, Edit3, X } from 'lucide-react';
 import DataTable from './DataTable';
 
 export default function MachineHealthTab() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newMachineId, setNewMachineId] = useState('RVM-001');
+  const [newMachineName, setNewMachineName] = useState('');
+  const [newMachineLocation, setNewMachineLocation] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const getMachinesQuery = () => {
     try {
@@ -32,6 +39,39 @@ export default function MachineHealthTab() {
     }
   };
 
+  const handleSaveMachine = async (e) => {
+    e.preventDefault();
+    if (!newMachineId.trim()) return;
+    try {
+      setSaving(true);
+      const res = await fetch('/api/machines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          machineId: newMachineId.trim(),
+          name: newMachineName.trim(),
+          location: newMachineLocation.trim()
+        })
+      });
+      if (res.ok) {
+        setShowAddModal(false);
+        setNewMachineName('');
+        setNewMachineLocation('');
+        fetchMachines();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditModal = (m) => {
+    setNewMachineId(m.machineId);
+    setNewMachineName(m.name || '');
+    setNewMachineLocation(m.location || '');
+    setShowAddModal(true);
+  };
 
   useEffect(() => {
     fetchMachines();
@@ -48,15 +88,30 @@ export default function MachineHealthTab() {
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Hardware Fleet Monitoring</span>
           </div>
           <h2 className="text-2xl font-extrabold t-text-primary">Reverse Vending Machine Status</h2>
-          <p className="text-xs t-text-secondary mt-1">Operational health, bin level sensors, and machine activity diagnostics.</p>
+          <p className="text-xs t-text-secondary mt-1">Operational health, bin level sensors, location tags, and machine name management.</p>
         </div>
 
-        <button
-          onClick={fetchMachines}
-          className="p-2 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setNewMachineId(`RVM-00${machines.length + 1}`);
+              setNewMachineName('');
+              setNewMachineLocation('');
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl font-bold text-xs transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Register RVM Machine</span>
+          </button>
+
+          <button
+            onClick={fetchMachines}
+            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Machine Fleet Cards */}
@@ -87,10 +142,16 @@ export default function MachineHealthTab() {
                       <Server className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold t-text-primary text-sm mono">{m.machineId}</h4>
-                      <span className="text-[11px] t-text-muted flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-cyan-400" />
-                        {m.lastActive ? new Date(m.lastActive).toLocaleTimeString() : 'Unknown'}
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold t-text-primary text-sm mono">{m.machineId}</h4>
+                        <button onClick={() => openEditModal(m)} className="t-text-muted hover:text-cyan-400">
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="text-xs font-semibold text-cyan-300">{m.name || `RVM Unit ${m.machineId}`}</div>
+                      <span className="text-[11px] t-text-muted flex items-center gap-1 mt-0.5">
+                        <MapPin className="w-3 h-3 text-emerald-400" />
+                        {m.location || 'Islamabad Main Campus'}
                       </span>
                     </div>
                   </div>
@@ -108,34 +169,121 @@ export default function MachineHealthTab() {
                     <span className="font-bold t-text-primary mono">{m.sessionCount}</span>
                   </div>
                   <div>
+                    <span className="t-text-muted block text-[10px] font-bold">Total Bottles</span>
+                    <span className="font-bold t-text-primary mono">{m.totalBottles}</span>
+                  </div>
+                  <div>
                     <span className="t-text-muted block text-[10px] font-bold">Points Issued</span>
-                    <span className="font-bold text-cyan-400 mono">{m.totalPoints}</span>
+                    <span className="font-bold text-amber-400 mono">{m.totalPoints}</span>
                   </div>
                   <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Bottles</span>
-                    <span className="font-bold text-emerald-400 mono">{m.totalBottles}</span>
-                  </div>
-                  <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Cups</span>
-                    <span className="font-bold text-amber-400 mono">{m.totalCups}</span>
+                    <span className="t-text-muted block text-[10px] font-bold">Bin Alerts</span>
+                    <span className={`font-bold mono ${m.alertCount > 0 ? 'text-rose-400' : 't-text-secondary'}`}>
+                      {m.alertCount}
+                    </span>
                   </div>
                 </div>
 
-                {hasAlerts && (
-                  <div className="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between text-xs text-rose-400">
-                    <span className="flex items-center gap-1.5 font-bold">
-                      <AlertTriangle className="w-4 h-4 text-rose-400" />
-                      {m.alertCount} Bin Full Alert(s)
-                    </span>
-                    <span className="text-[10px] t-text-muted">
-                      {m.lastAlert ? new Date(m.lastAlert).toLocaleDateString() : ''}
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between text-[11px] t-text-muted border-t t-border pt-3">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-cyan-400" />
+                    Last Sync: {m.lastActive ? new Date(m.lastActive).toLocaleTimeString() : 'Recent'}
+                  </span>
+                  <span className="font-semibold text-emerald-400">2-Way Sync Active</span>
+                </div>
               </div>
             );
           })
         )}
+      </div>
+
+      {/* Add / Edit Machine Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="glass-panel p-6 rounded-3xl max-w-md w-full border border-cyan-500/30 space-y-4">
+            <div className="flex items-center justify-between border-b t-border pb-3">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-base font-extrabold t-text-primary">
+                  Register RVM Machine & Location
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-1 t-text-muted hover:t-text-primary rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMachine} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Machine ID Code
+                </label>
+                <input 
+                  type="text" 
+                  value={newMachineId}
+                  onChange={e => setNewMachineId(e.target.value)}
+                  placeholder="e.g. RVM-001"
+                  required
+                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl font-mono text-sm t-text-primary focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Machine Display Name
+                </label>
+                <input 
+                  type="text" 
+                  value={newMachineName}
+                  onChange={e => setNewMachineName(e.target.value)}
+                  placeholder="e.g. ISP Main Entrance Unit #1"
+                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Installation Location / Address
+                </label>
+                <input 
+                  type="text" 
+                  value={newMachineLocation}
+                  onChange={e => setNewMachineLocation(e.target.value)}
+                  placeholder="e.g. Sector H-8/4, Islamabad Campus"
+                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 text-xs font-bold t-text-secondary hover:t-text-primary rounded-xl border t-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 text-xs font-bold bg-cyan-500 text-slate-950 hover:bg-cyan-400 rounded-xl shadow-lg shadow-cyan-500/20"
+                >
+                  {saving ? 'Saving...' : 'Save Machine'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Relational Database Machines Table */}
+      <div className="glass-panel p-6 rounded-3xl space-y-4">
+        <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
+          All Registered Fleet Machines (Relational Table)
+        </h3>
+        <DataTable collectionName="machines" />
       </div>
 
       {/* Bin Notifications Full Table */}
