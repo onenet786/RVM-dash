@@ -1337,15 +1337,20 @@ app.post('/api/machines', async (req, res) => {
             name VARCHAR(255),
             location VARCHAR(255),
             status VARCHAR(50) DEFAULT 'ONLINE',
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
 
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS name VARCHAR(255);`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ONLINE';`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
+
         await pool.query(`
-          INSERT INTO machines (machine_id, name, location, status, updated_at)
+          INSERT INTO machines (machine_id, name, location, status, last_ping_at)
           VALUES ($1, $2, $3, $4, NOW())
           ON CONFLICT (machine_id)
-          DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, updated_at = NOW()
+          DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, last_ping_at = NOW()
         `, [machineId, machineName, machineLocation, machineStatus]);
       } catch (pgErr) {
         console.error('[POST /api/machines] PostgreSQL write notice:', pgErr.message);
