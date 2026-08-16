@@ -62,6 +62,7 @@ public partial class MainWindow : Window
         StartAdvertisement();
         CheckDatabase();
         ConnectArduino();
+        _ = CheckCentralApiConnectionAsync();
     }
 
     private void MainWindow_Closed(object? sender, EventArgs e)
@@ -310,6 +311,37 @@ public partial class MainWindow : Window
         }
 
         return databaseAvailable;
+    }
+
+    private async System.Threading.Tasks.Task CheckCentralApiConnectionAsync()
+    {
+        string serverUrl = CentralSyncService.CentralApiUrl;
+        ApiStatusText.Text = "API: CHECKING...";
+        ApiDot.Fill = Brushes.Orange;
+
+        try
+        {
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await client.GetAsync($"{serverUrl}/api/machine/config/RVM-001");
+            if (response.IsSuccessStatusCode)
+            {
+                ApiStatusText.Text = "API: ONLINE 🟢";
+                ApiDot.Fill = Brushes.LightGreen;
+                LogTelemetry("[API] Central Master Dashboard API connected (2-way sync ready)");
+            }
+            else
+            {
+                ApiStatusText.Text = "API: ERROR 🔴";
+                ApiDot.Fill = Brushes.OrangeRed;
+                LogTelemetry($"[API] Central API returned HTTP {(int)response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            ApiStatusText.Text = "API: OFFLINE 🔴";
+            ApiDot.Fill = Brushes.OrangeRed;
+            LogTelemetry($"[API] Central API offline: {ex.Message}");
+        }
     }
 
     private void RefreshLeaderboard()
