@@ -1182,12 +1182,48 @@ app.get('/api/analytics/machines', async (req, res) => {
       const sessions = await fetchCollectionDocs('recyclingsessions');
       const alerts = await fetchCollectionDocs('binfullnotifications');
 
+      const pool = getPgPool();
+      const allRegisteredMachines = [];
+      if (pool) {
+        try {
+          const metaRes = await pool.query(`SELECT machine_id, name, location, status FROM machines`);
+          metaRes.rows.forEach(r => {
+            allRegisteredMachines.push({
+              machineId: r.machine_id,
+              name: r.name || `RVM Machine ${r.machine_id}`,
+              location: r.location || 'Islamabad Campus',
+              status: r.status || 'ONLINE'
+            });
+          });
+        } catch (e) {}
+      }
+
       const grouped = {};
+
+      // Seed with all registered machines
+      allRegisteredMachines.forEach(m => {
+        grouped[m.machineId] = {
+          machineId: m.machineId,
+          name: m.name,
+          location: m.location,
+          status: m.status,
+          totalBottles: 0,
+          totalCups: 0,
+          totalPoints: 0,
+          sessionCount: 0,
+          lastActive: null
+        };
+      });
+
+      // Aggregate sessions
       sessions.forEach(s => {
-        const mId = s.machineId || 'RVM-001';
+        const mId = s.machineId || s.machine_id || 'RVM-001';
         if (!grouped[mId]) {
           grouped[mId] = {
             machineId: mId,
+            name: `RVM Machine ${mId}`,
+            location: 'Islamabad Campus',
+            status: 'ONLINE',
             totalBottles: 0,
             totalCups: 0,
             totalPoints: 0,
@@ -1199,33 +1235,20 @@ app.get('/api/analytics/machines', async (req, res) => {
         grouped[mId].totalCups += parseInt(s.cups || s.totalCups || 0);
         grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
         grouped[mId].sessionCount += 1;
+        if (s.recycledAt || s.timestamp) {
+          grouped[mId].lastActive = s.recycledAt || s.timestamp;
+        }
       });
 
       const alertsMap = {};
       alerts.forEach(a => {
-        const mId = a.machineId || 'RVM-001';
+        const mId = a.machineId || a.machine_id || 'RVM-001';
         if (!alertsMap[mId]) alertsMap[mId] = { alertCount: 0, lastAlert: a.occurredAt };
         alertsMap[mId].alertCount += 1;
       });
 
-      // Fetch machines metadata (name & location)
-      const machineMetaMap = {};
-      const pool = getPgPool();
-      if (pool) {
-        try {
-          const metaRes = await pool.query(`SELECT machine_id, name, location FROM machines`);
-          metaRes.rows.forEach(row => {
-            machineMetaMap[row.machine_id] = { name: row.name, location: row.location };
-          });
-        } catch (e) {
-          // table might not exist yet
-        }
-      }
-
       const combined = Object.values(grouped).map(m => ({
         ...m,
-        name: machineMetaMap[m.machineId]?.name || `RVM Machine ${m.machineId}`,
-        location: machineMetaMap[m.machineId]?.location || 'Islamabad Campus',
         alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
         lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
       }));
@@ -1237,6 +1260,25 @@ app.get('/api/analytics/machines', async (req, res) => {
     const binCol = db.collection('binfullnotifications');
     const machinesCol = db.collection('machines');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
+
+    const mongoMachines = await machinesCol.find().toArray();
+    const grouped = {};
+
+    mongoMachines.forEach(m => {
+      if (m.machineId) {
+        grouped[m.machineId] = {
+          machineId: m.machineId,
+          name: m.name || `RVM Machine ${m.machineId}`,
+          location: m.location || 'Islamabad Campus',
+          status: m.status || 'ONLINE',
+          totalBottles: 0,
+          totalCups: 0,
+          totalPoints: 0,
+          sessionCount: 0,
+          lastActive: m.updatedAt || null
+        };
+      }
+    });
 
     const sessionPipeline = [];
     if (Object.keys(machineQuery).length > 0) sessionPipeline.push({ $match: machineQuery });
@@ -1252,6 +1294,27 @@ app.get('/api/analytics/machines', async (req, res) => {
     });
 
     const machineSessions = await sessionCol.aggregate(sessionPipeline).toArray();
+    machineSessions.forEach(m => {
+      const mId = m._id;
+      if (!grouped[mId]) {
+        grouped[mId] = {
+          machineId: mId,
+          name: `RVM Machine ${mId}`,
+          location: 'Islamabad Campus',
+          status: 'ONLINE',
+          totalBottles: 0,
+          totalCups: 0,
+          totalPoints: 0,
+          sessionCount: 0,
+          lastActive: m.lastActive
+        };
+      }
+      grouped[mId].totalBottles = m.totalBottles;
+      grouped[mId].totalCups = m.totalCups;
+      grouped[mId].totalPoints = m.totalPoints;
+      grouped[mId].sessionCount = m.sessionCount;
+      if (m.lastActive) grouped[mId].lastActive = m.lastActive;
+    });
 
     const alertPipeline = [];
     if (Object.keys(machineQuery).length > 0) alertPipeline.push({ $match: machineQuery });
@@ -1264,28 +1327,15 @@ app.get('/api/analytics/machines', async (req, res) => {
     });
 
     const machineAlerts = await binCol.aggregate(alertPipeline).toArray();
-    const mongoMachines = await machinesCol.find().toArray();
-    const mongoMetaMap = {};
-    mongoMachines.forEach(m => {
-      if (m.machineId) mongoMetaMap[m.machineId] = m;
-    });
-
     const alertsMap = {};
     machineAlerts.forEach(a => {
       alertsMap[a._id] = a;
     });
 
-    const combined = machineSessions.map(m => ({
-      machineId: m._id,
-      name: mongoMetaMap[m._id]?.name || `RVM Machine ${m._id}`,
-      location: mongoMetaMap[m._id]?.location || 'Islamabad Campus',
-      totalBottles: m.totalBottles,
-      totalCups: m.totalCups,
-      totalPoints: m.totalPoints,
-      sessionCount: m.sessionCount,
-      lastActive: m.lastActive,
-      alertCount: alertsMap[m._id] ? alertsMap[m._id].alertCount : 0,
-      lastAlert: alertsMap[m._id] ? alertsMap[m._id].lastAlert : null
+    const combined = Object.values(grouped).map(m => ({
+      ...m,
+      alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
+      lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
     }));
 
     res.json(combined);

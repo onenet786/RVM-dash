@@ -12,6 +12,7 @@ export default function MachineHealthTab() {
   const [newMachineName, setNewMachineName] = useState('');
   const [newMachineLocation, setNewMachineLocation] = useState('');
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const getMachinesQuery = () => {
     try {
@@ -55,9 +56,13 @@ export default function MachineHealthTab() {
       });
       if (res.ok) {
         setShowAddModal(false);
+        const savedId = newMachineId.trim();
+        const savedName = newMachineName.trim() || savedId;
+        setSuccessMessage(`Machine "${savedId}" (${savedName}) saved successfully!`);
         setNewMachineName('');
         setNewMachineLocation('');
         fetchMachines();
+        setTimeout(() => setSuccessMessage(''), 5000);
       }
     } catch (err) {
       console.error(err);
@@ -79,6 +84,19 @@ export default function MachineHealthTab() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+
+      {/* Success Notification Banner */}
+      {successMessage && (
+        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center justify-between text-xs font-bold animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{successMessage}</span>
+          </div>
+          <button onClick={() => setSuccessMessage('')} className="text-emerald-400 hover:text-emerald-200">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       
       {/* Header */}
       <div className="glass-panel p-6 rounded-3xl flex items-center justify-between">
