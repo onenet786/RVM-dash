@@ -5,6 +5,8 @@ namespace RVMDesktopApp;
 
 public sealed class AppSettings
 {
+    public string MachineId { get; init; } = "RVM-001";
+    public string CentralApiUrl { get; init; } = "https://isprvm.binishaqsoft.com";
     public string ArduinoPort { get; init; } = "COM16";
     public int ArduinoBaud { get; init; } = 9600;
     public string AdvertisementVideoFolder { get; init; } = string.Empty;
@@ -30,6 +32,8 @@ public sealed class AppSettings
 
         return new AppSettings
         {
+            MachineId = Get(values, "MachineId", "RVM-001"),
+            CentralApiUrl = Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com"),
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
             ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
             AdvertisementVideoFolder = ResolvePath(Get(values, "AdvertisementVideoFolder", Path.Combine("Ads", "Advertisements"))),
