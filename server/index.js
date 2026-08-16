@@ -1297,7 +1297,7 @@ app.get('/api/analytics/machines', async (req, res) => {
 // Add or Register RVM Machine Name & Location
 app.post('/api/machines', async (req, res) => {
   try {
-    const { machineId, name, location, status } = req.body;
+    const { machineId, name, location, status } = req.body || {};
     if (!machineId) {
       return res.status(400).json({ error: 'Machine ID is required' });
     }
@@ -1306,9 +1306,32 @@ app.post('/api/machines', async (req, res) => {
     const machineLocation = location || 'Main Entrance / Campus';
     const machineStatus = status || 'ONLINE';
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
+    // Update MongoDB if available
+    const db = getDb();
+    if (db) {
+      try {
+        await db.collection('machines').updateOne(
+          { machineId },
+          {
+            $set: {
+              machineId,
+              name: machineName,
+              location: machineLocation,
+              status: machineStatus,
+              updatedAt: new Date()
+            }
+          },
+          { upsert: true }
+        );
+      } catch (mongoErr) {
+        console.error('[POST /api/machines] MongoDB write notice:', mongoErr.message);
+      }
+    }
+
+    // Update PostgreSQL if available
+    const pool = getPgPool();
+    if (pool) {
+      try {
         await pool.query(`
           CREATE TABLE IF NOT EXISTS machines (
             machine_id VARCHAR(100) PRIMARY KEY,
@@ -1325,28 +1348,14 @@ app.post('/api/machines', async (req, res) => {
           ON CONFLICT (machine_id)
           DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, updated_at = NOW()
         `, [machineId, machineName, machineLocation, machineStatus]);
-      }
-    } else {
-      const db = getDb();
-      if (db) {
-        await db.collection('machines').updateOne(
-          { machineId },
-          {
-            $set: {
-              machineId,
-              name: machineName,
-              location: machineLocation,
-              status: machineStatus,
-              updatedAt: new Date()
-            }
-          },
-          { upsert: true }
-        );
+      } catch (pgErr) {
+        console.error('[POST /api/machines] PostgreSQL write notice:', pgErr.message);
       }
     }
 
-    res.json({ message: 'Machine registered successfully', machineId, name: machineName, location: machineLocation });
+    res.json({ message: 'Machine registered successfully', machineId, name: machineName, location: machineLocation, status: machineStatus });
   } catch (err) {
+    console.error('[POST /api/machines] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
