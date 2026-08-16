@@ -11,10 +11,11 @@ public partial class AdminWindow : Window
     public AdminWindow()
     {
         InitializeComponent();
-        Loaded += (sender, e) => {
+        Loaded += async (sender, e) => {
             Load();
             LogConsole("RVM Master Communication Console Initialized.");
             LogConsole("Ready to test live 2-way sync with Central Master Dashboard.");
+            await CheckCentralConnectionAsync();
         };
     }
 
@@ -24,9 +25,13 @@ public partial class AdminWindow : Window
         {
             PointsGrid.ItemsSource = DatabaseManager.GetPointSettings().DefaultView;
             TransactionsGrid.ItemsSource = DatabaseManager.GetTransactions().DefaultView;
+            TxtHeaderSqlStatus.Text = "Connected 🟢";
+            TxtHeaderSqlStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
         }
         catch (Exception ex)
         {
+            TxtHeaderSqlStatus.Text = "Offline 🔴";
+            TxtHeaderSqlStatus.Foreground = System.Windows.Media.Brushes.Red;
             LogConsole($"[Local Database Notice] {ex.Message}");
         }
     }
@@ -88,7 +93,7 @@ public partial class AdminWindow : Window
         Load();
     }
 
-    private async void TestConnection_Click(object sender, RoutedEventArgs e)
+    private async Task CheckCentralConnectionAsync()
     {
         string serverUrl = TxtServerUrl.Text.Trim();
         CentralSyncService.CentralApiUrl = serverUrl;
@@ -97,6 +102,9 @@ public partial class AdminWindow : Window
         LogConsole($"Testing HTTP connection to Central Server: {serverUrl}/api/machine/config/RVM-001...");
         TxtConnStatus.Text = "Testing...";
         TxtConnStatus.Foreground = System.Windows.Media.Brushes.Orange;
+
+        TxtHeaderApiStatus.Text = "Testing... ⏳";
+        TxtHeaderApiStatus.Foreground = System.Windows.Media.Brushes.Orange;
 
         try
         {
@@ -107,6 +115,10 @@ public partial class AdminWindow : Window
                 string json = await response.Content.ReadAsStringAsync();
                 TxtConnStatus.Text = "Connected 🟢";
                 TxtConnStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+
+                TxtHeaderApiStatus.Text = "Connected 🟢";
+                TxtHeaderApiStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+
                 LogConsole($"SUCCESS (HTTP {(int)response.StatusCode}): Connected to Central Dashboard API!");
                 LogConsole($"Downstream Points Config Rules: {json}");
             }
@@ -114,6 +126,10 @@ public partial class AdminWindow : Window
             {
                 TxtConnStatus.Text = "Error 🔴";
                 TxtConnStatus.Foreground = System.Windows.Media.Brushes.Red;
+
+                TxtHeaderApiStatus.Text = "Disconnected 🔴";
+                TxtHeaderApiStatus.Foreground = System.Windows.Media.Brushes.Red;
+
                 LogConsole($"HTTP Error {(int)response.StatusCode}: {response.ReasonPhrase}");
             }
         }
@@ -121,9 +137,19 @@ public partial class AdminWindow : Window
         {
             TxtConnStatus.Text = "Offline 🔴";
             TxtConnStatus.Foreground = System.Windows.Media.Brushes.Red;
+
+            TxtHeaderApiStatus.Text = "Disconnected 🔴";
+            TxtHeaderApiStatus.Foreground = System.Windows.Media.Brushes.Red;
+
             LogConsole($"CONNECTION FAILED: {ex.Message}");
         }
     }
+
+    private async void TestConnection_Click(object sender, RoutedEventArgs e)
+    {
+        await CheckCentralConnectionAsync();
+    }
+
 
     private async void SimulateInsert_Click(object sender, RoutedEventArgs e)
     {

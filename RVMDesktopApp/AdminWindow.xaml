@@ -43,11 +43,27 @@
                     Orientation="Horizontal"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Right">
+                    
+                    <!-- Live Status Badges -->
+                    <Border Background="#1E293B" CornerRadius="6" Padding="10,6" Margin="0,0,10,0" BorderBrush="#334155" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🗄️ SQL Server: " Foreground="#94A3B8" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock x:Name="TxtHeaderSqlStatus" Text="Connected 🟢" Foreground="#4ADE80" FontSize="11" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1E293B" CornerRadius="6" Padding="10,6" Margin="0,0,16,0" BorderBrush="#334155" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🌐 Dashboard API: " Foreground="#94A3B8" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock x:Name="TxtHeaderApiStatus" Text="Not Tested ⚪" Foreground="#94A3B8" FontSize="11" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
                     <Button
                         Content="Refresh"
                         Style="{StaticResource ModernButton}"
                         Click="Refresh_Click"
-                        Margin="0,0,12,0" />
+                        Margin="0,0,10,0" />
                     <Button
                         Content="Save Points"
                         Style="{StaticResource AccentButton}"
