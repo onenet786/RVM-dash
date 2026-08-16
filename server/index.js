@@ -1307,7 +1307,6 @@ app.post('/api/machines', async (req, res) => {
     const machineStatus = status || 'ONLINE';
 
     // Update MongoDB if available
-    const db = getDb();
     if (db) {
       try {
         await db.collection('machines').updateOne(
