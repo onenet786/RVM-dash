@@ -56,6 +56,8 @@ public partial class MainWindow : Window
         TelemetryList.ItemsSource = telemetryLog;
     }
 
+    private DispatcherTimer? apiCheckTimer;
+
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         StartInstructionVideo();
@@ -63,6 +65,10 @@ public partial class MainWindow : Window
         CheckDatabase();
         ConnectArduino();
         _ = CheckCentralApiConnectionAsync();
+
+        apiCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        apiCheckTimer.Tick += async (s, args) => await CheckCentralApiConnectionAsync();
+        apiCheckTimer.Start();
     }
 
     private void MainWindow_Closed(object? sender, EventArgs e)
@@ -316,8 +322,8 @@ public partial class MainWindow : Window
     private async System.Threading.Tasks.Task CheckCentralApiConnectionAsync()
     {
         string serverUrl = CentralSyncService.CentralApiUrl;
-        ApiStatusText.Text = "API: CHECKING...";
-        ApiDot.Fill = Brushes.Orange;
+        if (ApiStatusText != null) ApiStatusText.Text = "API: CHECKING...";
+        if (ApiDot != null) ApiDot.Fill = Brushes.Orange;
 
         try
         {
@@ -325,23 +331,50 @@ public partial class MainWindow : Window
             var response = await client.GetAsync($"{serverUrl}/api/machine/config/RVM-001");
             if (response.IsSuccessStatusCode)
             {
-                ApiStatusText.Text = "API: ONLINE 🟢";
-                ApiDot.Fill = Brushes.LightGreen;
+                if (ApiStatusText != null) ApiStatusText.Text = "API: ONLINE 🟢";
+                if (ApiDot != null) ApiDot.Fill = Brushes.LightGreen;
+                
+                SetLiveBadgeOnline();
                 LogTelemetry("[API] Central Master Dashboard API connected (2-way sync ready)");
             }
             else
             {
-                ApiStatusText.Text = "API: ERROR 🔴";
-                ApiDot.Fill = Brushes.OrangeRed;
-                LogTelemetry($"[API] Central API returned HTTP {(int)response.StatusCode}");
+                SetLiveBadgeOffline($"HTTP {(int)response.StatusCode}");
             }
         }
         catch (Exception ex)
         {
-            ApiStatusText.Text = "API: OFFLINE 🔴";
-            ApiDot.Fill = Brushes.OrangeRed;
-            LogTelemetry($"[API] Central API offline: {ex.Message}");
+            SetLiveBadgeOffline(ex.Message);
         }
+    }
+
+    private void SetLiveBadgeOnline()
+    {
+        if (LiveBadgeText != null) LiveBadgeText.Text = "LIVE 🟢";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DCFCE7"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803D"));
+        }
+    }
+
+    private void SetLiveBadgeOffline(string reason)
+    {
+        if (ApiStatusText != null) ApiStatusText.Text = "API: OFFLINE 🔴";
+        if (ApiDot != null) ApiDot.Fill = Brushes.OrangeRed;
+        if (LiveBadgeText != null) LiveBadgeText.Text = "NO NETWORK 🔴";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B91C1C"));
+        }
+        LogTelemetry($"[API] Central API offline: {reason}");
     }
 
     private void RefreshLeaderboard()
