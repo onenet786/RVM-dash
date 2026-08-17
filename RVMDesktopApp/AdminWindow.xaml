@@ -187,6 +187,7 @@
                                                     <TextBox x:Name="CfgCameraBaud" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                                 </StackPanel>
                                             </Grid>
+                                            <Button Content="⚡ Re-initialize Arduino Board" Click="ReinitializeArduino_Click" Height="34" Margin="0,8,0,0" Style="{StaticResource ModernButton}"/>
                                         </StackPanel>
                                     </Border>
 

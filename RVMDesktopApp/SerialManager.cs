@@ -31,15 +31,65 @@ public class SerialManager : IDisposable
         {
             Disconnect();
 
-            _port = new SerialPort(port, baudRate)
+            Exception? lastEx = null;
+            for (int attempt = 1; attempt <= 3; attempt++)
             {
-                NewLine = "\n",
-                WriteTimeout = 500
-            };
+                try
+                {
+                    _port = new SerialPort(port, baudRate)
+                    {
+                        NewLine = "\n",
+                        WriteTimeout = 1000,
+                        ReadTimeout = 1000,
+                        DtrEnable = true, // Force DTR line HIGH to reset/initialize Arduino board
+                        RtsEnable = true  // Force RTS line HIGH
+                    };
 
-            _receiveBuffer.Clear();
-            _port.DataReceived += OnDataReceived;
-            _port.Open();
+                    _receiveBuffer.Clear();
+                    _port.DataReceived += OnDataReceived;
+                    _port.Open();
+
+                    // Discard stale buffer data left from previous sessions
+                    try
+                    {
+                        _port.DiscardInBuffer();
+                        _port.DiscardOutBuffer();
+                    }
+                    catch { }
+
+                    // Send soft reset to Arduino upon connection to force clean state machine sync
+                    try
+                    {
+                        _port.WriteLine("RESET");
+                        _port.WriteLine("STATUS");
+                    }
+                    catch { }
+
+                    return; // Connection successful!
+                }
+                catch (Exception ex)
+                {
+                    lastEx = ex;
+                    try
+                    {
+                        if (_port != null)
+                        {
+                            _port.DataReceived -= OnDataReceived;
+                            if (_port.IsOpen) _port.Close();
+                            _port.Dispose();
+                        }
+                    }
+                    catch { }
+                    _port = null;
+                    System.Threading.Thread.Sleep(300); // Give Windows COM driver time to release locked handle on relaunch
+                }
+            }
+
+            if (lastEx != null)
+            {
+                ReportError(lastEx);
+                throw lastEx;
+            }
         }
     }
 
@@ -80,6 +130,24 @@ public class SerialManager : IDisposable
                 _port.DataReceived -= OnDataReceived;
                 if (_port.IsOpen)
                 {
+                    // Send STOP & RESET command to Arduino before releasing line
+                    try
+                    {
+                        _port.WriteLine("STOP");
+                        _port.WriteLine("RESET");
+                        System.Threading.Thread.Sleep(100);
+                    }
+                    catch { }
+
+                    try
+                    {
+                        _port.DtrEnable = false;
+                        _port.RtsEnable = false;
+                        _port.DiscardInBuffer();
+                        _port.DiscardOutBuffer();
+                    }
+                    catch { }
+
                     _port.Close();
                 }
                 _port.Dispose();

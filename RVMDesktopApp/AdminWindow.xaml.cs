@@ -87,6 +87,30 @@ public partial class AdminWindow : Window
         }
     }
 
+    private void ReinitializeArduino_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string port = CfgArduinoPort.Text.Trim();
+            int baud = int.TryParse(CfgArduinoBaud.Text.Trim(), out int b) ? b : 9600;
+
+            using var serial = new SerialManager();
+            serial.Connect(port, baud);
+            serial.SendCommand("RESET");
+            serial.SendCommand("STATUS");
+            System.Threading.Thread.Sleep(300);
+            serial.Disconnect();
+
+            MessageBox.Show($"Arduino board on {port} (Baud: {baud}) successfully re-initialized with hardware DTR reset and soft reset!", "Arduino Re-initialized", MessageBoxButton.OK, MessageBoxImage.Information);
+            LogConsole($"[Hardware Reset] Arduino on {port} re-initialized cleanly.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to re-initialize Arduino: {ex.Message}", "Arduino Reset Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            LogConsole($"[Hardware Reset Error] {ex.Message}");
+        }
+    }
+
     private void Load()
     {
         try
