@@ -6,11 +6,23 @@ using System.Threading.Tasks;
 
 namespace RVMDesktopApp;
 
+public enum NetworkStatus
+{
+    Checking,
+    Online,
+    Offline,
+    Unauthorized
+}
+
 public static class HeartbeatService
 {
     private static Timer? _timer;
     private static string _machineId = "RVM-001";
     private static string _serverUrl = "https://isprvm.binishaqsoft.com";
+
+    public static NetworkStatus CurrentStatus { get; private set; } = NetworkStatus.Checking;
+    public static string? LastError { get; private set; }
+    public static event Action<NetworkStatus, string?>? StatusChanged;
 
     public static void Start(string machineId, string serverUrl)
     {
@@ -39,14 +51,39 @@ public static class HeartbeatService
             var heartbeatObj = new { machineId = _machineId, status = "active", binFillPercentage = 0 };
             var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
             using var content = new StringContent(heartbeatJson, Encoding.UTF8, "application/json");
-            await client.PostAsync($"{baseUrl}/api/machine/heartbeat", content);
+            var hbResponse = await client.PostAsync($"{baseUrl}/api/machine/heartbeat", content);
+
+            if (hbResponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                UpdateStatus(NetworkStatus.Unauthorized, "Machine not registered/authorized on Central Dashboard");
+                return;
+            }
 
             // 2. Fetch machine config to ensure ping is recorded in database
-            await client.GetAsync($"{baseUrl}/api/machine/config/{_machineId}");
+            var configResponse = await client.GetAsync($"{baseUrl}/api/machine/config/{_machineId}");
+            if (configResponse.IsSuccessStatusCode)
+            {
+                UpdateStatus(NetworkStatus.Online, null);
+            }
+            else if (configResponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                UpdateStatus(NetworkStatus.Unauthorized, "Machine not registered/authorized on Central Dashboard");
+            }
+            else
+            {
+                UpdateStatus(NetworkStatus.Offline, $"HTTP {(int)configResponse.StatusCode}");
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[HeartbeatService Warning] {ex.Message}");
+            UpdateStatus(NetworkStatus.Offline, ex.Message);
         }
+    }
+
+    private static void UpdateStatus(NetworkStatus status, string? error)
+    {
+        CurrentStatus = status;
+        LastError = error;
+        StatusChanged?.Invoke(status, error);
     }
 }

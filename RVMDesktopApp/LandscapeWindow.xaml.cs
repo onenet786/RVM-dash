@@ -60,12 +60,88 @@ public partial class LandscapeWindow : Window
     {
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
         UpdateRvmNameDisplay(settings.MachineId);
+
+        HeartbeatService.StatusChanged += OnNetworkStatusChanged;
         HeartbeatService.Start(settings.MachineId, settings.CentralApiUrl);
 
         StartInstructionVideo();
         StartAdvertisement();
         CheckDatabase();
         ConnectArduino();
+    }
+
+    private void OnNetworkStatusChanged(NetworkStatus status, string? error)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            switch (status)
+            {
+                case NetworkStatus.Online:
+                    SetLiveBadgeOnline();
+                    break;
+                case NetworkStatus.Unauthorized:
+                    SetLiveBadgeUnauthorized(error ?? "Machine not registered/authorized");
+                    break;
+                case NetworkStatus.Offline:
+                case NetworkStatus.Checking:
+                default:
+                    SetLiveBadgeOffline(error ?? "NO NETWORK");
+                    break;
+            }
+        });
+    }
+
+    private void SetLiveBadgeOnline()
+    {
+        if (LiveBadgeText != null) LiveBadgeText.Text = "LIVE 🟢";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DCFCE7"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803D"));
+        }
+        if (HeaderDotText != null)
+        {
+            HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
+        }
+    }
+
+    private void SetLiveBadgeUnauthorized(string reason)
+    {
+        if (LiveBadgeText != null) LiveBadgeText.Text = "UNAUTHORIZED 🔴";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706"));
+        }
+        if (HeaderDotText != null)
+        {
+            HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
+        }
+        LogTelemetry($"[API] Central API authorization required: {reason}");
+    }
+
+    private void SetLiveBadgeOffline(string reason)
+    {
+        if (LiveBadgeText != null) LiveBadgeText.Text = "NO NETWORK 🔴";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#B91C1C"));
+        }
+        if (HeaderDotText != null)
+        {
+            HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+        }
+        LogTelemetry($"[API] Central API offline: {reason}");
     }
 
     private void LandscapeWindow_Closed(object? sender, EventArgs e)
