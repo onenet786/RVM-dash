@@ -8,10 +8,14 @@ namespace RVMDesktopApp;
 
 public partial class AdminWindow : Window
 {
+    private readonly AppSettings settings = AppSettings.Load();
+
     public AdminWindow()
     {
         InitializeComponent();
         Loaded += async (sender, e) => {
+            TxtServerUrl.Text = settings.CentralApiUrl;
+            TxtMachineId.Text = settings.MachineId;
             Load();
             LogConsole("RVM Master Communication Console Initialized.");
             LogConsole("Ready to test live 2-way sync with Central Master Dashboard.");
@@ -96,10 +100,14 @@ public partial class AdminWindow : Window
     private async Task CheckCentralConnectionAsync()
     {
         string serverUrl = TxtServerUrl.Text.Trim();
+        if (string.IsNullOrWhiteSpace(serverUrl)) serverUrl = settings.CentralApiUrl;
         CentralSyncService.CentralApiUrl = serverUrl;
 
+        string machineId = TxtMachineId.Text.Trim();
+        if (string.IsNullOrWhiteSpace(machineId)) machineId = settings.MachineId;
+
         LogConsole($"--------------------------------------------------");
-        LogConsole($"Testing HTTP connection to Central Server: {serverUrl}/api/machine/config/RVM-001...");
+        LogConsole($"Testing HTTP connection to Central Server: {serverUrl}/api/machine/config/{machineId}...");
         TxtConnStatus.Text = "Testing...";
         TxtConnStatus.Foreground = System.Windows.Media.Brushes.Orange;
 
@@ -109,7 +117,7 @@ public partial class AdminWindow : Window
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await client.GetAsync($"{serverUrl}/api/machine/config/RVM-001");
+            var response = await client.GetAsync($"{serverUrl}/api/machine/config/{machineId}");
             if (response.IsSuccessStatusCode)
             {
                 string json = await response.Content.ReadAsStringAsync();

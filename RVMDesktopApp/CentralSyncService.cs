@@ -20,7 +20,7 @@ public class SyncResult
 public static class CentralSyncService
 {
     private static readonly HttpClient _httpClient = new HttpClient();
-    public static string CentralApiUrl { get; set; } = "http://localhost:5009";
+    public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
 
     /// <summary>
     /// Syncs local SQL Server recycling transactions to Central Master Dashboard API with detailed status and granular item variants.

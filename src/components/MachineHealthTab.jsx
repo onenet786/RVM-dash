@@ -80,6 +80,8 @@ export default function MachineHealthTab() {
 
   useEffect(() => {
     fetchMachines();
+    const interval = setInterval(fetchMachines, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -106,7 +108,7 @@ export default function MachineHealthTab() {
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Hardware Fleet Monitoring</span>
           </div>
           <h2 className="text-2xl font-extrabold t-text-primary">Reverse Vending Machine Status</h2>
-          <p className="text-xs t-text-secondary mt-1">Operational health, bin level sensors, location tags, and machine name management.</p>
+          <p className="text-xs t-text-secondary mt-1">Real-time operational health, live heartbeat pings, and machine location tags.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -132,6 +134,55 @@ export default function MachineHealthTab() {
         </div>
       </div>
 
+      {/* Fleet Summary Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-cyan-500/20">
+          <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400">
+            <Server className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured RVMs</span>
+            <span className="text-xl font-extrabold t-text-primary mono">{machines.length}</span>
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-emerald-500/20">
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Online Fleet</span>
+            <span className="text-xl font-extrabold text-emerald-400 mono">
+              {machines.filter(m => m.status === 'ONLINE' || m.isOnline).length}
+            </span>
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-rose-500/20">
+          <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Offline Fleet</span>
+            <span className="text-xl font-extrabold text-rose-400 mono">
+              {machines.filter(m => m.status !== 'ONLINE' && !m.isOnline).length}
+            </span>
+          </div>
+        </div>
+
+        <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-amber-500/20">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+            <Activity className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Active Alerts</span>
+            <span className="text-xl font-extrabold text-amber-400 mono">
+              {machines.reduce((acc, m) => acc + (m.alertCount || 0), 0)}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Machine Fleet Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading ? (
@@ -145,17 +196,18 @@ export default function MachineHealthTab() {
         ) : (
           machines.map(m => {
             const hasAlerts = m.alertCount > 0;
+            const isOnline = m.status === 'ONLINE' || m.isOnline;
             return (
               <div 
                 key={m.machineId} 
                 className={`glass-panel p-5 rounded-2xl space-y-4 border transition-all ${
-                  hasAlerts ? 'border-rose-500/40 bg-rose-950/10' : 'border-emerald-500/20'
+                  isOnline ? 'border-emerald-500/30' : 'border-rose-500/30 bg-rose-950/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-xl ${
-                      hasAlerts ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}>
                       <Server className="w-5 h-5" />
                     </div>
@@ -174,11 +226,22 @@ export default function MachineHealthTab() {
                     </div>
                   </div>
 
-                  <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-full ${
-                    hasAlerts ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  }`}>
-                    {hasAlerts ? 'Alert Triggered' : 'Operational'}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full flex items-center gap-1.5 ${
+                      isOnline
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                      {isOnline ? 'ONLINE' : 'OFFLINE'}
+                    </span>
+
+                    {hasAlerts && (
+                      <span className="px-2 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                        Bin Alert
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs t-bg-sec p-3 rounded-xl border t-border">
@@ -205,9 +268,11 @@ export default function MachineHealthTab() {
                 <div className="flex items-center justify-between text-[11px] t-text-muted border-t t-border pt-3">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-cyan-400" />
-                    Last Sync: {m.lastActive ? new Date(m.lastActive).toLocaleTimeString() : 'Recent'}
+                    Last Ping: {m.lastPingAt || m.lastActive ? new Date(m.lastPingAt || m.lastActive).toLocaleTimeString() : 'Never'}
                   </span>
-                  <span className="font-semibold text-emerald-400">2-Way Sync Active</span>
+                  <span className={`font-bold text-[11px] ${isOnline ? 'text-emerald-400' : 'text-slate-400'}`}>
+                    {isOnline ? 'Live Ping Active' : 'Offline'}
+                  </span>
                 </div>
               </div>
             );

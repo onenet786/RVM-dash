@@ -58,6 +58,9 @@ public partial class LandscapeWindow : Window
 
     private void LandscapeWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
+        UpdateRvmNameDisplay(settings.MachineId);
+
         StartInstructionVideo();
         StartAdvertisement();
         CheckDatabase();
@@ -310,6 +313,14 @@ public partial class LandscapeWindow : Window
         }
 
         return databaseAvailable;
+    }
+
+    private void UpdateRvmNameDisplay(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (HeaderRvmNameText != null) HeaderRvmNameText.Text = name;
+        if (AdHeaderRvmNameText != null) AdHeaderRvmNameText.Text = name;
+        if (CommandCenterRvmNameText != null) CommandCenterRvmNameText.Text = name;
     }
 
     private void RefreshLeaderboard()

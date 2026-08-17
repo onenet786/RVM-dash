@@ -60,6 +60,9 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
+        UpdateRvmNameDisplay(settings.MachineId);
+
         StartInstructionVideo();
         StartAdvertisement();
         CheckDatabase();
@@ -328,12 +331,38 @@ public partial class MainWindow : Window
         try
         {
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await client.GetAsync($"{serverUrl}/api/machine/config/RVM-001");
+            
+            try
+            {
+                var heartbeatObj = new { machineId = settings.MachineId, status = "active", binFillPercentage = 0 };
+                var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
+                var content = new System.Net.Http.StringContent(heartbeatJson, System.Text.Encoding.UTF8, "application/json");
+                _ = client.PostAsync($"{serverUrl}/api/machine/heartbeat", content);
+            }
+            catch {}
+
+            var response = await client.GetAsync($"{serverUrl}/api/machine/config/{settings.MachineId}");
             if (response.IsSuccessStatusCode)
             {
                 if (ApiStatusText != null) ApiStatusText.Text = "API: ONLINE 🟢";
                 if (ApiDot != null) ApiDot.Fill = Brushes.LightGreen;
-                
+
+                try
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("name", out var nameProp) && !string.IsNullOrWhiteSpace(nameProp.GetString()))
+                    {
+                        string apiName = nameProp.GetString()!;
+                        UpdateRvmNameDisplay(apiName);
+                        LogTelemetry($"[API] Machine Name retrieved from Central Dashboard: {apiName}");
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors for fallback compatibility
+                }
+
                 SetLiveBadgeOnline();
                 LogTelemetry("[API] Central Master Dashboard API connected (2-way sync ready)");
             }
@@ -346,6 +375,14 @@ public partial class MainWindow : Window
         {
             SetLiveBadgeOffline(ex.Message);
         }
+    }
+
+    private void UpdateRvmNameDisplay(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (HeaderRvmNameText != null) HeaderRvmNameText.Text = name;
+        if (AdHeaderRvmNameText != null) AdHeaderRvmNameText.Text = name;
+        if (CommandCenterRvmNameText != null) CommandCenterRvmNameText.Text = name;
     }
 
     private void SetLiveBadgeOnline()

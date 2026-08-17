@@ -32,13 +32,23 @@ public sealed class AppSettings
 
         return new AppSettings
         {
-            MachineId = Get(values, "MachineId", "RVM-001"),
+            MachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "RVM-001"),
             CentralApiUrl = Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com"),
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
             ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
             AdvertisementVideoFolder = ResolvePath(Get(values, "AdvertisementVideoFolder", Path.Combine("Ads", "Advertisements"))),
             InstructionVideoFolder = ResolvePath(Get(values, "InstructionVideoFolder", Path.Combine("Ads", "Instructions")))
         };
+    }
+
+    private static string GetFirst(Dictionary<string, string> values, string[] keys, string fallback)
+    {
+        foreach (string key in keys)
+        {
+            if (values.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value))
+                return value;
+        }
+        return fallback;
     }
 
     private static string Get(Dictionary<string, string> values, string key, string fallback) =>

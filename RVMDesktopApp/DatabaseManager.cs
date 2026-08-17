@@ -76,19 +76,24 @@ public static class DatabaseManager
         string bottleSize,
         string materialType,
         int pointsAwarded,
-        bool isAccepted)
+        bool isAccepted,
+        string machineName = "RVM-001")
     {
         using var connection = new SqlConnection(ConnectionString);
-        using var command = new SqlCommand("dbo.RVM_sp_SaveTransaction", connection)
-        {
-            CommandType = CommandType.StoredProcedure
-        };
+        using var command = new SqlCommand(
+            """
+            INSERT INTO dbo.BottleTransactions
+                (SessionID, BottleSize, MaterialType, PointsAwarded, IsAccepted, MachineName)
+            VALUES
+                (@SessionID, @BottleSize, @MaterialType, @PointsAwarded, @IsAccepted, @MachineName);
+            """, connection);
 
         command.Parameters.Add(new SqlParameter("@SessionID", SqlDbType.UniqueIdentifier) { Value = sessionId });
         command.Parameters.Add(new SqlParameter("@BottleSize", SqlDbType.VarChar, 20) { Value = bottleSize });
         command.Parameters.Add(new SqlParameter("@MaterialType", SqlDbType.VarChar, 20) { Value = materialType });
         command.Parameters.Add(new SqlParameter("@PointsAwarded", SqlDbType.Int) { Value = pointsAwarded });
         command.Parameters.Add(new SqlParameter("@IsAccepted", SqlDbType.Bit) { Value = isAccepted });
+        command.Parameters.Add(new SqlParameter("@MachineName", SqlDbType.VarChar, 50) { Value = machineName });
 
         connection.Open();
         command.ExecuteNonQuery();

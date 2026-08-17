@@ -1,6 +1,23 @@
-# Copy this file to config.txt and adjust the SQL Server connection string.
-ConnectionString=Server=YOUR_SERVER;Database=RVMDB;Trusted_Connection=True;TrustServerCertificate=True;
+# Database connection settings.
+# Replace the value after ConnectionString= with your SQL Server connection string.
+# This file is copied beside the application executable and is ignored by Git.
+#
+# Windows authentication example:
+# ConnectionString=Server=YOUR_SERVER;Database=RVMDB;Trusted_Connection=True;TrustServerCertificate=True;
+#
+# SQL Server authentication example:
+# ConnectionString=Server=YOUR_SERVER;Database=RVMDB;User ID=YOUR_USER;Password=YOUR_PASSWORD;TrustServerCertificate=True;
+
+ConnectionString=Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;
+
+# Hardware and classifier settings
 ArduinoPort=COM16
 ArduinoBaud=9600
 AdvertisementVideoFolder=Ads\Advertisements
 InstructionVideoFolder=Ads\Instructions
+CameraPort=COM31
+CameraBaud=921600
+ModelPath=Models\rvm_classifier.onnx
+CaptureDirectory=Captures
+MachineId = RVM-RWP
+CentralApiUrl = https://isprvm.binishaqsoft.com

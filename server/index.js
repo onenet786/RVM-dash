@@ -1178,6 +1178,9 @@ app.get('/api/analytics/leaderboard', async (req, res) => {
 // Machine Hardware Status Aggregation
 app.get('/api/analytics/machines', async (req, res) => {
   try {
+    const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes window
+    const now = Date.now();
+
     if (activeDbType === 'postgres' && activePgConfig) {
       const sessions = await fetchCollectionDocs('recyclingsessions');
       const alerts = await fetchCollectionDocs('binfullnotifications');
@@ -1186,13 +1189,14 @@ app.get('/api/analytics/machines', async (req, res) => {
       const allRegisteredMachines = [];
       if (pool) {
         try {
-          const metaRes = await pool.query(`SELECT machine_id, name, location, status FROM machines`);
+          const metaRes = await pool.query(`SELECT machine_id, name, location, status, last_ping_at FROM machines`);
           metaRes.rows.forEach(r => {
             allRegisteredMachines.push({
               machineId: r.machine_id,
               name: r.name || `RVM Machine ${r.machine_id}`,
               location: r.location || 'Islamabad Campus',
-              status: r.status || 'ONLINE'
+              status: r.status,
+              lastPingAt: r.last_ping_at
             });
           });
         } catch (e) {}
@@ -1200,30 +1204,36 @@ app.get('/api/analytics/machines', async (req, res) => {
 
       const grouped = {};
 
-      // Seed with all registered machines
       allRegisteredMachines.forEach(m => {
+        const pingTime = m.lastPingAt ? new Date(m.lastPingAt).getTime() : 0;
+        const isOnline = pingTime > 0 && (now - pingTime <= ONLINE_THRESHOLD_MS);
         grouped[m.machineId] = {
           machineId: m.machineId,
           name: m.name,
           location: m.location,
-          status: m.status,
+          status: isOnline ? 'ONLINE' : 'OFFLINE',
+          isOnline,
+          lastPingAt: m.lastPingAt,
           totalBottles: 0,
           totalCups: 0,
           totalPoints: 0,
           sessionCount: 0,
-          lastActive: null
+          lastActive: m.lastPingAt || null
         };
       });
 
-      // Aggregate sessions
       sessions.forEach(s => {
         const mId = s.machineId || s.machine_id || 'RVM-001';
+        const sTime = s.recycledAt || s.timestamp ? new Date(s.recycledAt || s.timestamp).getTime() : 0;
         if (!grouped[mId]) {
+          const isOnline = sTime > 0 && (now - sTime <= ONLINE_THRESHOLD_MS);
           grouped[mId] = {
             machineId: mId,
             name: `RVM Machine ${mId}`,
             location: 'Islamabad Campus',
-            status: 'ONLINE',
+            status: isOnline ? 'ONLINE' : 'OFFLINE',
+            isOnline,
+            lastPingAt: s.recycledAt || s.timestamp,
             totalBottles: 0,
             totalCups: 0,
             totalPoints: 0,
@@ -1235,8 +1245,16 @@ app.get('/api/analytics/machines', async (req, res) => {
         grouped[mId].totalCups += parseInt(s.cups || s.totalCups || 0);
         grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
         grouped[mId].sessionCount += 1;
-        if (s.recycledAt || s.timestamp) {
-          grouped[mId].lastActive = s.recycledAt || s.timestamp;
+
+        if (sTime > 0) {
+          const existingPing = grouped[mId].lastPingAt ? new Date(grouped[mId].lastPingAt).getTime() : 0;
+          if (sTime > existingPing) {
+            grouped[mId].lastPingAt = s.recycledAt || s.timestamp;
+            grouped[mId].lastActive = s.recycledAt || s.timestamp;
+            const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
+            grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
+            grouped[mId].isOnline = isOnline;
+          }
         }
       });
 
@@ -1266,16 +1284,20 @@ app.get('/api/analytics/machines', async (req, res) => {
 
     mongoMachines.forEach(m => {
       if (m.machineId) {
+        const pingTime = m.lastPingAt || m.updatedAt ? new Date(m.lastPingAt || m.updatedAt).getTime() : 0;
+        const isOnline = pingTime > 0 && (now - pingTime <= ONLINE_THRESHOLD_MS);
         grouped[m.machineId] = {
           machineId: m.machineId,
           name: m.name || `RVM Machine ${m.machineId}`,
           location: m.location || 'Islamabad Campus',
-          status: m.status || 'ONLINE',
+          status: isOnline ? 'ONLINE' : 'OFFLINE',
+          isOnline,
+          lastPingAt: m.lastPingAt || m.updatedAt,
           totalBottles: 0,
           totalCups: 0,
           totalPoints: 0,
           sessionCount: 0,
-          lastActive: m.updatedAt || null
+          lastActive: m.lastPingAt || m.updatedAt || null
         };
       }
     });
@@ -1296,12 +1318,16 @@ app.get('/api/analytics/machines', async (req, res) => {
     const machineSessions = await sessionCol.aggregate(sessionPipeline).toArray();
     machineSessions.forEach(m => {
       const mId = m._id;
+      const sTime = m.lastActive ? new Date(m.lastActive).getTime() : 0;
       if (!grouped[mId]) {
+        const isOnline = sTime > 0 && (now - sTime <= ONLINE_THRESHOLD_MS);
         grouped[mId] = {
           machineId: mId,
           name: `RVM Machine ${mId}`,
           location: 'Islamabad Campus',
-          status: 'ONLINE',
+          status: isOnline ? 'ONLINE' : 'OFFLINE',
+          isOnline,
+          lastPingAt: m.lastActive,
           totalBottles: 0,
           totalCups: 0,
           totalPoints: 0,
@@ -1313,7 +1339,16 @@ app.get('/api/analytics/machines', async (req, res) => {
       grouped[mId].totalCups = m.totalCups;
       grouped[mId].totalPoints = m.totalPoints;
       grouped[mId].sessionCount = m.sessionCount;
-      if (m.lastActive) grouped[mId].lastActive = m.lastActive;
+      if (sTime > 0) {
+        const existingPing = grouped[mId].lastPingAt ? new Date(grouped[mId].lastPingAt).getTime() : 0;
+        if (sTime > existingPing) {
+          grouped[mId].lastPingAt = m.lastActive;
+          grouped[mId].lastActive = m.lastActive;
+          const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
+          grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
+          grouped[mId].isOnline = isOnline;
+        }
+      }
     });
 
     const alertPipeline = [];
@@ -2911,6 +2946,8 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
     const { machineId } = req.params;
     let config = {
       machineId,
+      name: `RVM Machine ${machineId}`,
+      location: 'Main Kiosk',
       configVersion: 1,
       pointsPerPlasticBottle: 10,
       pointsPerAluminiumCan: 20,
@@ -2921,17 +2958,34 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
-        const result = await pool.query(`SELECT * FROM machine_configs WHERE machine_id = $1`, [machineId]);
+        const result = await pool.query(
+          `SELECT c.*, m.name, m.location 
+           FROM machine_configs c 
+           LEFT JOIN machines m ON c.machine_id = m.machine_id 
+           WHERE c.machine_id = $1`, [machineId]);
         if (result.rows.length > 0) {
           const row = result.rows[0];
           config = {
             machineId: row.machine_id,
+            name: row.name || `RVM Machine ${row.machine_id}`,
+            location: row.location || 'Main Kiosk',
             configVersion: row.config_version,
             pointsPerPlasticBottle: row.points_per_plastic,
             pointsPerAluminiumCan: row.points_per_aluminium,
             pointsPerPaperKg: row.points_per_paper_kg,
             updatedAt: row.updated_at
           };
+        }
+      }
+    }
+
+    if (activeDbType === 'mongodb') {
+      const db = getMongoDb();
+      if (db) {
+        const m = await db.collection('machines').findOne({ machineId });
+        if (m) {
+          if (m.name) config.name = m.name;
+          if (m.location) config.location = m.location;
         }
       }
     }
