@@ -62,6 +62,7 @@ public partial class MainWindow : Window
     {
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
         UpdateRvmNameDisplay(settings.MachineId);
+        HeartbeatService.Start(settings.MachineId, settings.CentralApiUrl);
 
         StartInstructionVideo();
         StartAdvertisement();

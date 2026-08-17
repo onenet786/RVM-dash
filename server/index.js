@@ -1246,15 +1246,13 @@ app.get('/api/analytics/machines', async (req, res) => {
         grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
         grouped[mId].sessionCount += 1;
 
-        if (sTime > 0) {
-          const existingPing = grouped[mId].lastPingAt ? new Date(grouped[mId].lastPingAt).getTime() : 0;
-          if (sTime > existingPing) {
-            grouped[mId].lastPingAt = s.recycledAt || s.timestamp;
-            grouped[mId].lastActive = s.recycledAt || s.timestamp;
-            const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
-            grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
-            grouped[mId].isOnline = isOnline;
-          }
+        // Only use session timestamp if machine has no recorded heartbeat ping at all
+        if (sTime > 0 && !grouped[mId].lastPingAt) {
+          grouped[mId].lastPingAt = s.recycledAt || s.timestamp;
+          grouped[mId].lastActive = s.recycledAt || s.timestamp;
+          const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
+          grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
+          grouped[mId].isOnline = isOnline;
         }
       });
 
@@ -1339,15 +1337,12 @@ app.get('/api/analytics/machines', async (req, res) => {
       grouped[mId].totalCups = m.totalCups;
       grouped[mId].totalPoints = m.totalPoints;
       grouped[mId].sessionCount = m.sessionCount;
-      if (sTime > 0) {
-        const existingPing = grouped[mId].lastPingAt ? new Date(grouped[mId].lastPingAt).getTime() : 0;
-        if (sTime > existingPing) {
-          grouped[mId].lastPingAt = m.lastActive;
-          grouped[mId].lastActive = m.lastActive;
-          const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
-          grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
-          grouped[mId].isOnline = isOnline;
-        }
+      if (sTime > 0 && !grouped[mId].lastPingAt) {
+        grouped[mId].lastPingAt = m.lastActive;
+        grouped[mId].lastActive = m.lastActive;
+        const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
+        grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
+        grouped[mId].isOnline = isOnline;
       }
     });
 
