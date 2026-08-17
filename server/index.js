@@ -1178,7 +1178,7 @@ app.get('/api/analytics/leaderboard', async (req, res) => {
 // Machine Hardware Status Aggregation
 app.get('/api/analytics/machines', async (req, res) => {
   try {
-    const ONLINE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes window
+    const ONLINE_THRESHOLD_MS = 60 * 1000; // 60 seconds (1 minute) window
     const now = Date.now();
 
     if (activeDbType === 'postgres' && activePgConfig) {
