@@ -2719,23 +2719,13 @@ app.get('/api/auth/me', async (req, res) => {
 async function verifyAndAuthorizeMachine(machineId) {
   if (!machineId) return { authorized: false, reason: 'machineId is missing' };
 
-  const defaultAllowed = ['RVM-RWP', 'RVM-001'];
-  
   if (activeDbType === 'postgres') {
     const pool = getPgPool();
     if (pool) {
       try {
         const res = await pool.query(`SELECT machine_id, status FROM machines WHERE machine_id = $1`, [machineId]);
         if (res.rows.length === 0) {
-          if (defaultAllowed.includes(machineId)) {
-            await pool.query(`
-              INSERT INTO machines (machine_id, name, location, status, last_ping_at)
-              VALUES ($1, $1, 'Authorized Default Kiosk', 'active', NOW())
-              ON CONFLICT (machine_id) DO NOTHING;
-            `).catch(() => {});
-            return { authorized: true };
-          }
-          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered or authorized on Central Dashboard. Please register it in Dashboard Fleet Monitoring.` };
+          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered on Central Dashboard. Please register it first in Fleet Monitoring.` };
         }
         const m = res.rows[0];
         if (m.status === 'disabled' || m.status === 'unauthorized') {
@@ -2754,18 +2744,10 @@ async function verifyAndAuthorizeMachine(machineId) {
       try {
         const m = await db.collection('machines').findOne({ machineId });
         if (!m) {
-          if (defaultAllowed.includes(machineId)) {
-            await db.collection('machines').updateOne(
-              { machineId },
-              { $set: { name: machineId, status: 'active', updatedAt: new Date() } },
-              { upsert: true }
-            );
-            return { authorized: true };
-          }
-          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered or authorized on Central Dashboard.` };
+          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered on Central Dashboard. Please register it first in Fleet Monitoring.` };
         }
         if (m.status === 'disabled' || m.status === 'unauthorized') {
-          return { authorized: false, reason: `RVM Machine '${machineId}' is disabled on Central Dashboard.` };
+          return { authorized: false, reason: `RVM Machine '${machineId}' is disabled or unauthorized on Central Dashboard.` };
         }
         return { authorized: true };
       } catch (e) {
@@ -2973,12 +2955,9 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       const pool = getPgPool();
       if (pool) {
         await pool.query(`
-          INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at)
-          VALUES ($1, $1, $2, $3, NOW())
-          ON CONFLICT (machine_id) DO UPDATE SET 
-            status = EXCLUDED.status,
-            bin_fill_percentage = EXCLUDED.bin_fill_percentage,
-            last_ping_at = NOW();
+          UPDATE machines 
+          SET status = $2, bin_fill_percentage = $3, last_ping_at = NOW()
+          WHERE machine_id = $1;
         `, [machineId, status, binFillPercentage]);
       }
     }
@@ -2988,8 +2967,7 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       if (db) {
         await db.collection('machines').updateOne(
           { machineId },
-          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage } },
-          { upsert: true }
+          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage } }
         ).catch(() => {});
       }
     }
