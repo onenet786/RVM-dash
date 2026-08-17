@@ -2716,8 +2716,68 @@ app.get('/api/auth/me', async (req, res) => {
 // ==========================================
 // RVM HARDWARE TELEMETRY & QR SCANNER API (PHASE 3)
 // ==========================================
+async function verifyAndAuthorizeMachine(machineId) {
+  if (!machineId) return { authorized: false, reason: 'machineId is missing' };
 
-// Upstream Session Sync from RVM Machine
+  const defaultAllowed = ['RVM-RWP', 'RVM-001'];
+  
+  if (activeDbType === 'postgres') {
+    const pool = getPgPool();
+    if (pool) {
+      try {
+        const res = await pool.query(`SELECT machine_id, status FROM machines WHERE machine_id = $1`, [machineId]);
+        if (res.rows.length === 0) {
+          if (defaultAllowed.includes(machineId)) {
+            await pool.query(`
+              INSERT INTO machines (machine_id, name, location, status, last_ping_at)
+              VALUES ($1, $1, 'Authorized Default Kiosk', 'active', NOW())
+              ON CONFLICT (machine_id) DO NOTHING;
+            `).catch(() => {});
+            return { authorized: true };
+          }
+          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered or authorized on Central Dashboard. Please register it in Dashboard Fleet Monitoring.` };
+        }
+        const m = res.rows[0];
+        if (m.status === 'disabled' || m.status === 'unauthorized') {
+          return { authorized: false, reason: `RVM Machine '${machineId}' is disabled or unauthorized on Central Dashboard.` };
+        }
+        return { authorized: true };
+      } catch (e) {
+        return { authorized: true };
+      }
+    }
+  }
+
+  if (activeDbType === 'mongodb') {
+    const db = getMongoDb();
+    if (db) {
+      try {
+        const m = await db.collection('machines').findOne({ machineId });
+        if (!m) {
+          if (defaultAllowed.includes(machineId)) {
+            await db.collection('machines').updateOne(
+              { machineId },
+              { $set: { name: machineId, status: 'active', updatedAt: new Date() } },
+              { upsert: true }
+            );
+            return { authorized: true };
+          }
+          return { authorized: false, reason: `RVM Machine '${machineId}' is NOT registered or authorized on Central Dashboard.` };
+        }
+        if (m.status === 'disabled' || m.status === 'unauthorized') {
+          return { authorized: false, reason: `RVM Machine '${machineId}' is disabled on Central Dashboard.` };
+        }
+        return { authorized: true };
+      } catch (e) {
+        return { authorized: true };
+      }
+    }
+  }
+
+  return { authorized: true };
+}
+
+// Upstream Session Sync Endpoint (Receives detailed local transaction data from desktop machines)
 app.post('/api/machine/sync-session', async (req, res) => {
   try {
     const {
@@ -2746,6 +2806,11 @@ app.post('/api/machine/sync-session', async (req, res) => {
     } = req.body;
     if (!machineId) {
       return res.status(400).json({ error: 'machineId is required' });
+    }
+
+    const authCheck = await verifyAndAuthorizeMachine(machineId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ success: false, authorized: false, error: authCheck.reason });
     }
 
     const sessionId = localSessionId ? `${machineId}_${localSessionId}` : `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
@@ -2899,6 +2964,11 @@ app.post('/api/machine/heartbeat', async (req, res) => {
     const { machineId, binFillPercentage = 0, status = 'active', temperatureCelsius } = req.body;
     if (!machineId) return res.status(400).json({ error: 'machineId is required' });
 
+    const authCheck = await verifyAndAuthorizeMachine(machineId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ success: false, authorized: false, error: authCheck.reason });
+    }
+
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
@@ -2950,6 +3020,12 @@ app.post('/api/machine/heartbeat', async (req, res) => {
 app.get('/api/machine/config/:machineId', async (req, res) => {
   try {
     const { machineId } = req.params;
+
+    const authCheck = await verifyAndAuthorizeMachine(machineId);
+    if (!authCheck.authorized) {
+      return res.status(403).json({ success: false, authorized: false, error: authCheck.reason });
+    }
+
     let config = {
       machineId,
       name: `RVM Machine ${machineId}`,

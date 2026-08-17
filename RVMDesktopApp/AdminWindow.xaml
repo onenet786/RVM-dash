@@ -100,6 +100,137 @@
                     </Border>
                 </TabItem>
 
+                <!-- NEW TAB: System & Hardware Config (config.txt) Editor -->
+                <TabItem Header="⚙️ System &amp; Hardware Config (config.txt)">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
+                        <StackPanel Margin="0,0,16,0">
+                            <!-- Action Bar -->
+                            <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="RVM SYSTEM CONFIGURATION EDITOR (config.txt)" FontWeight="Bold" Foreground="#38BDF8" FontSize="14"/>
+                                        <TextBlock Text="Edit, save, and reload all local hardware, COM ports, database, and machine settings." Style="{StaticResource SecondaryText}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="🔄 Reload from File" Click="ReloadConfig_Click" Height="38" Padding="12,4" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                        <Button Content="💾 Save Configuration" Click="SaveConfig_Click" Height="38" Padding="16,4" Style="{StaticResource AccentButton}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Column 1: Machine Identity & Database -->
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <TextBlock Text="1. MACHINE IDENTITY &amp; DASHBOARD API" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,10"/>
+                                            
+                                            <TextBlock Text="Machine ID (e.g. RVM-RWP):" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                            <TextBox x:Name="CfgMachineId" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+
+                                            <TextBlock Text="Central Dashboard Base URL:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                            <TextBox x:Name="CfgCentralApiUrl" Height="32" Padding="8,4" Margin="0,0,0,6" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource CardBorder}" Padding="16">
+                                        <StackPanel>
+                                            <TextBlock Text="2. LOCAL SQL SERVER CONNECTION" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,10"/>
+                                            
+                                            <TextBlock Text="Connection String:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                            <TextBox x:Name="CfgConnectionString" Height="64" TextWrapping="Wrap" AcceptsReturn="True" Padding="8,6" Margin="0,0,0,6" Background="#0F172A" Foreground="White" BorderBrush="#334155"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Column 2: Hardware COM Ports & Classifier Directories -->
+                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                    <Border Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,12">
+                                        <StackPanel>
+                                            <TextBlock Text="3. HARDWARE &amp; SENSORS (COM PORTS)" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,10"/>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                                    <TextBlock Text="Arduino Port:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgArduinoPort" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                                    <TextBlock Text="Arduino Baud:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgArduinoBaud" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                                    <TextBlock Text="Camera Port:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgCameraPort" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                                    <TextBlock Text="Camera Baud:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgCameraBaud" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Style="{StaticResource CardBorder}" Padding="16">
+                                        <StackPanel>
+                                            <TextBlock Text="4. FOLDERS &amp; CLASSIFIER MODEL" FontWeight="Bold" Foreground="#38BDF8" Margin="0,0,0,10"/>
+
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                                    <TextBlock Text="Advertisement Video Folder:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgAdsFolder" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                                    <TextBlock Text="Instruction Video Folder:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgInstructionsFolder" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                                    <TextBlock Text="Model Path:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgModelPath" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                                    <TextBlock Text="Capture Directory:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgCaptureDir" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
                 <!-- NEW TAB: Live Dashboard Sync & Manual Entry Simulator -->
                 <TabItem Header="⚡ Central Dashboard Simulator &amp; Test Suite">
                     <Grid Margin="0,16,0,0">

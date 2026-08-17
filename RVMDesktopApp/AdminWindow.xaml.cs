@@ -17,10 +17,74 @@ public partial class AdminWindow : Window
             TxtServerUrl.Text = settings.CentralApiUrl;
             TxtMachineId.Text = settings.MachineId;
             Load();
+            LoadConfigForm();
             LogConsole("RVM Master Communication Console Initialized.");
             LogConsole("Ready to test live 2-way sync with Central Master Dashboard.");
             await CheckCentralConnectionAsync();
         };
+    }
+
+    private void LoadConfigForm()
+    {
+        try
+        {
+            var raw = AppSettings.LoadRawConfig();
+            CfgConnectionString.Text = raw.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;");
+            CfgMachineId.Text = raw.GetValueOrDefault("MachineId", "RVM-RWP");
+            CfgCentralApiUrl.Text = raw.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com");
+            CfgArduinoPort.Text = raw.GetValueOrDefault("ArduinoPort", "COM16");
+            CfgArduinoBaud.Text = raw.GetValueOrDefault("ArduinoBaud", "9600");
+            CfgCameraPort.Text = raw.GetValueOrDefault("CameraPort", "COM31");
+            CfgCameraBaud.Text = raw.GetValueOrDefault("CameraBaud", "921600");
+            CfgAdsFolder.Text = raw.GetValueOrDefault("AdvertisementVideoFolder", @"Ads\Advertisements");
+            CfgInstructionsFolder.Text = raw.GetValueOrDefault("InstructionVideoFolder", @"Ads\Instructions");
+            CfgModelPath.Text = raw.GetValueOrDefault("ModelPath", @"Models\rvm_classifier.onnx");
+            CfgCaptureDir.Text = raw.GetValueOrDefault("CaptureDirectory", "Captures");
+        }
+        catch (Exception ex)
+        {
+            LogConsole($"[Config Load Notice] {ex.Message}");
+        }
+    }
+
+    private void ReloadConfig_Click(object sender, RoutedEventArgs e)
+    {
+        LoadConfigForm();
+        MessageBox.Show("Configuration reloaded from config.txt.", "Reload Config", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void SaveConfig_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dict = new Dictionary<string, string>
+            {
+                ["ConnectionString"] = CfgConnectionString.Text.Trim(),
+                ["MachineId"] = CfgMachineId.Text.Trim(),
+                ["CentralApiUrl"] = CfgCentralApiUrl.Text.Trim(),
+                ["ArduinoPort"] = CfgArduinoPort.Text.Trim(),
+                ["ArduinoBaud"] = CfgArduinoBaud.Text.Trim(),
+                ["CameraPort"] = CfgCameraPort.Text.Trim(),
+                ["CameraBaud"] = CfgCameraBaud.Text.Trim(),
+                ["AdvertisementVideoFolder"] = CfgAdsFolder.Text.Trim(),
+                ["InstructionVideoFolder"] = CfgInstructionsFolder.Text.Trim(),
+                ["ModelPath"] = CfgModelPath.Text.Trim(),
+                ["CaptureDirectory"] = CfgCaptureDir.Text.Trim()
+            };
+
+            AppSettings.SaveConfigToFile(dict);
+            CentralSyncService.CentralApiUrl = dict["CentralApiUrl"];
+
+            // Restart background heartbeat with updated config
+            HeartbeatService.Start(dict["MachineId"], dict["CentralApiUrl"]);
+
+            MessageBox.Show("System & Hardware Configuration successfully saved to config.txt!", "Save Config", MessageBoxButton.OK, MessageBoxImage.Information);
+            LogConsole("[System Config] Saved updated config.txt settings successfully.");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to save config.txt: {ex.Message}", "Save Config Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void Load()
