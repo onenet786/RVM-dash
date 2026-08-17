@@ -370,6 +370,10 @@ public partial class MainWindow : Window
                 SetLiveBadgeOnline();
                 LogTelemetry("[API] Central Master Dashboard API connected (2-way sync ready)");
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                SetLiveBadgeUnauthorized($"Machine '{settings.MachineId}' not registered/authorized on Central Dashboard");
+            }
             else
             {
                 SetLiveBadgeOffline($"HTTP {(int)response.StatusCode}");
@@ -400,6 +404,22 @@ public partial class MainWindow : Window
         {
             LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803D"));
         }
+    }
+
+    private void SetLiveBadgeUnauthorized(string reason)
+    {
+        if (ApiStatusText != null) ApiStatusText.Text = "API: UNAUTHORIZED 🔴";
+        if (ApiDot != null) ApiDot.Fill = Brushes.OrangeRed;
+        if (LiveBadgeText != null) LiveBadgeText.Text = "UNAUTHORIZED 🔴";
+        if (LiveBadgeBorder != null)
+        {
+            LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7"));
+        }
+        if (LiveBadgeText != null)
+        {
+            LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706"));
+        }
+        LogTelemetry($"[API] Central API authorization required: {reason}");
     }
 
     private void SetLiveBadgeOffline(string reason)
