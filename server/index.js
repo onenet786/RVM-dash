@@ -2918,6 +2918,17 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       }
     }
 
+    if (activeDbType === 'mongodb') {
+      const db = getMongoDb();
+      if (db) {
+        await db.collection('machines').updateOne(
+          { machineId },
+          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+    }
+
     if (binFillPercentage >= 80) {
       await saveDocToEngine('binfullnotifications', {
         _id: `alert_${machineId}_${Date.now()}`,
@@ -2958,6 +2969,12 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
+        await pool.query(`
+          INSERT INTO machines (machine_id, name, status, last_ping_at)
+          VALUES ($1, $1, 'active', NOW())
+          ON CONFLICT (machine_id) DO UPDATE SET last_ping_at = NOW(), status = 'active';
+        `, [machineId]).catch(() => {});
+
         const result = await pool.query(
           `SELECT c.*, m.name, m.location 
            FROM machine_configs c 

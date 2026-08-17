@@ -337,9 +337,12 @@ public partial class MainWindow : Window
                 var heartbeatObj = new { machineId = settings.MachineId, status = "active", binFillPercentage = 0 };
                 var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
                 var content = new System.Net.Http.StringContent(heartbeatJson, System.Text.Encoding.UTF8, "application/json");
-                _ = client.PostAsync($"{serverUrl}/api/machine/heartbeat", content);
+                await client.PostAsync($"{serverUrl}/api/machine/heartbeat", content);
             }
-            catch {}
+            catch (Exception ex)
+            {
+                LogTelemetry($"[Heartbeat Warning] {ex.Message}");
+            }
 
             var response = await client.GetAsync($"{serverUrl}/api/machine/config/{settings.MachineId}");
             if (response.IsSuccessStatusCode)
