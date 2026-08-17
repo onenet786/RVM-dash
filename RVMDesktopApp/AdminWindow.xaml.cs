@@ -194,6 +194,16 @@ public partial class AdminWindow : Window
                 LogConsole($"SUCCESS (HTTP {(int)response.StatusCode}): Connected to Central Dashboard API!");
                 LogConsole($"Downstream Points Config Rules: {json}");
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                TxtConnStatus.Text = "Unauthorized 🔴";
+                TxtConnStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
+
+                TxtHeaderApiStatus.Text = "Unauthorized 🔴";
+                TxtHeaderApiStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
+
+                LogConsole($"HTTP 403 Forbidden: Machine '{machineId}' is NOT registered or authorized on Central Dashboard! Please add it under Fleet Monitoring on https://isprvm.binishaqsoft.com");
+            }
             else
             {
                 TxtConnStatus.Text = "Error 🔴";
