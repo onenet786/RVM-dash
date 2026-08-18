@@ -400,12 +400,48 @@ export default function MachineHealthTab() {
                   </div>
                 </div>
 
-                {/* machine_configs Points Summary Bar */}
-                <div className="text-[11px] font-medium text-slate-300 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                  <span className="font-bold text-slate-400 text-[10px] uppercase">Reward Rates:</span>
-                  <span className="text-cyan-300 font-mono text-[11px]">
-                    🥤 {m.pointsPerPlasticBottle ?? 10} pts | 🥫 {m.pointsPerAluminiumCan ?? 20} pts | 📦 {m.pointsPerPaperKg ?? 15} pts/kg
-                  </span>
+                {/* machine_configs Points & Size Variants Summary Box */}
+                <div className="text-xs bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                    <span className="font-extrabold text-cyan-400 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                      <Settings className="w-3 h-3 text-cyan-400" />
+                      Active Point Rules (v{m.configVersion || 1})
+                    </span>
+                    <button 
+                      onClick={() => openConfigModalForMachine(m)}
+                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
+                    >
+                      <Edit3 className="w-2.5 h-2.5" />
+                      <span>Edit Kiosk Rules</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
+                      <span className="text-emerald-400 font-bold block text-[10px]">🥤 Plastic Bottles</span>
+                      <span className="text-slate-300 text-[10px]">
+                        S:{m.pointsPlasticSmall ?? 5} | M:{m.pointsPlasticMedium ?? 10} | L:{m.pointsPlasticLarge ?? 15} pts
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
+                      <span className="text-amber-400 font-bold block text-[10px]">🥫 Cans / Metals</span>
+                      <span className="text-slate-300 text-[10px]">
+                        S:{m.pointsCanSmall ?? 10} | M:{m.pointsCanMedium ?? 15} | L:{m.pointsCanLarge ?? 20} pts
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
+                      <span className="text-cyan-400 font-bold block text-[10px]">📦 Paper / Cardboard</span>
+                      <span className="text-slate-300 text-[10px]">
+                        {m.pointsPerPaperKg ?? 15} pts ({m.paperUnit || 'per_kg'})
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
+                      <span className="text-purple-400 font-bold block text-[10px]">🍾 Glass Bottles</span>
+                      <span className="text-slate-300 text-[10px]">
+                        S:{m.pointsGlassSmall ?? 10} | M:{m.pointsGlassMedium ?? 15} | L:{m.pointsGlassLarge ?? 20} pts
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] t-text-muted border-t t-border pt-3">
