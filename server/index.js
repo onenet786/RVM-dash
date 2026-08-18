@@ -213,9 +213,20 @@ async function initProductionPostgresSchemas() {
         points_per_plastic INT DEFAULT 10,
         points_per_aluminium INT DEFAULT 20,
         points_per_paper_kg INT DEFAULT 15,
+        points_per_glass INT DEFAULT 15,
+        plastic_unit VARCHAR(20) DEFAULT 'per_piece',
+        aluminium_unit VARCHAR(20) DEFAULT 'per_piece',
+        paper_unit VARCHAR(20) DEFAULT 'per_kg',
+        glass_unit VARCHAR(20) DEFAULT 'per_piece',
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_per_glass INT DEFAULT 15;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS plastic_unit VARCHAR(20) DEFAULT 'per_piece';`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS aluminium_unit VARCHAR(20) DEFAULT 'per_piece';`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS paper_unit VARCHAR(20) DEFAULT 'per_kg';`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS glass_unit VARCHAR(20) DEFAULT 'per_piece';`);
 
     // Seed default machine RVM-001 if empty
     await pool.query(`
@@ -225,8 +236,8 @@ async function initProductionPostgresSchemas() {
     `);
 
     await pool.query(`
-      INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg)
-      VALUES ('RVM-001', 1, 10, 20, 15)
+      INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit)
+      VALUES ('RVM-001', 1, 10, 20, 15, 15, 'per_piece', 'per_piece', 'per_kg', 'per_piece')
       ON CONFLICT (machine_id) DO NOTHING;
     `);
 
@@ -3047,6 +3058,11 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
       pointsPerPlasticBottle: 10,
       pointsPerAluminiumCan: 20,
       pointsPerPaperKg: 15,
+      pointsPerGlass: 15,
+      plasticUnit: 'per_piece',
+      aluminiumUnit: 'per_piece',
+      paperUnit: 'per_kg',
+      glassUnit: 'per_piece',
       updatedAt: new Date().toISOString()
     };
 
@@ -3071,9 +3087,14 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
             name: row.name || `RVM Machine ${row.machine_id}`,
             location: row.location || 'Main Kiosk',
             configVersion: row.config_version,
-            pointsPerPlasticBottle: row.points_per_plastic,
-            pointsPerAluminiumCan: row.points_per_aluminium,
-            pointsPerPaperKg: row.points_per_paper_kg,
+            pointsPerPlasticBottle: row.points_per_plastic ?? 10,
+            pointsPerAluminiumCan: row.points_per_aluminium ?? 20,
+            pointsPerPaperKg: row.points_per_paper_kg ?? 15,
+            pointsPerGlass: row.points_per_glass ?? 15,
+            plasticUnit: row.plastic_unit || 'per_piece',
+            aluminiumUnit: row.aluminium_unit || 'per_piece',
+            paperUnit: row.paper_unit || 'per_kg',
+            glassUnit: row.glass_unit || 'per_piece',
             updatedAt: row.updated_at
           };
         }
@@ -3087,6 +3108,14 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
         if (m) {
           if (m.name) config.name = m.name;
           if (m.location) config.location = m.location;
+          if (m.pointsPerPlasticBottle !== undefined) config.pointsPerPlasticBottle = m.pointsPerPlasticBottle;
+          if (m.pointsPerAluminiumCan !== undefined) config.pointsPerAluminiumCan = m.pointsPerAluminiumCan;
+          if (m.pointsPerPaperKg !== undefined) config.pointsPerPaperKg = m.pointsPerPaperKg;
+          if (m.pointsPerGlass !== undefined) config.pointsPerGlass = m.pointsPerGlass;
+          if (m.plasticUnit) config.plasticUnit = m.plasticUnit;
+          if (m.aluminiumUnit) config.aluminiumUnit = m.aluminiumUnit;
+          if (m.paperUnit) config.paperUnit = m.paperUnit;
+          if (m.glassUnit) config.glassUnit = m.glassUnit;
         }
       }
     }
@@ -3097,59 +3126,98 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
   }
 });
 
-// Update / Save RVM Machine Points Configuration
+// Update / Save RVM Machine Points Configuration (Single or Bulk)
 const handleSaveMachineConfig = async (req, res) => {
   try {
-    const { machineId } = req.params;
+    const machineId = req.params.machineId || req.body.targetMachine || req.body.machineId;
     const { 
       pointsPerPlasticBottle = 10, 
       pointsPerAluminiumCan = 20, 
-      pointsPerPaperKg = 15 
+      pointsPerPaperKg = 15,
+      pointsPerGlass = 15,
+      plasticUnit = 'per_piece',
+      aluminiumUnit = 'per_piece',
+      paperUnit = 'per_kg',
+      glassUnit = 'per_piece',
+      targetMachine = machineId
     } = req.body;
-
-    if (!machineId) return res.status(400).json({ error: 'machineId is required' });
 
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
-        await pool.query(`
-          INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
-          VALUES ($1, 1, $2, $3, $4, NOW())
-          ON CONFLICT (machine_id) DO UPDATE SET
-            config_version = machine_configs.config_version + 1,
-            points_per_plastic = EXCLUDED.points_per_plastic,
-            points_per_aluminium = EXCLUDED.points_per_aluminium,
-            points_per_paper_kg = EXCLUDED.points_per_paper_kg,
-            updated_at = NOW();
-        `, [machineId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]);
+        if (targetMachine === 'ALL') {
+          await pool.query(`
+            INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at)
+            SELECT machine_id, 1, $1, $2, $3, $4, $5, $6, $7, $8, NOW() FROM machines
+            ON CONFLICT (machine_id) DO UPDATE SET
+              config_version = machine_configs.config_version + 1,
+              points_per_plastic = EXCLUDED.points_per_plastic,
+              points_per_aluminium = EXCLUDED.points_per_aluminium,
+              points_per_paper_kg = EXCLUDED.points_per_paper_kg,
+              points_per_glass = EXCLUDED.points_per_glass,
+              plastic_unit = EXCLUDED.plastic_unit,
+              aluminium_unit = EXCLUDED.aluminium_unit,
+              paper_unit = EXCLUDED.paper_unit,
+              glass_unit = EXCLUDED.glass_unit,
+              updated_at = NOW();
+          `, [
+            parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg), parseInt(pointsPerGlass),
+            plasticUnit, aluminiumUnit, paperUnit, glassUnit
+          ]);
+        } else if (targetMachine) {
+          await pool.query(`
+            INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at)
+            VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            ON CONFLICT (machine_id) DO UPDATE SET
+              config_version = machine_configs.config_version + 1,
+              points_per_plastic = EXCLUDED.points_per_plastic,
+              points_per_aluminium = EXCLUDED.points_per_aluminium,
+              points_per_paper_kg = EXCLUDED.points_per_paper_kg,
+              points_per_glass = EXCLUDED.points_per_glass,
+              plastic_unit = EXCLUDED.plastic_unit,
+              aluminium_unit = EXCLUDED.aluminium_unit,
+              paper_unit = EXCLUDED.paper_unit,
+              glass_unit = EXCLUDED.glass_unit,
+              updated_at = NOW();
+          `, [
+            targetMachine, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg), parseInt(pointsPerGlass),
+            plasticUnit, aluminiumUnit, paperUnit, glassUnit
+          ]);
+        }
       }
     }
 
     if (activeDbType === 'mongodb') {
       const db = getMongoDb();
       if (db) {
-        await db.collection('machines').updateOne(
-          { machineId },
+        const query = targetMachine === 'ALL' ? {} : { machineId: targetMachine };
+        await db.collection('machines').updateMany(
+          query,
           { 
             $set: { 
               pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle), 
               pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan), 
               pointsPerPaperKg: parseInt(pointsPerPaperKg), 
+              pointsPerGlass: parseInt(pointsPerGlass), 
+              plasticUnit,
+              aluminiumUnit,
+              paperUnit,
+              glassUnit,
               updatedAt: new Date() 
             },
             $inc: { configVersion: 1 }
-          },
-          { upsert: true }
+          }
         );
       }
     }
 
-    res.json({ success: true, message: `Configuration updated for machine ${machineId}` });
+    res.json({ success: true, message: `Configuration & points rules updated for ${targetMachine === 'ALL' ? 'ALL RVM machines' : `machine '${targetMachine}'`}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+app.post('/api/machine/config', handleSaveMachineConfig);
 app.post('/api/machine/config/:machineId', handleSaveMachineConfig);
 app.put('/api/machine/config/:machineId', handleSaveMachineConfig);
 

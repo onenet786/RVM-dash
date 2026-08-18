@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server, Plus, MapPin, Edit3, X } from 'lucide-react';
+import { Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server, Plus, MapPin, Edit3, X, Settings } from 'lucide-react';
 import DataTable from './DataTable';
 
 export default function MachineHealthTab() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal State
+  // Register/Edit Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newMachineId, setNewMachineId] = useState('RVM-001');
   const [newMachineName, setNewMachineName] = useState('');
   const [newMachineLocation, setNewMachineLocation] = useState('');
+
+  // Points & Unit Configuration Modal State
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [targetMachine, setTargetMachine] = useState('ALL');
   const [pointsPlastic, setPointsPlastic] = useState(10);
+  const [plasticUnit, setPlasticUnit] = useState('per_piece');
   const [pointsAluminium, setPointsAluminium] = useState(20);
+  const [aluminiumUnit, setAluminiumUnit] = useState('per_piece');
   const [pointsPaper, setPointsPaper] = useState(15);
+  const [paperUnit, setPaperUnit] = useState('per_kg');
+  const [pointsGlass, setPointsGlass] = useState(15);
+  const [glassUnit, setGlassUnit] = useState('per_piece');
+
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -56,17 +66,55 @@ export default function MachineHealthTab() {
           name: newMachineName.trim(),
           location: newMachineLocation.trim(),
           pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
+          plasticUnit,
           pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,
-          pointsPerPaperKg: parseInt(pointsPaper) || 15
+          aluminiumUnit,
+          pointsPerPaperKg: parseInt(pointsPaper) || 15,
+          paperUnit,
+          pointsPerGlass: parseInt(pointsGlass) || 15,
+          glassUnit
         })
       });
       if (res.ok) {
         setShowAddModal(false);
         const savedId = newMachineId.trim();
         const savedName = newMachineName.trim() || savedId;
-        setSuccessMessage(`Machine "${savedId}" (${savedName}) & machine_configs points updated!`);
+        setSuccessMessage(`Machine "${savedId}" (${savedName}) saved successfully!`);
         setNewMachineName('');
         setNewMachineLocation('');
+        fetchMachines();
+        setTimeout(() => setSuccessMessage(''), 5000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSyncPointsConfig = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      const res = await fetch('/api/machine/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetMachine,
+          pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
+          plasticUnit,
+          pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,
+          aluminiumUnit,
+          pointsPerPaperKg: parseInt(pointsPaper) || 15,
+          paperUnit,
+          pointsPerGlass: parseInt(pointsGlass) || 15,
+          glassUnit
+        })
+      });
+      if (res.ok) {
+        setShowConfigModal(false);
+        const data = await res.json();
+        setSuccessMessage(data.message || 'Points rules successfully synced to RVMs!');
         fetchMachines();
         setTimeout(() => setSuccessMessage(''), 5000);
       }
@@ -82,9 +130,29 @@ export default function MachineHealthTab() {
     setNewMachineName(m.name || '');
     setNewMachineLocation(m.location || '');
     setPointsPlastic(m.pointsPerPlasticBottle ?? 10);
+    setPlasticUnit(m.plasticUnit || 'per_piece');
     setPointsAluminium(m.pointsPerAluminiumCan ?? 20);
+    setAluminiumUnit(m.aluminiumUnit || 'per_piece');
     setPointsPaper(m.pointsPerPaperKg ?? 15);
+    setPaperUnit(m.paperUnit || 'per_kg');
+    setPointsGlass(m.pointsPerGlass ?? 15);
+    setGlassUnit(m.glassUnit || 'per_piece');
     setShowAddModal(true);
+  };
+
+  const openConfigModalForMachine = (m) => {
+    setTargetMachine(m ? m.machineId : 'ALL');
+    if (m) {
+      setPointsPlastic(m.pointsPerPlasticBottle ?? 10);
+      setPlasticUnit(m.plasticUnit || 'per_piece');
+      setPointsAluminium(m.pointsPerAluminiumCan ?? 20);
+      setAluminiumUnit(m.aluminiumUnit || 'per_piece');
+      setPointsPaper(m.pointsPerPaperKg ?? 15);
+      setPaperUnit(m.paperUnit || 'per_kg');
+      setPointsGlass(m.pointsPerGlass ?? 15);
+      setGlassUnit(m.glassUnit || 'per_piece');
+    }
+    setShowConfigModal(true);
   };
 
   useEffect(() => {
@@ -121,6 +189,14 @@ export default function MachineHealthTab() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => openConfigModalForMachine(null)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl font-bold text-xs transition-all"
+          >
+            <Settings className="w-4 h-4 text-emerald-400" />
+            <span>⚙️ Sync Points Rules (`machine_configs`)</span>
+          </button>
+
           <button
             onClick={() => {
               setNewMachineId(`RVM-00${machines.length + 1}`);
@@ -413,6 +489,194 @@ export default function MachineHealthTab() {
                   className="px-5 py-2 text-xs font-bold bg-cyan-500 text-slate-950 hover:bg-cyan-400 rounded-xl shadow-lg shadow-cyan-500/20"
                 >
                   {saving ? 'Saving...' : 'Save Machine & Rates'}
+                </button>
+              </div>
+      {/* Dedicated Points & Calculation Unit Sync Modal */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="glass-panel p-6 rounded-3xl max-w-lg w-full border border-emerald-500/40 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b t-border pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-base font-extrabold t-text-primary">
+                    Points & Calculation Unit Rules (`machine_configs`)
+                  </h3>
+                  <p className="text-[11px] t-text-muted">Configure reward rates & calculation units (per piece, per gram, or per kg) for RVM Kiosks.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowConfigModal(false)}
+                className="p-1 t-text-muted hover:t-text-primary rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSyncPointsConfig} className="space-y-4">
+              
+              {/* Target RVM Selection */}
+              <div>
+                <label className="block text-xs font-bold text-cyan-400 mb-1 uppercase tracking-wider">
+                  Target Machine(s)
+                </label>
+                <select 
+                  value={targetMachine}
+                  onChange={e => setTargetMachine(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900/90 border border-cyan-500/40 rounded-xl text-sm font-bold text-cyan-300 focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="ALL">🌟 ALL MACHINES (Global Bulk Fleet Sync)</option>
+                  {machines.map(m => (
+                    <option key={m.machineId} value={m.machineId}>
+                      🖥️ {m.machineId} — {m.name || 'RVM Kiosk'} ({m.location || 'Location'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 1. Plastic Bottle Rule */}
+              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    🥤 Plastic Bottle Recycling Rule
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
+                    <input 
+                      type="number"
+                      value={pointsPlastic}
+                      onChange={e => setPointsPlastic(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-emerald-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                    <select
+                      value={plasticUnit}
+                      onChange={e => setPlasticUnit(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                    >
+                      <option value="per_piece">Per Piece (Per Item)</option>
+                      <option value="per_gram">Per Gram (g)</option>
+                      <option value="per_kg">Per Kilogram (Kg)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Aluminium Can Rule */}
+              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    🥫 Aluminium Can Recycling Rule
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
+                    <input 
+                      type="number"
+                      value={pointsAluminium}
+                      onChange={e => setPointsAluminium(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-amber-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                    <select
+                      value={aluminiumUnit}
+                      onChange={e => setAluminiumUnit(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                    >
+                      <option value="per_piece">Per Piece (Per Item)</option>
+                      <option value="per_gram">Per Gram (g)</option>
+                      <option value="per_kg">Per Kilogram (Kg)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Paper / Cardboard Rule */}
+              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                    📦 Paper / Cardboard Recycling Rule
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
+                    <input 
+                      type="number"
+                      value={pointsPaper}
+                      onChange={e => setPointsPaper(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-cyan-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                    <select
+                      value={paperUnit}
+                      onChange={e => setPaperUnit(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                    >
+                      <option value="per_kg">Per Kilogram (Kg)</option>
+                      <option value="per_gram">Per Gram (g)</option>
+                      <option value="per_piece">Per Piece (Per Item)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Glass Bottle Rule */}
+              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
+                    🍾 Glass Bottle Recycling Rule
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
+                    <input 
+                      type="number"
+                      value={pointsGlass}
+                      onChange={e => setPointsGlass(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-purple-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                    <select
+                      value={glassUnit}
+                      onChange={e => setGlassUnit(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                    >
+                      <option value="per_piece">Per Piece (Per Item)</option>
+                      <option value="per_gram">Per Gram (g)</option>
+                      <option value="per_kg">Per Kilogram (Kg)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  className="px-4 py-2 text-xs font-bold t-text-secondary hover:t-text-primary rounded-xl border t-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2.5 text-xs font-extrabold bg-emerald-500 text-slate-950 hover:bg-emerald-400 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
+                  <span>{saving ? 'Syncing...' : '🚀 Save & Push Point Rules to Kiosks'}</span>
                 </button>
               </div>
             </form>
