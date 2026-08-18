@@ -129,7 +129,7 @@ export default function MachineConfigsTab() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      
+
       {/* Success Banner */}
       {successMessage && (
         <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center justify-between text-xs font-bold animate-fade-in">
@@ -150,7 +150,7 @@ export default function MachineConfigsTab() {
             <Settings className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">System Database Table</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">RVM Configurations (`machine_configs`)</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">RVM Configurations</h2>
           <p className="text-xs t-text-secondary mt-1">
             Configure material point rates, bottle size variants (Small, Medium, Large), and calculation units (per piece, per gram, or per kg) for RVM Kiosks.
           </p>
@@ -179,13 +179,13 @@ export default function MachineConfigsTab() {
         </div>
 
         <form onSubmit={handleSyncPointsConfig} className="space-y-4">
-          
+
           {/* Target RVM Selection */}
           <div className="max-w-md">
             <label className="block text-xs font-bold text-cyan-400 mb-1 uppercase tracking-wider">
               Target RVM Machine(s)
             </label>
-            <select 
+            <select
               value={targetMachine}
               onChange={e => setTargetMachine(e.target.value)}
               className="w-full px-3 py-2.5 bg-slate-900/90 border border-cyan-500/40 rounded-xl text-sm font-bold text-cyan-300 focus:outline-none focus:border-cyan-400"
@@ -200,7 +200,7 @@ export default function MachineConfigsTab() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            
+
             {/* 1. Plastic Bottle Rules */}
             <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
@@ -222,7 +222,7 @@ export default function MachineConfigsTab() {
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsPlasticSmall}
                     onChange={e => setPointsPlasticSmall(e.target.value)}
@@ -231,7 +231,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsPlasticMedium}
                     onChange={e => setPointsPlasticMedium(e.target.value)}
@@ -240,7 +240,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsPlasticLarge}
                     onChange={e => setPointsPlasticLarge(e.target.value)}
@@ -271,7 +271,7 @@ export default function MachineConfigsTab() {
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsCanSmall}
                     onChange={e => setPointsCanSmall(e.target.value)}
@@ -280,7 +280,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsCanMedium}
                     onChange={e => setPointsCanMedium(e.target.value)}
@@ -289,7 +289,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsCanLarge}
                     onChange={e => setPointsCanLarge(e.target.value)}
@@ -309,7 +309,7 @@ export default function MachineConfigsTab() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsPaper}
                     onChange={e => setPointsPaper(e.target.value)}
@@ -352,7 +352,7 @@ export default function MachineConfigsTab() {
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsGlassSmall}
                     onChange={e => setPointsGlassSmall(e.target.value)}
@@ -361,7 +361,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsGlassMedium}
                     onChange={e => setPointsGlassMedium(e.target.value)}
@@ -370,7 +370,7 @@ export default function MachineConfigsTab() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                  <input 
+                  <input
                     type="number"
                     value={pointsGlassLarge}
                     onChange={e => setPointsGlassLarge(e.target.value)}
