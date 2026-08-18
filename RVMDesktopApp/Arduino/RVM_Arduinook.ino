@@ -339,7 +339,8 @@ void calibrateEmptyPipe()
       continue;
 
     sortReadings(readings, validReadings);
-    int measuredEmptyDistanceCM = readings[validReadings / 2];
+    // Select true maximum empty distance (e.g. 36 cm) to filter out sidewall reflections (~17 cm)
+    int measuredEmptyDistanceCM = readings[validReadings - 1];
 
     if (measuredEmptyDistanceCM < calibrationBlockedDistanceCM)
     {
@@ -546,11 +547,12 @@ bool waitForBottleClear(const char* bottleSize)
     else if (strcmp(bottleSize, "MEDIUM") == 0)
       sizeSensorClear = middleClear && bottomClear;
 
-    if (currentDistance > 0 && currentDistance <= maxSensorDistanceCM)
+    if (currentDistance > 0)
     {
-      int changeCM = abs(emptyPipeDistanceCM - currentDistance);
+      // Distance is clear if it reaches/exceeds empty baseline (bottle dropped past sensor into bin)
+      bool distanceIsClear = (currentDistance >= (emptyPipeDistanceCM - bottleDetectChangeCM));
 
-      if (changeCM < bottleDetectChangeCM && sizeSensorClear)
+      if (distanceIsClear && sizeSensorClear)
       {
         consecutiveClearReadings++;
       }
