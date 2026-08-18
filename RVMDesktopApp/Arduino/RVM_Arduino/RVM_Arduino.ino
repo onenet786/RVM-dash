@@ -548,33 +548,35 @@ void processIncomingBottle(bool metalDetected)
     delay(5);
   }
 
-  // 1. Solid Aluminum Can: >= 12 out of 15 metal samples (solid continuous aluminum body)
-  bool isSolidMetalCan = (solidMetalCount >= 12);
+  // 1. Metal Inductive Presence
+  bool isMetalDetectedInSampling = (solidMetalCount >= 8 || metalDetected);
 
-  // 2. Tetra Pak Foil Signature: Thin internal foil layer triggers 1 to 11 metal samples
-  bool isTetraPakFoil = (solidMetalCount >= 1 && solidMetalCount < 12);
+  // 2. Physical Contour & Width Check:
+  //    A Soda Can (330ml/355ml) has a wide 6.6cm diameter -> maxDistanceChangeCM >= 6 cm
+  //    A Small Juice Box (200ml/250ml) is a thin 3.5cm - 4.5cm flat carton -> maxDistanceChangeCM <= 5 cm
+  bool isCanWidthProfile = (maxDistanceChangeCM >= 6);
 
   // ---------------- DETERMINE MATERIAL TYPE ----------------
   const char* materialType = "PLASTIC";
 
-  // Large item that is non-metallic is ALWAYS a Plastic bottle (1.5L / 2L plastic bottle)
-  if (topIsCurrentlyBlocked && !isSolidMetalCan)
+  if (topIsCurrentlyBlocked && !isMetalDetectedInSampling)
   {
+    // Large non-metallic item is ALWAYS a plastic bottle (1.5L / 2L plastic bottle)
     materialType = "PLASTIC";
   }
-  else if (isSolidMetalCan)
+  else if (isMetalDetectedInSampling && isCanWidthProfile)
   {
-    // Solid thick metal soda can
+    // Real Aluminium Soda Can (Solid Metal + Wide 6.6cm Can Body Profile)
     materialType = "CAN";
   }
-  else if (isTetraPakFoil)
+  else if (isMetalDetectedInSampling || (topIsCurrentlyBlocked && middleIsCurrentlyBlocked))
   {
-    // Small Tetra Pak juice box (thin internal foil barrier without solid aluminum can body)
+    // Small Tetra Pak Juice Box (Foil barrier with thin 4cm box profile) or Large Carton
     materialType = "TETRAPAK";
   }
   else
   {
-    // Standard Plastic PET bottle (0 metal samples)
+    // Standard Plastic PET Bottle (Non-metallic)
     materialType = "PLASTIC";
   }
 
