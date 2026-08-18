@@ -51,7 +51,7 @@ const unsigned long bottleProcessingDelayMs = 2500; // Cooldown after sequence c
 const byte calibrationReadings = 12;
 const int maxSensorDistanceCM = 80;
 const byte bottleDetectChangeCM = 2;
-const int calibrationBlockedDistanceCM = 4;
+const int calibrationBlockedDistanceCM = 12;
 const byte calibrationMaxAttempts = 3;
 
 // ---- ENTRANCE SENSOR SETTINGS ----
@@ -326,27 +326,20 @@ void calibrateEmptyPipe()
     {
       int distance = readDistanceCM();
 
-      // Only accept true pipe depth readings (>= 10 cm) to filter out 5cm blind-zone/lip echoes
-      if (distance >= 10 && distance <= maxSensorDistanceCM)
+      Serial.print("CALIBRATION_RAW_CM:");
+      Serial.println(distance);
+
+      if (distance > 0 && distance <= maxSensorDistanceCM)
         readings[validReadings++] = distance;
 
       delay(25);
     }
 
-    if (validReadings < 3)
-    {
-      // Chamber genuinely blocked near top (<10 cm)
-      Serial.println("CALIBRATION:CLEARING_CHAMBER");
-      openGate();
-      delay(1500);
-      closeGate();
-      delay(500);
-      Serial.println("CALIBRATION:RETRY");
+    if (validReadings < 6)
       continue;
-    }
 
     sortReadings(readings, validReadings);
-    // Select true maximum empty distance (e.g. 36 cm)
+    // Select true maximum empty distance (e.g. 36 cm) to filter out sidewall reflections (~17 cm)
     int measuredEmptyDistanceCM = readings[validReadings - 1];
 
     if (measuredEmptyDistanceCM < calibrationBlockedDistanceCM)
@@ -475,52 +468,19 @@ void processIncomingBottle(bool metalDetected)
   // ---------------- HOLD BOTTLE FOR METAL CHECK ----------------
   unsigned long holdStart = millis();
 
-  // ---------------- SOLID METAL SAMPLING ----------------
-  int solidMetalCount = 0;
-  for (int i = 0; i < 15; i++)
+  while (millis() - holdStart < gateHoldDurationMs)
   {
-    if (digitalRead(metalSensorPin) == METAL_DETECTED_STATE)
+    if (isMetalDetected())
     {
-      solidMetalCount++;
+      metalDetected = true;
     }
-    delay(5);
-  }
 
-  // 1. Solid Aluminum Can: >= 8 out of 15 metal samples
-  bool isSolidMetalCan = (solidMetalCount >= 8);
-
-  // 2. Tetra Pak Foil Signature: Thin internal foil layer triggers 1 to 7 metal samples
-  bool isTetraPakFoil = (solidMetalCount >= 1 && solidMetalCount < 8);
-
-  // ---------------- DETERMINE MATERIAL TYPE ----------------
-  const char* materialType = "PLASTIC";
-
-  if (isSolidMetalCan)
-  {
-    materialType = "CAN";
-  }
-  else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
-  {
-    // Large/Medium Tetra Pak carton (opaque box blocking top & middle IR sensors)
-    materialType = "TETRAPAK";
-  }
-  else if (isTetraPakFoil)
-  {
-    // Small Tetra Pak juice box (internal foil barrier detected without solid aluminum can body)
-    materialType = "TETRAPAK";
-  }
-  else
-  {
-    // Standard Plastic PET bottle (0 metal samples, non-metallic profile)
-    materialType = "PLASTIC";
+    delay(10);
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------
   Serial.print("SIZE:");
   Serial.print(bottleSize);
-
-  Serial.print(";MATERIAL:");
-  Serial.print(materialType);
 
   Serial.print(";METAL:");
   Serial.print(metalDetected ? "1" : "0");
