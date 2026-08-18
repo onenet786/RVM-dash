@@ -51,7 +51,7 @@ const unsigned long bottleProcessingDelayMs = 2500; // Cooldown after sequence c
 const byte calibrationReadings = 12;
 const int maxSensorDistanceCM = 80;
 const byte bottleDetectChangeCM = 2;
-const int calibrationBlockedDistanceCM = 12;
+const int calibrationBlockedDistanceCM = 5;
 const byte calibrationMaxAttempts = 3;
 
 // ---- ENTRANCE SENSOR SETTINGS ----
