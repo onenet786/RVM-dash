@@ -240,23 +240,11 @@ export default function MachineHealthTab() {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => {
-              setNewMachineId(`RVM-00${machines.length + 1}`);
-              setNewMachineName('');
-              setNewMachineLocation('');
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl font-bold text-xs transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Register RVM Machine</span>
-          </button>
-
-          <button
             onClick={fetchMachines}
-            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
+            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all flex items-center gap-2 text-xs font-bold"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh Live Telemetry</span>
           </button>
         </div>
       </div>
@@ -413,137 +401,6 @@ export default function MachineHealthTab() {
             );
           })
         )}
-      </div>
-
-      {/* Add / Edit Machine Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="glass-panel p-6 rounded-3xl max-w-md w-full border border-cyan-500/30 space-y-4">
-            <div className="flex items-center justify-between border-b t-border pb-3">
-              <div className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-extrabold t-text-primary">
-                  Register RVM Machine & Location
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-1 t-text-muted hover:t-text-primary rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveMachine} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
-                  Machine ID Code
-                </label>
-                <input
-                  type="text"
-                  value={newMachineId}
-                  onChange={e => setNewMachineId(e.target.value)}
-                  placeholder="e.g. RVM-001"
-                  required
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl font-mono text-sm t-text-primary focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
-                  Machine Display Name
-                </label>
-                <input
-                  type="text"
-                  value={newMachineName}
-                  onChange={e => setNewMachineName(e.target.value)}
-                  placeholder="e.g. ISP Main Entrance Unit #1"
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
-                  Installation Location / Address
-                </label>
-                <input
-                  type="text"
-                  value={newMachineLocation}
-                  onChange={e => setNewMachineLocation(e.target.value)}
-                  placeholder="e.g. Sector H-8/4, Islamabad Campus"
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              {/* machine_configs Points Rules */}
-              <div className="border-t border-slate-800 pt-3 space-y-3">
-                <span className="block text-xs font-bold text-cyan-400 uppercase tracking-wider">
-                  ⚙️ Reward Points Rates (machine_configs)
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">
-                      🥤 Plastic (pts)
-                    </label>
-                    <input
-                      type="number"
-                      value={pointsPlastic}
-                      onChange={e => setPointsPlastic(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-emerald-400 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">
-                      🥫 Can (pts)
-                    </label>
-                    <input
-                      type="number"
-                      value={pointsAluminium}
-                      onChange={e => setPointsAluminium(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-amber-400 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">
-                      📦 Paper/Kg (pts)
-                    </label>
-                    <input
-                      type="number"
-                      value={pointsPaper}
-                      onChange={e => setPointsPaper(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-cyan-400 focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-bold t-text-secondary hover:t-text-primary rounded-xl border t-border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-5 py-2 text-xs font-bold bg-cyan-500 text-slate-950 hover:bg-cyan-400 rounded-xl shadow-lg shadow-cyan-500/20"
-                >
-                  {saving ? 'Saving...' : 'Save Machine & Rates'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Relational Database Machines Table */}
-      <div className="glass-panel p-6 rounded-3xl space-y-4">
-        <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
-          All Registered Fleet Machines (Relational Table)
-        </h3>
-        <DataTable collectionName="machines" />
       </div>
 
       {/* Bin Notifications Full Table */}
