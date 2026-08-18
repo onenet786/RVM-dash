@@ -26,7 +26,7 @@ public sealed class AppSettings
         {
             ConnectionString = Get(values, "ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;"),
             MachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "RVM-001"),
-            CentralApiUrl = Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com"),
+            CentralApiUrl = NormalizeUrl(Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com")),
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
             ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
             CameraPort = Get(values, "CameraPort", "COM31"),
@@ -36,6 +36,22 @@ public sealed class AppSettings
             ModelPath = Get(values, "ModelPath", @"Models\rvm_classifier.onnx"),
             CaptureDirectory = Get(values, "CaptureDirectory", "Captures")
         };
+    }
+
+    public static string NormalizeUrl(string rawUrl)
+    {
+        if (string.IsNullOrWhiteSpace(rawUrl)) return "https://isprvm.binishaqsoft.com";
+        string trimmed = rawUrl.Trim().TrimEnd('.', '/');
+        if (!trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            trimmed = "https://" + trimmed;
+        }
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out _))
+        {
+            return "https://isprvm.binishaqsoft.com";
+        }
+        return trimmed;
     }
 
     public static Dictionary<string, string> LoadRawConfig()

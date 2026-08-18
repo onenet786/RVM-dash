@@ -300,18 +300,25 @@ public partial class MainWindow : Window
 
     private void StartInstructionVideo()
     {
-        string? path = FindVideoFiles(settings.InstructionVideoFolder).FirstOrDefault();
-        if (path == null)
+        try
         {
-            LogTelemetry($"[VIDEO] No instruction video found in: {settings.InstructionVideoFolder}");
-            return;
-        }
+            string? path = FindVideoFiles(settings.InstructionVideoFolder).FirstOrDefault();
+            if (path == null)
+            {
+                LogTelemetry($"[VIDEO] No instruction video found in: {settings.InstructionVideoFolder}");
+                return;
+            }
 
-        InstructionPlayer.Source = new Uri(path);
-        InstructionPlaceholder.Visibility = Visibility.Collapsed;
-        InstructionPlayer.Visibility = Visibility.Visible;
-        InstructionPlayer.Play();
-        LogTelemetry($"[VIDEO] Instruction video loaded: {Path.GetFileName(path)}");
+            InstructionPlayer.Source = new Uri(Path.GetFullPath(path));
+            InstructionPlaceholder.Visibility = Visibility.Collapsed;
+            InstructionPlayer.Visibility = Visibility.Visible;
+            InstructionPlayer.Play();
+            LogTelemetry($"[VIDEO] Instruction video loaded: {Path.GetFileName(path)}");
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[VIDEO Error] Could not load instruction video: {ex.Message}");
+        }
     }
 
     private void InstructionPlayer_MediaEnded(object sender, RoutedEventArgs e)
@@ -346,12 +353,20 @@ public partial class MainWindow : Window
 
     private void PlayAdVideo(string path)
     {
-        AdvertisementPlayer.Visibility = Visibility.Visible;
-        AdvertisementPlayer.Source = new Uri(path);
-        AdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
-        AdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
-        AdvertisementPlayer.Stretch = Stretch.Fill;
-        AdvertisementPlayer.Play();
+        try
+        {
+            AdvertisementPlayer.Visibility = Visibility.Visible;
+            AdvertisementPlayer.Source = new Uri(Path.GetFullPath(path));
+            AdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
+            AdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
+            AdvertisementPlayer.Stretch = Stretch.Fill;
+            AdvertisementPlayer.Play();
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[AD Error] Could not play ad video: {ex.Message}");
+            PlayNextAd();
+        }
     }
 
     private void PlayNextAd()

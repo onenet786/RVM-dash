@@ -29,12 +29,19 @@ public partial class AcceptedItemVideoWindow : Window
             return;
         }
 
-        CelebrationPlayer.Source = new Uri(path, UriKind.Absolute);
-        Loaded += (_, _) =>
+        try
         {
-            safetyTimer.Start();
-            CelebrationPlayer.Play();
-        };
+            CelebrationPlayer.Source = new Uri(Path.GetFullPath(path), UriKind.Absolute);
+            Loaded += (_, _) =>
+            {
+                safetyTimer.Start();
+                CelebrationPlayer.Play();
+            };
+        }
+        catch
+        {
+            Loaded += (_, _) => Close();
+        }
     }
 
     public static void ShowFor(Window owner, string material)
