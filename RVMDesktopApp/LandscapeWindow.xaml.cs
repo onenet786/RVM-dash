@@ -876,13 +876,15 @@ public partial class LandscapeWindow : Window
             return;
         }
 
-        // A previous transient query failure may have marked the cached state as
-        // offline. Recheck now instead of permanently blocking the wallet dialog.
-        if (!databaseAvailable && !RefreshDatabaseConnection())
+        // Allow wallet entry if either local SQL DB or Central Network API is available
+        bool localDbOk = databaseAvailable || RefreshDatabaseConnection();
+        bool centralNetOk = HeartbeatService.CurrentStatus == NetworkStatus.Online;
+
+        if (!localDbOk && !centralNetOk)
         {
             StatusText.Text = "Wallet unavailable";
             StatusText.Foreground = Brushes.OrangeRed;
-            BottleInfoText.Text = "Connect the database before crediting a wallet";
+            BottleInfoText.Text = "Connect local DB or Central Network before crediting a wallet";
             return;
         }
 
@@ -893,28 +895,80 @@ public partial class LandscapeWindow : Window
         }
 
         string phoneNumber = walletWindow.PhoneNumber;
-        try
-        {
-            DatabaseManager.CreditWallet(phoneNumber, totalPoints, sessionId);
-            RefreshLeaderboard();
+        string currentSessionId = sessionId.ToString();
+        int currentTotalItems = totalItems;
+        int currentTotalPoints = totalPoints;
 
-            LogTelemetry($"[WALLET] Credited {totalPoints} point(s) to {phoneNumber}");
-            StopMachine();
-            StatusText.Text = "Wallet credited";
-            StatusText.Foreground = Brushes.LimeGreen;
-            BottleInfoText.Text = $"{totalPoints} points sent to wallet {phoneNumber}";
-            ResetSession();
-        }
-        catch (Exception ex)
+        int pSmall = plasticSmallCount;
+        int pMed = plasticMediumCount;
+        int pLg = plasticLargeCount;
+        int cSmall = canSmallCount;
+        int cMed = canMediumCount;
+        int cLg = canLargeCount;
+
+        // 1. Credit Local SQL Database if available
+        if (localDbOk)
         {
-            databaseAvailable = false;
-            DbStatusText.Text = "DB: OFFLINE";
-            DbDot.Fill = Brushes.OrangeRed;
-            StatusText.Text = "Wallet credit failed";
-            StatusText.Foreground = Brushes.OrangeRed;
-            BottleInfoText.Text = $"Wallet was not credited: {ex.Message}";
-            LogTelemetry($"[WALLET] Credit failed: {ex.Message}");
+            try
+            {
+                DatabaseManager.CreditWallet(phoneNumber, currentTotalPoints, sessionId);
+                RefreshLeaderboard();
+                LogTelemetry($"[LOCAL DB 🟢] Credited {currentTotalPoints} point(s) to {phoneNumber}");
+            }
+            catch (Exception ex)
+            {
+                LogTelemetry($"[LOCAL DB WARN 🟡] Could not write local SQL: {ex.Message}");
+            }
         }
+
+        // 2. Synchronize Recycling Session to Central Master Server API
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                int plasticCount = pSmall + pMed + pLg;
+                int canCount = cSmall + cMed + cLg;
+
+                var syncRes = await CentralSyncService.SyncSessionToCentralDetailedAsync(
+                    settings.MachineId,
+                    currentSessionId,
+                    phoneNumber,
+                    plasticCount,
+                    canCount,
+                    0, // paperCount
+                    0, // glassCount
+                    currentTotalPoints,
+                    0.0, // weightKg
+                    "MEDIUM",
+                    "PLASTIC",
+                    pSmall,
+                    pMed,
+                    pLg,
+                    cSmall,
+                    cMed,
+                    cLg
+                );
+
+                if (syncRes.IsSuccess)
+                {
+                    LogTelemetry($"[CENTRAL SYNC 🟢] Session for user {phoneNumber} (+{currentTotalPoints} pts, {currentTotalItems} items) successfully synced to Central Server!");
+                }
+                else
+                {
+                    LogTelemetry($"[CENTRAL SYNC 🔴] Session sync failed: HTTP {syncRes.StatusCode} - {syncRes.Message}");
+                }
+            }
+            catch (Exception syncEx)
+            {
+                LogTelemetry($"[CENTRAL SYNC ERROR 🔴] {syncEx.Message}");
+            }
+        });
+
+        StopMachine();
+        StatusText.Text = "Wallet credited";
+        StatusText.Foreground = Brushes.LimeGreen;
+        BottleInfoText.Text = $"{currentTotalPoints} points sent to wallet {phoneNumber}";
+        ResetSession();
     }
 
     private void ResetSession()
