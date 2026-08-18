@@ -25,6 +25,23 @@ public partial class App : Application
         startupWindow.Show();
     }
 
+    protected override void OnExit(ExitEventArgs e)
+    {
+        try
+        {
+            if (MainWindow is MainWindow mainWin)
+            {
+                mainWin.DisconnectHardwareOnExit();
+            }
+            else if (MainWindow is LandscapeWindow landWin)
+            {
+                landWin.DisconnectHardwareOnExit();
+            }
+        }
+        catch { }
+        base.OnExit(e);
+    }
+
     internal static bool IsPortraitDisplay(double width, double height) => height > width;
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

@@ -94,6 +94,17 @@ public partial class AdminWindow : Window
             string port = CfgArduinoPort.Text.Trim();
             int baud = int.TryParse(CfgArduinoBaud.Text.Trim(), out int b) ? b : 9600;
 
+            if (Application.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.DisconnectHardwareOnExit();
+                System.Threading.Thread.Sleep(300);
+            }
+            else if (Application.Current.MainWindow is LandscapeWindow landWin)
+            {
+                landWin.DisconnectHardwareOnExit();
+                System.Threading.Thread.Sleep(300);
+            }
+
             using var serial = new SerialManager();
             serial.Connect(port, baud);
             serial.SendCommand("RESET");

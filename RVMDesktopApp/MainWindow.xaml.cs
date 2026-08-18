@@ -157,13 +157,20 @@ public partial class MainWindow : Window
         LogTelemetry($"[API] Central API offline: {reason}");
     }
 
+    public void DisconnectHardwareOnExit()
+    {
+        try
+        {
+            InstructionPlayer?.Close();
+            AdvertisementPlayer?.Close();
+            serial?.Disconnect();
+        }
+        catch { }
+    }
+
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
-        InstructionPlayer.Close();
-        InstructionPlayer.Source = null;
-        AdvertisementPlayer.Close();
-        AdvertisementPlayer.Source = null;
-        serial.Disconnect();
+        DisconnectHardwareOnExit();
     }
 
     private void ScanTimer_Tick(object? sender, EventArgs e)

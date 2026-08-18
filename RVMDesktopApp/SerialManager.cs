@@ -31,8 +31,11 @@ public class SerialManager : IDisposable
         {
             Disconnect();
 
+            // Give Windows COM driver time to release stale handle from previous process
+            System.Threading.Thread.Sleep(250);
+
             Exception? lastEx = null;
-            for (int attempt = 1; attempt <= 3; attempt++)
+            for (int attempt = 1; attempt <= 5; attempt++)
             {
                 try
                 {
@@ -47,7 +50,19 @@ public class SerialManager : IDisposable
 
                     _receiveBuffer.Clear();
                     _port.DataReceived += OnDataReceived;
+                    _port.ErrorReceived += OnSerialErrorReceived;
                     _port.Open();
+
+                    // Pulse DTR/RTS to force hardware reset on Arduino Uno
+                    try
+                    {
+                        _port.DtrEnable = false;
+                        _port.RtsEnable = false;
+                        System.Threading.Thread.Sleep(50);
+                        _port.DtrEnable = true;
+                        _port.RtsEnable = true;
+                    }
+                    catch { }
 
                     // Discard stale buffer data left from previous sessions
                     try
@@ -75,13 +90,14 @@ public class SerialManager : IDisposable
                         if (_port != null)
                         {
                             _port.DataReceived -= OnDataReceived;
+                            _port.ErrorReceived -= OnSerialErrorReceived;
                             if (_port.IsOpen) _port.Close();
                             _port.Dispose();
                         }
                     }
                     catch { }
                     _port = null;
-                    System.Threading.Thread.Sleep(300); // Give Windows COM driver time to release locked handle on relaunch
+                    System.Threading.Thread.Sleep(300 * attempt); // Progressive sleep for Windows COM handle release
                 }
             }
 
@@ -128,6 +144,8 @@ public class SerialManager : IDisposable
             try
             {
                 _port.DataReceived -= OnDataReceived;
+                _port.ErrorReceived -= OnSerialErrorReceived;
+
                 if (_port.IsOpen)
                 {
                     // Send STOP & RESET command to Arduino before releasing line
@@ -135,7 +153,6 @@ public class SerialManager : IDisposable
                     {
                         _port.WriteLine("STOP");
                         _port.WriteLine("RESET");
-                        System.Threading.Thread.Sleep(100);
                     }
                     catch { }
 
@@ -148,9 +165,21 @@ public class SerialManager : IDisposable
                     }
                     catch { }
 
-                    _port.Close();
+                    var localPort = _port;
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            localPort.Close();
+                            localPort.Dispose();
+                        }
+                        catch { }
+                    });
                 }
-                _port.Dispose();
+                else
+                {
+                    try { _port.Dispose(); } catch { }
+                }
             }
             catch (Exception ex)
             {
@@ -222,6 +251,11 @@ public class SerialManager : IDisposable
         }
 
         return -1;
+    }
+
+    private void OnSerialErrorReceived(object sender, SerialErrorReceivedEventArgs e)
+    {
+        ReportError(new Exception($"Serial port hardware error: {e.EventType}"));
     }
 
     private void ReportError(Exception ex)
