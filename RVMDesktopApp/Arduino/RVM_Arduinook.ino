@@ -326,20 +326,27 @@ void calibrateEmptyPipe()
     {
       int distance = readDistanceCM();
 
-      Serial.print("CALIBRATION_RAW_CM:");
-      Serial.println(distance);
-
-      if (distance > 0 && distance <= maxSensorDistanceCM)
+      // Only accept true pipe depth readings (>= 10 cm) to filter out 5cm blind-zone/lip echoes
+      if (distance >= 10 && distance <= maxSensorDistanceCM)
         readings[validReadings++] = distance;
 
       delay(25);
     }
 
-    if (validReadings < 6)
+    if (validReadings < 3)
+    {
+      // Chamber genuinely blocked near top (<10 cm)
+      Serial.println("CALIBRATION:CLEARING_CHAMBER");
+      openGate();
+      delay(1500);
+      closeGate();
+      delay(500);
+      Serial.println("CALIBRATION:RETRY");
       continue;
+    }
 
     sortReadings(readings, validReadings);
-    // Select true maximum empty distance (e.g. 36 cm) to filter out sidewall reflections (~17 cm)
+    // Select true maximum empty distance (e.g. 36 cm)
     int measuredEmptyDistanceCM = readings[validReadings - 1];
 
     if (measuredEmptyDistanceCM < calibrationBlockedDistanceCM)
