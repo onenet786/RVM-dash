@@ -150,7 +150,7 @@ export default function MachineConfigsTab() {
             <Settings className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">System Database Table</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">machine_configs Table & Points Rules Manager</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">RVM Configurations (`machine_configs`)</h2>
           <p className="text-xs t-text-secondary mt-1">
             Configure material point rates, bottle size variants (Small, Medium, Large), and calculation units (per piece, per gram, or per kg) for RVM Kiosks.
           </p>

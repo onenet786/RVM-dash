@@ -42,7 +42,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'col_recycling_sessions', name: 'recycling_sessions', label: 'recycling_sessions', icon: Recycle },
     { id: 'col_machines', name: 'machines', label: 'machines', icon: Cpu },
     { id: 'col_users', name: 'users', label: 'users', icon: Users },
-    { id: 'col_machine_configs', name: 'machine_configs', label: 'machine_configs', icon: Settings },
+    { id: 'col_machine_configs', name: 'machine_configs', label: 'RVM Configurations', icon: Settings },
   ];
 
   // MongoDB Legacy / rvmapp Collections
