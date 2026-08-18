@@ -108,12 +108,15 @@ export default function App() {
       const colName = activeTab.replace('col_', '');
       const displayNames = {
         recyclingsessions: 'Recycling Sessions Table',
+        recycling_sessions: 'Recycling Sessions (Relational Table)',
         userprofile: 'Registered User Profiles Table',
         feedbacks: 'User Feedbacks Log Table',
         binfullnotifications: 'Bin Full Alerts Table',
         redemptions: 'Redemptions Table',
         adminaccounts: 'Admin Accounts Table',
-        settings: 'System Settings Table'
+        settings: 'System Settings Table',
+        machine_configs: 'Machine Reward Points Config (machine_configs) Table',
+        machines: 'Registered Fleet Machines Table'
       };
 
       return (

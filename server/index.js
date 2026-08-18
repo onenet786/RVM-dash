@@ -1189,14 +1189,23 @@ app.get('/api/analytics/machines', async (req, res) => {
       const allRegisteredMachines = [];
       if (pool) {
         try {
-          const metaRes = await pool.query(`SELECT machine_id, name, location, status, last_ping_at FROM machines`);
+          const metaRes = await pool.query(`
+            SELECT m.machine_id, m.name, m.location, m.status, m.last_ping_at,
+                   c.points_per_plastic, c.points_per_aluminium, c.points_per_paper_kg, c.config_version
+            FROM machines m
+            LEFT JOIN machine_configs c ON m.machine_id = c.machine_id
+          `);
           metaRes.rows.forEach(r => {
             allRegisteredMachines.push({
               machineId: r.machine_id,
               name: r.name || `RVM Machine ${r.machine_id}`,
               location: r.location || 'Islamabad Campus',
               status: r.status,
-              lastPingAt: r.last_ping_at
+              lastPingAt: r.last_ping_at,
+              pointsPerPlasticBottle: r.points_per_plastic ?? 10,
+              pointsPerAluminiumCan: r.points_per_aluminium ?? 20,
+              pointsPerPaperKg: r.points_per_paper_kg ?? 15,
+              configVersion: r.config_version ?? 1
             });
           });
         } catch (e) {}
@@ -1214,6 +1223,10 @@ app.get('/api/analytics/machines', async (req, res) => {
           status: isOnline ? 'ONLINE' : 'OFFLINE',
           isOnline,
           lastPingAt: m.lastPingAt,
+          pointsPerPlasticBottle: m.pointsPerPlasticBottle,
+          pointsPerAluminiumCan: m.pointsPerAluminiumCan,
+          pointsPerPaperKg: m.pointsPerPaperKg,
+          configVersion: m.configVersion,
           totalBottles: 0,
           totalCups: 0,
           totalPoints: 0,
@@ -1377,7 +1390,15 @@ app.get('/api/analytics/machines', async (req, res) => {
 // Add or Register RVM Machine Name & Location
 app.post('/api/machines', async (req, res) => {
   try {
-    const { machineId, name, location, status } = req.body || {};
+    const { 
+      machineId, 
+      name, 
+      location, 
+      status,
+      pointsPerPlasticBottle = 10,
+      pointsPerAluminiumCan = 20,
+      pointsPerPaperKg = 15
+    } = req.body || {};
     if (!machineId) {
       return res.status(400).json({ error: 'Machine ID is required' });
     }
@@ -1397,6 +1418,9 @@ app.post('/api/machines', async (req, res) => {
               name: machineName,
               location: machineLocation,
               status: machineStatus,
+              pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle),
+              pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan),
+              pointsPerPaperKg: parseInt(pointsPerPaperKg),
               updatedAt: new Date()
             }
           },
@@ -1432,6 +1456,17 @@ app.post('/api/machines', async (req, res) => {
           ON CONFLICT (machine_id)
           DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, last_ping_at = NOW()
         `, [machineId, machineName, machineLocation, machineStatus]);
+
+        await pool.query(`
+          INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
+          VALUES ($1, 1, $2, $3, $4, NOW())
+          ON CONFLICT (machine_id) DO UPDATE SET
+            config_version = machine_configs.config_version + 1,
+            points_per_plastic = EXCLUDED.points_per_plastic,
+            points_per_aluminium = EXCLUDED.points_per_aluminium,
+            points_per_paper_kg = EXCLUDED.points_per_paper_kg,
+            updated_at = NOW();
+        `, [machineId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]).catch(() => {});
       } catch (pgErr) {
         console.error('[POST /api/machines] PostgreSQL write notice:', pgErr.message);
       }
@@ -3061,6 +3096,62 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Update / Save RVM Machine Points Configuration
+const handleSaveMachineConfig = async (req, res) => {
+  try {
+    const { machineId } = req.params;
+    const { 
+      pointsPerPlasticBottle = 10, 
+      pointsPerAluminiumCan = 20, 
+      pointsPerPaperKg = 15 
+    } = req.body;
+
+    if (!machineId) return res.status(400).json({ error: 'machineId is required' });
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
+          VALUES ($1, 1, $2, $3, $4, NOW())
+          ON CONFLICT (machine_id) DO UPDATE SET
+            config_version = machine_configs.config_version + 1,
+            points_per_plastic = EXCLUDED.points_per_plastic,
+            points_per_aluminium = EXCLUDED.points_per_aluminium,
+            points_per_paper_kg = EXCLUDED.points_per_paper_kg,
+            updated_at = NOW();
+        `, [machineId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]);
+      }
+    }
+
+    if (activeDbType === 'mongodb') {
+      const db = getMongoDb();
+      if (db) {
+        await db.collection('machines').updateOne(
+          { machineId },
+          { 
+            $set: { 
+              pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle), 
+              pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan), 
+              pointsPerPaperKg: parseInt(pointsPerPaperKg), 
+              updatedAt: new Date() 
+            },
+            $inc: { configVersion: 1 }
+          },
+          { upsert: true }
+        );
+      }
+    }
+
+    res.json({ success: true, message: `Configuration updated for machine ${machineId}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+app.post('/api/machine/config/:machineId', handleSaveMachineConfig);
+app.put('/api/machine/config/:machineId', handleSaveMachineConfig);
 
 // QR Code Authenticator for RVM Machine Scanner
 app.post('/api/user/verify-qr', async (req, res) => {
