@@ -491,6 +491,11 @@ export default function MachineHealthTab() {
                   {saving ? 'Saving...' : 'Save Machine & Rates'}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Dedicated Points & Calculation Unit Sync Modal */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
