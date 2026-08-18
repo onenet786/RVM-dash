@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import OverviewTab from './components/OverviewTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import MachineHealthTab from './components/MachineHealthTab';
+import MachineConfigsTab from './components/MachineConfigsTab';
 import DbBackupTab from './components/DbBackupTab';
 import DbSwitcherTab from './components/DbSwitcherTab';
 import SecurityTab from './components/SecurityTab';
@@ -92,6 +93,9 @@ export default function App() {
 
     if (activeTab === 'machines') {
       return <MachineHealthTab />;
+    }
+    if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
+      return <MachineConfigsTab />;
     }
     if (activeTab === 'security' && isMasterDev) {
       return <SecurityTab />;
