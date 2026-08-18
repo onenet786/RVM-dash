@@ -468,25 +468,34 @@ void processIncomingBottle(bool metalDetected)
   // ---------------- HOLD BOTTLE FOR METAL CHECK ----------------
   unsigned long holdStart = millis();
 
-  while (millis() - holdStart < gateHoldDurationMs)
+  // ---------------- SOLID METAL SAMPLING (Distinguishes Solid Cans vs Thin Foil Cartons) ----------------
+  int solidMetalCount = 0;
+  for (int i = 0; i < 15; i++)
   {
-    if (isMetalDetected())
+    if (digitalRead(metalSensorPin) == METAL_DETECTED_STATE)
     {
-      metalDetected = true;
+      solidMetalCount++;
     }
-
-    delay(10);
+    delay(5);
   }
+
+  // Real aluminum cans have solid continuous metal bodies (>= 10 out of 15 samples)
+  bool isSolidMetalCan = (metalDetected && solidMetalCount >= 10);
 
   // ---------------- DETERMINE MATERIAL TYPE ----------------
   const char* materialType = "PLASTIC";
-  if (metalDetected)
+  if (isSolidMetalCan)
   {
     materialType = "CAN";
   }
   else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
   {
-    // Opaque box / carton blocking multiple IR sensors with no metal detected
+    // Large/Medium Tetra Pak carton (opaque box)
+    materialType = "TETRAPAK";
+  }
+  else if (!isSolidMetalCan && (solidMetalCount > 0 || maxDistanceChangeCM >= 3))
+  {
+    // Small Tetra Pak juice box: Foil barrier triggered weak metal or flat profile with no solid can body
     materialType = "TETRAPAK";
   }
 
