@@ -537,9 +537,24 @@ void processIncomingBottle(bool metalDetected)
     delay(10);
   }
 
+  // ---------------- DETERMINE MATERIAL TYPE ----------------
+  const char* materialType = "PLASTIC";
+  if (metalDetected)
+  {
+    materialType = "CAN";
+  }
+  else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
+  {
+    // Opaque box / carton blocking multiple IR sensors with no metal detected
+    materialType = "TETRAPAK";
+  }
+
   // ---------------- SEND RESULT TO SYSTEM ----------------
   Serial.print("SIZE:");
   Serial.print(bottleSize);
+
+  Serial.print(";MATERIAL:");
+  Serial.print(materialType);
 
   Serial.print(";METAL:");
   Serial.print(metalDetected ? "1" : "0");

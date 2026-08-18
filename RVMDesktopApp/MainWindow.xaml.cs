@@ -1092,8 +1092,15 @@ public partial class MainWindow : Window
                     result.Size = pair[1].ToUpperInvariant();
                     break;
 
+                case "MATERIAL":
+                    result.Material = pair[1].ToUpperInvariant();
+                    break;
+
                 case "METAL":
-                    result.Material = pair[1] == "1" ? "CAN" : "PLASTIC";
+                    if (result.Material == "PLASTIC" || string.IsNullOrEmpty(result.Material))
+                    {
+                        result.Material = pair[1] == "1" ? "CAN" : "PLASTIC";
+                    }
                     break;
 
                 case "DISTANCE":
