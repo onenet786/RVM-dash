@@ -31,6 +31,9 @@ public partial class MainWindow : Window
     private int canSmallCount;
     private int canMediumCount;
     private int canLargeCount;
+    private int tetraPakSmallCount;
+    private int tetraPakMediumCount;
+    private int tetraPakLargeCount;
     private int rejectedCount;
     private bool suppressNextCleanupError;
     private BottleResult? pendingBottleResult;
@@ -946,6 +949,9 @@ public partial class MainWindow : Window
         int cSmall = canSmallCount;
         int cMed = canMediumCount;
         int cLg = canLargeCount;
+        int tpSmall = tetraPakSmallCount;
+        int tpMed = tetraPakMediumCount;
+        int tpLg = tetraPakLargeCount;
 
         // 1. Credit Local SQL Database if available
         if (localDbOk)
@@ -969,6 +975,7 @@ public partial class MainWindow : Window
             {
                 int plasticCount = pSmall + pMed + pLg;
                 int canCount = cSmall + cMed + cLg;
+                int paperCount = tpSmall + tpMed + tpLg;
 
                 var syncRes = await CentralSyncService.SyncSessionToCentralDetailedAsync(
                     settings.MachineId,
@@ -976,7 +983,7 @@ public partial class MainWindow : Window
                     phoneNumber,
                     plasticCount,
                     canCount,
-                    0, // paperCount
+                    paperCount, // paperCount
                     0, // glassCount
                     currentTotalPoints,
                     0.0, // weightKg
@@ -1016,9 +1023,10 @@ public partial class MainWindow : Window
     {
         sessionId = Guid.NewGuid();
         totalItems = totalPoints = plasticSmallCount = plasticMediumCount = plasticLargeCount =
-            canSmallCount = canMediumCount = canLargeCount = rejectedCount = 0;
+            canSmallCount = canMediumCount = canLargeCount = tetraPakSmallCount = tetraPakMediumCount = tetraPakLargeCount = rejectedCount = 0;
         TotalItemsText.Text = PlasticSmallCountText.Text = PlasticMediumCountText.Text = PlasticLargeCountText.Text =
-            CanSmallCountText.Text = CanMediumCountText.Text = CanLargeCountText.Text = RejectedCountText.Text = "0";
+            CanSmallCountText.Text = CanMediumCountText.Text = CanLargeCountText.Text =
+            TetraPakSmallCountText.Text = TetraPakMediumCountText.Text = TetraPakLargeCountText.Text = RejectedCountText.Text = "0";
         TotalPointsText.Text = "0";
     }
 
@@ -1035,6 +1043,12 @@ public partial class MainWindow : Window
             if (size == "SMALL") CanSmallCountText.Text = (++canSmallCount).ToString();
             else if (size == "MEDIUM") CanMediumCountText.Text = (++canMediumCount).ToString();
             else if (size == "LARGE") CanLargeCountText.Text = (++canLargeCount).ToString();
+        }
+        else if (material.Contains("TETRAPAK", StringComparison.OrdinalIgnoreCase) || material.Contains("CARTON", StringComparison.OrdinalIgnoreCase) || material.Contains("PAPER", StringComparison.OrdinalIgnoreCase))
+        {
+            if (size == "SMALL") TetraPakSmallCountText.Text = (++tetraPakSmallCount).ToString();
+            else if (size == "MEDIUM") TetraPakMediumCountText.Text = (++tetraPakMediumCount).ToString();
+            else if (size == "LARGE") TetraPakLargeCountText.Text = (++tetraPakLargeCount).ToString();
         }
     }
 
