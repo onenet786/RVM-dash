@@ -250,4 +250,186 @@ public static class DatabaseManager
             // Ignore if local SQL Server is unavailable
         }
     }
+
+    public static bool VerifyAdminCredentials(string username, string password)
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            using var schemaCmd = new SqlCommand(@"
+                IF OBJECT_ID('dbo.AdminCredentials', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.AdminCredentials (
+                        Username VARCHAR(50) PRIMARY KEY,
+                        Password VARCHAR(255) NOT NULL,
+                        LastUpdated DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+
+                    INSERT INTO dbo.AdminCredentials (Username, Password)
+                    VALUES ('RVM', 'Admin786');
+                END;
+            ", connection);
+            schemaCmd.ExecuteNonQuery();
+
+            using var queryCmd = new SqlCommand("SELECT Password FROM dbo.AdminCredentials WHERE Username = @u", connection);
+            queryCmd.Parameters.AddWithValue("@u", username);
+
+            var dbPassword = queryCmd.ExecuteScalar()?.ToString();
+            if (dbPassword != null)
+            {
+                return dbPassword == password;
+            }
+
+            // Fallback default
+            if (username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786")
+            {
+                return true;
+            }
+
+            return false;
+        }
+        catch
+        {
+            // Fallback default when database is offline
+            return username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786";
+        }
+    }
+
+    public static bool ChangeAdminPassword(string username, string oldPassword, string newPassword, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!VerifyAdminCredentials(username, oldPassword))
+        {
+            errorMessage = "Current password is incorrect.";
+            return false;
+        }
+
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            using var cmd = new SqlCommand(@"
+                IF EXISTS (SELECT 1 FROM dbo.AdminCredentials WHERE Username = @u)
+                    UPDATE dbo.AdminCredentials SET Password = @p, LastUpdated = GETDATE() WHERE Username = @u;
+                ELSE
+                    INSERT INTO dbo.AdminCredentials (Username, Password) VALUES (@u, @p);
+            ", connection);
+            cmd.Parameters.AddWithValue("@u", username);
+            cmd.Parameters.AddWithValue("@p", newPassword);
+            cmd.ExecuteNonQuery();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return false;
+        }
+    }
+
+    public static async System.Threading.Tasks.Task<(int Total, int Success, int Failed)> SyncAllLocalSessionsToCentralAsync(string machineId, Action<string>? logCallback = null)
+    {
+        int total = 0, success = 0, failed = 0;
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+
+            // Ensure IsSynced column exists in dbo.BottleTransactions
+            using var colCmd = new SqlCommand(@"
+                IF COL_LENGTH('dbo.BottleTransactions', 'IsSynced') IS NULL
+                    ALTER TABLE dbo.BottleTransactions ADD IsSynced BIT NOT NULL DEFAULT 0;
+            ", connection);
+            await colCmd.ExecuteNonQueryAsync();
+
+            // Get all unique sessions with their totals
+            string sql = @"
+                SELECT 
+                    COALESCE(SessionID, NEWID()) AS SessionID,
+                    COALESCE(MobileNumber, '3214424625') AS MobileNumber,
+                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'SMALL' THEN 1 ELSE 0 END) AS PlasticSmall,
+                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'MEDIUM' THEN 1 ELSE 0 END) AS PlasticMedium,
+                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'LARGE' THEN 1 ELSE 0 END) AS PlasticLarge,
+                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'SMALL' THEN 1 ELSE 0 END) AS CanSmall,
+                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'MEDIUM' THEN 1 ELSE 0 END) AS CanMedium,
+                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'LARGE' THEN 1 ELSE 0 END) AS CanLarge,
+                    SUM(PointsAwarded) AS TotalPoints,
+                    COUNT(*) AS TotalItems
+                FROM dbo.BottleTransactions
+                WHERE IsSynced = 0 OR IsSynced IS NULL
+                GROUP BY SessionID, MobileNumber;
+            ";
+
+            using var cmd = new SqlCommand(sql, connection);
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            var sessionList = new System.Collections.Generic.List<(string sessId, string phone, int ps, int pm, int pl, int cs, int cm, int cl, int pts)>();
+
+            while (await reader.ReadAsync())
+            {
+                sessionList.Add((
+                    reader["SessionID"].ToString() ?? Guid.NewGuid().ToString(),
+                    reader["MobileNumber"].ToString() ?? "3214424625",
+                    Convert.ToInt32(reader["PlasticSmall"]),
+                    Convert.ToInt32(reader["PlasticMedium"]),
+                    Convert.ToInt32(reader["PlasticLarge"]),
+                    Convert.ToInt32(reader["CanSmall"]),
+                    Convert.ToInt32(reader["CanMedium"]),
+                    Convert.ToInt32(reader["CanLarge"]),
+                    Convert.ToInt32(reader["TotalPoints"])
+                ));
+            }
+
+            reader.Close();
+            total = sessionList.Count;
+
+            logCallback?.Invoke($"Found {total} unsynced local sessions. Starting batch upload to Central Master Server...");
+
+            foreach (var item in sessionList)
+            {
+                int plasticCount = item.ps + item.pm + item.pl;
+                int canCount = item.cs + item.cm + item.cl;
+
+                var res = await CentralSyncService.SyncSessionToCentralDetailedAsync(
+                    machineId,
+                    item.sessId,
+                    item.phone,
+                    plasticCount,
+                    canCount,
+                    0, 0,
+                    item.pts,
+                    0.0,
+                    "MEDIUM",
+                    "PLASTIC",
+                    item.ps, item.pm, item.pl,
+                    item.cs, item.cm, item.cl
+                );
+
+                if (res.IsSuccess)
+                {
+                    success++;
+                    logCallback?.Invoke($"[Sync OK 🟢] Session {item.sessId} ({item.phone}): {res.Message}");
+
+                    // Mark as synced in local DB
+                    using var updateCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 1 WHERE SessionID = @s", connection);
+                    updateCmd.Parameters.AddWithValue("@s", item.sessId);
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    failed++;
+                    logCallback?.Invoke($"[Sync ERR 🔴] Session {item.sessId} failed: {res.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[Sync Exception 🔴] {ex.Message}");
+        }
+
+        return (total, success, failed);
+    }
 }

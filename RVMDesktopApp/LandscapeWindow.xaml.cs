@@ -283,7 +283,11 @@ public partial class LandscapeWindow : Window
 
     private void OpenAdmin()
     {
-        new AdminWindow { Owner = this }.ShowDialog();
+        var login = new AdminLoginWindow { Owner = this };
+        if (login.ShowDialog() == true)
+        {
+            new AdminWindow { Owner = this }.ShowDialog();
+        }
     }
 
     private void AdvertisementPlayer_MediaEnded(object sender, RoutedEventArgs e)

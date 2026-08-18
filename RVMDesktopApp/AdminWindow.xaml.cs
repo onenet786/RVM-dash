@@ -424,4 +424,82 @@ public partial class AdminWindow : Window
         TxtConsoleLog.Clear();
         LogConsole("Console cleared.");
     }
+
+    private async void SyncLocalData_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string machineId = CfgMachineId?.Text?.Trim() ?? "RVM-001";
+            TxtSyncStatus.Text = "Syncing local transactions to Central Master Server...";
+            TxtSyncStatus.Foreground = System.Windows.Media.Brushes.Gold;
+
+            LogConsole("--------------------------------------------------");
+            LogConsole($"🔄 Starting manual sync of local SQL Server transactions to Central Master Dashboard...");
+
+            var (total, success, failed) = await DatabaseManager.SyncAllLocalSessionsToCentralAsync(machineId, msg => LogConsole(msg));
+
+            if (total == 0)
+            {
+                TxtSyncStatus.Text = "All local transactions are already synced! ✅";
+                TxtSyncStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+                MessageBox.Show("All local SQL Server transactions are already synced up to date with Central Dashboard!", "Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                TxtSyncStatus.Text = $"Sync finished: {success} succeeded, {failed} failed out of {total} total.";
+                TxtSyncStatus.Foreground = success > 0 ? System.Windows.Media.Brushes.LightGreen : System.Windows.Media.Brushes.OrangeRed;
+                MessageBox.Show($"Manual Central Data Sync Complete!\n\nTotal Local Sessions: {total}\nSuccessfully Synced: {success}\nFailed: {failed}", "Central Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            Load();
+        }
+        catch (Exception ex)
+        {
+            TxtSyncStatus.Text = $"Sync Error: {ex.Message}";
+            TxtSyncStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            LogConsole($"[Sync Error 🔴] {ex.Message}");
+        }
+    }
+
+    private void ChangePassword_Click(object sender, RoutedEventArgs e)
+    {
+        string currentPwd = PwdCurrentAdmin.Password;
+        string newPwd = PwdNewAdmin.Password;
+        string confirmPwd = PwdConfirmAdmin.Password;
+
+        if (string.IsNullOrEmpty(currentPwd))
+        {
+            MessageBox.Show("Please enter your current admin password.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            PwdCurrentAdmin.Focus();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(newPwd))
+        {
+            MessageBox.Show("Please enter a new password.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            PwdNewAdmin.Focus();
+            return;
+        }
+
+        if (newPwd != confirmPwd)
+        {
+            MessageBox.Show("New password and confirm password do not match.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            PwdConfirmAdmin.Focus();
+            return;
+        }
+
+        if (DatabaseManager.ChangeAdminPassword("RVM", currentPwd, newPwd, out string err))
+        {
+            MessageBox.Show("Admin password successfully updated in local SQL database!\n\nUse your new password next time you access the Admin Panel.", "Password Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            LogConsole("[Security 🟢] Admin password successfully updated in local database.");
+            PwdCurrentAdmin.Clear();
+            PwdNewAdmin.Clear();
+            PwdConfirmAdmin.Clear();
+        }
+        else
+        {
+            MessageBox.Show($"Failed to update password: {err}", "Password Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            LogConsole($"[Security 🔴] Password change failed: {err}");
+        }
+    }
 }
