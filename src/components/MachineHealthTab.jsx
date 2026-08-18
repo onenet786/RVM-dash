@@ -380,67 +380,34 @@ export default function MachineHealthTab() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs t-bg-sec p-3 rounded-xl border t-border">
-                  <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Total Sessions</span>
-                    <span className="font-bold t-text-primary mono">{m.sessionCount}</span>
-                  </div>
-                  <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Total Bottles</span>
-                    <span className="font-bold t-text-primary mono">{m.totalBottles}</span>
-                  </div>
-                  <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Points Issued</span>
-                    <span className="font-bold text-amber-400 mono">{m.totalPoints}</span>
-                  </div>
-                  <div>
-                    <span className="t-text-muted block text-[10px] font-bold">Bin Alerts</span>
-                    <span className={`font-bold mono ${m.alertCount > 0 ? 'text-rose-400' : 't-text-secondary'}`}>
-                      {m.alertCount}
-                    </span>
-                  </div>
-                </div>
-
-                {/* machine_configs Points & Size Variants Summary Box */}
-                <div className="text-xs bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
-                    <span className="font-extrabold text-cyan-400 text-[10px] uppercase tracking-wider flex items-center gap-1">
-                      <Settings className="w-3 h-3 text-cyan-400" />
-                      Active Point Rules (v{m.configVersion || 1})
-                    </span>
-                    <button 
-                      onClick={() => openConfigModalForMachine(m)}
-                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
-                    >
-                      <Edit3 className="w-2.5 h-2.5" />
-                      <span>Edit Kiosk Rules</span>
-                    </button>
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="t-text-muted block text-[10px] font-bold uppercase">Total Sessions</span>
+                    <span className="font-bold t-text-primary mono text-sm">{m.sessionCount || 0}</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
-                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
-                      <span className="text-emerald-400 font-bold block text-[10px]">🥤 Plastic Bottles</span>
-                      <span className="text-slate-300 text-[10px]">
-                        S:{m.pointsPlasticSmall ?? 5} | M:{m.pointsPlasticMedium ?? 10} | L:{m.pointsPlasticLarge ?? 15} pts
-                      </span>
-                    </div>
-                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
-                      <span className="text-amber-400 font-bold block text-[10px]">🥫 Cans / Metals</span>
-                      <span className="text-slate-300 text-[10px]">
-                        S:{m.pointsCanSmall ?? 10} | M:{m.pointsCanMedium ?? 15} | L:{m.pointsCanLarge ?? 20} pts
-                      </span>
-                    </div>
-                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
-                      <span className="text-cyan-400 font-bold block text-[10px]">📦 Paper / Cardboard</span>
-                      <span className="text-slate-300 text-[10px]">
-                        {m.pointsPerPaperKg ?? 15} pts ({m.paperUnit || 'per_kg'})
-                      </span>
-                    </div>
-                    <div className="bg-slate-950/60 p-1.5 rounded-lg border border-slate-800/60">
-                      <span className="text-purple-400 font-bold block text-[10px]">🍾 Glass Bottles</span>
-                      <span className="text-slate-300 text-[10px]">
-                        S:{m.pointsGlassSmall ?? 10} | M:{m.pointsGlassMedium ?? 15} | L:{m.pointsGlassLarge ?? 20} pts
-                      </span>
-                    </div>
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="text-emerald-400 block text-[10px] font-bold uppercase">Plastic Bottles</span>
+                    <span className="font-bold text-emerald-300 mono text-sm">🥤 {m.plasticCount || (m.glassCount === 0 && m.canCount === 0 && m.paperCount === 0 ? m.totalBottles : 0)}</span>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="text-purple-400 block text-[10px] font-bold uppercase">Glass Bottles</span>
+                    <span className="font-bold text-purple-300 mono text-sm">🍾 {m.glassCount || 0}</span>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="text-amber-400 block text-[10px] font-bold uppercase">Can / Metal</span>
+                    <span className="font-bold text-amber-300 mono text-sm">🥫 {m.canCount || 0}</span>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="text-cyan-400 block text-[10px] font-bold uppercase">Paper Total</span>
+                    <span className="font-bold text-cyan-300 mono text-sm">📦 {m.paperCount || 0}</span>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
+                    <span className="text-amber-400 block text-[10px] font-bold uppercase">Points Issued</span>
+                    <span className="font-bold text-amber-400 mono text-sm">⭐ {m.totalPoints || 0}</span>
                   </div>
                 </div>
 

@@ -1291,6 +1291,10 @@ app.get('/api/analytics/machines', async (req, res) => {
           totalCups: 0,
           totalPoints: 0,
           sessionCount: 0,
+          plasticCount: 0,
+          glassCount: 0,
+          canCount: 0,
+          paperCount: 0,
           lastActive: m.lastPingAt || null
         };
       });
@@ -1311,6 +1315,10 @@ app.get('/api/analytics/machines', async (req, res) => {
             totalCups: 0,
             totalPoints: 0,
             sessionCount: 0,
+            plasticCount: 0,
+            glassCount: 0,
+            canCount: 0,
+            paperCount: 0,
             lastActive: s.recycledAt || s.timestamp
           };
         }
@@ -1318,6 +1326,25 @@ app.get('/api/analytics/machines', async (req, res) => {
         grouped[mId].totalCups += parseInt(s.cups || s.totalCups || 0);
         grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
         grouped[mId].sessionCount += 1;
+
+        const pCnt = parseInt(s.plasticCount || s.plastic_count || 0);
+        const gCnt = parseInt(s.glassCount || s.glass_count || 0);
+        const cCnt = parseInt(s.aluminiumCount || s.aluminium_count || s.canCount || s.can_count || s.metalCount || 0);
+        const paCnt = parseInt(s.paperCardboardCount || s.paper_cardboard_count || s.paperCount || s.paper_count || 0);
+
+        if (pCnt === 0 && gCnt === 0 && cCnt === 0 && paCnt === 0) {
+          const mat = String(s.materialType || s.material_type || s.material || '').toUpperCase();
+          const items = parseInt(s.bottles || s.totalBottles || s.itemCount || 0);
+          if (mat.includes('GLASS')) grouped[mId].glassCount += items;
+          else if (mat.includes('CAN') || mat.includes('METAL') || mat.includes('ALUMINIUM')) grouped[mId].canCount += items;
+          else if (mat.includes('PAPER')) grouped[mId].paperCount += items;
+          else grouped[mId].plasticCount += items;
+        } else {
+          grouped[mId].plasticCount += pCnt;
+          grouped[mId].glassCount += gCnt;
+          grouped[mId].canCount += cCnt;
+          grouped[mId].paperCount += paCnt;
+        }
 
         // Only use session timestamp if machine has no recorded heartbeat ping at all
         if (sTime > 0 && !grouped[mId].lastPingAt) {
