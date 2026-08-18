@@ -91,7 +91,7 @@ export default function App() {
       return <AnalyticsTab />;
     }
 
-    if (activeTab === 'machines' || activeTab === 'col_machines') {
+    if (activeTab === 'machines') {
       return <MachineHealthTab />;
     }
     if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
