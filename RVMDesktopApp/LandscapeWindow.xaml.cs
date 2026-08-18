@@ -56,6 +56,8 @@ public partial class LandscapeWindow : Window
         TelemetryList.ItemsSource = telemetryLog;
     }
 
+    private DispatcherTimer? apiCheckTimer;
+
     private void LandscapeWindow_Loaded(object sender, RoutedEventArgs e)
     {
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
@@ -68,6 +70,11 @@ public partial class LandscapeWindow : Window
         StartAdvertisement();
         CheckDatabase();
         ConnectArduino();
+        _ = CheckCentralApiConnectionAsync();
+
+        apiCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        apiCheckTimer.Tick += async (s, args) => await CheckCentralApiConnectionAsync();
+        apiCheckTimer.Start();
     }
 
     private void OnNetworkStatusChanged(NetworkStatus status, string? error)
@@ -454,6 +461,51 @@ public partial class LandscapeWindow : Window
             BottleInfoText.Text = $"Check {settings.ArduinoPort} connection or update config.txt";
             MachineStateText.Text = "MACHINE: ERROR";
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
+        }
+    }
+
+    private async Task CheckCentralApiConnectionAsync()
+    {
+        try
+        {
+            string serverUrl = settings.CentralApiUrl.TrimEnd('/');
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+
+            var response = await client.GetAsync($"{serverUrl}/api/machine/config/{settings.MachineId}");
+            if (response.IsSuccessStatusCode)
+            {
+
+                try
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    PointRulesCache.ApplyJsonConfig(json);
+
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("name", out var nameProp) && !string.IsNullOrWhiteSpace(nameProp.GetString()))
+                    {
+                        string apiName = nameProp.GetString()!;
+                        UpdateRvmNameDisplay(apiName);
+                        LogTelemetry($"[API] Synced Reward Rules & Point Config (v{PointRulesCache.ConfigVersion}) from Central Dashboard: {apiName}");
+                    }
+                }
+                catch
+                {
+                }
+
+                SetLiveBadgeOnline();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                SetLiveBadgeUnauthorized($"Machine '{settings.MachineId}' not registered/authorized on Central Dashboard");
+            }
+            else
+            {
+                SetLiveBadgeOffline($"HTTP {(int)response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetLiveBadgeOffline(ex.Message);
         }
     }
 
