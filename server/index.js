@@ -1583,9 +1583,19 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
       const sessions = await fetchCollectionDocs('recyclingsessions');
       count = sessions.length;
       sessions.forEach(s => {
-        totalBottles += parseInt(s.bottles || s.totalBottles || 0);
-        totalCups += parseInt(s.cups || s.totalCups || 0);
-        totalWeightKg += parseFloat(s.weight || s.totalWeight || 0);
+        const plastic = parseInt(s.plasticCount || s.plastic_count || s.bottles || s.totalBottles || 0) +
+                        parseInt(s.plasticSmallCount || s.plastic_small_count || 0) +
+                        parseInt(s.plasticMediumCount || s.plastic_medium_count || 0) +
+                        parseInt(s.plasticLargeCount || s.plastic_large_count || 0);
+
+        const aluminium = parseInt(s.aluminiumCount || s.aluminium_count || s.cups || s.totalCups || 0) +
+                          parseInt(s.canSmallCount || s.can_small_count || 0) +
+                          parseInt(s.canMediumCount || s.can_medium_count || 0) +
+                          parseInt(s.canLargeCount || s.can_large_count || 0);
+
+        totalBottles += plastic;
+        totalCups += aluminium;
+        totalWeightKg += parseFloat(s.weight || s.totalWeight || (plastic * 0.025 + aluminium * 0.015) || 0);
       });
     } else {
       const sessionCol = db.collection('recyclingsessions');
@@ -1611,10 +1621,10 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
 
 
     // Standard material weights based on PRD: PET bottle = 25g (0.025kg), Aluminium Can = 15g (0.015kg)
-    const plasticWeight = stats.totalBottles > 0 ? stats.totalBottles * 0.025 : (stats.totalWeightKg * 0.6);
-    const aluminiumWeight = stats.totalCups > 0 ? stats.totalCups * 0.015 : (stats.totalWeightKg * 0.2);
-    const paperCardboardWeight = stats.totalWeightKg > 0 ? stats.totalWeightKg * 0.1 : 50;
-    const organicWeight = stats.totalWeightKg > 0 ? stats.totalWeightKg * 0.1 : 100;
+    const plasticWeight = totalBottles > 0 ? totalBottles * 0.025 : (totalWeightKg * 0.6);
+    const aluminiumWeight = totalCups > 0 ? totalCups * 0.015 : (totalWeightKg * 0.2);
+    const paperCardboardWeight = totalWeightKg > 0 ? totalWeightKg * 0.1 : 50;
+    const organicWeight = totalWeightKg > 0 ? totalWeightKg * 0.1 : 100;
 
     const breakdown = [
       { material: 'Aluminium', rewardClass: 'Aluminium Can', weightKg: parseFloat(aluminiumWeight.toFixed(1)), factor: 9.1, co2eSavedKg: parseFloat((aluminiumWeight * 9.1).toFixed(1)) },
@@ -1643,7 +1653,7 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
 
     res.json({
       auditStatus: 'Audited, Corrected, And Reconciled With The Reward System PRD (August 2026)',
-      totalSessions: stats.count,
+      totalSessions: count,
       totalWeightProcessedKg: parseFloat((plasticWeight + aluminiumWeight + paperCardboardWeight + organicWeight).toFixed(1)),
       totalCo2eAvoidedKg: parseFloat(totalCo2eAvoidedKg.toFixed(1)),
       totalCo2eAvoidedTonnes,
@@ -1653,7 +1663,7 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
       carMilesBasis: 'Approximate kg CO2e per passenger-vehicle mile (0.40 kg CO2e / mile)',
       compostYieldKg,
       compostYieldBasis: 'Disjoint Estimated Batch Mode (40% yield from Organic/Tea input weight)',
-      weightMeasurementType: stats.totalWeightKg > 0 ? 'Measured' : 'Estimated',
+      weightMeasurementType: totalWeightKg > 0 ? 'Measured' : 'Estimated',
       breakdown,
       factors: MATERIAL_FACTORS
     });
