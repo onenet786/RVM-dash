@@ -211,9 +211,18 @@ async function initProductionPostgresSchemas() {
         machine_id VARCHAR(50) PRIMARY KEY REFERENCES machines(machine_id) ON DELETE CASCADE,
         config_version INT DEFAULT 1,
         points_per_plastic INT DEFAULT 10,
+        points_plastic_small INT DEFAULT 5,
+        points_plastic_medium INT DEFAULT 10,
+        points_plastic_large INT DEFAULT 15,
         points_per_aluminium INT DEFAULT 20,
+        points_can_small INT DEFAULT 10,
+        points_can_medium INT DEFAULT 15,
+        points_can_large INT DEFAULT 20,
         points_per_paper_kg INT DEFAULT 15,
         points_per_glass INT DEFAULT 15,
+        points_glass_small INT DEFAULT 10,
+        points_glass_medium INT DEFAULT 15,
+        points_glass_large INT DEFAULT 20,
         plastic_unit VARCHAR(20) DEFAULT 'per_piece',
         aluminium_unit VARCHAR(20) DEFAULT 'per_piece',
         paper_unit VARCHAR(20) DEFAULT 'per_kg',
@@ -223,6 +232,15 @@ async function initProductionPostgresSchemas() {
     `);
 
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_per_glass INT DEFAULT 15;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_plastic_small INT DEFAULT 5;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_plastic_medium INT DEFAULT 10;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_plastic_large INT DEFAULT 15;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_can_small INT DEFAULT 10;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_can_medium INT DEFAULT 15;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_can_large INT DEFAULT 20;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_glass_small INT DEFAULT 10;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_glass_medium INT DEFAULT 15;`);
+    await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS points_glass_large INT DEFAULT 20;`);
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS plastic_unit VARCHAR(20) DEFAULT 'per_piece';`);
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS aluminium_unit VARCHAR(20) DEFAULT 'per_piece';`);
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS paper_unit VARCHAR(20) DEFAULT 'per_kg';`);
@@ -1202,7 +1220,10 @@ app.get('/api/analytics/machines', async (req, res) => {
         try {
           const metaRes = await pool.query(`
             SELECT m.machine_id, m.name, m.location, m.status, m.last_ping_at,
-                   c.points_per_plastic, c.points_per_aluminium, c.points_per_paper_kg, c.config_version
+                   c.points_per_plastic, c.points_plastic_small, c.points_plastic_medium, c.points_plastic_large,
+                   c.points_per_aluminium, c.points_can_small, c.points_can_medium, c.points_can_large,
+                   c.points_per_paper_kg, c.points_per_glass, c.points_glass_small, c.points_glass_medium, c.points_glass_large,
+                   c.plastic_unit, c.aluminium_unit, c.paper_unit, c.glass_unit, c.config_version
             FROM machines m
             LEFT JOIN machine_configs c ON m.machine_id = c.machine_id
           `);
@@ -1214,8 +1235,22 @@ app.get('/api/analytics/machines', async (req, res) => {
               status: r.status,
               lastPingAt: r.last_ping_at,
               pointsPerPlasticBottle: r.points_per_plastic ?? 10,
+              pointsPlasticSmall: r.points_plastic_small ?? 5,
+              pointsPlasticMedium: r.points_plastic_medium ?? 10,
+              pointsPlasticLarge: r.points_plastic_large ?? 15,
               pointsPerAluminiumCan: r.points_per_aluminium ?? 20,
+              pointsCanSmall: r.points_can_small ?? 10,
+              pointsCanMedium: r.points_can_medium ?? 15,
+              pointsCanLarge: r.points_can_large ?? 20,
               pointsPerPaperKg: r.points_per_paper_kg ?? 15,
+              pointsPerGlass: r.points_per_glass ?? 15,
+              pointsGlassSmall: r.points_glass_small ?? 10,
+              pointsGlassMedium: r.points_glass_medium ?? 15,
+              pointsGlassLarge: r.points_glass_large ?? 20,
+              plasticUnit: r.plastic_unit || 'per_piece',
+              aluminiumUnit: r.aluminium_unit || 'per_piece',
+              paperUnit: r.paper_unit || 'per_kg',
+              glassUnit: r.glass_unit || 'per_piece',
               configVersion: r.config_version ?? 1
             });
           });
@@ -1235,8 +1270,22 @@ app.get('/api/analytics/machines', async (req, res) => {
           isOnline,
           lastPingAt: m.lastPingAt,
           pointsPerPlasticBottle: m.pointsPerPlasticBottle,
+          pointsPlasticSmall: m.pointsPlasticSmall,
+          pointsPlasticMedium: m.pointsPlasticMedium,
+          pointsPlasticLarge: m.pointsPlasticLarge,
           pointsPerAluminiumCan: m.pointsPerAluminiumCan,
+          pointsCanSmall: m.pointsCanSmall,
+          pointsCanMedium: m.pointsCanMedium,
+          pointsCanLarge: m.pointsCanLarge,
           pointsPerPaperKg: m.pointsPerPaperKg,
+          pointsPerGlass: m.pointsPerGlass,
+          pointsGlassSmall: m.pointsGlassSmall,
+          pointsGlassMedium: m.pointsGlassMedium,
+          pointsGlassLarge: m.pointsGlassLarge,
+          plasticUnit: m.plasticUnit,
+          aluminiumUnit: m.aluminiumUnit,
+          paperUnit: m.paperUnit,
+          glassUnit: m.glassUnit,
           configVersion: m.configVersion,
           totalBottles: 0,
           totalCups: 0,
@@ -3088,9 +3137,18 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
             location: row.location || 'Main Kiosk',
             configVersion: row.config_version,
             pointsPerPlasticBottle: row.points_per_plastic ?? 10,
+            pointsPlasticSmall: row.points_plastic_small ?? 5,
+            pointsPlasticMedium: row.points_plastic_medium ?? 10,
+            pointsPlasticLarge: row.points_plastic_large ?? 15,
             pointsPerAluminiumCan: row.points_per_aluminium ?? 20,
+            pointsCanSmall: row.points_can_small ?? 10,
+            pointsCanMedium: row.points_can_medium ?? 15,
+            pointsCanLarge: row.points_can_large ?? 20,
             pointsPerPaperKg: row.points_per_paper_kg ?? 15,
             pointsPerGlass: row.points_per_glass ?? 15,
+            pointsGlassSmall: row.points_glass_small ?? 10,
+            pointsGlassMedium: row.points_glass_medium ?? 15,
+            pointsGlassLarge: row.points_glass_large ?? 20,
             plasticUnit: row.plastic_unit || 'per_piece',
             aluminiumUnit: row.aluminium_unit || 'per_piece',
             paperUnit: row.paper_unit || 'per_kg',
@@ -3109,9 +3167,18 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
           if (m.name) config.name = m.name;
           if (m.location) config.location = m.location;
           if (m.pointsPerPlasticBottle !== undefined) config.pointsPerPlasticBottle = m.pointsPerPlasticBottle;
+          if (m.pointsPlasticSmall !== undefined) config.pointsPlasticSmall = m.pointsPlasticSmall;
+          if (m.pointsPlasticMedium !== undefined) config.pointsPlasticMedium = m.pointsPlasticMedium;
+          if (m.pointsPlasticLarge !== undefined) config.pointsPlasticLarge = m.pointsPlasticLarge;
           if (m.pointsPerAluminiumCan !== undefined) config.pointsPerAluminiumCan = m.pointsPerAluminiumCan;
+          if (m.pointsCanSmall !== undefined) config.pointsCanSmall = m.pointsCanSmall;
+          if (m.pointsCanMedium !== undefined) config.pointsCanMedium = m.pointsCanMedium;
+          if (m.pointsCanLarge !== undefined) config.pointsCanLarge = m.pointsCanLarge;
           if (m.pointsPerPaperKg !== undefined) config.pointsPerPaperKg = m.pointsPerPaperKg;
           if (m.pointsPerGlass !== undefined) config.pointsPerGlass = m.pointsPerGlass;
+          if (m.pointsGlassSmall !== undefined) config.pointsGlassSmall = m.pointsGlassSmall;
+          if (m.pointsGlassMedium !== undefined) config.pointsGlassMedium = m.pointsGlassMedium;
+          if (m.pointsGlassLarge !== undefined) config.pointsGlassLarge = m.pointsGlassLarge;
           if (m.plasticUnit) config.plasticUnit = m.plasticUnit;
           if (m.aluminiumUnit) config.aluminiumUnit = m.aluminiumUnit;
           if (m.paperUnit) config.paperUnit = m.paperUnit;
@@ -3132,9 +3199,18 @@ const handleSaveMachineConfig = async (req, res) => {
     const machineId = req.params.machineId || req.body.targetMachine || req.body.machineId;
     const { 
       pointsPerPlasticBottle = 10, 
+      pointsPlasticSmall = 5,
+      pointsPlasticMedium = 10,
+      pointsPlasticLarge = 15,
       pointsPerAluminiumCan = 20, 
+      pointsCanSmall = 10,
+      pointsCanMedium = 15,
+      pointsCanLarge = 20,
       pointsPerPaperKg = 15,
       pointsPerGlass = 15,
+      pointsGlassSmall = 10,
+      pointsGlassMedium = 15,
+      pointsGlassLarge = 20,
       plasticUnit = 'per_piece',
       aluminiumUnit = 'per_piece',
       paperUnit = 'per_kg',
@@ -3147,40 +3223,75 @@ const handleSaveMachineConfig = async (req, res) => {
       if (pool) {
         if (targetMachine === 'ALL') {
           await pool.query(`
-            INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at)
-            SELECT machine_id, 1, $1, $2, $3, $4, $5, $6, $7, $8, NOW() FROM machines
+            INSERT INTO machine_configs (
+              machine_id, config_version, 
+              points_per_plastic, points_plastic_small, points_plastic_medium, points_plastic_large,
+              points_per_aluminium, points_can_small, points_can_medium, points_can_large,
+              points_per_paper_kg, points_per_glass, points_glass_small, points_glass_medium, points_glass_large,
+              plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at
+            )
+            SELECT machine_id, 1, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW() FROM machines
             ON CONFLICT (machine_id) DO UPDATE SET
               config_version = machine_configs.config_version + 1,
               points_per_plastic = EXCLUDED.points_per_plastic,
+              points_plastic_small = EXCLUDED.points_plastic_small,
+              points_plastic_medium = EXCLUDED.points_plastic_medium,
+              points_plastic_large = EXCLUDED.points_plastic_large,
               points_per_aluminium = EXCLUDED.points_per_aluminium,
+              points_can_small = EXCLUDED.points_can_small,
+              points_can_medium = EXCLUDED.points_can_medium,
+              points_can_large = EXCLUDED.points_can_large,
               points_per_paper_kg = EXCLUDED.points_per_paper_kg,
               points_per_glass = EXCLUDED.points_per_glass,
+              points_glass_small = EXCLUDED.points_glass_small,
+              points_glass_medium = EXCLUDED.points_glass_medium,
+              points_glass_large = EXCLUDED.points_glass_large,
               plastic_unit = EXCLUDED.plastic_unit,
               aluminium_unit = EXCLUDED.aluminium_unit,
               paper_unit = EXCLUDED.paper_unit,
               glass_unit = EXCLUDED.glass_unit,
               updated_at = NOW();
           `, [
-            parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg), parseInt(pointsPerGlass),
+            parseInt(pointsPerPlasticBottle), parseInt(pointsPlasticSmall), parseInt(pointsPlasticMedium), parseInt(pointsPlasticLarge),
+            parseInt(pointsPerAluminiumCan), parseInt(pointsCanSmall), parseInt(pointsCanMedium), parseInt(pointsCanLarge),
+            parseInt(pointsPerPaperKg), parseInt(pointsPerGlass), parseInt(pointsGlassSmall), parseInt(pointsGlassMedium), parseInt(pointsGlassLarge),
             plasticUnit, aluminiumUnit, paperUnit, glassUnit
           ]);
         } else if (targetMachine) {
           await pool.query(`
-            INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at)
-            VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            INSERT INTO machine_configs (
+              machine_id, config_version, 
+              points_per_plastic, points_plastic_small, points_plastic_medium, points_plastic_large,
+              points_per_aluminium, points_can_small, points_can_medium, points_can_large,
+              points_per_paper_kg, points_per_glass, points_glass_small, points_glass_medium, points_glass_large,
+              plastic_unit, aluminium_unit, paper_unit, glass_unit, updated_at
+            )
+            VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
             ON CONFLICT (machine_id) DO UPDATE SET
               config_version = machine_configs.config_version + 1,
               points_per_plastic = EXCLUDED.points_per_plastic,
+              points_plastic_small = EXCLUDED.points_plastic_small,
+              points_plastic_medium = EXCLUDED.points_plastic_medium,
+              points_plastic_large = EXCLUDED.points_plastic_large,
               points_per_aluminium = EXCLUDED.points_per_aluminium,
+              points_can_small = EXCLUDED.points_can_small,
+              points_can_medium = EXCLUDED.points_can_medium,
+              points_can_large = EXCLUDED.points_can_large,
               points_per_paper_kg = EXCLUDED.points_per_paper_kg,
               points_per_glass = EXCLUDED.points_per_glass,
+              points_glass_small = EXCLUDED.points_glass_small,
+              points_glass_medium = EXCLUDED.points_glass_medium,
+              points_glass_large = EXCLUDED.points_glass_large,
               plastic_unit = EXCLUDED.plastic_unit,
               aluminium_unit = EXCLUDED.aluminium_unit,
               paper_unit = EXCLUDED.paper_unit,
               glass_unit = EXCLUDED.glass_unit,
               updated_at = NOW();
           `, [
-            targetMachine, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg), parseInt(pointsPerGlass),
+            targetMachine,
+            parseInt(pointsPerPlasticBottle), parseInt(pointsPlasticSmall), parseInt(pointsPlasticMedium), parseInt(pointsPlasticLarge),
+            parseInt(pointsPerAluminiumCan), parseInt(pointsCanSmall), parseInt(pointsCanMedium), parseInt(pointsCanLarge),
+            parseInt(pointsPerPaperKg), parseInt(pointsPerGlass), parseInt(pointsGlassSmall), parseInt(pointsGlassMedium), parseInt(pointsGlassLarge),
             plasticUnit, aluminiumUnit, paperUnit, glassUnit
           ]);
         }
@@ -3196,9 +3307,18 @@ const handleSaveMachineConfig = async (req, res) => {
           { 
             $set: { 
               pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle), 
+              pointsPlasticSmall: parseInt(pointsPlasticSmall),
+              pointsPlasticMedium: parseInt(pointsPlasticMedium),
+              pointsPlasticLarge: parseInt(pointsPlasticLarge),
               pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan), 
+              pointsCanSmall: parseInt(pointsCanSmall),
+              pointsCanMedium: parseInt(pointsCanMedium),
+              pointsCanLarge: parseInt(pointsCanLarge),
               pointsPerPaperKg: parseInt(pointsPerPaperKg), 
               pointsPerGlass: parseInt(pointsPerGlass), 
+              pointsGlassSmall: parseInt(pointsGlassSmall),
+              pointsGlassMedium: parseInt(pointsGlassMedium),
+              pointsGlassLarge: parseInt(pointsGlassLarge),
               plasticUnit,
               aluminiumUnit,
               paperUnit,

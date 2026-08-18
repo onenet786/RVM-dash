@@ -15,14 +15,31 @@ export default function MachineHealthTab() {
   // Points & Unit Configuration Modal State
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [targetMachine, setTargetMachine] = useState('ALL');
+  
+  // Plastic Variants
   const [pointsPlastic, setPointsPlastic] = useState(10);
+  const [pointsPlasticSmall, setPointsPlasticSmall] = useState(5);
+  const [pointsPlasticMedium, setPointsPlasticMedium] = useState(10);
+  const [pointsPlasticLarge, setPointsPlasticLarge] = useState(15);
   const [plasticUnit, setPlasticUnit] = useState('per_piece');
+
+  // Can / Aluminium Variants
   const [pointsAluminium, setPointsAluminium] = useState(20);
+  const [pointsCanSmall, setPointsCanSmall] = useState(10);
+  const [pointsCanMedium, setPointsCanMedium] = useState(15);
+  const [pointsCanLarge, setPointsCanLarge] = useState(20);
   const [aluminiumUnit, setAluminiumUnit] = useState('per_piece');
+
+  // Glass Variants
+  const [pointsGlass, setPointsGlass] = useState(15);
+  const [pointsGlassSmall, setPointsGlassSmall] = useState(10);
+  const [pointsGlassMedium, setPointsGlassMedium] = useState(15);
+  const [pointsGlassLarge, setPointsGlassLarge] = useState(20);
+  const [glassUnit, setGlassUnit] = useState('per_piece');
+
+  // Paper Variant
   const [pointsPaper, setPointsPaper] = useState(15);
   const [paperUnit, setPaperUnit] = useState('per_kg');
-  const [pointsGlass, setPointsGlass] = useState(15);
-  const [glassUnit, setGlassUnit] = useState('per_piece');
 
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -102,12 +119,21 @@ export default function MachineHealthTab() {
         body: JSON.stringify({
           targetMachine,
           pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
+          pointsPlasticSmall: parseInt(pointsPlasticSmall) || 5,
+          pointsPlasticMedium: parseInt(pointsPlasticMedium) || 10,
+          pointsPlasticLarge: parseInt(pointsPlasticLarge) || 15,
           plasticUnit,
           pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,
+          pointsCanSmall: parseInt(pointsCanSmall) || 10,
+          pointsCanMedium: parseInt(pointsCanMedium) || 15,
+          pointsCanLarge: parseInt(pointsCanLarge) || 20,
           aluminiumUnit,
           pointsPerPaperKg: parseInt(pointsPaper) || 15,
           paperUnit,
           pointsPerGlass: parseInt(pointsGlass) || 15,
+          pointsGlassSmall: parseInt(pointsGlassSmall) || 10,
+          pointsGlassMedium: parseInt(pointsGlassMedium) || 15,
+          pointsGlassLarge: parseInt(pointsGlassLarge) || 20,
           glassUnit
         })
       });
@@ -130,12 +156,24 @@ export default function MachineHealthTab() {
     setNewMachineName(m.name || '');
     setNewMachineLocation(m.location || '');
     setPointsPlastic(m.pointsPerPlasticBottle ?? 10);
+    setPointsPlasticSmall(m.pointsPlasticSmall ?? 5);
+    setPointsPlasticMedium(m.pointsPlasticMedium ?? 10);
+    setPointsPlasticLarge(m.pointsPlasticLarge ?? 15);
     setPlasticUnit(m.plasticUnit || 'per_piece');
+
     setPointsAluminium(m.pointsPerAluminiumCan ?? 20);
+    setPointsCanSmall(m.pointsCanSmall ?? 10);
+    setPointsCanMedium(m.pointsCanMedium ?? 15);
+    setPointsCanLarge(m.pointsCanLarge ?? 20);
     setAluminiumUnit(m.aluminiumUnit || 'per_piece');
+
     setPointsPaper(m.pointsPerPaperKg ?? 15);
     setPaperUnit(m.paperUnit || 'per_kg');
+
     setPointsGlass(m.pointsPerGlass ?? 15);
+    setPointsGlassSmall(m.pointsGlassSmall ?? 10);
+    setPointsGlassMedium(m.pointsGlassMedium ?? 15);
+    setPointsGlassLarge(m.pointsGlassLarge ?? 20);
     setGlassUnit(m.glassUnit || 'per_piece');
     setShowAddModal(true);
   };
@@ -144,12 +182,24 @@ export default function MachineHealthTab() {
     setTargetMachine(m ? m.machineId : 'ALL');
     if (m) {
       setPointsPlastic(m.pointsPerPlasticBottle ?? 10);
+      setPointsPlasticSmall(m.pointsPlasticSmall ?? 5);
+      setPointsPlasticMedium(m.pointsPlasticMedium ?? 10);
+      setPointsPlasticLarge(m.pointsPlasticLarge ?? 15);
       setPlasticUnit(m.plasticUnit || 'per_piece');
+
       setPointsAluminium(m.pointsPerAluminiumCan ?? 20);
+      setPointsCanSmall(m.pointsCanSmall ?? 10);
+      setPointsCanMedium(m.pointsCanMedium ?? 15);
+      setPointsCanLarge(m.pointsCanLarge ?? 20);
       setAluminiumUnit(m.aluminiumUnit || 'per_piece');
+
       setPointsPaper(m.pointsPerPaperKg ?? 15);
       setPaperUnit(m.paperUnit || 'per_kg');
+
       setPointsGlass(m.pointsPerGlass ?? 15);
+      setPointsGlassSmall(m.pointsGlassSmall ?? 10);
+      setPointsGlassMedium(m.pointsGlassMedium ?? 15);
+      setPointsGlassLarge(m.pointsGlassLarge ?? 20);
       setGlassUnit(m.glassUnit || 'per_piece');
     }
     setShowConfigModal(true);
@@ -539,29 +589,17 @@ export default function MachineHealthTab() {
                 </select>
               </div>
 
-              {/* 1. Plastic Bottle Rule */}
+              {/* 1. Plastic Bottle Rules & Size Variants */}
               <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    🥤 Plastic Bottle Recycling Rule
+                    🥤 Plastic Bottle Rules & Size Variants
                   </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
-                    <input 
-                      type="number"
-                      value={pointsPlastic}
-                      onChange={e => setPointsPlastic(e.target.value)}
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-emerald-400 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                  <div className="w-1/2">
                     <select
                       value={plasticUnit}
                       onChange={e => setPlasticUnit(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-bold text-slate-200"
                     >
                       <option value="per_piece">Per Piece (Per Item)</option>
                       <option value="per_gram">Per Gram (g)</option>
@@ -569,31 +607,48 @@ export default function MachineHealthTab() {
                     </select>
                   </div>
                 </div>
-              </div>
-
-              {/* 2. Aluminium Can Rule */}
-              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                    🥫 Aluminium Can Recycling Rule
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2 pt-1">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
                     <input 
                       type="number"
-                      value={pointsAluminium}
-                      onChange={e => setPointsAluminium(e.target.value)}
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-amber-400 font-bold"
+                      value={pointsPlasticSmall}
+                      onChange={e => setPointsPlasticSmall(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-emerald-400 font-bold"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsPlasticMedium}
+                      onChange={e => setPointsPlasticMedium(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-emerald-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsPlasticLarge}
+                      onChange={e => setPointsPlasticLarge(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-emerald-400 font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Aluminium Can Rules & Size Variants */}
+              <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                    🥫 Aluminium Can Rules & Size Variants
+                  </span>
+                  <div className="w-1/2">
                     <select
                       value={aluminiumUnit}
                       onChange={e => setAluminiumUnit(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-bold text-slate-200"
                     >
                       <option value="per_piece">Per Piece (Per Item)</option>
                       <option value="per_gram">Per Gram (g)</option>
@@ -601,9 +656,38 @@ export default function MachineHealthTab() {
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsCanSmall}
+                      onChange={e => setPointsCanSmall(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-amber-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsCanMedium}
+                      onChange={e => setPointsCanMedium(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-amber-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsCanLarge}
+                      onChange={e => setPointsCanLarge(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-amber-400 font-bold"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* 3. Paper / Cardboard Rule */}
+              {/* 3. Paper / Cardboard Rules */}
               <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
@@ -635,34 +719,51 @@ export default function MachineHealthTab() {
                 </div>
               </div>
 
-              {/* 4. Glass Bottle Rule */}
+              {/* 4. Glass Bottle Rules & Size Variants */}
               <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
-                    🍾 Glass Bottle Recycling Rule
+                    🍾 Glass Bottle Rules & Size Variants
                   </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
-                    <input 
-                      type="number"
-                      value={pointsGlass}
-                      onChange={e => setPointsGlass(e.target.value)}
-                      className="w-full px-2.5 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-mono text-purple-400 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Calculation Unit</label>
+                  <div className="w-1/2">
                     <select
                       value={glassUnit}
                       onChange={e => setGlassUnit(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-slate-950 border t-border rounded-xl text-xs font-bold text-slate-200"
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-bold text-slate-200"
                     >
                       <option value="per_piece">Per Piece (Per Item)</option>
                       <option value="per_gram">Per Gram (g)</option>
                       <option value="per_kg">Per Kilogram (Kg)</option>
                     </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsGlassSmall}
+                      onChange={e => setPointsGlassSmall(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-purple-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsGlassMedium}
+                      onChange={e => setPointsGlassMedium(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-purple-400 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
+                    <input 
+                      type="number"
+                      value={pointsGlassLarge}
+                      onChange={e => setPointsGlassLarge(e.target.value)}
+                      className="w-full px-2 py-1 bg-slate-950 border t-border rounded-lg text-xs font-mono text-purple-400 font-bold"
+                    />
                   </div>
                 </div>
               </div>
