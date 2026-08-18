@@ -29,7 +29,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
-    { id: 'machines', label: 'RVMs', icon: Cpu },
+    { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
     ...(isMasterDev ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
