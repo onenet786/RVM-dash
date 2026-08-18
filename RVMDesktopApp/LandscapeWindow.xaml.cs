@@ -187,6 +187,8 @@ public partial class LandscapeWindow : Window
             serial.SendCommand("RESET");
     }
 
+    private DateTime lastDigit3PressTime = DateTime.MinValue;
+
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.D8 || e.Key == Key.NumPad8)
@@ -194,6 +196,20 @@ public partial class LandscapeWindow : Window
             ToggleTelemetry();
             e.Handled = true;
             return;
+        }
+
+        if (e.Key == Key.D3 || e.Key == Key.NumPad3)
+        {
+            DateTime now = DateTime.Now;
+            if ((now - lastDigit3PressTime).TotalMilliseconds <= 1500)
+            {
+                lastDigit3PressTime = DateTime.MinValue;
+                ManualClearChamber();
+                e.Handled = true;
+                return;
+            }
+
+            lastDigit3PressTime = now;
         }
 
         if (e.Key == Key.Escape)
@@ -233,6 +249,19 @@ public partial class LandscapeWindow : Window
             case Key.NumPad9:
                 BrowseVideo();
                 break;
+        }
+    }
+
+    private void ManualClearChamber()
+    {
+        StatusText.Text = "Clearing Chamber...";
+        StatusText.Foreground = Brushes.Gold;
+        BottleInfoText.Text = "Manual gate release command (33) sent";
+        LogTelemetry("[COMMAND] Manual Chamber Clearing requested (Key 33 pressed)");
+
+        if (serial.IsConnected)
+        {
+            serial.SendCommand("CLEAR_CHAMBER");
         }
     }
 
@@ -630,6 +659,16 @@ public partial class LandscapeWindow : Window
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Checking empty chamber again";
             MachineStateText.Text = "MACHINE: CALIBRATING";
+            return;
+        }
+
+        if (message == "CHAMBER:CLEARED")
+        {
+            StatusText.Text = "Chamber Cleared";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "Gate closed. Ready for next item.";
+            MachineStateText.Text = "MACHINE: READY";
+            LogTelemetry("[HARDWARE 🟢] Chamber manually cleared (Key 33 response)");
             return;
         }
 

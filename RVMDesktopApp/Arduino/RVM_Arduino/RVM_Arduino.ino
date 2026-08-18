@@ -353,6 +353,17 @@ void executeCommand(String command)
     closeGate();
     calibrateEmptyPipe();
   }
+  else if (command == "CLEAR_CHAMBER" || command == "CLEAR" || command == "CLEARING" || command == "33")
+  {
+    Serial.println("CALIBRATION:CLEARING_CHAMBER");
+    openGate();
+    delay(2000);
+    closeGate();
+    delay(300);
+    waitingForStuckBottleRemoval = false;
+    Serial.println("CHAMBER:CLEARED");
+    Serial.println("STATUS:READY");
+  }
   else if (command == "STATUS")
   {
     Serial.print("STATUS:");
