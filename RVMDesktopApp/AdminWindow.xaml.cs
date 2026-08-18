@@ -50,7 +50,7 @@ public partial class AdminWindow : Window
     private void ReloadConfig_Click(object sender, RoutedEventArgs e)
     {
         LoadConfigForm();
-        MessageBox.Show("Configuration reloaded from config.txt.", "Reload Config", MessageBoxButton.OK, MessageBoxImage.Information);
+        RvmMessageDialog.ShowInfo("Reload Config", "Configuration reloaded from config.txt.", this);
     }
 
     private void SaveConfig_Click(object sender, RoutedEventArgs e)
@@ -78,12 +78,12 @@ public partial class AdminWindow : Window
             // Restart background heartbeat with updated config
             HeartbeatService.Start(dict["MachineId"], dict["CentralApiUrl"]);
 
-            MessageBox.Show("System & Hardware Configuration successfully saved to config.txt!", "Save Config", MessageBoxButton.OK, MessageBoxImage.Information);
+            RvmMessageDialog.ShowSuccess("Save Config", "System & Hardware Configuration successfully saved to config.txt!", this);
             LogConsole("[System Config] Saved updated config.txt settings successfully.");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to save config.txt: {ex.Message}", "Save Config Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            RvmMessageDialog.ShowError("Save Config Error", $"Failed to save config.txt: {ex.Message}", this);
         }
     }
 
@@ -112,12 +112,12 @@ public partial class AdminWindow : Window
             System.Threading.Thread.Sleep(300);
             serial.Disconnect();
 
-            MessageBox.Show($"Arduino board on {port} (Baud: {baud}) successfully re-initialized with hardware DTR reset and soft reset!", "Arduino Re-initialized", MessageBoxButton.OK, MessageBoxImage.Information);
+            RvmMessageDialog.ShowSuccess("Arduino Re-initialized", $"Arduino board on {port} (Baud: {baud}) successfully re-initialized with hardware DTR reset and soft reset!", this);
             LogConsole($"[Hardware Reset] Arduino on {port} re-initialized cleanly.");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to re-initialize Arduino: {ex.Message}", "Arduino Reset Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            RvmMessageDialog.ShowError("Arduino Reset Error", $"Failed to re-initialize Arduino: {ex.Message}", this);
             LogConsole($"[Hardware Reset Error] {ex.Message}");
         }
     }
@@ -152,7 +152,7 @@ public partial class AdminWindow : Window
     {
         if (PointsGrid.ItemsSource is not DataView view)
         {
-            MessageBox.Show("No point settings loaded.", "Save Points", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RvmMessageDialog.ShowWarning("Save Points", "No point settings loaded.", this);
             return;
         }
 
@@ -172,7 +172,7 @@ public partial class AdminWindow : Window
 
                 if (points < 0)
                 {
-                    MessageBox.Show("Points cannot be negative.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    RvmMessageDialog.ShowWarning("Validation", "Points cannot be negative.", this);
                     anyError = true;
                     break;
                 }
@@ -182,7 +182,7 @@ public partial class AdminWindow : Window
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save row: {ex.Message}", "Save Points", MessageBoxButton.OK, MessageBoxImage.Error);
+                RvmMessageDialog.ShowError("Save Points", $"Failed to save row: {ex.Message}", this);
                 anyError = true;
                 break;
             }
@@ -190,7 +190,7 @@ public partial class AdminWindow : Window
 
         if (!anyError)
         {
-            MessageBox.Show("Point settings saved.", "Save Points", MessageBoxButton.OK, MessageBoxImage.Information);
+            RvmMessageDialog.ShowSuccess("Save Points", "Point settings saved successfully.", this);
         }
 
         Load();
@@ -442,13 +442,13 @@ public partial class AdminWindow : Window
             {
                 TxtSyncStatus.Text = "All local transactions are already synced! ✅";
                 TxtSyncStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
-                MessageBox.Show("All local SQL Server transactions are already synced up to date with Central Dashboard!", "Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                RvmMessageDialog.ShowInfo("Sync Complete", "All local SQL Server transactions are already synced up to date with Central Dashboard!", this);
             }
             else
             {
                 TxtSyncStatus.Text = $"Sync finished: {success} succeeded, {failed} failed out of {total} total.";
                 TxtSyncStatus.Foreground = success > 0 ? System.Windows.Media.Brushes.LightGreen : System.Windows.Media.Brushes.OrangeRed;
-                MessageBox.Show($"Manual Central Data Sync Complete!\n\nTotal Local Sessions: {total}\nSuccessfully Synced: {success}\nFailed: {failed}", "Central Sync Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                RvmMessageDialog.ShowSuccess("Central Sync Complete", $"Manual Central Data Sync Complete!\n\nTotal Local Sessions: {total}\nSuccessfully Synced: {success}\nFailed: {failed}", this);
             }
 
             Load();
@@ -469,28 +469,28 @@ public partial class AdminWindow : Window
 
         if (string.IsNullOrEmpty(currentPwd))
         {
-            MessageBox.Show("Please enter your current admin password.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RvmMessageDialog.ShowWarning("Validation Error", "Please enter your current admin password.", this);
             PwdCurrentAdmin.Focus();
             return;
         }
 
         if (string.IsNullOrEmpty(newPwd))
         {
-            MessageBox.Show("Please enter a new password.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RvmMessageDialog.ShowWarning("Validation Error", "Please enter a new password.", this);
             PwdNewAdmin.Focus();
             return;
         }
 
         if (newPwd != confirmPwd)
         {
-            MessageBox.Show("New password and confirm password do not match.", "Validation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RvmMessageDialog.ShowWarning("Validation Error", "New password and confirm password do not match.", this);
             PwdConfirmAdmin.Focus();
             return;
         }
 
         if (DatabaseManager.ChangeAdminPassword("RVM", currentPwd, newPwd, out string err))
         {
-            MessageBox.Show("Admin password successfully updated in local SQL database!\n\nUse your new password next time you access the Admin Panel.", "Password Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            RvmMessageDialog.ShowSuccess("Password Updated", "Admin password successfully updated in local SQL database!\n\nUse your new password next time you access the Admin Panel.", this);
             LogConsole("[Security 🟢] Admin password successfully updated in local database.");
             PwdCurrentAdmin.Clear();
             PwdNewAdmin.Clear();
@@ -498,7 +498,7 @@ public partial class AdminWindow : Window
         }
         else
         {
-            MessageBox.Show($"Failed to update password: {err}", "Password Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            RvmMessageDialog.ShowError("Password Error", $"Failed to update password: {err}", this);
             LogConsole($"[Security 🔴] Password change failed: {err}");
         }
     }

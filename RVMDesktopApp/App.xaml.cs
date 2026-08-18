@@ -47,7 +47,7 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Debug.WriteLine($"Dispatcher UI exception: {e.Exception}");
-        MessageBox.Show($"An unexpected error occurred:\n\n{e.Exception.Message}", "RVM Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        RvmMessageDialog.ShowError("RVM System Error", $"An unexpected error occurred:\n\n{e.Exception.Message}");
         e.Handled = true;
     }
 
@@ -58,7 +58,7 @@ public partial class App : Application
 
         try
         {
-            MessageBox.Show($"Fatal error:\n\n{ex?.Message ?? "Unknown error"}", "RVM Fatal Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            RvmMessageDialog.ShowError("RVM Fatal Error", $"Fatal error:\n\n{ex?.Message ?? "Unknown error"}");
         }
         catch
         {
