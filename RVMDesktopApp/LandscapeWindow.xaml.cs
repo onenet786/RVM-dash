@@ -772,11 +772,17 @@ public partial class LandscapeWindow : Window
 
     private int GetPoints(BottleResult result)
     {
+        // 1. Check live synced PointRulesCache first
+        int cached = PointRulesCache.GetPoints(result.Size, result.Material);
+        if (cached > 0) return cached;
+
+        // 2. Check local database
         if (databaseAvailable)
         {
             try
             {
-                return DatabaseManager.GetPoints(result.Size, result.Material);
+                int dbPts = DatabaseManager.GetPoints(result.Size, result.Material);
+                if (dbPts > 0) return dbPts;
             }
             catch
             {
@@ -784,13 +790,13 @@ public partial class LandscapeWindow : Window
             }
         }
 
-        // Fallback values must match the defaults in Database.sql.
+        // 3. Fallback defaults
         return result.Size switch
         {
             "SMALL" => 5,
             "MEDIUM" => 10,
             "LARGE" => 15,
-            _ => 0
+            _ => 5
         };
     }
 

@@ -451,12 +451,14 @@ public partial class MainWindow : Window
                 try
                 {
                     string json = await response.Content.ReadAsStringAsync();
+                    PointRulesCache.ApplyJsonConfig(json);
+
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
                     if (doc.RootElement.TryGetProperty("name", out var nameProp) && !string.IsNullOrWhiteSpace(nameProp.GetString()))
                     {
                         string apiName = nameProp.GetString()!;
                         UpdateRvmNameDisplay(apiName);
-                        LogTelemetry($"[API] Machine Name retrieved from Central Dashboard: {apiName}");
+                        LogTelemetry($"[API] Machine Name & Point Rules (v{PointRulesCache.ConfigVersion}) synced from Central Dashboard: {apiName}");
                     }
                 }
                 catch
@@ -859,11 +861,17 @@ public partial class MainWindow : Window
 
     private int GetPoints(BottleResult result)
     {
+        // 1. Check live synced PointRulesCache first
+        int cached = PointRulesCache.GetPoints(result.Size, result.Material);
+        if (cached > 0) return cached;
+
+        // 2. Check local database
         if (databaseAvailable)
         {
             try
             {
-                return DatabaseManager.GetPoints(result.Size, result.Material);
+                int dbPts = DatabaseManager.GetPoints(result.Size, result.Material);
+                if (dbPts > 0) return dbPts;
             }
             catch
             {
@@ -871,13 +879,13 @@ public partial class MainWindow : Window
             }
         }
 
-        // Fallback values must match the defaults in Database.sql.
+        // 3. Fallback defaults
         return result.Size switch
         {
             "SMALL" => 5,
             "MEDIUM" => 10,
             "LARGE" => 15,
-            _ => 0
+            _ => 5
         };
     }
 

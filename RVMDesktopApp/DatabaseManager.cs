@@ -207,4 +207,47 @@ public static class DatabaseManager
         connection.Open();
         command.ExecuteNonQuery();
     }
+
+    public static void UpdateLocalPointSettings(
+        int plasticSmall, int plasticMedium, int plasticLarge,
+        int canSmall, int canMedium, int canLarge,
+        int glassSmall, int glassMedium, int glassLarge)
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            string sql = @"
+                MERGE dbo.PointSettings AS target
+                USING (VALUES 
+                    ('SMALL', 'PLASTIC', @ps), ('MEDIUM', 'PLASTIC', @pm), ('LARGE', 'PLASTIC', @pl),
+                    ('SMALL', 'CAN', @cs), ('MEDIUM', 'CAN', @cm), ('LARGE', 'CAN', @cl),
+                    ('SMALL', 'GLASS', @gs), ('MEDIUM', 'GLASS', @gm), ('LARGE', 'GLASS', @gl)
+                ) AS source (BottleSize, MaterialType, Points)
+                ON target.BottleSize = source.BottleSize AND target.MaterialType = source.MaterialType
+                WHEN MATCHED THEN
+                    UPDATE SET Points = source.Points, IsActive = 1
+                WHEN NOT MATCHED THEN
+                    INSERT (BottleSize, MaterialType, Points, IsActive) VALUES (source.BottleSize, source.MaterialType, source.Points, 1);
+            ";
+
+            using var cmd = new SqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("@ps", plasticSmall);
+            cmd.Parameters.AddWithValue("@pm", plasticMedium);
+            cmd.Parameters.AddWithValue("@pl", plasticLarge);
+            cmd.Parameters.AddWithValue("@cs", canSmall);
+            cmd.Parameters.AddWithValue("@cm", canMedium);
+            cmd.Parameters.AddWithValue("@cl", canLarge);
+            cmd.Parameters.AddWithValue("@gs", glassSmall);
+            cmd.Parameters.AddWithValue("@gm", glassMedium);
+            cmd.Parameters.AddWithValue("@gl", glassLarge);
+
+            cmd.ExecuteNonQuery();
+        }
+        catch
+        {
+            // Ignore if local SQL Server is unavailable
+        }
+    }
 }

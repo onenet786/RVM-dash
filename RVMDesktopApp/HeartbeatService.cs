@@ -59,10 +59,11 @@ public static class HeartbeatService
                 return;
             }
 
-            // 2. Fetch machine config to ensure ping is recorded in database
             var configResponse = await client.GetAsync($"{baseUrl}/api/machine/config/{_machineId}");
             if (configResponse.IsSuccessStatusCode)
             {
+                string json = await configResponse.Content.ReadAsStringAsync();
+                PointRulesCache.ApplyJsonConfig(json);
                 UpdateStatus(NetworkStatus.Online, null);
             }
             else if (configResponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
