@@ -15,7 +15,7 @@ export default function MachineHealthTab() {
   // Points & Unit Configuration Modal State
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [targetMachine, setTargetMachine] = useState('ALL');
-  
+
   // Plastic Variants
   const [pointsPlastic, setPointsPlastic] = useState(10);
   const [pointsPlasticSmall, setPointsPlasticSmall] = useState(5);
@@ -226,7 +226,7 @@ export default function MachineHealthTab() {
           </button>
         </div>
       )}
-      
+
       {/* Header */}
       <div className="glass-panel p-6 rounded-3xl flex items-center justify-between">
         <div>
@@ -333,17 +333,15 @@ export default function MachineHealthTab() {
             const hasAlerts = m.alertCount > 0;
             const isOnline = m.status === 'ONLINE' || m.isOnline;
             return (
-              <div 
-                key={m.machineId} 
-                className={`glass-panel p-5 rounded-2xl space-y-4 border transition-all ${
-                  isOnline ? 'border-emerald-500/30' : 'border-rose-500/30 bg-rose-950/5'
-                }`}
+              <div
+                key={m.machineId}
+                className={`glass-panel p-5 rounded-2xl space-y-4 border transition-all ${isOnline ? 'border-emerald-500/30' : 'border-rose-500/30 bg-rose-950/5'
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${
-                      isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
+                    <div className={`p-2.5 rounded-xl ${isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      }`}>
                       <Server className="w-5 h-5" />
                     </div>
                     <div>
@@ -362,11 +360,10 @@ export default function MachineHealthTab() {
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full flex items-center gap-1.5 ${
-                      isOnline
+                    <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full flex items-center gap-1.5 ${isOnline
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                    }`}>
+                      }`}>
                       <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
                       {isOnline ? 'ONLINE' : 'OFFLINE'}
                     </span>
@@ -401,7 +398,7 @@ export default function MachineHealthTab() {
                   </div>
 
                   <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-cyan-400 block text-[10px] font-bold uppercase">Paper Total</span>
+                    <span className="text-cyan-400 block text-[10px] font-bold uppercase">Paper</span>
                     <span className="font-bold text-cyan-300 mono text-sm">📦 {m.paperCount || 0}</span>
                   </div>
 
@@ -437,7 +434,7 @@ export default function MachineHealthTab() {
                   Register RVM Machine & Location
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="p-1 t-text-muted hover:t-text-primary rounded-lg"
               >
@@ -450,8 +447,8 @@ export default function MachineHealthTab() {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Machine ID Code
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newMachineId}
                   onChange={e => setNewMachineId(e.target.value)}
                   placeholder="e.g. RVM-001"
@@ -464,8 +461,8 @@ export default function MachineHealthTab() {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Machine Display Name
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newMachineName}
                   onChange={e => setNewMachineName(e.target.value)}
                   placeholder="e.g. ISP Main Entrance Unit #1"
@@ -477,8 +474,8 @@ export default function MachineHealthTab() {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Installation Location / Address
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newMachineLocation}
                   onChange={e => setNewMachineLocation(e.target.value)}
                   placeholder="e.g. Sector H-8/4, Islamabad Campus"
@@ -496,8 +493,8 @@ export default function MachineHealthTab() {
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">
                       🥤 Plastic (pts)
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={pointsPlastic}
                       onChange={e => setPointsPlastic(e.target.value)}
                       className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-emerald-400 focus:outline-none focus:border-cyan-500"
@@ -507,8 +504,8 @@ export default function MachineHealthTab() {
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">
                       🥫 Can (pts)
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={pointsAluminium}
                       onChange={e => setPointsAluminium(e.target.value)}
                       className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-amber-400 focus:outline-none focus:border-cyan-500"
@@ -518,8 +515,8 @@ export default function MachineHealthTab() {
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">
                       📦 Paper/Kg (pts)
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={pointsPaper}
                       onChange={e => setPointsPaper(e.target.value)}
                       className="w-full px-2 py-1.5 bg-slate-900/80 border t-border rounded-xl font-mono text-xs text-cyan-400 focus:outline-none focus:border-cyan-500"
@@ -563,7 +560,7 @@ export default function MachineHealthTab() {
                   <p className="text-[11px] t-text-muted">Configure reward rates & calculation units (per piece, per gram, or per kg) for RVM Kiosks.</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowConfigModal(false)}
                 className="p-1 t-text-muted hover:t-text-primary rounded-lg"
               >
@@ -572,13 +569,13 @@ export default function MachineHealthTab() {
             </div>
 
             <form onSubmit={handleSyncPointsConfig} className="space-y-4">
-              
+
               {/* Target RVM Selection */}
               <div>
                 <label className="block text-xs font-bold text-cyan-400 mb-1 uppercase tracking-wider">
                   Target Machine(s)
                 </label>
-                <select 
+                <select
                   value={targetMachine}
                   onChange={e => setTargetMachine(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-900/90 border border-cyan-500/40 rounded-xl text-sm font-bold text-cyan-300 focus:outline-none focus:border-cyan-400"
@@ -613,7 +610,7 @@ export default function MachineHealthTab() {
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsPlasticSmall}
                       onChange={e => setPointsPlasticSmall(e.target.value)}
@@ -622,7 +619,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsPlasticMedium}
                       onChange={e => setPointsPlasticMedium(e.target.value)}
@@ -631,7 +628,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsPlasticLarge}
                       onChange={e => setPointsPlasticLarge(e.target.value)}
@@ -662,7 +659,7 @@ export default function MachineHealthTab() {
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsCanSmall}
                       onChange={e => setPointsCanSmall(e.target.value)}
@@ -671,7 +668,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsCanMedium}
                       onChange={e => setPointsCanMedium(e.target.value)}
@@ -680,7 +677,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsCanLarge}
                       onChange={e => setPointsCanLarge(e.target.value)}
@@ -700,7 +697,7 @@ export default function MachineHealthTab() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Point Rate</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsPaper}
                       onChange={e => setPointsPaper(e.target.value)}
@@ -743,7 +740,7 @@ export default function MachineHealthTab() {
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Small (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsGlassSmall}
                       onChange={e => setPointsGlassSmall(e.target.value)}
@@ -752,7 +749,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Medium (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsGlassMedium}
                       onChange={e => setPointsGlassMedium(e.target.value)}
@@ -761,7 +758,7 @@ export default function MachineHealthTab() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 mb-1">Large (pts)</label>
-                    <input 
+                    <input
                       type="number"
                       value={pointsGlassLarge}
                       onChange={e => setPointsGlassLarge(e.target.value)}
