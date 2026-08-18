@@ -404,7 +404,7 @@ export default function MachineConfigsTab() {
             Raw PostgreSQL Relational Table: machine_configs
           </h3>
         </div>
-        <DataTable collectionName="machine_configs" displayName="machine_configs Relational Table" />
+        <DataTable collectionName="machine_configs" displayName="RVM Relational Table" />
       </div>
 
     </div>
