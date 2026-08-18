@@ -14,8 +14,8 @@ const byte irTopPin = 8;
 const byte servoPin = 9;
 
 // ---- ENTRANCE HARDWARE PINS ----
-const byte newTrigPin = 12;     // Entrance HC-SR04 Trig pin
-const byte newEchoPin = 11;     // Entrance HC-SR04 Echo iopin
+const byte newTrigPin = 12;     // Entrance HC-SR04 Trig pin (moved to free D10 for bin-full sensor)
+const byte newEchoPin = 11;     // Entrance HC-SR04 Echo pin
 const byte newServoPin = 6;      // Entrance Servo pin
 const byte binFullSensorPin = 10; // Bin full sensor input, stops machine when full
 
@@ -67,16 +67,12 @@ bool bottleProcessing = false;
 bool metalDetectedForNextBottle = false;
 bool waitingForStuckBottleRemoval = false;
 
-bool mainGateCurrentlyOpen = false;
-bool entranceGateCurrentlyOpen = false;
-
 int emptyPipeDistanceCM = -1; 
 
 // ---- ENTRANCE TIMEOUT TIMER VARIABLES ----
 unsigned long entranceClearStartTime = 0; 
-String inputBuffer = "";
+bool entranceGateCurrentlyOpen = false;   
 
-// ---------------- HELPER SENSOR READS ----------------
 bool isMetalDetected()
 {
   return (digitalRead(metalSensorPin) == METAL_DETECTED_STATE);
@@ -85,58 +81,6 @@ bool isMetalDetected()
 bool isBinFull()
 {
   return (digitalRead(binFullSensorPin) == BIN_FULL_DETECTED_STATE);
-}
-
-// ---------------- FORWARD DECLARATIONS ----------------
-int readDistanceCM();
-int readEntranceDistanceCM();
-void calibrateEmptyPipe();
-void processIncomingBottle(bool metalDetected);
-void waitForBottomIRReset();
-bool waitForBottleClear(const char* bottleSize);
-void sortReadings(int readings[], int count);
-void executeCommand(String command);
-
-// ---------------- MAIN SERVO FUNCTIONS ----------------
-void openGate()
-{
-  if (!mainGateCurrentlyOpen)
-  {
-    gateServo.write(gateOpenAngle);
-    mainGateCurrentlyOpen = true;
-    Serial.println("GATE:OPEN");
-  }
-}
-
-void closeGate()
-{
-  if (mainGateCurrentlyOpen || true)
-  {
-    gateServo.write(gateClosedAngle);
-    mainGateCurrentlyOpen = false;
-    Serial.println("GATE:CLOSED");
-  }
-}
-
-void openEntranceGate()
-{
-  if (!entranceGateCurrentlyOpen)
-  {
-    entranceServo.write(entranceOpenAngle);
-    entranceGateCurrentlyOpen = true;
-    Serial.println("ENTRANCE_GATE:OPEN");
-  }
-}
-
-void closeEntranceGate()
-{
-  if (entranceGateCurrentlyOpen)
-  {
-    entranceServo.write(entranceClosedAngle);
-    entranceGateCurrentlyOpen = false;
-    entranceClearStartTime = 0;
-    Serial.println("ENTRANCE_GATE:CLOSED");
-  }
 }
 
 // ---------------- SETUP ----------------
@@ -160,11 +104,9 @@ void setup()
   digitalWrite(newTrigPin, LOW);
   
   entranceServo.attach(newServoPin);
-  entranceGateCurrentlyOpen = true; // Force position write
   closeEntranceGate(); 
 
   gateServo.attach(servoPin);
-  mainGateCurrentlyOpen = true; // Force position write
   closeGate();
 
   Serial.println("READY");
@@ -198,6 +140,7 @@ void loop()
     if (entranceDist > 0 && entranceDist <= entranceTriggerDistanceCM)
     {
       openEntranceGate();   
+      entranceGateCurrentlyOpen = true;
       entranceClearStartTime = 0; 
     }
     else
@@ -212,13 +155,21 @@ void loop()
         if (millis() - entranceClearStartTime >= 5000)
         {
           closeEntranceGate();  
+          entranceGateCurrentlyOpen = false;
+          entranceClearStartTime = 0;
         }
+      }
+      else
+      {
+        closeEntranceGate();  
       }
     }
   }
   else
   {
     closeEntranceGate();  
+    entranceGateCurrentlyOpen = false;
+    entranceClearStartTime = 0;
   }
 
   if (!machineStarted)
@@ -274,31 +225,18 @@ void loop()
   delay(5);
 }
 
-// ---------------- SERIAL COMMAND HANDLER (NON-BLOCKING) ----------------
+// ---------------- SERIAL COMMAND HANDLER ----------------
 void handleSerialCommand()
 {
-  while (Serial.available() > 0)
+  if (Serial.available() == 0)
   {
-    char c = (char)Serial.read();
-    if (c == '\n' || c == '\r')
-    {
-      inputBuffer.trim();
-      if (inputBuffer.length() > 0)
-      {
-        inputBuffer.toUpperCase();
-        executeCommand(inputBuffer);
-        inputBuffer = "";
-      }
-    }
-    else
-    {
-      inputBuffer += c;
-    }
+    return;
   }
-}
 
-void executeCommand(String command)
-{
+  String command = Serial.readStringUntil('\n');
+  command.trim();
+  command.toUpperCase();
+
   if (command == "START")
   {
     waitingForStuckBottleRemoval = false;
@@ -334,7 +272,6 @@ void executeCommand(String command)
     metalDetectedForNextBottle = false;
     waitingForStuckBottleRemoval = false;
     closeGate();
-    closeEntranceGate();
     Serial.println("MACHINE:STOPPED");
   }
   else if (command == "RESET")
@@ -343,7 +280,6 @@ void executeCommand(String command)
     metalDetectedForNextBottle = false;
     waitingForStuckBottleRemoval = false;
     closeGate();
-    closeEntranceGate();
     Serial.println("RESET:OK");
   }
   else if (command == "CALIBRATE")
@@ -389,6 +325,9 @@ void calibrateEmptyPipe()
     for (byte i = 0; i < calibrationReadings; i++)
     {
       int distance = readDistanceCM();
+
+      Serial.print("CALIBRATION_RAW_CM:");
+      Serial.println(distance);
 
       if (distance > 0 && distance <= maxSensorDistanceCM)
         readings[validReadings++] = distance;
@@ -492,6 +431,7 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE ----------------
+  // Bottle gir kar rukne ka 600ms wait kar rahe hain, is dauran girne wali fake readings ignore hongi.
   unsigned long waitStart = millis();
   while (millis() - waitStart < bottleSettleDelayMs)
   {
@@ -503,6 +443,7 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- 3. READ STATIC BOTTLE SIZE NOW ----------------
+  // Jab bottle gate par ruk chuki hai, TBB hum dekhte hain ke kaunsa sensor blocked hai.
   bool topIsCurrentlyBlocked    = (digitalRead(irTopPin) == IR_DETECTED_STATE);
   bool middleIsCurrentlyBlocked = (digitalRead(irMiddlePin) == IR_DETECTED_STATE);
 
@@ -623,6 +564,15 @@ bool waitForBottleClear(const char* bottleSize)
         return true;
       }
     }
+    else if (sizeSensorClear)
+    {
+      consecutiveClearReadings++;
+
+      if (consecutiveClearReadings >= 5)
+      {
+        return true;
+      }
+    }
 
     delay(15);
   }
@@ -645,6 +595,32 @@ void waitForBottomIRReset()
 
     delay(10);
   }
+}
+
+// ---------------- MAIN SERVO FUNCTIONS ----------------
+void openGate()
+{
+  gateServo.write(gateOpenAngle);
+  Serial.println("GATE:OPEN");
+}
+
+void closeGate()
+{
+  gateServo.write(gateClosedAngle);
+  Serial.println("GATE:CLOSED");
+}
+
+// ---- ENTRANCE SERVO FUNCTIONS ----
+void openEntranceGate()
+{
+  entranceServo.write(entranceOpenAngle);
+  Serial.println("ENTRANCE_GATE:OPEN");
+}
+
+void closeEntranceGate()
+{
+  entranceServo.write(entranceClosedAngle);
+  Serial.println("ENTRANCE_GATE:CLOSED");
 }
 
 // ---------------- HC-SR04 DISTANCE FUNCTION ----------------
