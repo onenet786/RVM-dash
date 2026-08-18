@@ -246,19 +246,6 @@ async function initProductionPostgresSchemas() {
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS paper_unit VARCHAR(20) DEFAULT 'per_kg';`);
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS glass_unit VARCHAR(20) DEFAULT 'per_piece';`);
 
-    // Seed default machine RVM-001 if empty
-    await pool.query(`
-      INSERT INTO machines (machine_id, name, location, status, bin_fill_percentage)
-      VALUES ('RVM-001', 'Islamabad Model RVM', 'G-9 Markaz, Islamabad', 'active', 25)
-      ON CONFLICT (machine_id) DO NOTHING;
-    `);
-
-    await pool.query(`
-      INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, points_per_glass, plastic_unit, aluminium_unit, paper_unit, glass_unit)
-      VALUES ('RVM-001', 1, 10, 20, 15, 15, 'per_piece', 'per_piece', 'per_kg', 'per_piece')
-      ON CONFLICT (machine_id) DO NOTHING;
-    `);
-
     console.log('[PostgreSQL Schemas] Production relational tables and indexes initialized successfully.');
   } catch (err) {
     console.warn('[PostgreSQL Schemas Init Warning]', err.message);
@@ -1300,7 +1287,8 @@ app.get('/api/analytics/machines', async (req, res) => {
       });
 
       sessions.forEach(s => {
-        const mId = s.machineId || s.machine_id || 'RVM-001';
+        const mId = s.machineId || s.machine_id;
+        if (!mId) return;
         const sTime = s.recycledAt || s.timestamp ? new Date(s.recycledAt || s.timestamp).getTime() : 0;
         if (!grouped[mId]) {
           const isOnline = sTime > 0 && (now - sTime <= ONLINE_THRESHOLD_MS);
@@ -1358,7 +1346,8 @@ app.get('/api/analytics/machines', async (req, res) => {
 
       const alertsMap = {};
       alerts.forEach(a => {
-        const mId = a.machineId || a.machine_id || 'RVM-001';
+        const mId = a.machineId || a.machine_id;
+        if (!mId) return;
         if (!alertsMap[mId]) alertsMap[mId] = { alertCount: 0, lastAlert: a.occurredAt };
         alertsMap[mId].alertCount += 1;
       });
