@@ -29,7 +29,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
-    { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'machines', label: 'RVMs', icon: Cpu },
     ...(isMasterDev ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
@@ -40,7 +40,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Primary PostgreSQL Relational Tables
   const postgresTables = [
     { id: 'col_recycling_sessions', name: 'recycling_sessions', label: 'recycling_sessions', icon: Recycle },
-    { id: 'col_machines', name: 'machines', label: 'machines', icon: Cpu },
+    { id: 'col_machines', name: 'machines', label: 'RVMs', icon: Cpu },
     { id: 'col_users', name: 'users', label: 'users', icon: Users },
     { id: 'col_machine_configs', name: 'machine_configs', label: 'RVM Configurations', icon: Settings },
   ];
