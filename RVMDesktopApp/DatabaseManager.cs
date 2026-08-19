@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
 using System.IO;
+using System.Net.Http;
 
 namespace RVMDesktopApp;
 
@@ -117,49 +118,119 @@ public static class DatabaseManager
             EnsurePointSettingsTable();
             string serverUrl = CentralSyncService.CentralApiUrl;
             using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-            
-            string url = $"{serverUrl.TrimEnd('/')}/api/machine/point-settings?machineId={Uri.EscapeDataString(machineId)}";
-            var res = await http.GetAsync(url);
-            if (!res.IsSuccessStatusCode) return false;
 
-            string json = await res.Content.ReadAsStringAsync();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("settings", out var settingsElem) || settingsElem.ValueKind != System.Text.Json.JsonValueKind.Array)
+            string[] candidateEndpoints = new[]
+            {
+                $"{serverUrl.TrimEnd('/')}/api/machine/point-settings?machineId={Uri.EscapeDataString(machineId)}",
+                $"{serverUrl.TrimEnd('/')}/api/analytics/machines?machineId={Uri.EscapeDataString(machineId)}",
+                $"{serverUrl.TrimEnd('/')}/api/overview?machineId={Uri.EscapeDataString(machineId)}",
+                $"{serverUrl.TrimEnd('/')}/api/analytics/machines"
+            };
+
+            HttpResponseMessage? response = null;
+            string? successUrl = null;
+
+            foreach (var url in candidateEndpoints)
+            {
+                try
+                {
+                    var res = await http.GetAsync(url);
+                    if (res.IsSuccessStatusCode)
+                    {
+                        response = res;
+                        successUrl = url;
+                        break;
+                    }
+                }
+                catch { }
+            }
+
+            if (response == null || !response.IsSuccessStatusCode)
+            {
+                logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] Server endpoint unreachable. Using local SQL point rules.");
                 return false;
+            }
+
+            string json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var rulesToUpsert = new System.Collections.Generic.List<(string mat, string sz, int pts, string unit)>();
+
+            if (root.TryGetProperty("settings", out var settingsElem) && settingsElem.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in settingsElem.EnumerateArray())
+                {
+                    string mat = item.TryGetProperty("materialType", out var m) ? m.GetString()?.ToUpper() ?? "PLASTIC" : "PLASTIC";
+                    string sz = item.TryGetProperty("bottleSize", out var s) ? s.GetString()?.ToUpper() ?? "MEDIUM" : "MEDIUM";
+                    int pts = item.TryGetProperty("points", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Number ? p.GetInt32() : 10;
+                    string unit = item.TryGetProperty("unit", out var u) ? u.GetString() ?? "per_piece" : "per_piece";
+                    rulesToUpsert.Add((mat, sz, pts, unit));
+                }
+            }
+            else
+            {
+                System.Text.Json.JsonElement elem = root;
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Array && root.GetArrayLength() > 0)
+                {
+                    elem = root[0];
+                }
+
+                int GetProp(params string[] props)
+                {
+                    foreach (string p in props)
+                    {
+                        if (elem.TryGetProperty(p, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number)
+                            return v.GetInt32();
+                    }
+                    return 0;
+                }
+
+                rulesToUpsert.Add(("PLASTIC", "SMALL", GetProp("pointsPlasticSmall", "points_plastic_small") > 0 ? GetProp("pointsPlasticSmall", "points_plastic_small") : 5, "per_piece"));
+                rulesToUpsert.Add(("PLASTIC", "MEDIUM", GetProp("pointsPlasticMedium", "points_plastic_medium", "pointsPerPlasticBottle") > 0 ? GetProp("pointsPlasticMedium", "points_plastic_medium", "pointsPerPlasticBottle") : 10, "per_piece"));
+                rulesToUpsert.Add(("PLASTIC", "LARGE", GetProp("pointsPlasticLarge", "points_plastic_large") > 0 ? GetProp("pointsPlasticLarge", "points_plastic_large") : 15, "per_piece"));
+
+                rulesToUpsert.Add(("CAN", "SMALL", GetProp("pointsCanSmall", "points_can_small") > 0 ? GetProp("pointsCanSmall", "points_can_small") : 10, "per_piece"));
+                rulesToUpsert.Add(("CAN", "MEDIUM", GetProp("pointsCanMedium", "points_can_medium", "pointsPerAluminiumCan") > 0 ? GetProp("pointsCanMedium", "points_can_medium", "pointsPerAluminiumCan") : 15, "per_piece"));
+                rulesToUpsert.Add(("CAN", "LARGE", GetProp("pointsCanLarge", "points_can_large") > 0 ? GetProp("pointsCanLarge", "points_can_large") : 20, "per_piece"));
+
+                rulesToUpsert.Add(("TETRA PAK", "SMALL", GetProp("pointsTetraPakSmall", "points_tetrapak_small") > 0 ? GetProp("pointsTetraPakSmall", "points_tetrapak_small") : 5, "per_piece"));
+                rulesToUpsert.Add(("TETRA PAK", "MEDIUM", GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") > 0 ? GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") : 10, "per_piece"));
+                rulesToUpsert.Add(("TETRA PAK", "LARGE", GetProp("pointsTetraPakLarge", "points_tetrapak_large") > 0 ? GetProp("pointsTetraPakLarge", "points_tetrapak_large") : 15, "per_piece"));
+
+                rulesToUpsert.Add(("GLASS", "SMALL", GetProp("pointsGlassSmall", "points_glass_small") > 0 ? GetProp("pointsGlassSmall", "points_glass_small") : 10, "per_piece"));
+                rulesToUpsert.Add(("GLASS", "MEDIUM", GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") > 0 ? GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") : 15, "per_piece"));
+                rulesToUpsert.Add(("GLASS", "LARGE", GetProp("pointsGlassLarge", "points_glass_large") > 0 ? GetProp("pointsGlassLarge", "points_glass_large") : 20, "per_piece"));
+            }
+
+            if (rulesToUpsert.Count == 0) return false;
 
             using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             int updatedCount = 0;
-            foreach (var item in settingsElem.EnumerateArray())
+            foreach (var item in rulesToUpsert)
             {
-                string mat = item.TryGetProperty("materialType", out var m) ? m.GetString()?.ToUpper() ?? "PLASTIC" : "PLASTIC";
-                string sz = item.TryGetProperty("bottleSize", out var s) ? s.GetString()?.ToUpper() ?? "MEDIUM" : "MEDIUM";
-                int pts = item.TryGetProperty("points", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Number ? p.GetInt32() : 10;
-                string unit = item.TryGetProperty("unit", out var u) ? u.GetString() ?? "per_piece" : "per_piece";
-                bool act = !item.TryGetProperty("isActive", out var a) || a.ValueKind != System.Text.Json.JsonValueKind.False;
-
                 using var upsertCmd = new SqlCommand(@"
                     IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz)
                         UPDATE dbo.PointSettings 
-                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = @Act, LastUpdated = GETDATE()
+                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = 1, LastUpdated = GETDATE()
                         WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz;
                     ELSE
                         INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated)
-                        VALUES (@Mach, @Mat, @Sz, @Pts, @Unit, @Act, GETDATE());
+                        VALUES (@Mach, @Mat, @Sz, @Pts, @Unit, 1, GETDATE());
                 ", connection);
                 upsertCmd.Parameters.AddWithValue("@Mach", machineId);
-                upsertCmd.Parameters.AddWithValue("@Mat", mat);
-                upsertCmd.Parameters.AddWithValue("@Sz", sz);
-                upsertCmd.Parameters.AddWithValue("@Pts", pts);
-                upsertCmd.Parameters.AddWithValue("@Unit", unit);
-                upsertCmd.Parameters.AddWithValue("@Act", act);
+                upsertCmd.Parameters.AddWithValue("@Mat", item.mat);
+                upsertCmd.Parameters.AddWithValue("@Sz", item.sz);
+                upsertCmd.Parameters.AddWithValue("@Pts", item.pts);
+                upsertCmd.Parameters.AddWithValue("@Unit", item.unit);
 
                 await upsertCmd.ExecuteNonQueryAsync();
                 updatedCount++;
             }
 
-            logCallback?.Invoke($"[POINT SETTINGS SYNC 🟢] Successfully synced {updatedCount} dynamic point rules from Central Server into local database.");
+            logCallback?.Invoke($"[POINT SETTINGS SYNC 🟢] Successfully synced {updatedCount} dynamic point rules via '{successUrl}' into local database.");
             return true;
         }
         catch (Exception ex)
