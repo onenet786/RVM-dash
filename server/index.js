@@ -1494,31 +1494,7 @@ app.post('/api/machines', async (req, res) => {
     const machineLocation = location || 'Main Entrance / Campus';
     const machineStatus = status || 'ONLINE';
 
-    // Update MongoDB if available
-    if (db) {
-      try {
-        await db.collection('machines').updateOne(
-          { machineId },
-          {
-            $set: {
-              machineId,
-              name: machineName,
-              location: machineLocation,
-              status: machineStatus,
-              pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle),
-              pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan),
-              pointsPerPaperKg: parseInt(pointsPerPaperKg),
-              updatedAt: new Date()
-            }
-          },
-          { upsert: true }
-        );
-      } catch (mongoErr) {
-        console.error('[POST /api/machines] MongoDB write notice:', mongoErr.message);
-      }
-    }
-
-    // Update PostgreSQL if available
+    // PostgreSQL ONLY Database Update
     const pool = getPgPool();
     if (pool) {
       try {
@@ -3335,39 +3311,6 @@ const handleSaveMachineConfig = async (req, res) => {
       }
     }
 
-    if (activeDbType === 'mongodb') {
-      const db = getMongoDb();
-      if (db) {
-        const query = targetMachine === 'ALL' ? {} : { machineId: targetMachine };
-        await db.collection('machines').updateMany(
-          query,
-          { 
-            $set: { 
-              pointsPerPlasticBottle: parseInt(pointsPerPlasticBottle), 
-              pointsPlasticSmall: parseInt(pointsPlasticSmall),
-              pointsPlasticMedium: parseInt(pointsPlasticMedium),
-              pointsPlasticLarge: parseInt(pointsPlasticLarge),
-              pointsPerAluminiumCan: parseInt(pointsPerAluminiumCan), 
-              pointsCanSmall: parseInt(pointsCanSmall),
-              pointsCanMedium: parseInt(pointsCanMedium),
-              pointsCanLarge: parseInt(pointsCanLarge),
-              pointsPerPaperKg: parseInt(pointsPerPaperKg), 
-              pointsPerGlass: parseInt(pointsPerGlass), 
-              pointsGlassSmall: parseInt(pointsGlassSmall),
-              pointsGlassMedium: parseInt(pointsGlassMedium),
-              pointsGlassLarge: parseInt(pointsGlassLarge),
-              plasticUnit,
-              aluminiumUnit,
-              paperUnit,
-              glassUnit,
-              updatedAt: new Date() 
-            },
-            $inc: { configVersion: 1 }
-          }
-        );
-      }
-    }
-
     res.json({ success: true, message: `Configuration & points rules updated for ${targetMachine === 'ALL' ? 'ALL RVM machines' : `machine '${targetMachine}'`}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -3501,47 +3444,7 @@ app.post('/api/machine/point-settings', async (req, res) => {
     }
     savePointSettingsToFile();
 
-    // MongoDB Sync
-    if (db) {
-      try {
-        const col = db.collection('pointsettings');
-        for (const item of formattedSettings) {
-          await col.updateOne(
-            { machineId: machineScope, materialType: item.materialType, bottleSize: item.bottleSize },
-            { $set: { ...item, updatedAt: new Date() } },
-            { upsert: true }
-          );
-        }
-
-        // Also update flat properties in machines collection
-        const pSmall = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'SMALL')?.points || 5;
-        const pMed = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'MEDIUM')?.points || 10;
-        const pLg = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'LARGE')?.points || 15;
-        const cSmall = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'SMALL')?.points || 6;
-        const cMed = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'MEDIUM')?.points || 12;
-        const cLg = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'LARGE')?.points || 20;
-
-        await db.collection('machines').updateMany(
-          machineScope === '*' || machineScope === 'ALL' ? {} : { machineId: machineScope },
-          {
-            $set: {
-              pointsPlasticSmall: pSmall,
-              pointsPlasticMedium: pMed,
-              pointsPlasticLarge: pLg,
-              pointsCanSmall: cSmall,
-              pointsCanMedium: cMed,
-              pointsCanLarge: cLg,
-              updatedAt: new Date()
-            },
-            $inc: { configVersion: 1 }
-          }
-        );
-      } catch (mErr) {
-        console.error('[POST /api/machine/point-settings] MongoDB notice:', mErr.message);
-      }
-    }
-
-    // PostgreSQL Sync
+    // PostgreSQL ONLY Database Sync
     const pool = getPgPool();
     if (pool) {
       try {
@@ -3570,8 +3473,29 @@ app.post('/api/machine/point-settings', async (req, res) => {
               updated_at = NOW();
           `, [machineScope, item.materialType, item.bottleSize, item.points, item.unit, item.isActive]);
         }
+
+        // Also update PostgreSQL table machine_configs for relational compatibility
+        const pSmall = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'SMALL')?.points || 5;
+        const pMed = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'MEDIUM')?.points || 10;
+        const pLg = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'LARGE')?.points || 15;
+        const cSmall = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'SMALL')?.points || 6;
+        const cMed = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'MEDIUM')?.points || 12;
+        const cLg = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'LARGE')?.points || 20;
+
+        await pool.query(`
+          UPDATE machine_configs 
+          SET points_plastic_small = $1,
+              points_plastic_medium = $2,
+              points_plastic_large = $3,
+              points_can_small = $4,
+              points_can_medium = $5,
+              points_can_large = $6,
+              config_version = config_version + 1,
+              updated_at = NOW()
+          WHERE machine_id = $7 OR $7 = '*';
+        `, [pSmall, pMed, pLg, cSmall, cMed, cLg, machineScope]).catch(() => {});
       } catch (pgErr) {
-        console.error('[POST /api/machine/point-settings] PG notice:', pgErr.message);
+        console.error('[POST /api/machine/point-settings] PG error:', pgErr.message);
       }
     }
 
