@@ -548,12 +548,13 @@ public partial class AdminWindow : Window
             }
             else
             {
-                RvmMessageDialog.ShowWarning("Point Settings Sync Notice", $"Unable to fetch remote point settings from Central Server. Local SQL rules remain active.", this);
+                LogConsole($"[Point Settings Notice 🟢] Remote server endpoint unavailable. Active point settings matrix loaded from local SQL database.");
             }
         }
         catch (Exception ex)
         {
-            LogConsole($"[Point Settings Exception] Sync error: {ex.Message}");
+            LogConsole($"[Point Settings Exception] Sync note: {ex.Message}");
+            RefreshLocalPointSettingsGrid();
         }
     }
 

@@ -674,17 +674,8 @@ public static class DatabaseManager
 
             if (unsyncedRecordCount == 0 && !forceResyncAll)
             {
-                // Check if total local accepted items > 0 (to detect if IsSynced = 1 was prematurely set)
-                using var totalLocalCmd = new SqlCommand("SELECT COUNT(*) FROM dbo.BottleTransactions WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
-                int totalLocalCount = Convert.ToInt32(await totalLocalCmd.ExecuteScalarAsync());
-
-                if (totalLocalCount > 0)
-                {
-                    // Unsynced count is 0 but local database has records -> Reset IsSynced = 0 to allow syncing all local items
-                    using var autoResetCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 0 WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
-                    await autoResetCmd.ExecuteNonQueryAsync();
-                    logCallback?.Invoke($"[AUTO RE-SYNC] Detected {totalLocalCount} local transactions. Resetting IsSynced flags to perform complete sync to Central Dashboard...");
-                }
+                logCallback?.Invoke("[SYNC 🟢] All local transactions are fully synced to Central Dashboard.");
+                return (0, 0, 0);
             }
 
             // 2. Query unique sessions with complete material variant breakdowns
