@@ -122,6 +122,7 @@ public static class DatabaseManager
             string[] candidateEndpoints = new[]
             {
                 $"{serverUrl.TrimEnd('/')}/api/machine/point-settings?machineId={Uri.EscapeDataString(machineId)}",
+                $"{serverUrl.TrimEnd('/')}/api/machine/point-settings",
                 $"{serverUrl.TrimEnd('/')}/api/analytics/machines?machineId={Uri.EscapeDataString(machineId)}",
                 $"{serverUrl.TrimEnd('/')}/api/overview?machineId={Uri.EscapeDataString(machineId)}",
                 $"{serverUrl.TrimEnd('/')}/api/analytics/machines"
@@ -129,6 +130,7 @@ public static class DatabaseManager
 
             HttpResponseMessage? response = null;
             string? successUrl = null;
+            string? validJson = null;
 
             foreach (var url in candidateEndpoints)
             {
@@ -137,21 +139,26 @@ public static class DatabaseManager
                     var res = await http.GetAsync(url);
                     if (res.IsSuccessStatusCode)
                     {
-                        response = res;
-                        successUrl = url;
-                        break;
+                        string body = await res.Content.ReadAsStringAsync();
+                        if (!string.IsNullOrWhiteSpace(body) && body.Trim() != "[]" && body.Trim() != "{}")
+                        {
+                            response = res;
+                            successUrl = url;
+                            validJson = body;
+                            break;
+                        }
                     }
                 }
                 catch { }
             }
 
-            if (response == null || !response.IsSuccessStatusCode)
+            if (response == null || string.IsNullOrWhiteSpace(validJson))
             {
-                logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] Server endpoint unreachable. Using local SQL point rules.");
+                logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] Remote point settings endpoint unavailable. Local SQL rules active.");
                 return false;
             }
 
-            string json = await response.Content.ReadAsStringAsync();
+            string json = validJson;
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             var root = doc.RootElement;
 

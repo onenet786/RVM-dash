@@ -3390,7 +3390,7 @@ app.get('/api/machine/point-settings', async (req, res) => {
         const pgRes = await pool.query(
           `SELECT id, machine_id, material_type, bottle_size, points, unit, is_active 
            FROM machine_variant_settings 
-           WHERE machine_id = $1 OR machine_id = '*' 
+           WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL'
            ORDER BY machine_id DESC, material_type ASC, bottle_size ASC;`,
           [machineId]
         );
