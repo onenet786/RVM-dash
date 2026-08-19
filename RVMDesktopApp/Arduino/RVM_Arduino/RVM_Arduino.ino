@@ -559,31 +559,29 @@ void processIncomingBottle(bool metalDetected)
     delay(5);
   }
 
-  // ---------------- SOLID METAL CAN VS TETRA PAK CLASSIFICATION ----------------
-  // 1. Any Metal Inductive Signal (internal foil pulse or metallic body)
+  // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
+  // 1. Metal Inductive Signal (internal foil pulse or solid metallic body)
   bool hasAnyMetalSignal = (solidMetalCount >= 1 || metalDetected);
 
-  // 2. Real Solid Aluminium Soda Can Check:
-  // Continuous solid metal body produces solidMetalCount >= 4 out of 15 reads
-  bool isSolidCanBody = (solidMetalCount >= 4);
+  // 2. Continuous Solid Metal Body (Aluminium Soda Can)
+  bool isSolidCanBody = (solidMetalCount >= 3);
 
-  // ---------------- DETERMINE MATERIAL TYPE ----------------
   const char* materialType = "PLASTIC";
 
-  if (isSolidCanBody)
+  if (!hasAnyMetalSignal)
   {
-    // Real Solid Aluminium Soda Can (Small, Medium, or Large Can)
-    materialType = "CAN";
+    // RULE 1: ZERO metal readings = ALWAYS Plastic PET Bottle (Small, Medium, or Large 1.5L/2L)
+    materialType = "PLASTIC";
   }
-  else if (hasAnyMetalSignal || (topIsCurrentlyBlocked && middleIsCurrentlyBlocked))
+  else if (isSolidCanBody)
   {
-    // Small, Medium, or Large Tetra Pak Box (thin internal foil layer or paperboard carton profile)
-    materialType = "TETRAPAK";
+    // RULE 2: Solid continuous metal body (solidMetalCount >= 3) = Aluminium Soda Can
+    materialType = "CAN";
   }
   else
   {
-    // Standard Plastic PET Bottle (0 metal samples, non-metallic PET profile)
-    materialType = "PLASTIC";
+    // RULE 3: Thin foil metal pulse (solidMetalCount 1 or 2) = Tetra Pak Carton
+    materialType = "TETRAPAK";
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------
