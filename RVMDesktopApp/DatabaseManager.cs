@@ -67,30 +67,38 @@ public static class DatabaseManager
                 IF OBJECT_ID('dbo.PointSettings', 'U') IS NULL
                 BEGIN
                     CREATE TABLE dbo.PointSettings (
-                        SettingID INT IDENTITY(1,1) PRIMARY KEY,
-                        MachineName NVARCHAR(50) NOT NULL DEFAULT 'RVM-001',
-                        MaterialType NVARCHAR(50) NOT NULL,
+                        PointSettingID INT IDENTITY(1,1) PRIMARY KEY,
                         BottleSize NVARCHAR(50) NOT NULL,
-                        PointsAwarded INT NOT NULL DEFAULT 10,
-                        Unit NVARCHAR(20) NOT NULL DEFAULT 'per_piece',
-                        IsActive BIT NOT NULL DEFAULT 1,
-                        LastUpdated DATETIME NOT NULL DEFAULT GETDATE(),
-                        CONSTRAINT UQ_PointSettings UNIQUE (MachineName, MaterialType, BottleSize)
+                        MaterialType NVARCHAR(50) NOT NULL,
+                        Points INT NOT NULL DEFAULT 10,
+                        IsActive BIT NOT NULL DEFAULT 1
                     );
 
-                    INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit) VALUES
-                    ('RVM-001', 'PLASTIC', 'SMALL', 5, 'per_piece'),
-                    ('RVM-001', 'PLASTIC', 'MEDIUM', 10, 'per_piece'),
-                    ('RVM-001', 'PLASTIC', 'LARGE', 15, 'per_piece'),
-                    ('RVM-001', 'CAN', 'SMALL', 10, 'per_piece'),
-                    ('RVM-001', 'CAN', 'MEDIUM', 15, 'per_piece'),
-                    ('RVM-001', 'CAN', 'LARGE', 20, 'per_piece'),
-                    ('RVM-001', 'TETRA PAK', 'SMALL', 5, 'per_piece'),
-                    ('RVM-001', 'TETRA PAK', 'MEDIUM', 10, 'per_piece'),
-                    ('RVM-001', 'TETRA PAK', 'LARGE', 15, 'per_piece'),
-                    ('RVM-001', 'GLASS', 'SMALL', 10, 'per_piece'),
-                    ('RVM-001', 'GLASS', 'MEDIUM', 15, 'per_piece'),
-                    ('RVM-001', 'GLASS', 'LARGE', 20, 'per_piece');
+                    INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, IsActive) VALUES
+                    ('SMALL', 'PLASTIC', 5, 1),
+                    ('MEDIUM', 'PLASTIC', 10, 1),
+                    ('LARGE', 'PLASTIC', 15, 1),
+                    ('SMALL', 'METAL', 5, 1),
+                    ('MEDIUM', 'METAL', 10, 1),
+                    ('LARGE', 'METAL', 15, 1),
+                    ('SMALL', 'CAN', 10, 1),
+                    ('MEDIUM', 'CAN', 15, 1),
+                    ('LARGE', 'CAN', 20, 1),
+                    ('SMALL', 'GLASS', 10, 1),
+                    ('MEDIUM', 'GLASS', 15, 1),
+                    ('LARGE', 'GLASS', 20, 1),
+                    ('SMALL', 'TETRA', 5, 1),
+                    ('MEDIUM', 'TETRA', 10, 1),
+                    ('LARGE', 'TETRA', 15, 1);
+                END
+                ELSE
+                BEGIN
+                    -- Rename legacy PointsAwarded column to Points if it exists
+                    IF COL_LENGTH('dbo.PointSettings', 'Points') IS NULL AND COL_LENGTH('dbo.PointSettings', 'PointsAwarded') IS NOT NULL
+                        EXEC sp_rename 'dbo.PointSettings.PointsAwarded', 'Points', 'COLUMN';
+
+                    IF COL_LENGTH('dbo.PointSettings', 'Points') IS NULL
+                        ALTER TABLE dbo.PointSettings ADD Points INT NOT NULL DEFAULT 10;
                 END
             ", connection);
             cmd.ExecuteNonQuery();
@@ -103,9 +111,18 @@ public static class DatabaseManager
         EnsurePointSettingsTable();
         try
         {
-            return Get(@"SELECT SettingID, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated 
-                         FROM dbo.PointSettings 
-                         ORDER BY MaterialType ASC, BottleSize ASC");
+            return Get(@"
+                SELECT 
+                    PointSettingID AS SettingID,
+                    MaterialType,
+                    BottleSize,
+                    Points AS PointsAwarded,
+                    Points,
+                    'per_piece' AS Unit,
+                    IsActive,
+                    GETDATE() AS LastUpdated 
+                FROM dbo.PointSettings 
+                ORDER BY MaterialType ASC, BottleSize ASC");
         }
         catch
         {
@@ -214,9 +231,9 @@ public static class DatabaseManager
                 rulesToUpsert.Add(("CAN", "MEDIUM", GetProp("pointsCanMedium", "points_can_medium", "pointsPerAluminiumCan") > 0 ? GetProp("pointsCanMedium", "points_can_medium", "pointsPerAluminiumCan") : 15, "per_piece"));
                 rulesToUpsert.Add(("CAN", "LARGE", GetProp("pointsCanLarge", "points_can_large") > 0 ? GetProp("pointsCanLarge", "points_can_large") : 20, "per_piece"));
 
-                rulesToUpsert.Add(("TETRA PAK", "SMALL", GetProp("pointsTetraPakSmall", "points_tetrapak_small") > 0 ? GetProp("pointsTetraPakSmall", "points_tetrapak_small") : 5, "per_piece"));
-                rulesToUpsert.Add(("TETRA PAK", "MEDIUM", GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") > 0 ? GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") : 10, "per_piece"));
-                rulesToUpsert.Add(("TETRA PAK", "LARGE", GetProp("pointsTetraPakLarge", "points_tetrapak_large") > 0 ? GetProp("pointsTetraPakLarge", "points_tetrapak_large") : 15, "per_piece"));
+                rulesToUpsert.Add(("TETRA", "SMALL", GetProp("pointsTetraPakSmall", "points_tetrapak_small") > 0 ? GetProp("pointsTetraPakSmall", "points_tetrapak_small") : 5, "per_piece"));
+                rulesToUpsert.Add(("TETRA", "MEDIUM", GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") > 0 ? GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") : 10, "per_piece"));
+                rulesToUpsert.Add(("TETRA", "LARGE", GetProp("pointsTetraPakLarge", "points_tetrapak_large") > 0 ? GetProp("pointsTetraPakLarge", "points_tetrapak_large") : 15, "per_piece"));
 
                 rulesToUpsert.Add(("GLASS", "SMALL", GetProp("pointsGlassSmall", "points_glass_small") > 0 ? GetProp("pointsGlassSmall", "points_glass_small") : 10, "per_piece"));
                 rulesToUpsert.Add(("GLASS", "MEDIUM", GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") > 0 ? GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") : 15, "per_piece"));
@@ -232,19 +249,21 @@ public static class DatabaseManager
             foreach (var item in rulesToUpsert)
             {
                 using var upsertCmd = new SqlCommand(@"
-                    IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE MaterialType = @Mat AND BottleSize = @Sz)
+                    IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz)
                         UPDATE dbo.PointSettings 
-                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = 1, LastUpdated = GETDATE(), MachineName = @Mach
-                        WHERE MaterialType = @Mat AND BottleSize = @Sz;
+                        SET Points = @Pts, IsActive = 1
+                        WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz;
+                    ELSE IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%'))
+                        UPDATE dbo.PointSettings 
+                        SET Points = @Pts, IsActive = 1
+                        WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%');
                     ELSE
-                        INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated)
-                        VALUES (@Mach, @Mat, @Sz, @Pts, @Unit, 1, GETDATE());
+                        INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, IsActive)
+                        VALUES (@Sz, @Mat, @Pts, 1);
                 ", connection);
-                upsertCmd.Parameters.AddWithValue("@Mach", machineId);
                 upsertCmd.Parameters.AddWithValue("@Mat", item.mat);
                 upsertCmd.Parameters.AddWithValue("@Sz", item.sz);
                 upsertCmd.Parameters.AddWithValue("@Pts", item.pts);
-                upsertCmd.Parameters.AddWithValue("@Unit", item.unit);
 
                 await upsertCmd.ExecuteNonQueryAsync();
                 updatedCount++;
@@ -273,11 +292,18 @@ public static class DatabaseManager
             connection.Open();
 
             using var queryCmd = new SqlCommand(@"
-                SELECT TOP 1 PointsAwarded 
+                SELECT TOP 1 Points 
                 FROM dbo.PointSettings 
                 WHERE IsActive = 1 
-                  AND (UPPER(MaterialType) = @Mat OR (MaterialType LIKE '%PLASTIC%' AND @Mat LIKE '%PLASTIC%') OR (MaterialType LIKE '%CAN%' AND @Mat LIKE '%CAN%'))
-                  AND (UPPER(BottleSize) = @Sz OR (BottleSize LIKE '%SMALL%' AND @Sz LIKE '%SMALL%') OR (BottleSize LIKE '%LARGE%' AND @Sz LIKE '%LARGE%') OR (BottleSize LIKE '%MEDIUM%' AND @Sz LIKE '%MEDIUM%'))
+                  AND (UPPER(MaterialType) = @Mat 
+                       OR (MaterialType LIKE '%PLASTIC%' AND @Mat LIKE '%PLASTIC%') 
+                       OR (MaterialType LIKE '%CAN%' AND @Mat LIKE '%CAN%')
+                       OR (MaterialType LIKE '%METAL%' AND @Mat LIKE '%CAN%')
+                       OR (MaterialType LIKE '%TETRA%' AND @Mat LIKE '%TETRA%'))
+                  AND (UPPER(BottleSize) = @Sz 
+                       OR (BottleSize LIKE '%SMALL%' AND @Sz LIKE '%SMALL%') 
+                       OR (BottleSize LIKE '%LARGE%' AND @Sz LIKE '%LARGE%') 
+                       OR (BottleSize LIKE '%MEDIUM%' AND @Sz LIKE '%MEDIUM%'))
                 ORDER BY CASE WHEN UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz THEN 1 ELSE 2 END;
             ", connection);
             queryCmd.Parameters.AddWithValue("@Mat", mat);
