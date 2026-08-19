@@ -510,7 +510,10 @@ public partial class MainWindow : Window
                 }
 
                 SetLiveBadgeOnline();
-                LogTelemetry("[API] Central Master Dashboard API connected (2-way sync ready)");
+                
+                // Auto-upload unsynced local sessions & silently pull latest point settings when online
+                _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
+                _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {

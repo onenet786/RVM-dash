@@ -171,9 +171,20 @@ public static class DatabaseManager
             else
             {
                 System.Text.Json.JsonElement elem = root;
-                if (root.ValueKind == System.Text.Json.JsonValueKind.Array && root.GetArrayLength() > 0)
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
                 {
+                    if (root.GetArrayLength() == 0)
+                    {
+                        logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] Server returned empty response for '{machineId}'. Using local SQL rules.");
+                        return false;
+                    }
                     elem = root[0];
+                }
+
+                if (elem.ValueKind != System.Text.Json.JsonValueKind.Object)
+                {
+                    logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] Payload is not a JSON object. Using local SQL rules.");
+                    return false;
                 }
 
                 int GetProp(params string[] props)

@@ -536,6 +536,10 @@ public partial class LandscapeWindow : Window
                 }
 
                 SetLiveBadgeOnline();
+
+                // Auto-upload unsynced local sessions & silently pull latest point settings when online
+                _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
+                _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
