@@ -573,10 +573,34 @@ public partial class AdminWindow : Window
 
             try
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
-                string endpoint = $"{serverUrl.TrimEnd('/')}/api/analytics/dashboard-stats?machineId={Uri.EscapeDataString(machineId)}";
-                var response = await http.GetAsync(endpoint);
-                if (response.IsSuccessStatusCode)
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+
+                string[] candidateEndpoints = new[]
+                {
+                    $"{serverUrl.TrimEnd('/')}/api/analytics/dashboard-stats?machineId={Uri.EscapeDataString(machineId)}",
+                    $"{serverUrl.TrimEnd('/')}/api/overview?machineId={Uri.EscapeDataString(machineId)}",
+                    $"{serverUrl.TrimEnd('/')}/api/overview"
+                };
+
+                HttpResponseMessage? response = null;
+                string? successEndpoint = null;
+
+                foreach (var ep in candidateEndpoints)
+                {
+                    try
+                    {
+                        var res = await http.GetAsync(ep);
+                        if (res.IsSuccessStatusCode)
+                        {
+                            response = res;
+                            successEndpoint = ep;
+                            break;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (response != null && response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync();
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
@@ -613,6 +637,12 @@ public partial class AdminWindow : Window
                         if (totCans > 0) cenCMed = totCans;
                         if (totPlastic == 0 && totCans == 0 && totBottles > 0) cenPMed = totBottles;
                     }
+
+                    LogConsole($"[Telemetry Fetch OK 🟢] Loaded Central Server metrics via '{successEndpoint}'");
+                }
+                else
+                {
+                    LogConsole($"[Telemetry Fetch Notice 🟡] Unable to fetch metrics from Central Server candidate endpoints.");
                 }
             }
             catch (Exception apiEx)
