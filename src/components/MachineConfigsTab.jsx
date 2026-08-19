@@ -114,6 +114,15 @@ export default function MachineConfigsTab() {
     e.preventDefault();
     try {
       setSaving(true);
+
+      const pSmall = settingsList.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'SMALL')?.points || 5;
+      const pMed = settingsList.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'MEDIUM')?.points || 10;
+      const pLg = settingsList.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'LARGE')?.points || 15;
+      const cSmall = settingsList.find(s => s.materialType === 'CAN' && s.bottleSize === 'SMALL')?.points || 10;
+      const cMed = settingsList.find(s => s.materialType === 'CAN' && s.bottleSize === 'MEDIUM')?.points || 15;
+      const cLg = settingsList.find(s => s.materialType === 'CAN' && s.bottleSize === 'LARGE')?.points || 20;
+
+      // 1. Post to dynamic point-settings endpoint
       const res = await fetch('/api/machine/point-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,6 +131,25 @@ export default function MachineConfigsTab() {
           settings: settingsList
         })
       });
+
+      // 2. Also post to legacy config endpoint for dual compatibility
+      try {
+        await fetch('/api/machine/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetMachine,
+            pointsPerPlasticBottle: pMed,
+            pointsPlasticSmall: pSmall,
+            pointsPlasticMedium: pMed,
+            pointsPlasticLarge: pLg,
+            pointsPerAluminiumCan: cMed,
+            pointsCanSmall: cSmall,
+            pointsCanMedium: cMed,
+            pointsCanLarge: cLg
+          })
+        });
+      } catch (legacyErr) {}
 
       if (res.ok) {
         const data = await res.json();

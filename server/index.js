@@ -3382,27 +3382,51 @@ app.put('/api/machine/config/:machineId', handleSaveMachineConfig);
 // DYNAMIC POINT SETTINGS MATRIX ENDPOINTS
 // ==========================================
 
-let MEMORY_POINT_SETTINGS = {
-  '*': [
-    { id: 1, materialType: 'PLASTIC', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
-    { id: 2, materialType: 'PLASTIC', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
-    { id: 3, materialType: 'PLASTIC', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
-    { id: 4, materialType: 'CAN', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
-    { id: 5, materialType: 'CAN', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
-    { id: 6, materialType: 'CAN', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
-    { id: 7, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
-    { id: 8, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
-    { id: 9, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
-    { id: 10, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
-    { id: 11, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
-    { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true }
-  ]
+// Persistent point settings file storage path
+const POINT_SETTINGS_FILE = path.join(__dirname, 'point_settings_db.json');
+
+const DEFAULT_INITIAL_POINT_SETTINGS = [
+  { id: 1, materialType: 'PLASTIC', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+  { id: 2, materialType: 'PLASTIC', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+  { id: 3, materialType: 'PLASTIC', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
+  { id: 4, materialType: 'CAN', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
+  { id: 5, materialType: 'CAN', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
+  { id: 6, materialType: 'CAN', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
+  { id: 7, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+  { id: 8, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+  { id: 9, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
+  { id: 10, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
+  { id: 11, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
+  { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true }
+];
+
+let MEMORY_POINT_SETTINGS = { '*': DEFAULT_INITIAL_POINT_SETTINGS };
+
+// Load persistent file settings if exists
+try {
+  if (fs.existsSync(POINT_SETTINGS_FILE)) {
+    const raw = fs.readFileSync(POINT_SETTINGS_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      MEMORY_POINT_SETTINGS = parsed;
+    }
+  }
+} catch (e) {
+  console.error('[Point Settings Storage Notice] Failed to load point_settings_db.json:', e.message);
+}
+
+const savePointSettingsToFile = () => {
+  try {
+    fs.writeFileSync(POINT_SETTINGS_FILE, JSON.stringify(MEMORY_POINT_SETTINGS, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[Point Settings Storage Error] Failed to write point_settings_db.json:', e.message);
+  }
 };
 
 app.get('/api/machine/point-settings', async (req, res) => {
   try {
     const machineId = (req.query.machineId || req.query.targetMachine || '*').trim();
-    let settingsList = MEMORY_POINT_SETTINGS[machineId] || MEMORY_POINT_SETTINGS['*'];
+    let settingsList = MEMORY_POINT_SETTINGS[machineId] || MEMORY_POINT_SETTINGS['*'] || DEFAULT_INITIAL_POINT_SETTINGS;
 
     const pool = getPgPool();
     if (pool) {
@@ -3439,7 +3463,7 @@ app.get('/api/machine/point-settings', async (req, res) => {
           }));
         }
       } catch (pgErr) {
-        console.error('[GET /api/machine/point-settings] PG error:', pgErr.message);
+        console.error('[GET /api/machine/point-settings] PG notice:', pgErr.message);
       }
     }
 
@@ -3461,7 +3485,7 @@ app.post('/api/machine/point-settings', async (req, res) => {
     }
 
     const machineScope = targetMachine.trim();
-    MEMORY_POINT_SETTINGS[machineScope] = settings.map((s, idx) => ({
+    const formattedSettings = settings.map((s, idx) => ({
       id: s.id || idx + 1,
       machineId: machineScope,
       materialType: String(s.materialType || 'PLASTIC').toUpperCase(),
@@ -3471,6 +3495,53 @@ app.post('/api/machine/point-settings', async (req, res) => {
       isActive: s.isActive !== false
     }));
 
+    MEMORY_POINT_SETTINGS[machineScope] = formattedSettings;
+    if (machineScope !== '*' && machineScope !== 'ALL') {
+      MEMORY_POINT_SETTINGS['*'] = formattedSettings;
+    }
+    savePointSettingsToFile();
+
+    // MongoDB Sync
+    if (db) {
+      try {
+        const col = db.collection('pointsettings');
+        for (const item of formattedSettings) {
+          await col.updateOne(
+            { machineId: machineScope, materialType: item.materialType, bottleSize: item.bottleSize },
+            { $set: { ...item, updatedAt: new Date() } },
+            { upsert: true }
+          );
+        }
+
+        // Also update flat properties in machines collection
+        const pSmall = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'SMALL')?.points || 5;
+        const pMed = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'MEDIUM')?.points || 10;
+        const pLg = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'LARGE')?.points || 15;
+        const cSmall = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'SMALL')?.points || 6;
+        const cMed = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'MEDIUM')?.points || 12;
+        const cLg = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'LARGE')?.points || 20;
+
+        await db.collection('machines').updateMany(
+          machineScope === '*' || machineScope === 'ALL' ? {} : { machineId: machineScope },
+          {
+            $set: {
+              pointsPlasticSmall: pSmall,
+              pointsPlasticMedium: pMed,
+              pointsPlasticLarge: pLg,
+              pointsCanSmall: cSmall,
+              pointsCanMedium: cMed,
+              pointsCanLarge: cLg,
+              updatedAt: new Date()
+            },
+            $inc: { configVersion: 1 }
+          }
+        );
+      } catch (mErr) {
+        console.error('[POST /api/machine/point-settings] MongoDB notice:', mErr.message);
+      }
+    }
+
+    // PostgreSQL Sync
     const pool = getPgPool();
     if (pool) {
       try {
@@ -3488,13 +3559,7 @@ app.post('/api/machine/point-settings', async (req, res) => {
           );
         `);
 
-        for (const item of settings) {
-          const mat = String(item.materialType || 'PLASTIC').toUpperCase();
-          const sz = String(item.bottleSize || 'MEDIUM').toUpperCase();
-          const pts = parseInt(item.points) || 0;
-          const u = item.unit || 'per_piece';
-          const act = item.isActive !== false;
-
+        for (const item of formattedSettings) {
           await pool.query(`
             INSERT INTO machine_variant_settings (machine_id, material_type, bottle_size, points, unit, is_active, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -3503,18 +3568,18 @@ app.post('/api/machine/point-settings', async (req, res) => {
               unit = EXCLUDED.unit,
               is_active = EXCLUDED.is_active,
               updated_at = NOW();
-          `, [machineScope, mat, sz, pts, u, act]);
+          `, [machineScope, item.materialType, item.bottleSize, item.points, item.unit, item.isActive]);
         }
       } catch (pgErr) {
-        console.error('[POST /api/machine/point-settings] PG error:', pgErr.message);
+        console.error('[POST /api/machine/point-settings] PG notice:', pgErr.message);
       }
     }
 
     res.json({
       success: true,
-      message: `Successfully saved ${settings.length} point setting rules for ${machineScope === '*' || machineScope === 'ALL' ? 'ALL RVM Machines' : `machine '${machineScope}'`}`,
+      message: `Successfully saved ${formattedSettings.length} point settings rules for ${machineScope === '*' || machineScope === 'ALL' ? 'ALL RVM Machines' : `machine '${machineScope}'`}`,
       targetMachine: machineScope,
-      settingsCount: settings.length
+      settingsCount: formattedSettings.length
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
