@@ -520,6 +520,43 @@ public partial class AdminWindow : Window
         await RefreshComparisonDataAsync();
     }
 
+    private void RefreshLocalPointSettingsGrid()
+    {
+        try
+        {
+            string machineId = CfgMachineId?.Text?.Trim() ?? settings.MachineId;
+            DataTable dt = DatabaseManager.GetLocalPointSettings(machineId);
+            GridLocalPointSettings.ItemsSource = dt.DefaultView;
+        }
+        catch (Exception ex)
+        {
+            LogConsole($"[Point Settings Error] Failed to load local point settings grid: {ex.Message}");
+        }
+    }
+
+    private async void SyncPointSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string machineId = CfgMachineId?.Text?.Trim() ?? settings.MachineId;
+            LogConsole($"[Point Settings 🔄] Fetching latest point settings from Central Server for machine '{machineId}'...");
+            bool ok = await DatabaseManager.SyncPointSettingsFromCentralAsync(machineId, msg => LogConsole(msg));
+            RefreshLocalPointSettingsGrid();
+            if (ok)
+            {
+                RvmMessageDialog.ShowSuccess("Point Settings Synced", $"Successfully synced dynamic point settings from Central Dashboard into local SQL table dbo.PointSettings!", this);
+            }
+            else
+            {
+                RvmMessageDialog.ShowWarning("Point Settings Sync Notice", $"Unable to fetch remote point settings from Central Server. Local SQL rules remain active.", this);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogConsole($"[Point Settings Exception] Sync error: {ex.Message}");
+        }
+    }
+
     private async System.Threading.Tasks.Task RefreshComparisonDataAsync()
     {
         try
@@ -532,6 +569,10 @@ public partial class AdminWindow : Window
 
             string serverUrl = CfgCentralApiUrl?.Text?.Trim() ?? settings.CentralApiUrl;
             if (string.IsNullOrWhiteSpace(serverUrl)) serverUrl = settings.CentralApiUrl;
+
+            // Sync dynamic point settings from Central Dashboard
+            await DatabaseManager.SyncPointSettingsFromCentralAsync(machineId, msg => LogConsole(msg));
+            RefreshLocalPointSettingsGrid();
 
             // 1. Fetch Local SQL Counts & Grand Totals
             DataTable localDt = DatabaseManager.GetLocalItemCountsByVariant(machineId);

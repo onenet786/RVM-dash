@@ -45,6 +45,7 @@ public static class DatabaseManager
         {
             using var connection = new SqlConnection(ConnectionString);
             connection.Open();
+            EnsurePointSettingsTable();
             message = "Database connected.";
             return true;
         }
@@ -55,20 +56,185 @@ public static class DatabaseManager
         }
     }
 
+    public static void EnsurePointSettingsTable()
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            using var cmd = new SqlCommand(@"
+                IF OBJECT_ID('dbo.PointSettings', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.PointSettings (
+                        SettingID INT IDENTITY(1,1) PRIMARY KEY,
+                        MachineName NVARCHAR(50) NOT NULL DEFAULT 'RVM-001',
+                        MaterialType NVARCHAR(50) NOT NULL,
+                        BottleSize NVARCHAR(50) NOT NULL,
+                        PointsAwarded INT NOT NULL DEFAULT 10,
+                        Unit NVARCHAR(20) NOT NULL DEFAULT 'per_piece',
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        LastUpdated DATETIME NOT NULL DEFAULT GETDATE(),
+                        CONSTRAINT UQ_PointSettings UNIQUE (MachineName, MaterialType, BottleSize)
+                    );
+
+                    INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit) VALUES
+                    ('RVM-001', 'PLASTIC', 'SMALL', 5, 'per_piece'),
+                    ('RVM-001', 'PLASTIC', 'MEDIUM', 10, 'per_piece'),
+                    ('RVM-001', 'PLASTIC', 'LARGE', 15, 'per_piece'),
+                    ('RVM-001', 'CAN', 'SMALL', 10, 'per_piece'),
+                    ('RVM-001', 'CAN', 'MEDIUM', 15, 'per_piece'),
+                    ('RVM-001', 'CAN', 'LARGE', 20, 'per_piece'),
+                    ('RVM-001', 'TETRA PAK', 'SMALL', 5, 'per_piece'),
+                    ('RVM-001', 'TETRA PAK', 'MEDIUM', 10, 'per_piece'),
+                    ('RVM-001', 'TETRA PAK', 'LARGE', 15, 'per_piece'),
+                    ('RVM-001', 'GLASS', 'SMALL', 10, 'per_piece'),
+                    ('RVM-001', 'GLASS', 'MEDIUM', 15, 'per_piece'),
+                    ('RVM-001', 'GLASS', 'LARGE', 20, 'per_piece');
+                END
+            ", connection);
+            cmd.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public static DataTable GetLocalPointSettings(string machineName = "RVM-001")
+    {
+        EnsurePointSettingsTable();
+        try
+        {
+            return Get($"SELECT SettingID, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated FROM dbo.PointSettings WHERE MachineName = '{machineName}' OR MachineName = 'RVM-001' ORDER BY MaterialType ASC, BottleSize ASC");
+        }
+        catch
+        {
+            return new DataTable();
+        }
+    }
+
+    public static async System.Threading.Tasks.Task<bool> SyncPointSettingsFromCentralAsync(string machineId = "RVM-001", Action<string>? logCallback = null)
+    {
+        try
+        {
+            EnsurePointSettingsTable();
+            string serverUrl = CentralSyncService.CentralApiUrl;
+            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            
+            string url = $"{serverUrl.TrimEnd('/')}/api/machine/point-settings?machineId={Uri.EscapeDataString(machineId)}";
+            var res = await http.GetAsync(url);
+            if (!res.IsSuccessStatusCode) return false;
+
+            string json = await res.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("settings", out var settingsElem) || settingsElem.ValueKind != System.Text.Json.JsonValueKind.Array)
+                return false;
+
+            using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+
+            int updatedCount = 0;
+            foreach (var item in settingsElem.EnumerateArray())
+            {
+                string mat = item.TryGetProperty("materialType", out var m) ? m.GetString()?.ToUpper() ?? "PLASTIC" : "PLASTIC";
+                string sz = item.TryGetProperty("bottleSize", out var s) ? s.GetString()?.ToUpper() ?? "MEDIUM" : "MEDIUM";
+                int pts = item.TryGetProperty("points", out var p) && p.ValueKind == System.Text.Json.JsonValueKind.Number ? p.GetInt32() : 10;
+                string unit = item.TryGetProperty("unit", out var u) ? u.GetString() ?? "per_piece" : "per_piece";
+                bool act = !item.TryGetProperty("isActive", out var a) || a.ValueKind != System.Text.Json.JsonValueKind.False;
+
+                using var upsertCmd = new SqlCommand(@"
+                    IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz)
+                        UPDATE dbo.PointSettings 
+                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = @Act, LastUpdated = GETDATE()
+                        WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz;
+                    ELSE
+                        INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated)
+                        VALUES (@Mach, @Mat, @Sz, @Pts, @Unit, @Act, GETDATE());
+                ", connection);
+                upsertCmd.Parameters.AddWithValue("@Mach", machineId);
+                upsertCmd.Parameters.AddWithValue("@Mat", mat);
+                upsertCmd.Parameters.AddWithValue("@Sz", sz);
+                upsertCmd.Parameters.AddWithValue("@Pts", pts);
+                upsertCmd.Parameters.AddWithValue("@Unit", unit);
+                upsertCmd.Parameters.AddWithValue("@Act", act);
+
+                await upsertCmd.ExecuteNonQueryAsync();
+                updatedCount++;
+            }
+
+            logCallback?.Invoke($"[POINT SETTINGS SYNC 🟢] Successfully synced {updatedCount} dynamic point rules from Central Server into local database.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[POINT SETTINGS SYNC NOTICE 🟡] {ex.Message}");
+            return false;
+        }
+    }
+
     public static int GetPoints(string bottleSize, string materialType)
     {
-        using var connection = new SqlConnection(ConnectionString);
-        using var command = new SqlCommand("dbo.RVM_sp_GetPoints", connection)
+        try
         {
-            CommandType = CommandType.StoredProcedure
-        };
+            EnsurePointSettingsTable();
 
-        command.Parameters.Add(new SqlParameter("@BottleSize", SqlDbType.VarChar, 20) { Value = bottleSize });
-        command.Parameters.Add(new SqlParameter("@MaterialType", SqlDbType.VarChar, 20) { Value = materialType });
+            string mat = (materialType ?? "PLASTIC").Trim().ToUpper();
+            string sz = (bottleSize ?? "MEDIUM").Trim().ToUpper();
 
-        connection.Open();
-        var result = command.ExecuteScalar();
-        return result == null || result == DBNull.Value ? 0 : Convert.ToInt32(result);
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            using var queryCmd = new SqlCommand(@"
+                SELECT TOP 1 PointsAwarded 
+                FROM dbo.PointSettings 
+                WHERE IsActive = 1 
+                  AND (UPPER(MaterialType) = @Mat OR (MaterialType LIKE '%PLASTIC%' AND @Mat LIKE '%PLASTIC%') OR (MaterialType LIKE '%CAN%' AND @Mat LIKE '%CAN%'))
+                  AND (UPPER(BottleSize) = @Sz OR (BottleSize LIKE '%SMALL%' AND @Sz LIKE '%SMALL%') OR (BottleSize LIKE '%LARGE%' AND @Sz LIKE '%LARGE%') OR (BottleSize LIKE '%MEDIUM%' AND @Sz LIKE '%MEDIUM%'))
+                ORDER BY CASE WHEN UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz THEN 1 ELSE 2 END;
+            ", connection);
+            queryCmd.Parameters.AddWithValue("@Mat", mat);
+            queryCmd.Parameters.AddWithValue("@Sz", sz);
+
+            var res = queryCmd.ExecuteScalar();
+            if (res != null && res != DBNull.Value)
+            {
+                return Convert.ToInt32(res);
+            }
+        }
+        catch { }
+
+        // Fallback to stored procedure
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            using var command = new SqlCommand("dbo.RVM_sp_GetPoints", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add(new SqlParameter("@BottleSize", SqlDbType.VarChar, 20) { Value = bottleSize });
+            command.Parameters.Add(new SqlParameter("@MaterialType", SqlDbType.VarChar, 20) { Value = materialType });
+
+            connection.Open();
+            var result = command.ExecuteScalar();
+            if (result != null && result != DBNull.Value)
+                return Convert.ToInt32(result);
+        }
+        catch { }
+
+        // Hardcoded safety defaults
+        string mUpper = (materialType ?? "").ToUpper();
+        string sUpper = (bottleSize ?? "").ToUpper();
+        if (mUpper.Contains("CAN") || mUpper.Contains("ALUMINIUM"))
+        {
+            return sUpper.Contains("SMALL") ? 10 : sUpper.Contains("LARGE") ? 20 : 15;
+        }
+        if (mUpper.Contains("TETRA") || mUpper.Contains("CARTON") || mUpper.Contains("PAPER"))
+        {
+            return sUpper.Contains("SMALL") ? 5 : sUpper.Contains("LARGE") ? 15 : 10;
+        }
+        if (mUpper.Contains("GLASS"))
+        {
+            return sUpper.Contains("SMALL") ? 10 : sUpper.Contains("LARGE") ? 20 : 15;
+        }
+        return sUpper.Contains("SMALL") ? 5 : sUpper.Contains("LARGE") ? 15 : 10;
     }
 
     public static void SaveTransaction(

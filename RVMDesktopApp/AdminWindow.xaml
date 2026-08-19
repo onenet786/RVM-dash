@@ -238,6 +238,48 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+
+                            <!-- Dynamic Point Settings Matrix Card -->
+                            <Border Style="{StaticResource CardBorder}" Padding="20" Margin="0,16,0,0">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="🎯 DYNAMIC LOCAL POINT SETTINGS MATRIX" FontWeight="Bold" Foreground="#10B981" FontSize="14"/>
+                                            <TextBlock Text="Live variant point rules synced from Central Server database into local SQL table dbo.PointSettings." Style="{StaticResource SecondaryText}" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="🔄 Pull Latest Point Settings from Dashboard" Click="SyncPointSettings_Click" Height="36" Padding="12,4" Style="{StaticResource AccentButton}"/>
+                                    </Grid>
+
+                                    <DataGrid x:Name="GridLocalPointSettings"
+                                              AutoGenerateColumns="False"
+                                              IsReadOnly="True"
+                                              CanUserAddRows="False"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="Horizontal"
+                                              Background="#090D16"
+                                              BorderBrush="#1E293B"
+                                              RowBackground="#0F172A"
+                                              AlternatingRowBackground="#090D16"
+                                              Foreground="White"
+                                              MinHeight="160"
+                                              MaxHeight="260">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Setting ID" Binding="{Binding SettingID}" Width="90"/>
+                                            <DataGridTextColumn Header="Material Category" Binding="{Binding MaterialType}" Width="*"/>
+                                            <DataGridTextColumn Header="Size / Variant" Binding="{Binding BottleSize}" Width="*"/>
+                                            <DataGridTextColumn Header="Points Awarded" Binding="{Binding PointsAwarded}" Width="110"/>
+                                            <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" Width="100"/>
+                                            <DataGridTextColumn Header="Active" Binding="{Binding IsActive}" Width="80"/>
+                                            <DataGridTextColumn Header="Last Updated" Binding="{Binding LastUpdated, StringFormat=\{0:yyyy-MM-dd HH:mm\}}" Width="140"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

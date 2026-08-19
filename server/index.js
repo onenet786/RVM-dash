@@ -3378,6 +3378,149 @@ app.post('/api/machine/config', handleSaveMachineConfig);
 app.post('/api/machine/config/:machineId', handleSaveMachineConfig);
 app.put('/api/machine/config/:machineId', handleSaveMachineConfig);
 
+// ==========================================
+// DYNAMIC POINT SETTINGS MATRIX ENDPOINTS
+// ==========================================
+
+let MEMORY_POINT_SETTINGS = {
+  '*': [
+    { id: 1, materialType: 'PLASTIC', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+    { id: 2, materialType: 'PLASTIC', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+    { id: 3, materialType: 'PLASTIC', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
+    { id: 4, materialType: 'CAN', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
+    { id: 5, materialType: 'CAN', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
+    { id: 6, materialType: 'CAN', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
+    { id: 7, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+    { id: 8, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+    { id: 9, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
+    { id: 10, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
+    { id: 11, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
+    { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true }
+  ]
+};
+
+app.get('/api/machine/point-settings', async (req, res) => {
+  try {
+    const machineId = (req.query.machineId || req.query.targetMachine || '*').trim();
+    let settingsList = MEMORY_POINT_SETTINGS[machineId] || MEMORY_POINT_SETTINGS['*'];
+
+    const pool = getPgPool();
+    if (pool) {
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS machine_variant_settings (
+            id SERIAL PRIMARY KEY,
+            machine_id VARCHAR(100) NOT NULL DEFAULT '*',
+            material_type VARCHAR(50) NOT NULL,
+            bottle_size VARCHAR(50) NOT NULL,
+            points INT NOT NULL DEFAULT 10,
+            unit VARCHAR(20) NOT NULL DEFAULT 'per_piece',
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_mvs UNIQUE (machine_id, material_type, bottle_size)
+          );
+        `);
+        const pgRes = await pool.query(
+          `SELECT id, machine_id, material_type, bottle_size, points, unit, is_active 
+           FROM machine_variant_settings 
+           WHERE machine_id = $1 OR machine_id = '*' 
+           ORDER BY machine_id DESC, material_type ASC, bottle_size ASC;`,
+          [machineId]
+        );
+        if (pgRes.rows.length > 0) {
+          settingsList = pgRes.rows.map(r => ({
+            id: r.id,
+            machineId: r.machine_id,
+            materialType: r.material_type,
+            bottleSize: r.bottle_size,
+            points: r.points,
+            unit: r.unit,
+            isActive: r.is_active
+          }));
+        }
+      } catch (pgErr) {
+        console.error('[GET /api/machine/point-settings] PG error:', pgErr.message);
+      }
+    }
+
+    res.json({
+      machineId,
+      configVersion: Date.now(),
+      settings: settingsList
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/machine/point-settings', async (req, res) => {
+  try {
+    const { targetMachine = '*', settings = [] } = req.body || {};
+    if (!Array.isArray(settings)) {
+      return res.status(400).json({ error: 'settings must be an array of variant rules' });
+    }
+
+    const machineScope = targetMachine.trim();
+    MEMORY_POINT_SETTINGS[machineScope] = settings.map((s, idx) => ({
+      id: s.id || idx + 1,
+      machineId: machineScope,
+      materialType: String(s.materialType || 'PLASTIC').toUpperCase(),
+      bottleSize: String(s.bottleSize || 'MEDIUM').toUpperCase(),
+      points: parseInt(s.points) || 0,
+      unit: s.unit || 'per_piece',
+      isActive: s.isActive !== false
+    }));
+
+    const pool = getPgPool();
+    if (pool) {
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS machine_variant_settings (
+            id SERIAL PRIMARY KEY,
+            machine_id VARCHAR(100) NOT NULL DEFAULT '*',
+            material_type VARCHAR(50) NOT NULL,
+            bottle_size VARCHAR(50) NOT NULL,
+            points INT NOT NULL DEFAULT 10,
+            unit VARCHAR(20) NOT NULL DEFAULT 'per_piece',
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_mvs UNIQUE (machine_id, material_type, bottle_size)
+          );
+        `);
+
+        for (const item of settings) {
+          const mat = String(item.materialType || 'PLASTIC').toUpperCase();
+          const sz = String(item.bottleSize || 'MEDIUM').toUpperCase();
+          const pts = parseInt(item.points) || 0;
+          const u = item.unit || 'per_piece';
+          const act = item.isActive !== false;
+
+          await pool.query(`
+            INSERT INTO machine_variant_settings (machine_id, material_type, bottle_size, points, unit, is_active, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ON CONFLICT (machine_id, material_type, bottle_size) DO UPDATE SET
+              points = EXCLUDED.points,
+              unit = EXCLUDED.unit,
+              is_active = EXCLUDED.is_active,
+              updated_at = NOW();
+          `, [machineScope, mat, sz, pts, u, act]);
+        }
+      } catch (pgErr) {
+        console.error('[POST /api/machine/point-settings] PG error:', pgErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully saved ${settings.length} point setting rules for ${machineScope === '*' || machineScope === 'ALL' ? 'ALL RVM Machines' : `machine '${machineScope}'`}`,
+      targetMachine: machineScope,
+      settingsCount: settings.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // QR Code Authenticator for RVM Machine Scanner
 app.post('/api/user/verify-qr', async (req, res) => {
   try {
