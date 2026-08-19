@@ -249,17 +249,40 @@ public static class DatabaseManager
             foreach (var item in rulesToUpsert)
             {
                 using var upsertCmd = new SqlCommand(@"
+                    -- 1. Exact Match
                     IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz)
+                    BEGIN
                         UPDATE dbo.PointSettings 
                         SET Points = @Pts, IsActive = 1
                         WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz;
+                    END
+                    -- 2. Alias Match for CAN / METAL / ALUMINIUM
+                    ELSE IF (@Mat = 'CAN' OR @Mat = 'METAL' OR @Mat = 'ALUMINIUM') AND EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) IN ('CAN', 'METAL', 'ALUMINIUM') AND UPPER(BottleSize) = @Sz)
+                    BEGIN
+                        UPDATE dbo.PointSettings 
+                        SET Points = @Pts, IsActive = 1
+                        WHERE UPPER(MaterialType) IN ('CAN', 'METAL', 'ALUMINIUM') AND UPPER(BottleSize) = @Sz;
+                    END
+                    -- 3. Alias Match for TETRA / TETRA PAK / PAPER
+                    ELSE IF (@Mat LIKE '%TETRA%' OR @Mat LIKE '%CARTON%' OR @Mat LIKE '%PAPER%') AND EXISTS (SELECT 1 FROM dbo.PointSettings WHERE (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = @Sz)
+                    BEGIN
+                        UPDATE dbo.PointSettings 
+                        SET Points = @Pts, IsActive = 1
+                        WHERE (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = @Sz;
+                    END
+                    -- 4. Fuzzy Substring Match
                     ELSE IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%'))
+                    BEGIN
                         UPDATE dbo.PointSettings 
                         SET Points = @Pts, IsActive = 1
                         WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%');
+                    END
+                    -- 5. Insert new rule if absent
                     ELSE
+                    BEGIN
                         INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, IsActive)
                         VALUES (@Sz, @Mat, @Pts, 1);
+                    END
                 ", connection);
                 upsertCmd.Parameters.AddWithValue("@Mat", item.mat);
                 upsertCmd.Parameters.AddWithValue("@Sz", item.sz);
