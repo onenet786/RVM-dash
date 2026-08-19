@@ -3390,12 +3390,24 @@ app.get('/api/machine/point-settings', async (req, res) => {
         const pgRes = await pool.query(
           `SELECT id, machine_id, material_type, bottle_size, points, unit, is_active 
            FROM machine_variant_settings 
-           WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL'
-           ORDER BY machine_id DESC, material_type ASC, bottle_size ASC;`,
+           WHERE machine_id = $1 
+           ORDER BY material_type ASC, bottle_size ASC;`,
           [machineId]
         );
-        if (pgRes.rows.length > 0) {
-          settingsList = pgRes.rows.map(r => ({
+
+        let rowsToUse = pgRes.rows;
+        if (rowsToUse.length === 0) {
+          const fallbackRes = await pool.query(
+            `SELECT id, machine_id, material_type, bottle_size, points, unit, is_active 
+             FROM machine_variant_settings 
+             WHERE machine_id = '*' OR machine_id = 'ALL' 
+             ORDER BY material_type ASC, bottle_size ASC;`
+          );
+          rowsToUse = fallbackRes.rows;
+        }
+
+        if (rowsToUse.length > 0) {
+          settingsList = rowsToUse.map(r => ({
             id: r.id,
             machineId: r.machine_id,
             materialType: r.material_type,
@@ -3439,9 +3451,8 @@ app.post('/api/machine/point-settings', async (req, res) => {
     }));
 
     MEMORY_POINT_SETTINGS[machineScope] = formattedSettings;
-    if (machineScope !== '*' && machineScope !== 'ALL') {
-      MEMORY_POINT_SETTINGS['*'] = formattedSettings;
-    }
+    MEMORY_POINT_SETTINGS['*'] = formattedSettings;
+    MEMORY_POINT_SETTINGS['ALL'] = formattedSettings;
     savePointSettingsToFile();
 
     // PostgreSQL ONLY Database Sync
@@ -3462,16 +3473,32 @@ app.post('/api/machine/point-settings', async (req, res) => {
           );
         `);
 
-        for (const item of formattedSettings) {
-          await pool.query(`
-            INSERT INTO machine_variant_settings (machine_id, material_type, bottle_size, points, unit, is_active, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            ON CONFLICT (machine_id, material_type, bottle_size) DO UPDATE SET
-              points = EXCLUDED.points,
-              unit = EXCLUDED.unit,
-              is_active = EXCLUDED.is_active,
-              updated_at = NOW();
-          `, [machineScope, item.materialType, item.bottleSize, item.points, item.unit, item.isActive]);
+        // Determine all target machine IDs to update in PostgreSQL
+        let targetMachinesToUpdate = [machineScope];
+        if (machineScope === '*' || machineScope === 'ALL') {
+          targetMachinesToUpdate = ['*', 'ALL'];
+          try {
+            const mRes = await pool.query(`SELECT DISTINCT machine_id FROM machine_configs UNION SELECT DISTINCT machine_id FROM machines;`);
+            mRes.rows.forEach(r => {
+              if (r.machine_id) targetMachinesToUpdate.push(r.machine_id);
+            });
+          } catch (e) {}
+        }
+
+        const uniqueTargets = Array.from(new Set(targetMachinesToUpdate));
+
+        for (const targetScope of uniqueTargets) {
+          for (const item of formattedSettings) {
+            await pool.query(`
+              INSERT INTO machine_variant_settings (machine_id, material_type, bottle_size, points, unit, is_active, updated_at)
+              VALUES ($1, $2, $3, $4, $5, $6, NOW())
+              ON CONFLICT (machine_id, material_type, bottle_size) DO UPDATE SET
+                points = EXCLUDED.points,
+                unit = EXCLUDED.unit,
+                is_active = EXCLUDED.is_active,
+                updated_at = NOW();
+            `, [targetScope, item.materialType, item.bottleSize, item.points, item.unit, item.isActive]);
+          }
         }
 
         // Also upsert into PostgreSQL table machine_configs for full relational & API compatibility
