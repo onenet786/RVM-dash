@@ -180,13 +180,31 @@ public static class DatabaseManager
         {
             return Get($"""
                 SELECT 
-                    ISNULL(MaterialType, 'PLASTIC') AS MaterialType,
-                    ISNULL(BottleSize, 'MEDIUM') AS BottleSize,
+                    CASE 
+                        WHEN UPPER(MaterialType) LIKE '%CAN%' THEN 'CAN'
+                        WHEN UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%' THEN 'TETRA PAK'
+                        ELSE 'PLASTIC'
+                    END AS MaterialType,
+                    CASE 
+                        WHEN UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S' THEN 'SMALL'
+                        WHEN UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L' THEN 'LARGE'
+                        ELSE 'MEDIUM'
+                    END AS BottleSize,
                     COUNT(*) AS ItemCount,
                     SUM(PointsAwarded) AS TotalPoints
                 FROM dbo.BottleTransactions
-                WHERE IsAccepted = 1
-                GROUP BY ISNULL(MaterialType, 'PLASTIC'), ISNULL(BottleSize, 'MEDIUM');
+                WHERE IsAccepted = 1 OR IsAccepted IS NULL
+                GROUP BY 
+                    CASE 
+                        WHEN UPPER(MaterialType) LIKE '%CAN%' THEN 'CAN'
+                        WHEN UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%' THEN 'TETRA PAK'
+                        ELSE 'PLASTIC'
+                    END,
+                    CASE 
+                        WHEN UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S' THEN 'SMALL'
+                        WHEN UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L' THEN 'LARGE'
+                        ELSE 'MEDIUM'
+                    END;
                 """);
         }
         catch
@@ -414,7 +432,7 @@ public static class DatabaseManager
 
                 if (totalLocalCount > 0)
                 {
-                    // Unsynced count is 0 but local database has records -> Reset IsSynced = 0 to allow syncing all 110 items
+                    // Unsynced count is 0 but local database has records -> Reset IsSynced = 0 to allow syncing all local items
                     using var autoResetCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 0 WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
                     await autoResetCmd.ExecuteNonQueryAsync();
                     logCallback?.Invoke($"[AUTO RE-SYNC] Detected {totalLocalCount} local transactions. Resetting IsSynced flags to perform complete sync to Central Dashboard...");
@@ -426,15 +444,15 @@ public static class DatabaseManager
                 SELECT 
                     SessionID,
                     ISNULL(MobileNumber, '3214424625') AS MobileNumber,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS PlasticSmall,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS PlasticMedium,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS PlasticLarge,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS CanSmall,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS CanMedium,
-                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS CanLarge,
-                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS TetraPakSmall,
-                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS TetraPakMedium,
-                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS TetraPakLarge,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS PlasticSmall,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS PlasticLarge,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS PlasticMedium,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS CanSmall,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS CanLarge,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS CanMedium,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS TetraPakSmall,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS TetraPakLarge,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS TetraPakMedium,
                     SUM(PointsAwarded) AS TotalPoints,
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
