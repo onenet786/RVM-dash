@@ -3474,26 +3474,44 @@ app.post('/api/machine/point-settings', async (req, res) => {
           `, [machineScope, item.materialType, item.bottleSize, item.points, item.unit, item.isActive]);
         }
 
-        // Also update PostgreSQL table machine_configs for relational compatibility
+        // Also upsert into PostgreSQL table machine_configs for full relational & API compatibility
         const pSmall = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'SMALL')?.points || 5;
         const pMed = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'MEDIUM')?.points || 10;
         const pLg = formattedSettings.find(s => s.materialType === 'PLASTIC' && s.bottleSize === 'LARGE')?.points || 15;
         const cSmall = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'SMALL')?.points || 6;
         const cMed = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'MEDIUM')?.points || 12;
         const cLg = formattedSettings.find(s => s.materialType === 'CAN' && s.bottleSize === 'LARGE')?.points || 20;
+        const gSmall = formattedSettings.find(s => s.materialType === 'GLASS' && s.bottleSize === 'SMALL')?.points || 10;
+        const gMed = formattedSettings.find(s => s.materialType === 'GLASS' && s.bottleSize === 'MEDIUM')?.points || 15;
+        const gLg = formattedSettings.find(s => s.materialType === 'GLASS' && s.bottleSize === 'LARGE')?.points || 20;
 
-        await pool.query(`
-          UPDATE machine_configs 
-          SET points_plastic_small = $1,
-              points_plastic_medium = $2,
-              points_plastic_large = $3,
-              points_can_small = $4,
-              points_can_medium = $5,
-              points_can_large = $6,
-              config_version = config_version + 1,
-              updated_at = NOW()
-          WHERE machine_id = $7 OR $7 = '*';
-        `, [pSmall, pMed, pLg, cSmall, cMed, cLg, machineScope]).catch(() => {});
+        const scopesToUpdate = Array.from(new Set([machineScope, '*', 'ALL', 'RVM-RWP', 'RVM-001']));
+        for (const scope of scopesToUpdate) {
+          await pool.query(`
+            INSERT INTO machine_configs (
+              machine_id, config_version, 
+              points_per_plastic, points_plastic_small, points_plastic_medium, points_plastic_large,
+              points_per_aluminium, points_can_small, points_can_medium, points_can_large,
+              points_glass_small, points_glass_medium, points_glass_large,
+              updated_at
+            )
+            VALUES ($1, 1, $3, $2, $3, $4, $6, $5, $6, $7, $8, $9, $10, NOW())
+            ON CONFLICT (machine_id) DO UPDATE SET
+              config_version = machine_configs.config_version + 1,
+              points_per_plastic = EXCLUDED.points_per_plastic,
+              points_plastic_small = EXCLUDED.points_plastic_small,
+              points_plastic_medium = EXCLUDED.points_plastic_medium,
+              points_plastic_large = EXCLUDED.points_plastic_large,
+              points_per_aluminium = EXCLUDED.points_per_aluminium,
+              points_can_small = EXCLUDED.points_can_small,
+              points_can_medium = EXCLUDED.points_can_medium,
+              points_can_large = EXCLUDED.points_can_large,
+              points_glass_small = EXCLUDED.points_glass_small,
+              points_glass_medium = EXCLUDED.points_glass_medium,
+              points_glass_large = EXCLUDED.points_glass_large,
+              updated_at = NOW();
+          `, [scope, pSmall, pMed, pLg, cSmall, cMed, cLg, gSmall, gMed, gLg]).catch(() => {});
+        }
       } catch (pgErr) {
         console.error('[POST /api/machine/point-settings] PG error:', pgErr.message);
       }
