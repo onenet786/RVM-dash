@@ -533,8 +533,9 @@ public partial class AdminWindow : Window
             string serverUrl = CfgCentralApiUrl?.Text?.Trim() ?? settings.CentralApiUrl;
             if (string.IsNullOrWhiteSpace(serverUrl)) serverUrl = settings.CentralApiUrl;
 
-            // 1. Fetch Local SQL Counts grouped by variant
+            // 1. Fetch Local SQL Counts & Grand Totals
             DataTable localDt = DatabaseManager.GetLocalItemCountsByVariant(machineId);
+            (int locTotalItems, int locTotalPoints) = DatabaseManager.GetLocalTotals(machineId);
 
             int locPSmall = 0, locPMed = 0, locPLg = 0;
             int locCSmall = 0, locCMed = 0, locCLg = 0;
@@ -570,6 +571,8 @@ public partial class AdminWindow : Window
             int cenPSmall = 0, cenPMed = 0, cenPLg = 0;
             int cenCSmall = 0, cenCMed = 0, cenCLg = 0;
             int cenTPSmall = 0, cenTPMed = 0, cenTPLg = 0;
+            int cenTotalPoints = 0;
+            int cenTotalItems = 0;
 
             try
             {
@@ -614,6 +617,9 @@ public partial class AdminWindow : Window
                         }
                         return 0;
                     }
+
+                    cenTotalPoints = GetIntProp(doc.RootElement, "totalPoints", "total_points", "points");
+                    cenTotalItems = GetIntProp(doc.RootElement, "totalBottles", "bottles", "total_bottles");
 
                     if (doc.RootElement.TryGetProperty("variantBreakdown", out var vb))
                     {
@@ -665,8 +671,20 @@ public partial class AdminWindow : Window
             };
 
             int totalLoc = locPSmall + locPMed + locPLg + locCSmall + locCMed + locCLg + locTPSmall + locTPMed + locTPLg;
+            if (locTotalItems > 0 && totalLoc == 0) totalLoc = locTotalItems;
+
             int totalCen = cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg + cenTPSmall + cenTPMed + cenTPLg;
-            comparisonRows.Add(CreateComparisonRow("TOTAL ACCEPTED BOTTLES", totalLoc, totalCen));
+            if (cenTotalItems > 0 && totalCen == 0) totalCen = cenTotalItems;
+            if (cenTotalItems == 0) cenTotalItems = totalCen;
+
+            // Update KPI summary cards
+            TxtLocalTotalItems.Text = $"{locTotalItems:N0} Items";
+            TxtCentralTotalItems.Text = $"{cenTotalItems:N0} Items";
+            TxtLocalTotalPoints.Text = $"{locTotalPoints:N0} Pts";
+            TxtCentralTotalPoints.Text = $"{cenTotalPoints:N0} Pts";
+
+            comparisonRows.Add(CreateComparisonRow("TOTAL ACCEPTED BOTTLES & ITEMS", totalLoc, totalCen));
+            comparisonRows.Add(CreateComparisonRow("TOTAL POINTS AWARDED", locTotalPoints, cenTotalPoints));
 
             GridVariantComparison.ItemsSource = comparisonRows;
 
@@ -676,7 +694,7 @@ public partial class AdminWindow : Window
                 ComparisonSyncBadgeText.Text = "IN SYNC 🟢";
                 ComparisonSyncBadgeBorder.Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#065F46"));
                 ComparisonSyncBadgeText.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#34D399"));
-                TxtComparisonSummary.Text = $"All item variant counts are 100% in sync between Local SQL and Central Server ({totalLoc} items).";
+                TxtComparisonSummary.Text = $"All item variant counts and totals are 100% in sync between Local SQL and Central Server ({totalLoc:N0} items, {locTotalPoints:N0} points).";
                 TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.LightGreen;
             }
             else
@@ -685,7 +703,7 @@ public partial class AdminWindow : Window
                 ComparisonSyncBadgeText.Text = $"PENDING SYNC 🟡 ({diff} items)";
                 ComparisonSyncBadgeBorder.Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#78350F"));
                 ComparisonSyncBadgeText.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FBBF24"));
-                TxtComparisonSummary.Text = $"Local SQL has {totalLoc} items vs Central Server {totalCen} items ({diff} unsynced items). Click 'Sync Local Unsynced Data' to update.";
+                TxtComparisonSummary.Text = $"Local SQL has {totalLoc:N0} items vs Central Server {totalCen:N0} items ({diff} unsynced items). Click 'Sync Local Unsynced Data' to update.";
                 TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.Gold;
             }
 

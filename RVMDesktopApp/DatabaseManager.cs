@@ -195,6 +195,28 @@ public static class DatabaseManager
         }
     }
 
+    public static (int TotalItems, int TotalPoints) GetLocalTotals(string machineName = "RVM-001")
+    {
+        try
+        {
+            DataTable dt = Get("""
+                SELECT 
+                    COUNT(*) AS TotalItems,
+                    ISNULL(SUM(PointsAwarded), 0) AS TotalPoints
+                FROM dbo.BottleTransactions
+                WHERE IsAccepted = 1 OR IsAccepted IS NULL;
+                """);
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                int items = Convert.ToInt32(dt.Rows[0]["TotalItems"]);
+                int points = Convert.ToInt32(dt.Rows[0]["TotalPoints"]);
+                return (items, points);
+            }
+        }
+        catch { }
+        return (0, 0);
+    }
+
     public static DataTable GetLeaderboard() =>
         Get(
             """
