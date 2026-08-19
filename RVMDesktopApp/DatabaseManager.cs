@@ -174,6 +174,27 @@ public static class DatabaseManager
     public static DataTable GetTransactions() =>
         Get("SELECT TOP 100 TransactionID, TransactionDate, BottleSize, MaterialType, PointsAwarded, MobileNumber, IsAccepted, MachineName FROM dbo.BottleTransactions ORDER BY TransactionID DESC");
 
+    public static DataTable GetLocalItemCountsByVariant(string machineName = "RVM-001")
+    {
+        try
+        {
+            return Get($"""
+                SELECT 
+                    ISNULL(MaterialType, 'PLASTIC') AS MaterialType,
+                    ISNULL(BottleSize, 'MEDIUM') AS BottleSize,
+                    COUNT(*) AS ItemCount,
+                    SUM(PointsAwarded) AS TotalPoints
+                FROM dbo.BottleTransactions
+                WHERE IsAccepted = 1
+                GROUP BY ISNULL(MaterialType, 'PLASTIC'), ISNULL(BottleSize, 'MEDIUM');
+                """);
+        }
+        catch
+        {
+            return new DataTable();
+        }
+    }
+
     public static DataTable GetLeaderboard() =>
         Get(
             """

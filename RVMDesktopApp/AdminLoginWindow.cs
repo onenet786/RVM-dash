@@ -16,85 +16,180 @@ public sealed class AdminLoginWindow : Window
     public AdminLoginWindow()
     {
         Title = "RVM Admin Panel Login";
-        Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/RvmIcon.ico"));
-        Width = 420;
-        Height = 320;
+        try
+        {
+            Icon = BitmapFrame.Create(new Uri("pack://application:,,,/Assets/RvmIcon.ico"));
+        }
+        catch { }
+
+        Width = 480;
+        Height = 460;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
-        Background = Brushes.White;
+        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")); // Dark Slate
 
-        var mainPanel = new StackPanel { Margin = new Thickness(30) };
+        var rootGrid = new Grid { Margin = new Thickness(24) };
+        rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
+        rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Form Body
+        rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Buttons & Footer
 
-        mainPanel.Children.Add(new TextBlock
+        // ---- HEADER ----
+        var headerPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 20) };
+        var titleStack = new StackPanel { Orientation = Orientation.Horizontal };
+
+        titleStack.Children.Add(new TextBlock
         {
-            Text = "🔒 Admin Security Access",
-            FontSize = 20,
+            Text = "🛡️",
+            FontSize = 24,
+            Margin = new Thickness(0, 0, 10, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        titleStack.Children.Add(new TextBlock
+        {
+            Text = "Admin Security Access",
+            FontSize = 22,
             FontWeight = FontWeights.Bold,
-            Foreground = Brushes.DarkSlateGray
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#38BDF8")), // Cyan
+            VerticalAlignment = VerticalAlignment.Center
         });
 
-        mainPanel.Children.Add(new TextBlock
+        headerPanel.Children.Add(titleStack);
+
+        headerPanel.Children.Add(new TextBlock
         {
-            Text = "Enter administrator credentials to unlock system setup.",
-            Margin = new Thickness(0, 4, 0, 18),
-            FontSize = 12,
-            Foreground = Brushes.DimGray
+            Text = "Enter administrator credentials to unlock system configuration.",
+            Margin = new Thickness(0, 6, 0, 0),
+            FontSize = 13,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")) // Slate Muted
         });
 
-        // Username
-        mainPanel.Children.Add(new TextBlock { Text = "Username", FontWeight = FontWeights.SemiBold, FontSize = 12 });
+        Grid.SetRow(headerPanel, 0);
+        rootGrid.Children.Add(headerPanel);
+
+        // ---- FORM BODY ----
+        var formPanel = new StackPanel();
+
+        // Username Label & Box
+        formPanel.Children.Add(new TextBlock
+        {
+            Text = "USERNAME",
+            FontWeight = FontWeights.Bold,
+            FontSize = 11,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#cbd5e1")),
+            Margin = new Thickness(0, 0, 0, 6)
+        });
+
         usernameBox.Text = "RVM";
-        usernameBox.Margin = new Thickness(0, 4, 0, 12);
         usernameBox.FontSize = 14;
-        usernameBox.Padding = new Thickness(8, 6, 8, 6);
-        mainPanel.Children.Add(usernameBox);
+        usernameBox.FontWeight = FontWeights.SemiBold;
+        usernameBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"));
+        usernameBox.Foreground = Brushes.White;
+        usernameBox.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155"));
+        usernameBox.BorderThickness = new Thickness(1);
+        usernameBox.Padding = new Thickness(10, 8, 10, 8);
+        usernameBox.Margin = new Thickness(0, 0, 0, 16);
+        formPanel.Children.Add(usernameBox);
 
-        // Password
-        mainPanel.Children.Add(new TextBlock { Text = "Password", FontWeight = FontWeights.SemiBold, FontSize = 12 });
-        passwordBox.Margin = new Thickness(0, 4, 0, 6);
-        passwordBox.FontSize = 14;
-        passwordBox.Padding = new Thickness(8, 6, 8, 6);
-        passwordBox.KeyDown += PasswordBox_KeyDown;
-        mainPanel.Children.Add(passwordBox);
-
-        // Error message
-        errorText.Foreground = Brushes.OrangeRed;
-        errorText.FontSize = 12;
-        errorText.MinHeight = 18;
-        mainPanel.Children.Add(errorText);
-
-        // Buttons
-        var buttonsPanel = new StackPanel
+        // Password Label & Box
+        formPanel.Children.Add(new TextBlock
         {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
+            Text = "PASSWORD",
+            FontWeight = FontWeights.Bold,
+            FontSize = 11,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#cbd5e1")),
+            Margin = new Thickness(0, 0, 0, 6)
+        });
+
+        passwordBox.FontSize = 14;
+        passwordBox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"));
+        passwordBox.Foreground = Brushes.White;
+        passwordBox.BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155"));
+        passwordBox.BorderThickness = new Thickness(1);
+        passwordBox.Padding = new Thickness(10, 8, 10, 8);
+        passwordBox.Margin = new Thickness(0, 0, 0, 10);
+        passwordBox.KeyDown += PasswordBox_KeyDown;
+        formPanel.Children.Add(passwordBox);
+
+        // Error message container
+        errorText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F87171")); // Red
+        errorText.FontSize = 12;
+        errorText.FontWeight = FontWeights.SemiBold;
+        errorText.MinHeight = 22;
+        errorText.TextWrapping = TextWrapping.Wrap;
+        formPanel.Children.Add(errorText);
+
+        Grid.SetRow(formPanel, 1);
+        rootGrid.Children.Add(formPanel);
+
+        // ---- FOOTER & BUTTONS ----
+        var footerPanel = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+
+        var buttonsGrid = new Grid();
+        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.3, GridUnitType.Star) });
 
         var cancelButton = new Button
         {
             Content = "Cancel",
             IsCancel = true,
-            Padding = new Thickness(16, 6, 16, 6),
-            Margin = new Thickness(0, 0, 8, 0)
+            Height = 42,
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#94A3B8")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")),
+            BorderThickness = new Thickness(1),
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 13,
+            Cursor = Cursors.Hand
         };
+        Grid.SetColumn(cancelButton, 0);
 
         var loginButton = new Button
         {
-            Content = "Login to Admin",
+            Content = "🔓 Login to Admin",
             IsDefault = true,
-            Padding = new Thickness(16, 6, 16, 6),
-            Background = Brushes.DarkCyan,
+            Height = 42,
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0891B2")), // Cyan Teal
             Foreground = Brushes.White,
-            FontWeight = FontWeights.Bold
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Bold,
+            FontSize = 13,
+            Cursor = Cursors.Hand
         };
         loginButton.Click += LoginButton_Click;
+        Grid.SetColumn(loginButton, 2);
 
-        buttonsPanel.Children.Add(cancelButton);
-        buttonsPanel.Children.Add(loginButton);
-        mainPanel.Children.Add(buttonsPanel);
+        buttonsGrid.Children.Add(cancelButton);
+        buttonsGrid.Children.Add(loginButton);
+        footerPanel.Children.Add(buttonsGrid);
 
-        Content = mainPanel;
+        // Default Credentials Chip
+        var hintBorder = new Border
+        {
+            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
+            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(10, 6, 10, 6),
+            Margin = new Thickness(0, 14, 0, 0)
+        };
+
+        var hintText = new TextBlock
+        {
+            Text = "🔑 Default Access: Username: RVM | Password: Admin786",
+            FontSize = 11,
+            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9")),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            FontWeight = FontWeights.SemiBold
+        };
+        hintBorder.Child = hintText;
+        footerPanel.Children.Add(hintBorder);
+
+        Grid.SetRow(footerPanel, 2);
+        rootGrid.Children.Add(footerPanel);
+
+        Content = rootGrid;
         Loaded += (_, _) => passwordBox.Focus();
     }
 
@@ -116,14 +211,14 @@ public sealed class AdminLoginWindow : Window
 
         if (string.IsNullOrWhiteSpace(username))
         {
-            errorText.Text = "Username is required.";
+            errorText.Text = "⚠️ Username is required.";
             usernameBox.Focus();
             return;
         }
 
         if (string.IsNullOrEmpty(password))
         {
-            errorText.Text = "Password is required.";
+            errorText.Text = "⚠️ Password is required.";
             passwordBox.Focus();
             return;
         }
@@ -134,7 +229,7 @@ public sealed class AdminLoginWindow : Window
         }
         else
         {
-            errorText.Text = "Invalid username or password. Default: RVM / Admin786";
+            errorText.Text = "❌ Invalid credentials. Default: RVM / Admin786";
             passwordBox.SelectAll();
             passwordBox.Focus();
         }

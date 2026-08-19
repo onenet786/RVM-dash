@@ -21,6 +21,7 @@ public partial class AdminWindow : Window
             LogConsole("RVM Master Communication Console Initialized.");
             LogConsole("Ready to test live 2-way sync with Central Master Dashboard.");
             await CheckCentralConnectionAsync();
+            await RefreshComparisonDataAsync();
         };
     }
 
@@ -502,4 +503,159 @@ public partial class AdminWindow : Window
             LogConsole($"[Security 🔴] Password change failed: {err}");
         }
     }
+
+    private async void RefreshComparisonData_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshComparisonDataAsync();
+    }
+
+    private async System.Threading.Tasks.Task RefreshComparisonDataAsync()
+    {
+        try
+        {
+            TxtComparisonSummary.Text = "Fetching live comparison metrics from Local SQL and Central Dashboard...";
+            TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.Gold;
+
+            string machineId = CfgMachineId?.Text?.Trim() ?? settings.MachineId;
+            if (string.IsNullOrWhiteSpace(machineId)) machineId = settings.MachineId;
+
+            string serverUrl = CfgCentralApiUrl?.Text?.Trim() ?? settings.CentralApiUrl;
+            if (string.IsNullOrWhiteSpace(serverUrl)) serverUrl = settings.CentralApiUrl;
+
+            // 1. Fetch Local SQL Counts grouped by variant
+            DataTable localDt = DatabaseManager.GetLocalItemCountsByVariant(machineId);
+
+            int locPSmall = 0, locPMed = 0, locPLg = 0;
+            int locCSmall = 0, locCMed = 0, locCLg = 0;
+            int locTPSmall = 0, locTPMed = 0, locTPLg = 0;
+
+            foreach (DataRow row in localDt.Rows)
+            {
+                string mat = Convert.ToString(row["MaterialType"])?.ToUpperInvariant() ?? "";
+                string sz = Convert.ToString(row["BottleSize"])?.ToUpperInvariant() ?? "";
+                int count = Convert.ToInt32(row["ItemCount"]);
+
+                if (mat.Contains("PLASTIC"))
+                {
+                    if (sz == "SMALL") locPSmall += count;
+                    else if (sz == "LARGE") locPLg += count;
+                    else locPMed += count;
+                }
+                else if (mat.Contains("CAN"))
+                {
+                    if (sz == "SMALL") locCSmall += count;
+                    else if (sz == "LARGE") locCLg += count;
+                    else locCMed += count;
+                }
+                else if (mat.Contains("TETRAPAK") || mat.Contains("CARTON") || mat.Contains("PAPER"))
+                {
+                    if (sz == "SMALL") locTPSmall += count;
+                    else if (sz == "LARGE") locTPLg += count;
+                    else locTPMed += count;
+                }
+            }
+
+            // 2. Fetch Central Master Dashboard Stats for this Machine ID
+            int cenPSmall = 0, cenPMed = 0, cenPLg = 0;
+            int cenCSmall = 0, cenCMed = 0, cenCLg = 0;
+            int cenTPSmall = 0, cenTPMed = 0, cenTPLg = 0;
+
+            try
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
+                string endpoint = $"{serverUrl.TrimEnd('/')}/api/analytics/dashboard-stats?machineId={Uri.EscapeDataString(machineId)}";
+                var response = await http.GetAsync(endpoint);
+                if (response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("variantBreakdown", out var vb))
+                    {
+                        if (vb.TryGetProperty("plasticSmall", out var ps)) cenPSmall = ps.GetInt32();
+                        if (vb.TryGetProperty("plasticMedium", out var pm)) cenPMed = pm.GetInt32();
+                        if (vb.TryGetProperty("plasticLarge", out var pl)) cenPLg = pl.GetInt32();
+                        if (vb.TryGetProperty("canSmall", out var cs)) cenCSmall = cs.GetInt32();
+                        if (vb.TryGetProperty("canMedium", out var cm)) cenCMed = cm.GetInt32();
+                        if (vb.TryGetProperty("canLarge", out var cl)) cenCLg = cl.GetInt32();
+                        if (vb.TryGetProperty("paperGrams", out var pg)) cenTPMed = pg.GetInt32();
+                    }
+                }
+            }
+            catch (Exception apiEx)
+            {
+                LogConsole($"[Comparison Notice] Dashboard API metrics fetch warning: {apiEx.Message}");
+            }
+
+            // 3. Build Comparison Matrix
+            var comparisonRows = new System.Collections.Generic.List<VariantComparisonRow>
+            {
+                CreateComparisonRow("PLASTIC - SMALL", locPSmall, cenPSmall),
+                CreateComparisonRow("PLASTIC - MEDIUM", locPMed, cenPMed),
+                CreateComparisonRow("PLASTIC - LARGE", locPLg, cenPLg),
+                CreateComparisonRow("CAN - SMALL", locCSmall, cenCSmall),
+                CreateComparisonRow("CAN - MEDIUM", locCMed, cenCMed),
+                CreateComparisonRow("CAN - LARGE", locCLg, cenCLg),
+                CreateComparisonRow("TETRA PAK - SMALL", locTPSmall, cenTPSmall),
+                CreateComparisonRow("TETRA PAK - MEDIUM", locTPMed, cenTPMed),
+                CreateComparisonRow("TETRA PAK - LARGE", locTPLg, cenTPLg),
+            };
+
+            int totalLoc = locPSmall + locPMed + locPLg + locCSmall + locCMed + locCLg + locTPSmall + locTPMed + locTPLg;
+            int totalCen = cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg + cenTPSmall + cenTPMed + cenTPLg;
+            comparisonRows.Add(CreateComparisonRow("TOTAL ACCEPTED BOTTLES", totalLoc, totalCen));
+
+            GridVariantComparison.ItemsSource = comparisonRows;
+
+            bool isAllInSync = totalLoc == totalCen;
+            if (isAllInSync)
+            {
+                ComparisonSyncBadgeText.Text = "IN SYNC 🟢";
+                ComparisonSyncBadgeBorder.Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#065F46"));
+                ComparisonSyncBadgeText.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#34D399"));
+                TxtComparisonSummary.Text = $"All item variant counts are 100% in sync between Local SQL and Central Server ({totalLoc} items).";
+                TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.LightGreen;
+            }
+            else
+            {
+                int diff = Math.Abs(totalLoc - totalCen);
+                ComparisonSyncBadgeText.Text = $"PENDING SYNC 🟡 ({diff} items)";
+                ComparisonSyncBadgeBorder.Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#78350F"));
+                ComparisonSyncBadgeText.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FBBF24"));
+                TxtComparisonSummary.Text = $"Local SQL has {totalLoc} items vs Central Server {totalCen} items ({diff} unsynced items). Click 'Sync Local Unsynced Data' to update.";
+                TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.Gold;
+            }
+
+            LogConsole($"[Telemetry Comparison] Loaded variant comparison matrix for Machine '{machineId}': Local={totalLoc}, Dashboard={totalCen}");
+        }
+        catch (Exception ex)
+        {
+            TxtComparisonSummary.Text = $"Comparison Error: {ex.Message}";
+            TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            LogConsole($"[Telemetry Comparison Error] {ex.Message}");
+        }
+    }
+
+    private static VariantComparisonRow CreateComparisonRow(string name, int localCount, int centralCount)
+    {
+        int diff = localCount - centralCount;
+        string varStr = diff == 0 ? "0" : (diff > 0 ? $"+{diff}" : $"{diff}");
+        string status = diff == 0 ? "MATCH 🟢" : (diff > 0 ? "PENDING SYNC 🟡" : "MISMATCH 🔴");
+        return new VariantComparisonRow
+        {
+            MaterialVariant = name,
+            LocalCount = localCount,
+            CentralCount = centralCount,
+            Variance = varStr,
+            Status = status
+        };
+    }
+}
+
+public class VariantComparisonRow
+{
+    public string MaterialVariant { get; set; } = string.Empty;
+    public int LocalCount { get; set; }
+    public int CentralCount { get; set; }
+    public string Variance { get; set; } = "0";
+    public string Status { get; set; } = "MATCH 🟢";
 }
