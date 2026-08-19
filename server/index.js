@@ -787,7 +787,16 @@ app.get('/api/overview', async (req, res) => {
       let canMedium = 0;
       let canLarge = 0;
 
-      sessions.forEach(s => {
+      let targetMachineId = (req.query.assignedMachines || req.query.machineId || '').trim().toLowerCase();
+      let filteredSessions = sessions;
+      if (targetMachineId && targetMachineId !== '*') {
+        filteredSessions = sessions.filter(s => {
+          const mId = (s.machineId || s.machine_id || '').trim().toLowerCase();
+          return mId === targetMachineId;
+        });
+      }
+
+      filteredSessions.forEach(s => {
         const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
         const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
         const cCount = parseInt(s.cups || s.totalCups || 0);
@@ -808,9 +817,9 @@ app.get('/api/overview', async (req, res) => {
         totalPaperGrams += paperG;
         totalTetraPakGrams += tetraG;
 
-        let ps = parseInt(s.plastic_small_count || 0);
-        let pm = parseInt(s.plastic_medium_count || 0);
-        let pl = parseInt(s.plastic_large_count || 0);
+        let ps = parseInt(s.plastic_small_count || s.plasticSmallCount || 0);
+        let pm = parseInt(s.plastic_medium_count || s.plasticMediumCount || 0);
+        let pl = parseInt(s.plastic_large_count || s.plasticLargeCount || 0);
 
         if (ps === 0 && pm === 0 && pl === 0 && pCnt > 0) {
           const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
@@ -823,9 +832,9 @@ app.get('/api/overview', async (req, res) => {
         plasticMedium += pm;
         plasticLarge += pl;
 
-        let cs = parseInt(s.can_small_count || 0);
-        let cm = parseInt(s.can_medium_count || 0);
-        let cl = parseInt(s.can_large_count || 0);
+        let cs = parseInt(s.can_small_count || s.canSmallCount || 0);
+        let cm = parseInt(s.can_medium_count || s.canMediumCount || 0);
+        let cl = parseInt(s.can_large_count || s.canLargeCount || 0);
 
         if (cs === 0 && cm === 0 && cl === 0 && aCnt > 0) {
           const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();

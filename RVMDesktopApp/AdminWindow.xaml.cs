@@ -580,15 +580,38 @@ public partial class AdminWindow : Window
                 {
                     string json = await response.Content.ReadAsStringAsync();
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    
+                    int GetIntProp(System.Text.Json.JsonElement elem, params string[] props)
+                    {
+                        foreach (string p in props)
+                        {
+                            if (elem.TryGetProperty(p, out var val) && val.ValueKind == System.Text.Json.JsonValueKind.Number)
+                                return val.GetInt32();
+                        }
+                        return 0;
+                    }
+
                     if (doc.RootElement.TryGetProperty("variantBreakdown", out var vb))
                     {
-                        if (vb.TryGetProperty("plasticSmall", out var ps)) cenPSmall = ps.GetInt32();
-                        if (vb.TryGetProperty("plasticMedium", out var pm)) cenPMed = pm.GetInt32();
-                        if (vb.TryGetProperty("plasticLarge", out var pl)) cenPLg = pl.GetInt32();
-                        if (vb.TryGetProperty("canSmall", out var cs)) cenCSmall = cs.GetInt32();
-                        if (vb.TryGetProperty("canMedium", out var cm)) cenCMed = cm.GetInt32();
-                        if (vb.TryGetProperty("canLarge", out var cl)) cenCLg = cl.GetInt32();
-                        if (vb.TryGetProperty("paperGrams", out var pg)) cenTPMed = pg.GetInt32();
+                        cenPSmall = GetIntProp(vb, "plasticSmall", "plastic_small_count", "plastic_small");
+                        cenPMed = GetIntProp(vb, "plasticMedium", "plastic_medium_count", "plastic_medium");
+                        cenPLg = GetIntProp(vb, "plasticLarge", "plastic_large_count", "plastic_large");
+                        cenCSmall = GetIntProp(vb, "canSmall", "can_small_count", "can_small");
+                        cenCMed = GetIntProp(vb, "canMedium", "can_medium_count", "can_medium");
+                        cenCLg = GetIntProp(vb, "canLarge", "can_large_count", "can_large");
+                        cenTPMed = GetIntProp(vb, "paperGrams", "paper_grams", "tetrapak_grams");
+                    }
+
+                    // Fallback: If granular variant breakdown sums to 0, check top-level totals
+                    if (cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg == 0)
+                    {
+                        int totPlastic = GetIntProp(doc.RootElement, "totalPlastic", "plasticCount", "total_plastic");
+                        int totCans = GetIntProp(doc.RootElement, "totalCans", "aluminiumCount", "total_cans");
+                        int totBottles = GetIntProp(doc.RootElement, "totalBottles", "bottles", "total_bottles");
+
+                        if (totPlastic > 0) cenPMed = totPlastic;
+                        if (totCans > 0) cenCMed = totCans;
+                        if (totPlastic == 0 && totCans == 0 && totBottles > 0) cenPMed = totBottles;
                     }
                 }
             }
