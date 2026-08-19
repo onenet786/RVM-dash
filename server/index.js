@@ -822,9 +822,10 @@ app.get('/api/overview', async (req, res) => {
         let pl = parseInt(s.plastic_large_count || s.plasticLargeCount || 0);
 
         if (ps === 0 && pm === 0 && pl === 0 && pCnt > 0) {
-          const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
-          if (bSize === 'SMALL') ps = pCnt;
-          else if (bSize === 'LARGE') pl = pCnt;
+          const bSize = String(s.bottleSize || s.bottle_size || '').toUpperCase();
+          const vStr = String(s.itemVariant || s.item_variant || '').toUpperCase();
+          if (bSize === 'SMALL' || vStr.includes('SMALL')) ps = pCnt;
+          else if (bSize === 'LARGE' || vStr.includes('LARGE')) pl = pCnt;
           else pm = pCnt;
         }
 
@@ -837,9 +838,10 @@ app.get('/api/overview', async (req, res) => {
         let cl = parseInt(s.can_large_count || s.canLargeCount || 0);
 
         if (cs === 0 && cm === 0 && cl === 0 && aCnt > 0) {
-          const bSize = String(s.bottleSize || s.bottle_size || 'MEDIUM').toUpperCase();
-          if (bSize === 'SMALL') cs = aCnt;
-          else if (bSize === 'LARGE') cl = aCnt;
+          const bSize = String(s.bottleSize || s.bottle_size || '').toUpperCase();
+          const vStr = String(s.itemVariant || s.item_variant || '').toUpperCase();
+          if (bSize === 'SMALL' || vStr.includes('SMALL')) cs = aCnt;
+          else if (bSize === 'LARGE' || vStr.includes('LARGE')) cl = aCnt;
           else cm = aCnt;
         }
 

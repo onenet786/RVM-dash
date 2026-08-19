@@ -693,13 +693,13 @@ public partial class AdminWindow : Window
 
             GridVariantComparison.ItemsSource = comparisonRows;
 
-            bool isAllInSync = totalLoc == totalCen;
+            bool isAllInSync = totalLoc == totalCen && locTotalPoints == cenTotalPoints;
             if (isAllInSync)
             {
-                ComparisonSyncBadgeText.Text = "IN SYNC 🟢";
+                ComparisonSyncBadgeText.Text = "TOTALS MATCH 🟢 (100% IN SYNC)";
                 ComparisonSyncBadgeBorder.Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#065F46"));
                 ComparisonSyncBadgeText.Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#34D399"));
-                TxtComparisonSummary.Text = $"All item variant counts and totals are 100% in sync between Local SQL and Central Server ({totalLoc:N0} items, {locTotalPoints:N0} points).";
+                TxtComparisonSummary.Text = $"Total Items ({totalLoc:N0} / {totalCen:N0}) and Total Points ({locTotalPoints:N0} / {cenTotalPoints:N0}) match 100%! All local data is fully synchronized with the Central Dashboard.";
                 TxtComparisonSummary.Foreground = System.Windows.Media.Brushes.LightGreen;
             }
             else
