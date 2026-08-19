@@ -103,7 +103,9 @@ public static class DatabaseManager
         EnsurePointSettingsTable();
         try
         {
-            return Get($"SELECT SettingID, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated FROM dbo.PointSettings WHERE MachineName = '{machineName}' OR MachineName = 'RVM-001' ORDER BY MaterialType ASC, BottleSize ASC");
+            return Get(@"SELECT SettingID, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated 
+                         FROM dbo.PointSettings 
+                         ORDER BY MaterialType ASC, BottleSize ASC");
         }
         catch
         {
@@ -230,10 +232,10 @@ public static class DatabaseManager
             foreach (var item in rulesToUpsert)
             {
                 using var upsertCmd = new SqlCommand(@"
-                    IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz)
+                    IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE MaterialType = @Mat AND BottleSize = @Sz)
                         UPDATE dbo.PointSettings 
-                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = 1, LastUpdated = GETDATE()
-                        WHERE MachineName = @Mach AND MaterialType = @Mat AND BottleSize = @Sz;
+                        SET PointsAwarded = @Pts, Unit = @Unit, IsActive = 1, LastUpdated = GETDATE(), MachineName = @Mach
+                        WHERE MaterialType = @Mat AND BottleSize = @Sz;
                     ELSE
                         INSERT INTO dbo.PointSettings (MachineName, MaterialType, BottleSize, PointsAwarded, Unit, IsActive, LastUpdated)
                         VALUES (@Mach, @Mat, @Sz, @Pts, @Unit, 1, GETDATE());

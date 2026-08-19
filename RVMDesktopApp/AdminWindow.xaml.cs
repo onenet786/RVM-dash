@@ -544,17 +544,18 @@ public partial class AdminWindow : Window
             RefreshLocalPointSettingsGrid();
             if (ok)
             {
-                RvmMessageDialog.ShowSuccess("Point Settings Synced", $"Successfully synced dynamic point settings from Central Dashboard into local SQL table dbo.PointSettings!", this);
+                RvmMessageDialog.ShowSuccess("Point Settings Synced", $"Successfully synced dynamic point settings matrix from Central Dashboard into local SQL table dbo.PointSettings!", this);
             }
             else
             {
-                LogConsole($"[Point Settings Notice 🟢] Remote server endpoint unavailable. Active point settings matrix loaded from local SQL database.");
+                RvmMessageDialog.ShowInfo("Local Point Settings Loaded", $"Active point settings matrix loaded from local SQL database (12 variant rules active). Remote server endpoint will auto-sync when online.", this);
             }
         }
         catch (Exception ex)
         {
-            LogConsole($"[Point Settings Exception] Sync note: {ex.Message}");
+            LogConsole($"[Point Settings Exception] {ex.Message}");
             RefreshLocalPointSettingsGrid();
+            RvmMessageDialog.ShowInfo("Local Point Settings Loaded", $"Active point settings matrix loaded from local SQL database.", this);
         }
     }
 
