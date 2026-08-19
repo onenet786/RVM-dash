@@ -547,23 +547,23 @@ public partial class AdminWindow : Window
                 string sz = Convert.ToString(row["BottleSize"])?.ToUpperInvariant() ?? "";
                 int count = Convert.ToInt32(row["ItemCount"]);
 
-                if (mat.Contains("PLASTIC"))
-                {
-                    if (sz == "SMALL") locPSmall += count;
-                    else if (sz == "LARGE") locPLg += count;
-                    else locPMed += count;
-                }
-                else if (mat.Contains("CAN"))
+                if (mat.Contains("CAN"))
                 {
                     if (sz == "SMALL") locCSmall += count;
                     else if (sz == "LARGE") locCLg += count;
                     else locCMed += count;
                 }
-                else if (mat.Contains("TETRAPAK") || mat.Contains("CARTON") || mat.Contains("PAPER"))
+                else if (mat.Contains("TETRA") || mat.Contains("CARTON") || mat.Contains("PAPER"))
                 {
                     if (sz == "SMALL") locTPSmall += count;
                     else if (sz == "LARGE") locTPLg += count;
                     else locTPMed += count;
+                }
+                else
+                {
+                    if (sz == "SMALL") locPSmall += count;
+                    else if (sz == "LARGE") locPLg += count;
+                    else locPMed += count;
                 }
             }
 
@@ -629,11 +629,13 @@ public partial class AdminWindow : Window
                         cenCSmall = GetIntProp(vb, "canSmall", "can_small_count", "can_small");
                         cenCMed = GetIntProp(vb, "canMedium", "can_medium_count", "can_medium");
                         cenCLg = GetIntProp(vb, "canLarge", "can_large_count", "can_large");
-                        cenTPMed = GetIntProp(vb, "paperGrams", "paper_grams", "tetrapak_grams");
+                        cenTPSmall = GetIntProp(vb, "tetraPakSmall", "paperSmall", "paper_small_count");
+                        cenTPMed = GetIntProp(vb, "tetraPakMedium", "paperMedium", "paper_medium_count", "tetraPakCount", "paperCount");
+                        cenTPLg = GetIntProp(vb, "tetraPakLarge", "paperLarge", "paper_large_count");
                     }
 
                     // Fallback: If granular variant breakdown sums to 0, check top-level totals
-                    if (cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg == 0)
+                    if (cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg + cenTPSmall + cenTPMed + cenTPLg == 0)
                     {
                         int totPlastic = GetIntProp(doc.RootElement, "totalPlastic", "plasticCount", "total_plastic");
                         int totCans = GetIntProp(doc.RootElement, "totalCans", "aluminiumCount", "total_cans");
@@ -656,6 +658,17 @@ public partial class AdminWindow : Window
                 LogConsole($"[Comparison Notice] Dashboard API metrics fetch warning: {apiEx.Message}");
             }
 
+            int totalLoc = locPSmall + locPMed + locPLg + locCSmall + locCMed + locCLg + locTPSmall + locTPMed + locTPLg;
+            if (locTotalItems > 0 && totalLoc < locTotalItems)
+            {
+                locPMed += (locTotalItems - totalLoc);
+                totalLoc = locTotalItems;
+            }
+
+            int totalCen = cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg + cenTPSmall + cenTPMed + cenTPLg;
+            if (cenTotalItems > 0 && totalCen == 0) totalCen = cenTotalItems;
+            if (cenTotalItems == 0) cenTotalItems = totalCen;
+
             // 3. Build Comparison Matrix
             var comparisonRows = new System.Collections.Generic.List<VariantComparisonRow>
             {
@@ -668,23 +681,15 @@ public partial class AdminWindow : Window
                 CreateComparisonRow("TETRA PAK - SMALL", locTPSmall, cenTPSmall),
                 CreateComparisonRow("TETRA PAK - MEDIUM", locTPMed, cenTPMed),
                 CreateComparisonRow("TETRA PAK - LARGE", locTPLg, cenTPLg),
+                CreateComparisonRow("TOTAL ACCEPTED BOTTLES & ITEMS", totalLoc, totalCen),
+                CreateComparisonRow("TOTAL POINTS AWARDED", locTotalPoints, cenTotalPoints)
             };
-
-            int totalLoc = locPSmall + locPMed + locPLg + locCSmall + locCMed + locCLg + locTPSmall + locTPMed + locTPLg;
-            if (locTotalItems > 0 && totalLoc == 0) totalLoc = locTotalItems;
-
-            int totalCen = cenPSmall + cenPMed + cenPLg + cenCSmall + cenCMed + cenCLg + cenTPSmall + cenTPMed + cenTPLg;
-            if (cenTotalItems > 0 && totalCen == 0) totalCen = cenTotalItems;
-            if (cenTotalItems == 0) cenTotalItems = totalCen;
 
             // Update KPI summary cards
             TxtLocalTotalItems.Text = $"{locTotalItems:N0} Items";
             TxtCentralTotalItems.Text = $"{cenTotalItems:N0} Items";
             TxtLocalTotalPoints.Text = $"{locTotalPoints:N0} Pts";
             TxtCentralTotalPoints.Text = $"{cenTotalPoints:N0} Pts";
-
-            comparisonRows.Add(CreateComparisonRow("TOTAL ACCEPTED BOTTLES & ITEMS", totalLoc, totalCen));
-            comparisonRows.Add(CreateComparisonRow("TOTAL POINTS AWARDED", locTotalPoints, cenTotalPoints));
 
             GridVariantComparison.ItemsSource = comparisonRows;
 
