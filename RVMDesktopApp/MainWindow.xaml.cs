@@ -1080,7 +1080,7 @@ public partial class MainWindow : Window
             else if (size == "MEDIUM") PlasticMediumCountText.Text = (++plasticMediumCount).ToString();
             else if (size == "LARGE") PlasticLargeCountText.Text = (++plasticLargeCount).ToString();
         }
-        else if (material.Equals("CAN", StringComparison.OrdinalIgnoreCase))
+        else if (material.Contains("CAN", StringComparison.OrdinalIgnoreCase) || material.Contains("METAL", StringComparison.OrdinalIgnoreCase) || material.Contains("ALUMINIUM", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") CanSmallCountText.Text = (++canSmallCount).ToString();
             else if (size == "MEDIUM") CanMediumCountText.Text = (++canMediumCount).ToString();

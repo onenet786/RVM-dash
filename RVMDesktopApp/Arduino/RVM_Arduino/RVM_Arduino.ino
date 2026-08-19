@@ -559,11 +559,13 @@ void processIncomingBottle(bool metalDetected)
     delay(5);
   }
 
-  // 1. Any Metal Inductive Signal (internal foil pulse in Tetra Pak triggers 1 to 7 samples)
+  // ---------------- SOLID METAL CAN VS TETRA PAK CLASSIFICATION ----------------
+  // 1. Any Metal Inductive Signal (internal foil pulse or metallic body)
   bool hasAnyMetalSignal = (solidMetalCount >= 1 || metalDetected);
 
-  // 2. Solid Can Body Check: Solid continuous metal (>= 8 samples) + Wide Can Body Profile (>= 6cm)
-  bool isSolidCanBody = (solidMetalCount >= 8 && maxDistanceChangeCM >= 6);
+  // 2. Real Solid Aluminium Soda Can Check:
+  // Soda cans trigger the metal sensor reliably (solidMetalCount >= 2 OR (hasAnyMetalSignal && maxDistanceChangeCM >= 3))
+  bool isSolidCanBody = (solidMetalCount >= 2 || (hasAnyMetalSignal && maxDistanceChangeCM >= 3));
 
   // ---------------- DETERMINE MATERIAL TYPE ----------------
   const char* materialType = "PLASTIC";
@@ -575,12 +577,12 @@ void processIncomingBottle(bool metalDetected)
   }
   else if (isSolidCanBody)
   {
-    // Real Aluminium Soda Can (Solid Continuous Metal + Wide 6.6cm Can Body Profile)
+    // Real Aluminium Soda Can (Small, Medium, or Large Can)
     materialType = "CAN";
   }
-  else if (hasAnyMetalSignal || (topIsCurrentlyBlocked && middleIsCurrentlyBlocked))
+  else if (hasAnyMetalSignal)
   {
-    // Small Tetra Pak Juice Box (internal foil barrier) or Large Carton
+    // Small Tetra Pak Juice Box (internal thin foil layer with non-metallic body)
     materialType = "TETRAPAK";
   }
   else
