@@ -351,7 +351,10 @@ public static class DatabaseManager
         }
     }
 
-    public static async System.Threading.Tasks.Task<(int Total, int Success, int Failed)> SyncAllLocalSessionsToCentralAsync(string machineId, Action<string>? logCallback = null)
+    public static async System.Threading.Tasks.Task<(int Total, int Success, int Failed)> SyncAllLocalSessionsToCentralAsync(
+        string machineId,
+        Action<string>? logCallback = null,
+        bool forceResyncAll = false)
     {
         int total = 0, success = 0, failed = 0;
         try
@@ -359,35 +362,68 @@ public static class DatabaseManager
             using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync();
 
-            // Ensure IsSynced column exists in dbo.BottleTransactions
+            // 1. Ensure IsSynced column exists in dbo.BottleTransactions
             using var colCmd = new SqlCommand(@"
                 IF COL_LENGTH('dbo.BottleTransactions', 'IsSynced') IS NULL
                     ALTER TABLE dbo.BottleTransactions ADD IsSynced BIT NOT NULL DEFAULT 0;
+
+                -- Assign unique SessionID to any legacy records where SessionID is NULL
+                UPDATE dbo.BottleTransactions SET SessionID = NEWID() WHERE SessionID IS NULL;
             ", connection);
             await colCmd.ExecuteNonQueryAsync();
 
-            // Get all unique sessions with their totals
+            // If forceResyncAll requested, reset IsSynced = 0 for all accepted transactions
+            if (forceResyncAll)
+            {
+                using var resetCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 0 WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
+                await resetCmd.ExecuteNonQueryAsync();
+                logCallback?.Invoke("[RESET] Forced re-sync requested: Reset IsSynced = 0 for all local accepted transactions.");
+            }
+
+            // Check how many unsynced records exist
+            using var countCmd = new SqlCommand("SELECT COUNT(*) FROM dbo.BottleTransactions WHERE (IsSynced = 0 OR IsSynced IS NULL) AND (IsAccepted = 1 OR IsAccepted IS NULL);", connection);
+            int unsyncedRecordCount = Convert.ToInt32(await countCmd.ExecuteScalarAsync());
+
+            if (unsyncedRecordCount == 0 && !forceResyncAll)
+            {
+                // Check if total local accepted items > 0 (to detect if IsSynced = 1 was prematurely set)
+                using var totalLocalCmd = new SqlCommand("SELECT COUNT(*) FROM dbo.BottleTransactions WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
+                int totalLocalCount = Convert.ToInt32(await totalLocalCmd.ExecuteScalarAsync());
+
+                if (totalLocalCount > 0)
+                {
+                    // Unsynced count is 0 but local database has records -> Reset IsSynced = 0 to allow syncing all 110 items
+                    using var autoResetCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 0 WHERE IsAccepted = 1 OR IsAccepted IS NULL;", connection);
+                    await autoResetCmd.ExecuteNonQueryAsync();
+                    logCallback?.Invoke($"[AUTO RE-SYNC] Detected {totalLocalCount} local transactions. Resetting IsSynced flags to perform complete sync to Central Dashboard...");
+                }
+            }
+
+            // 2. Query unique sessions with complete material variant breakdowns
             string sql = @"
                 SELECT 
-                    COALESCE(SessionID, NEWID()) AS SessionID,
-                    COALESCE(MobileNumber, '3214424625') AS MobileNumber,
-                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'SMALL' THEN 1 ELSE 0 END) AS PlasticSmall,
-                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'MEDIUM' THEN 1 ELSE 0 END) AS PlasticMedium,
-                    SUM(CASE WHEN MaterialType = 'PLASTIC' AND BottleSize = 'LARGE' THEN 1 ELSE 0 END) AS PlasticLarge,
-                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'SMALL' THEN 1 ELSE 0 END) AS CanSmall,
-                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'MEDIUM' THEN 1 ELSE 0 END) AS CanMedium,
-                    SUM(CASE WHEN MaterialType = 'CAN' AND BottleSize = 'LARGE' THEN 1 ELSE 0 END) AS CanLarge,
+                    SessionID,
+                    ISNULL(MobileNumber, '3214424625') AS MobileNumber,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS PlasticSmall,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS PlasticMedium,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PLASTIC%' AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS PlasticLarge,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS CanSmall,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS CanMedium,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%CAN%' AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS CanLarge,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'SMALL' THEN 1 ELSE 0 END) AS TetraPakSmall,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'MEDIUM' THEN 1 ELSE 0 END) AS TetraPakMedium,
+                    SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = 'LARGE' THEN 1 ELSE 0 END) AS TetraPakLarge,
                     SUM(PointsAwarded) AS TotalPoints,
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
-                WHERE IsSynced = 0 OR IsSynced IS NULL
-                GROUP BY SessionID, MobileNumber;
+                WHERE (IsSynced = 0 OR IsSynced IS NULL) AND (IsAccepted = 1 OR IsAccepted IS NULL)
+                GROUP BY SessionID, ISNULL(MobileNumber, '3214424625');
             ";
 
             using var cmd = new SqlCommand(sql, connection);
             using var reader = await cmd.ExecuteReaderAsync();
 
-            var sessionList = new System.Collections.Generic.List<(string sessId, string phone, int ps, int pm, int pl, int cs, int cm, int cl, int pts)>();
+            var sessionList = new System.Collections.Generic.List<(string sessId, string phone, int ps, int pm, int pl, int cs, int cm, int cl, int tps, int tpm, int tpl, int pts)>();
 
             while (await reader.ReadAsync())
             {
@@ -400,6 +436,9 @@ public static class DatabaseManager
                     Convert.ToInt32(reader["CanSmall"]),
                     Convert.ToInt32(reader["CanMedium"]),
                     Convert.ToInt32(reader["CanLarge"]),
+                    Convert.ToInt32(reader["TetraPakSmall"]),
+                    Convert.ToInt32(reader["TetraPakMedium"]),
+                    Convert.ToInt32(reader["TetraPakLarge"]),
                     Convert.ToInt32(reader["TotalPoints"])
                 ));
             }
@@ -407,12 +446,13 @@ public static class DatabaseManager
             reader.Close();
             total = sessionList.Count;
 
-            logCallback?.Invoke($"Found {total} unsynced local sessions. Starting batch upload to Central Master Server...");
+            logCallback?.Invoke($"Found {total} unsynced local sessions to upload to Central Master Server...");
 
             foreach (var item in sessionList)
             {
                 int plasticCount = item.ps + item.pm + item.pl;
                 int canCount = item.cs + item.cm + item.cl;
+                int paperCount = item.tps + item.tpm + item.tpl;
 
                 var res = await CentralSyncService.SyncSessionToCentralDetailedAsync(
                     machineId,
@@ -420,13 +460,15 @@ public static class DatabaseManager
                     item.phone,
                     plasticCount,
                     canCount,
-                    0, 0,
+                    paperCount,
+                    0, // glass
                     item.pts,
                     0.0,
                     "MEDIUM",
                     "PLASTIC",
                     item.ps, item.pm, item.pl,
-                    item.cs, item.cm, item.cl
+                    item.cs, item.cm, item.cl,
+                    item.tps, item.tpm
                 );
 
                 if (res.IsSuccess)
@@ -436,7 +478,7 @@ public static class DatabaseManager
 
                     // Mark as synced in local DB
                     using var updateCmd = new SqlCommand("UPDATE dbo.BottleTransactions SET IsSynced = 1 WHERE SessionID = @s", connection);
-                    updateCmd.Parameters.AddWithValue("@s", item.sessId);
+                    updateCmd.Parameters.AddWithValue("@s", Guid.Parse(item.sessId));
                     await updateCmd.ExecuteNonQueryAsync();
                 }
                 else

@@ -430,14 +430,19 @@ public partial class AdminWindow : Window
     {
         try
         {
-            string machineId = CfgMachineId?.Text?.Trim() ?? "RVM-001";
+            string machineId = CfgMachineId?.Text?.Trim() ?? settings.MachineId;
+            if (string.IsNullOrWhiteSpace(machineId)) machineId = settings.MachineId;
+
             TxtSyncStatus.Text = "Syncing local transactions to Central Master Server...";
             TxtSyncStatus.Foreground = System.Windows.Media.Brushes.Gold;
 
             LogConsole("--------------------------------------------------");
-            LogConsole($"🔄 Starting manual sync of local SQL Server transactions to Central Master Dashboard...");
+            LogConsole($"🔄 Starting manual sync of local SQL Server transactions for Machine '{machineId}' to Central Master Dashboard...");
 
             var (total, success, failed) = await DatabaseManager.SyncAllLocalSessionsToCentralAsync(machineId, msg => LogConsole(msg));
+
+            // Refresh comparison grid data immediately after sync
+            await RefreshComparisonDataAsync();
 
             if (total == 0)
             {
@@ -445,11 +450,17 @@ public partial class AdminWindow : Window
                 TxtSyncStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
                 RvmMessageDialog.ShowInfo("Sync Complete", "All local SQL Server transactions are already synced up to date with Central Dashboard!", this);
             }
+            else if (failed == 0)
+            {
+                TxtSyncStatus.Text = $"Sync finished: {success} sessions ({total} items) successfully synced to Central Server! 🟢";
+                TxtSyncStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+                RvmMessageDialog.ShowSuccess("Central Sync Complete", $"Manual Central Data Sync Complete!\n\nTotal Local Sessions Uploaded: {success}\nStatus: All sessions successfully synchronized with Central Dashboard! 🟢", this);
+            }
             else
             {
-                TxtSyncStatus.Text = $"Sync finished: {success} succeeded, {failed} failed out of {total} total.";
-                TxtSyncStatus.Foreground = success > 0 ? System.Windows.Media.Brushes.LightGreen : System.Windows.Media.Brushes.OrangeRed;
-                RvmMessageDialog.ShowSuccess("Central Sync Complete", $"Manual Central Data Sync Complete!\n\nTotal Local Sessions: {total}\nSuccessfully Synced: {success}\nFailed: {failed}", this);
+                TxtSyncStatus.Text = $"Sync finished: {success} succeeded, {failed} failed out of {total} total sessions.";
+                TxtSyncStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
+                RvmMessageDialog.ShowWarning("Central Sync Notice", $"Manual Central Data Sync Completed with Warnings!\n\nTotal Local Sessions: {total}\nSuccessfully Synced: {success}\nFailed: {failed}\n\nCheck console log for details.", this);
             }
 
             Load();
