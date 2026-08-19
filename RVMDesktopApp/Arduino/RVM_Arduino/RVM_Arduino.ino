@@ -564,8 +564,8 @@ void processIncomingBottle(bool metalDetected)
   bool hasAnyMetalSignal = (solidMetalCount >= 1 || metalDetected);
 
   // 2. Real Solid Aluminium Soda Can Check:
-  // Soda cans trigger the metal sensor reliably (solidMetalCount >= 2 OR (hasAnyMetalSignal && maxDistanceChangeCM >= 3))
-  bool isSolidCanBody = (solidMetalCount >= 2 || (hasAnyMetalSignal && maxDistanceChangeCM >= 3));
+  // Solid aluminium cans produce a strong continuous metal signal (solidMetalCount >= 5 out of 15 reads)
+  bool isSolidCanBody = (solidMetalCount >= 5);
 
   // ---------------- DETERMINE MATERIAL TYPE ----------------
   const char* materialType = "PLASTIC";
@@ -580,9 +580,9 @@ void processIncomingBottle(bool metalDetected)
     // Real Aluminium Soda Can (Small, Medium, or Large Can)
     materialType = "CAN";
   }
-  else if (hasAnyMetalSignal)
+  else if (hasAnyMetalSignal || (topIsCurrentlyBlocked && middleIsCurrentlyBlocked))
   {
-    // Small Tetra Pak Juice Box (internal thin foil layer with non-metallic body)
+    // Small, Medium, or Large Tetra Pak Box (internal thin foil layer with paperboard body)
     materialType = "TETRAPAK";
   }
   else
