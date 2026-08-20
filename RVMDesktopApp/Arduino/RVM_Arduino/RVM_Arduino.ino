@@ -545,12 +545,9 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- HOLD BOTTLE FOR METAL CHECK ----------------
-  unsigned long holdStart = millis();
-
-  // ---------------- SOLID METAL SAMPLING (15 Samples x 5ms) ----------------
+  // ---------------- SOLID METAL SAMPLING (20 Samples x 5ms = 100ms) ----------------
   int solidMetalCount = 0;
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 20; i++)
   {
     if (digitalRead(metalSensorPin) == METAL_DETECTED_STATE)
     {
@@ -560,19 +557,21 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Metal sensor check (Inductive metal sensor triggered during settling or hold)
-  bool metalSignalPresent = (metalDetected || solidMetalCount >= 2);
-
   const char* materialType = "PLASTIC";
 
-  if (metalSignalPresent)
+  if (solidMetalCount >= 6)
   {
-    // Metal detected = TIN / ALUMINIUM CAN
+    // 1. SOLID CONTINUOUS METAL BODY (6 to 20 samples) = TIN / ALUMINIUM CAN
     materialType = "CAN";
+  }
+  else if (solidMetalCount >= 1 || metalDetected)
+  {
+    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 to 5 samples) = TETRA PAK CARTON
+    materialType = "TETRAPAK";
   }
   else
   {
-    // Non-metallic container = PLASTIC PET BOTTLE (Small, Medium, or Large 1.5L/2L)
+    // 3. ZERO METAL DETECTED (0 samples) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
 
