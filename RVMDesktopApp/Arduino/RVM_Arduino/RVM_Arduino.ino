@@ -541,8 +541,8 @@ void processIncomingBottle(bool metalDetected)
   // We sample 40 times at 10ms intervals while the container is completely stationary.
   //
   // CALIBRATION AT GATE:
-  //   - Solid Aluminium / Tin Can: 100% metal body against sensor → 18 to 40 hits (>= 18)
-  //   - Tetra Pak Juice / Milk Box: Paperboard with 6-micron foil → 1 to 17 hits (1-17)
+  //   - Solid Aluminium / Tin Can: 100% metal body against sensor → 8 to 40 hits (>= 8)
+  //   - Tetra Pak Juice / Milk Box: Paperboard with 6-micron foil → 1 to 7 hits (1-7)
   //   - Plastic PET Bottle: Zero metal content → 0 hits
   int metalHoldHits = 0;
   unsigned long holdStart = millis();
@@ -560,14 +560,14 @@ void processIncomingBottle(bool metalDetected)
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
   const char* materialType = "PLASTIC";
 
-  if (metalHoldHits >= 18)
+  if (metalHoldHits >= 8)
   {
-    // 1. SOLID METAL BODY AT GATE (18+ hits out of 40) = TIN / ALUMINIUM CAN
+    // 1. SOLID METAL BODY AT GATE (>= 8 hits out of 40 samples) = TIN / ALUMINIUM CAN
     materialType = "CAN";
   }
   else if (metalHoldHits >= 1)
   {
-    // 2. THIN FOIL SIGNAL (1 to 17 hits out of 40) = TETRA PAK CARTON
+    // 2. THIN FOIL ATTENUATED SIGNAL (1 to 7 hits out of 40) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
   else
