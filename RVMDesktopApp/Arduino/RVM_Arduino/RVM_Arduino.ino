@@ -545,11 +545,19 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- HOLD BOTTLE FOR METAL CHECK (300ms Hold) ----------------
+  // ---------------- HOLD BOTTLE FOR METAL CHECK (500ms Hold = ~50 samples) ----------------
+  // The item is now resting at the gate. We sample the inductive metal sensor
+  // every 10ms for 500ms to determine material type based on sustained readings.
+  // 
+  // PHYSICS in 5" pipe:
+  //   Solid aluminium can  → full metal body against pipe wall → 40-50 out of 50 hits
+  //   Tetra Pak (any edge) → thin 6-micron foil behind paper  → 1-14 out of 50 hits  
+  //   Plastic PET bottle   → zero metal                       → 0 hits
   unsigned long holdStart = millis();
   int metalHoldCount = 0;
+  const unsigned long metalHoldDurationMs = 500;
 
-  while (millis() - holdStart < gateHoldDurationMs)
+  while (millis() - holdStart < metalHoldDurationMs)
   {
     if (isMetalDetected())
     {
@@ -559,21 +567,26 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
+  // Threshold: >= 15 sustained hits in 500ms = solid metal body (CAN)
+  //            1-14 hits or dynamic drop pulse = internal foil (TETRAPAK)
+  //            0 hits and no drop pulse        = plastic (PLASTIC)
   const char* materialType = "PLASTIC";
 
-  if (metalHoldCount >= 6)
+  if (metalHoldCount >= 15)
   {
-    // 1. SOLID METAL BODY AT REST (6 to 30 samples during 300ms hold) = TIN / ALUMINIUM CAN
+    // 1. SOLID METAL (30%+ sustained detection over 500ms) = TIN / ALUMINIUM CAN
+    //    A real can produces 40-50 hits. Even painted/tinted cans produce 25+.
     materialType = "CAN";
   }
   else if (metalHoldCount >= 1 || metalDetected)
   {
-    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 to 5 hold samples or dynamic drop pulse) = TETRA PAK CARTON
+    // 2. THIN FOIL SIGNAL (1-14 hits, regardless of orientation in pipe) = TETRA PAK
+    //    Narrow edge: ~5-14 hits. Wide face: ~1-5 hits. Both correctly land here.
     materialType = "TETRAPAK";
   }
   else
   {
-    // 3. ZERO METAL DETECTED (0 samples) = PLASTIC PET BOTTLE
+    // 3. ZERO METAL (0 hits, no drop pulse) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
 
@@ -586,6 +599,9 @@ void processIncomingBottle(bool metalDetected)
 
   Serial.print(";METAL:");
   Serial.print(metalDetected ? "1" : "0");
+
+  Serial.print(";HOLDCOUNT:");
+  Serial.print(metalHoldCount);
 
   Serial.print(";SETTLED:");
   Serial.print(settled ? "1" : "0");
