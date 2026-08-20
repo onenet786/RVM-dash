@@ -561,14 +561,14 @@ void processIncomingBottle(bool metalDetected)
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
   const char* materialType = "PLASTIC";
 
-  if (metalHoldCount >= 2)
+  if (metalHoldCount >= 6)
   {
-    // 1. SOLID METAL BODY AT REST (2+ samples during hold) = TIN / ALUMINIUM CAN
+    // 1. SOLID METAL BODY AT REST (6 to 30 samples during 300ms hold) = TIN / ALUMINIUM CAN
     materialType = "CAN";
   }
-  else if (metalHoldCount == 1 || metalDetected)
+  else if (metalHoldCount >= 1 || metalDetected)
   {
-    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 hold sample or dynamic drop pulse) = TETRA PAK CARTON
+    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 to 5 hold samples or dynamic drop pulse) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
   else
