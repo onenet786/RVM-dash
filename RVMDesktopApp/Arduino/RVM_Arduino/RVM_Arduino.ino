@@ -557,25 +557,27 @@ void processIncomingBottle(bool metalDetected)
   int totalMetalHits = dropMetalHits + holdMetalHits;
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Sensor Calibration in 5" Pipe:
-  //   - Plastic PET Bottle: 0 metal hits throughout → PLASTIC
-  //   - Solid Metal Can / Tin / Metal Bottle (MUBAH SP512): continuous conductive metal (>= 5 total hits OR >= 5 hold hits) → CAN
-  //   - Tetra Pak Paperboard Box: micro-thin 6-micron internal foil (1 to 4 total hits) → TETRAPAK
+  // Total window: ~1350ms (350ms approach + 600ms settle + 400ms hold = ~135 samples)
+  //
+  // Sample distribution across 135 samples:
+  //   - Plastic PET Bottle: 0 hits (0% metal) → PLASTIC
+  //   - Tetra Pak Paperboard Box: 1 to 24 hits (thin internal 6-micron foil) → TETRAPAK
+  //   - Aluminium / Tin Can / Metal Bottle: 25+ hits (solid bare metal body) → CAN
   const char* materialType = "PLASTIC";
 
   if (totalMetalHits == 0)
   {
-    // 1. ZERO METAL DETECTED (0 hits) = PLASTIC PET BOTTLE
+    // 1. ZERO METAL DETECTED (0 hits out of 135) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
-  else if (totalMetalHits >= 5 || holdMetalHits >= 5)
+  else if (totalMetalHits >= 25 || holdMetalHits >= 15)
   {
-    // 2. SOLID CONTINUOUS METAL BODY (5+ hits) = TIN / ALUMINIUM CAN / METAL BOTTLE
+    // 2. SOLID CONTINUOUS METAL BODY (25+ total hits or 15+ hold hits) = TIN / ALUMINIUM CAN / METAL BOTTLE
     materialType = "CAN";
   }
   else
   {
-    // 3. THIN INTERNAL FOIL TRANSIENT BLIP (1 to 4 hits) = TETRA PAK CARTON
+    // 3. THIN INTERNAL FOIL PULSES (1 to 24 total hits) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
 
