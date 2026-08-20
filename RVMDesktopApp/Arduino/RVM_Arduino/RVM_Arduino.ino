@@ -567,9 +567,9 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Threshold: >= 15 sustained hits in 500ms = solid metal body (CAN)
-  //            1-14 hits or dynamic drop pulse = internal foil (TETRAPAK)
-  //            0 hits and no drop pulse        = plastic (PLASTIC)
+  // Classification based ONLY on metalHoldCount (500ms static hold at gate).
+  // We deliberately IGNORE metalDetected (from drop/settle phases) because
+  // servo motor electromagnetic interference latches false positives between bottles.
   const char* materialType = "PLASTIC";
 
   if (metalHoldCount >= 15)
@@ -578,15 +578,15 @@ void processIncomingBottle(bool metalDetected)
     //    A real can produces 40-50 hits. Even painted/tinted cans produce 25+.
     materialType = "CAN";
   }
-  else if (metalHoldCount >= 1 || metalDetected)
+  else if (metalHoldCount >= 1)
   {
-    // 2. THIN FOIL SIGNAL (1-14 hits, regardless of orientation in pipe) = TETRA PAK
-    //    Narrow edge: ~5-14 hits. Wide face: ~1-5 hits. Both correctly land here.
+    // 2. THIN FOIL SIGNAL (1-14 hits at rest) = TETRA PAK CARTON
+    //    Narrow edge: ~5-14 hits. Wide face: ~1-5 hits.
     materialType = "TETRAPAK";
   }
   else
   {
-    // 3. ZERO METAL (0 hits, no drop pulse) = PLASTIC PET BOTTLE
+    // 3. ZERO METAL (0 hits during entire 500ms hold) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
 
