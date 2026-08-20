@@ -51,7 +51,7 @@ const unsigned long bottleProcessingDelayMs = 2500; // Cooldown after sequence c
 const byte calibrationReadings = 12;
 const int maxSensorDistanceCM = 80;
 const byte bottleDetectChangeCM = 2;
-const int calibrationBlockedDistanceCM = 4;
+const int calibrationBlockedDistanceCM = 6;
 const byte calibrationMaxAttempts = 3;
 
 // ---- ENTRANCE SENSOR SETTINGS ----
@@ -548,7 +548,7 @@ void processIncomingBottle(bool metalDetected)
   // ---------------- HOLD BOTTLE FOR METAL CHECK ----------------
   unsigned long holdStart = millis();
 
-  // ---------------- SOLID METAL SAMPLING ----------------
+  // ---------------- SOLID METAL SAMPLING (15 Samples x 5ms) ----------------
   int solidMetalCount = 0;
   for (int i = 0; i < 15; i++)
   {
@@ -560,24 +560,24 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Any Inductive Metal Sensor reading (solidMetalCount >= 1 OR metalDetected OR metalDetectedForNextBottle)
-  bool metalSignalPresent = (solidMetalCount >= 1 || metalDetected || metalDetectedForNextBottle);
+  // Metal signal is confirmed if solidMetalCount >= 2 OR metalDetected is true during settling
+  bool metalSignalPresent = (solidMetalCount >= 2 || metalDetected);
 
   const char* materialType = "PLASTIC";
 
   if (metalSignalPresent)
   {
-    // RULE 1: ANY METAL SIGNAL = TIN / CAN (Includes soda cans, painted cans, tinted cans, crushed tins)
+    // RULE 1: CONFIRMED METAL SIGNAL (2+ active metal samples) = TIN / CAN
     materialType = "CAN";
   }
   else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
   {
-    // RULE 2: NON-METALLIC PAPERBOARD BOX = TETRA PAK CARTON (Dual-blocked IR height sensors)
+    // RULE 2: NON-METALLIC DUAL IR BLOCK = TETRA PAK CARTON (Paperboard carton profile)
     materialType = "TETRAPAK";
   }
   else
   {
-    // RULE 3: NON-METALLIC ROUND PET BOTTLE = PLASTIC
+    // RULE 3: NON-METALLIC ROUND PET BOTTLE = PLASTIC (PET plastic bottle)
     materialType = "PLASTIC";
   }
 
