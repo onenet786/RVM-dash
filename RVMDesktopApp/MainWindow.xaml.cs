@@ -879,7 +879,7 @@ public partial class MainWindow : Window
         StatusText.Text = "Confirming drop...";
         StatusText.Foreground = Brushes.Gold;
         BottleInfoText.Text = $"{result.Size} {result.Material.ToLowerInvariant()} detected";
-        LogTelemetry($"[PENDING] Size={result.Size} Material={result.Material} Points={pendingBottlePoints}");
+        LogTelemetry($"[PENDING] Size={result.Size} Material={result.Material} Points={pendingBottlePoints} | Raw={message}");
     }
 
     private void CommitPendingBottle()
