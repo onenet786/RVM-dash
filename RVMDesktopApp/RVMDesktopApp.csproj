@@ -22,6 +22,8 @@
     <Resource Include="Assets\RvmLogo.png" />
     <Content Include="Assets\DancingCan.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingPlastic.mp4" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\DancingTetra.mp4" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\DancingXN.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Ads\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.example.txt" CopyToOutputDirectory="PreserveNewest" />

@@ -15,9 +15,32 @@ public partial class AcceptedItemVideoWindow : Window
     {
         InitializeComponent();
 
-        bool isCan = material.Equals("CAN", StringComparison.OrdinalIgnoreCase);
-        MaterialText.Text = isCan ? "Can accepted" : "Plastic bottle accepted";
-        string fileName = isCan ? "DancingCan.mp4" : "DancingPlastic.mp4";
+        string mat = (material ?? "").Trim().ToUpperInvariant();
+        string fileName;
+        string titleText;
+
+        if (mat.Contains("CAN") || mat.Contains("METAL") || mat.Contains("ALUMINIUM"))
+        {
+            titleText = "Can accepted";
+            fileName = "DancingXN.mp4";
+            string xnPath = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+            if (!File.Exists(xnPath))
+            {
+                fileName = "DancingCan.mp4";
+            }
+        }
+        else if (mat.Contains("TETRA") || mat.Contains("PAPER") || mat.Contains("CARTON"))
+        {
+            titleText = "Tetra Pak accepted";
+            fileName = "DancingTetra.mp4";
+        }
+        else
+        {
+            titleText = "Plastic bottle accepted";
+            fileName = "DancingPlastic.mp4";
+        }
+
+        MaterialText.Text = titleText;
         string path = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
 
         safetyTimer.Tick += SafetyTimer_Tick;
@@ -46,8 +69,7 @@ public partial class AcceptedItemVideoWindow : Window
 
     public static void ShowFor(Window owner, string material)
     {
-        if (!material.Equals("CAN", StringComparison.OrdinalIgnoreCase) &&
-            !material.Equals("PLASTIC", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(material))
         {
             return;
         }
