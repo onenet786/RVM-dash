@@ -453,19 +453,12 @@ void processIncomingBottle(bool metalDetected)
   int lastDistance = -1;
   int stableCount = 0;
 
-  int dropMetalHits = (metalDetected ? 1 : 0);
-
   unsigned long settleStart = millis();
 
   // 1. Wait for bottle to drop down completely (~350ms)
   while (millis() - settleStart < approachTimeoutMs)
   {
     int currentDistance = readDistanceCM();
-
-    if (isMetalDetected())
-    {
-      dropMetalHits++;
-    }
 
     if (currentDistance > 0 && currentDistance <= maxSensorDistanceCM)
     {
@@ -508,14 +501,10 @@ void processIncomingBottle(bool metalDetected)
     return;
   }
 
-  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE (600ms) ----------------
+  // ---------------- 2. WAITING FOR BOTTLE TO STOP COMPLETELY AT GATE (600ms) ----------------
   unsigned long waitStart = millis();
   while (millis() - waitStart < bottleSettleDelayMs)
   {
-    if (isMetalDetected())
-    {
-      dropMetalHits++;
-    }
     delay(10);
   }
 
@@ -540,7 +529,14 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- 4. STATIC HOLD METAL VERIFICATION (400ms = 40 samples) ----------------
+  // ---------------- 4. STATIC RESTING METAL SAMPLING (400ms = 40 clean samples) ----------------
+  // The container is now 100% stationary at rest at the gate in front of the sensor.
+  // Sampling at rest ensures consistent, identical accuracy across unlimited consecutive items.
+  //
+  // CALIBRATION AT REST (out of 40 samples):
+  //   - Plastic PET Bottle: Zero metal content → 0 hits (holdMetalHits == 0)
+  //   - Tetra Pak Juice Box: Micro-thin internal foil behind cardboard → 1 to 12 hits
+  //   - Aluminium / Tin Can / Metal Bottle: Solid conductive metal body → 13 to 40 hits (>= 13)
   int holdMetalHits = 0;
   unsigned long holdStart = millis();
   const unsigned long metalHoldDurationMs = 400;
@@ -554,30 +550,22 @@ void processIncomingBottle(bool metalDetected)
     delay(10);
   }
 
-  int totalMetalHits = dropMetalHits + holdMetalHits;
-
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Total window: ~1350ms (350ms approach + 600ms settle + 400ms hold = ~135 samples)
-  //
-  // Sample distribution across 135 samples:
-  //   - Plastic PET Bottle: 0 hits (0% metal) → PLASTIC
-  //   - Tetra Pak Paperboard Box: 1 to 24 hits (thin internal 6-micron foil) → TETRAPAK
-  //   - Aluminium / Tin Can / Metal Bottle: 25+ hits (solid bare metal body) → CAN
   const char* materialType = "PLASTIC";
 
-  if (totalMetalHits == 0)
+  if (holdMetalHits == 0)
   {
-    // 1. ZERO METAL DETECTED (0 hits out of 135) = PLASTIC PET BOTTLE
+    // 1. ZERO METAL AT REST (0 hits) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
-  else if (totalMetalHits >= 25 || holdMetalHits >= 15)
+  else if (holdMetalHits >= 13)
   {
-    // 2. SOLID CONTINUOUS METAL BODY (25+ total hits or 15+ hold hits) = TIN / ALUMINIUM CAN / METAL BOTTLE
+    // 2. SOLID CONTINUOUS METAL AT REST (13+ hits out of 40) = TIN / ALUMINIUM CAN / METAL BOTTLE
     materialType = "CAN";
   }
   else
   {
-    // 3. THIN INTERNAL FOIL PULSES (1 to 24 total hits) = TETRA PAK CARTON
+    // 3. ATTENUATED INTERNAL FOIL AT REST (1 to 12 hits out of 40) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
 
@@ -589,10 +577,7 @@ void processIncomingBottle(bool metalDetected)
   Serial.print(materialType);
 
   Serial.print(";METAL:");
-  Serial.print(totalMetalHits > 0 ? "1" : "0");
-
-  Serial.print(";TOTALHITS:");
-  Serial.print(totalMetalHits);
+  Serial.print(holdMetalHits > 0 ? "1" : "0");
 
   Serial.print(";HOLDHITS:");
   Serial.print(holdMetalHits);
