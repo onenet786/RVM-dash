@@ -557,26 +557,26 @@ void processIncomingBottle(bool metalDetected)
   int totalMetalHits = dropMetalHits + holdMetalHits;
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Combines Dynamic Drop/Settle detection with Static Gate Hold verification:
-  //   - Solid Aluminium / Tin Can / Metal Bottle (MUBAH SP512): totalMetalHits >= 3 (solid metal body)
-  //   - Tetra Pak Juice / Milk Box: totalMetalHits 1 to 2 (micro-thin foil pulse)
-  //   - Plastic PET Bottle: totalMetalHits == 0 (zero metal detected throughout)
+  // Calibrated for 5" Pipe Physical Surface Contact:
+  //   - Plastic Bottle: 0 metal hits throughout → PLASTIC
+  //   - Cylindrical Tin/Can (tangent curve contact, 1-2 hits) OR Heavy Metal Bottle (holdHits >= 20) → CAN
+  //   - Flat-Face Tetra Pak Carton (flush planar surface contact, 3-19 hits) → TETRAPAK
   const char* materialType = "PLASTIC";
 
-  if (totalMetalHits >= 3)
+  if (totalMetalHits == 0)
   {
-    // 1. SOLID METAL CONTAINER (3+ hits across drop/settle/hold) = TIN / ALUMINIUM CAN / METAL BOTTLE
-    materialType = "CAN";
+    // 1. ZERO METAL DETECTED (0 hits) = PLASTIC PET BOTTLE
+    materialType = "PLASTIC";
   }
-  else if (totalMetalHits >= 1)
+  else if (holdMetalHits >= 20 || totalMetalHits <= 2)
   {
-    // 2. THIN INTERNAL FOIL PULSE (1 to 2 hits total) = TETRA PAK CARTON
-    materialType = "TETRAPAK";
+    // 2. CYLINDRICAL SODA CAN / TIN (1-2 tangent hits) OR HEAVY METAL BOTTLE (holdHits >= 20) = CAN
+    materialType = "CAN";
   }
   else
   {
-    // 3. ZERO METAL DETECTED (0 hits) = PLASTIC PET BOTTLE
-    materialType = "PLASTIC";
+    // 3. FLUSH PLANAR FOIL FACE (3 to 19 total hits) = TETRA PAK CARTON
+    materialType = "TETRAPAK";
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------
