@@ -148,7 +148,7 @@ void setup()
   pinMode(irMiddlePin, INPUT_PULLUP);
   pinMode(irTopPin, INPUT_PULLUP);
 
-  pinMode(metalSensorPin, INPUT);
+  pinMode(metalSensorPin, INPUT_PULLUP);
   pinMode(binFullSensorPin, INPUT_PULLUP);
 
   pinMode(trigPin, OUTPUT);
@@ -254,19 +254,12 @@ void loop()
     }
   }
 
-  if (!bottleProcessing && isMetalDetected())
-  {
-    metalDetectedForNextBottle = true;
-  }
-
   if (bottomTriggered && !bottleProcessing)
   {
     bottleProcessing = true;
-    
-    bool metalResult = metalDetectedForNextBottle || isMetalDetected();
     metalDetectedForNextBottle = false;
     
-    processIncomingBottle(metalResult);
+    processIncomingBottle(false);
     
     bottleProcessing = false;
   }
