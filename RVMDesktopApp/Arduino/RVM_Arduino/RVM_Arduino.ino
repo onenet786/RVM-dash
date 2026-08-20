@@ -560,24 +560,19 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Metal signal is confirmed if solidMetalCount >= 2 OR metalDetected is true during settling
-  bool metalSignalPresent = (solidMetalCount >= 2 || metalDetected);
+  // Metal sensor check (Inductive metal sensor triggered during settling or hold)
+  bool metalSignalPresent = (metalDetected || solidMetalCount >= 2);
 
   const char* materialType = "PLASTIC";
 
   if (metalSignalPresent)
   {
-    // RULE 1: CONFIRMED METAL SIGNAL (2+ active metal samples) = TIN / CAN
+    // Metal detected = TIN / ALUMINIUM CAN
     materialType = "CAN";
-  }
-  else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
-  {
-    // RULE 2: NON-METALLIC DUAL IR BLOCK = TETRA PAK CARTON (Paperboard carton profile)
-    materialType = "TETRAPAK";
   }
   else
   {
-    // RULE 3: NON-METALLIC ROUND PET BOTTLE = PLASTIC (PET plastic bottle)
+    // Non-metallic container = PLASTIC PET BOTTLE (Small, Medium, or Large 1.5L/2L)
     materialType = "PLASTIC";
   }
 
