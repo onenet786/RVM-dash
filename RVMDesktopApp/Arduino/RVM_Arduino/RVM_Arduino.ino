@@ -545,28 +545,30 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- SOLID METAL SAMPLING (20 Samples x 5ms = 100ms) ----------------
-  int solidMetalCount = 0;
-  for (int i = 0; i < 20; i++)
+  // ---------------- HOLD BOTTLE FOR METAL CHECK (300ms Hold) ----------------
+  unsigned long holdStart = millis();
+  int metalHoldCount = 0;
+
+  while (millis() - holdStart < gateHoldDurationMs)
   {
-    if (digitalRead(metalSensorPin) == METAL_DETECTED_STATE)
+    if (isMetalDetected())
     {
-      solidMetalCount++;
+      metalHoldCount++;
     }
-    delay(5);
+    delay(10);
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
   const char* materialType = "PLASTIC";
 
-  if (solidMetalCount >= 6)
+  if (metalHoldCount >= 2)
   {
-    // 1. SOLID CONTINUOUS METAL BODY (6 to 20 samples) = TIN / ALUMINIUM CAN
+    // 1. SOLID METAL BODY AT REST (2+ samples during hold) = TIN / ALUMINIUM CAN
     materialType = "CAN";
   }
-  else if (solidMetalCount >= 1 || metalDetected)
+  else if (metalHoldCount == 1 || metalDetected)
   {
-    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 to 5 samples) = TETRA PAK CARTON
+    // 2. INTERNAL FOIL TRANSIENT SIGNAL (1 hold sample or dynamic drop pulse) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
   else
