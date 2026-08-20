@@ -560,28 +560,25 @@ void processIncomingBottle(bool metalDetected)
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // 1. Metal Inductive Signal (internal foil pulse or solid metallic body)
-  bool hasAnyMetalSignal = (solidMetalCount >= 1 || metalDetected);
-
-  // 2. Continuous Solid Metal Body (Aluminium Soda Can)
-  bool isSolidCanBody = (solidMetalCount >= 3);
+  // Any Inductive Metal Sensor reading (solidMetalCount >= 1 OR metalDetected OR metalDetectedForNextBottle)
+  bool metalSignalPresent = (solidMetalCount >= 1 || metalDetected || metalDetectedForNextBottle);
 
   const char* materialType = "PLASTIC";
 
-  if (!hasAnyMetalSignal)
+  if (metalSignalPresent)
   {
-    // RULE 1: ZERO metal readings = ALWAYS Plastic PET Bottle (Small, Medium, or Large 1.5L/2L)
-    materialType = "PLASTIC";
-  }
-  else if (isSolidCanBody)
-  {
-    // RULE 2: Solid continuous metal body (solidMetalCount >= 3) = Aluminium Soda Can
+    // RULE 1: ANY METAL SIGNAL = TIN / CAN (Includes soda cans, painted cans, tinted cans, crushed tins)
     materialType = "CAN";
+  }
+  else if (topIsCurrentlyBlocked && middleIsCurrentlyBlocked)
+  {
+    // RULE 2: NON-METALLIC PAPERBOARD BOX = TETRA PAK CARTON (Dual-blocked IR height sensors)
+    materialType = "TETRAPAK";
   }
   else
   {
-    // RULE 3: Thin foil metal pulse (solidMetalCount 1 or 2) = Tetra Pak Carton
-    materialType = "TETRAPAK";
+    // RULE 3: NON-METALLIC ROUND PET BOTTLE = PLASTIC
+    materialType = "PLASTIC";
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------
