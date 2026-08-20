@@ -148,7 +148,7 @@ void setup()
   pinMode(irMiddlePin, INPUT_PULLUP);
   pinMode(irTopPin, INPUT_PULLUP);
 
-  pinMode(metalSensorPin, INPUT_PULLUP);
+  pinMode(metalSensorPin, INPUT);
   pinMode(binFullSensorPin, INPUT_PULLUP);
 
   pinMode(trigPin, OUTPUT);
