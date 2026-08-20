@@ -1149,11 +1149,15 @@ public partial class MainWindow : Window
                     break;
 
                 case "MATERIAL":
-                    result.Material = pair[1].ToUpperInvariant();
+                    string parsedMat = pair[1].ToUpperInvariant();
+                    if (!string.IsNullOrWhiteSpace(parsedMat))
+                    {
+                        result.Material = parsedMat;
+                    }
                     break;
 
                 case "METAL":
-                    if (result.Material == "PLASTIC" || string.IsNullOrEmpty(result.Material))
+                    if (string.IsNullOrEmpty(result.Material))
                     {
                         result.Material = pair[1] == "1" ? "CAN" : "PLASTIC";
                     }
