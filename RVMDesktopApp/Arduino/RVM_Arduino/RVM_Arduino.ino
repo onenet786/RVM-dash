@@ -460,16 +460,23 @@ void processIncomingBottle(bool metalDetected)
   int lastDistance = -1;
   int stableCount = 0;
 
+  // Metal detection counter across ALL phases (drop + settle + hold)
+  // Instead of a boolean, we COUNT how many times the sensor fires.
+  // Solid metal (can) triggers many times as it passes the sensor.
+  // Thin foil (tetra pak) triggers fewer times.
+  // Plastic triggers zero times.
+  int metalCount = (metalDetected ? 1 : 0);  // Include pre-detected signal from main loop
+
   unsigned long settleStart = millis();
 
-  // 1. Wait for bottle to drop down completely
+  // 1. Wait for bottle to drop down completely (~350ms, ~35 reads)
   while (millis() - settleStart < approachTimeoutMs)
   {
     int currentDistance = readDistanceCM();
 
     if (isMetalDetected())
     {
-      metalDetected = true;
+      metalCount++;
     }
 
     if (currentDistance > 0 && currentDistance <= maxSensorDistanceCM)
@@ -513,13 +520,13 @@ void processIncomingBottle(bool metalDetected)
     return;
   }
 
-  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE ----------------
+  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE (~600ms, ~60 reads) ----------------
   unsigned long waitStart = millis();
   while (millis() - waitStart < bottleSettleDelayMs)
   {
     if (isMetalDetected())
     {
-      metalDetected = true;
+      metalCount++;
     }
     delay(10);
   }
@@ -545,48 +552,50 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- HOLD BOTTLE FOR METAL CHECK (500ms Hold = ~50 samples) ----------------
-  // The item is now resting at the gate. We sample the inductive metal sensor
-  // every 10ms for 500ms to determine material type based on sustained readings.
-  // 
-  // PHYSICS in 5" pipe:
-  //   Solid aluminium can  → full metal body against pipe wall → 40-50 out of 50 hits
-  //   Tetra Pak (any edge) → thin 6-micron foil behind paper  → 1-14 out of 50 hits  
-  //   Plastic PET bottle   → zero metal                       → 0 hits
+  // ---------------- HOLD BOTTLE FOR ADDITIONAL METAL CHECK (~500ms, ~50 reads) ----------------
   unsigned long holdStart = millis();
-  int metalHoldCount = 0;
   const unsigned long metalHoldDurationMs = 500;
 
   while (millis() - holdStart < metalHoldDurationMs)
   {
     if (isMetalDetected())
     {
-      metalHoldCount++;
+      metalCount++;
     }
     delay(10);
   }
 
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // Classification based ONLY on metalHoldCount (500ms static hold at gate).
-  // We deliberately IGNORE metalDetected (from drop/settle phases) because
-  // servo motor electromagnetic interference latches false positives between bottles.
+  // Total sampling window: ~1450ms (350 + 600 + 500), ~145 read opportunities.
+  //
+  // The NPN inductive sensor is mounted on the 5" pipe wall ABOVE the gate.
+  // Items trigger the sensor as they FALL PAST it (drop + settle phases).
+  // At rest, the item may be below the sensor, so hold phase may add 0.
+  //
+  // A solid aluminium can body triggers the sensor continuously as it drops
+  // through the detection zone, producing MANY hits across all phases.
+  // A Tetra Pak's thin internal foil produces FEWER transient hits.
+  // A plastic bottle produces ZERO hits.
+  //
+  // Thresholds calibrated for 5" pipe:
+  //   CAN:      metalCount >= 5  (solid metal passes through sensor zone)
+  //   TETRAPAK: metalCount 1-4   (thin foil gives brief transient signal)
+  //   PLASTIC:  metalCount 0     (no metal at all)
   const char* materialType = "PLASTIC";
 
-  if (metalHoldCount >= 15)
+  if (metalCount >= 5)
   {
-    // 1. SOLID METAL (30%+ sustained detection over 500ms) = TIN / ALUMINIUM CAN
-    //    A real can produces 40-50 hits. Even painted/tinted cans produce 25+.
+    // 1. SOLID METAL BODY (5+ total reads across drop+settle+hold) = TIN / ALUMINIUM CAN
     materialType = "CAN";
   }
-  else if (metalHoldCount >= 1)
+  else if (metalCount >= 1)
   {
-    // 2. THIN FOIL SIGNAL (1-14 hits at rest) = TETRA PAK CARTON
-    //    Narrow edge: ~5-14 hits. Wide face: ~1-5 hits.
+    // 2. THIN FOIL TRANSIENT (1-4 total reads) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
   else
   {
-    // 3. ZERO METAL (0 hits during entire 500ms hold) = PLASTIC PET BOTTLE
+    // 3. ZERO METAL (0 reads across all phases) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
 
@@ -600,8 +609,8 @@ void processIncomingBottle(bool metalDetected)
   Serial.print(";METAL:");
   Serial.print(metalDetected ? "1" : "0");
 
-  Serial.print(";HOLDCOUNT:");
-  Serial.print(metalHoldCount);
+  Serial.print(";METALCOUNT:");
+  Serial.print(metalCount);
 
   Serial.print(";SETTLED:");
   Serial.print(settled ? "1" : "0");
