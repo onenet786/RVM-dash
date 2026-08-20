@@ -453,12 +453,20 @@ void processIncomingBottle(bool metalDetected)
   int lastDistance = -1;
   int stableCount = 0;
 
+  int slideMetalHits = 0;
+
   unsigned long settleStart = millis();
 
-  // 1. Wait for bottle to drop down completely (~350ms)
+  // ---------------- 1. APPROACH & SLIDE-DOWN TRACKING (350ms) ----------------
+  // As the item slides down the 45-degree pipe past the 8" metal sensor
   while (millis() - settleStart < approachTimeoutMs)
   {
     int currentDistance = readDistanceCM();
+
+    if (isMetalDetected())
+    {
+      slideMetalHits++;
+    }
 
     if (currentDistance > 0 && currentDistance <= maxSensorDistanceCM)
     {
@@ -501,16 +509,20 @@ void processIncomingBottle(bool metalDetected)
     return;
   }
 
-  // ---------------- 2. WAITING FOR BOTTLE TO STOP COMPLETELY AT GATE (600ms) ----------------
+  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE (600ms) ----------------
   unsigned long waitStart = millis();
   while (millis() - waitStart < bottleSettleDelayMs)
   {
+    if (isMetalDetected())
+    {
+      slideMetalHits++;
+    }
     delay(10);
   }
 
-  // ---------------- 3. READ STATIC BOTTLE SIZE AT GATE ----------------
-  bool topIsCurrentlyBlocked    = (digitalRead(irTopPin) == IR_DETECTED_STATE);
-  bool middleIsCurrentlyBlocked = (digitalRead(irMiddlePin) == IR_DETECTED_STATE);
+  // ---------------- 3. READ STATIC BOTTLE SIZE AT GATE (IR at 4", 8", 11") ----------------
+  bool topIsCurrentlyBlocked    = (digitalRead(irTopPin) == IR_DETECTED_STATE);    // 11" sensor (LARGE)
+  bool middleIsCurrentlyBlocked = (digitalRead(irMiddlePin) == IR_DETECTED_STATE); // 8" sensor (MEDIUM)
 
   const char* bottleSize = "SMALL";
 
@@ -529,15 +541,8 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- 4. STATIC RESTING METAL SAMPLING (400ms = 40 clean samples) ----------------
-  // The container is now 100% stationary at rest at the gate in front of the sensor.
-  // Sampling at rest ensures consistent, identical accuracy across unlimited consecutive items.
-  //
-  // CALIBRATION AT REST (out of 40 samples):
-  //   - Plastic PET Bottle: Zero metal content → 0 hits (holdMetalHits == 0)
-  //   - Tetra Pak Juice Box: Micro-thin internal foil behind cardboard → 1 to 12 hits
-  //   - Aluminium / Tin Can / Metal Bottle: Solid conductive metal body → 13 to 40 hits (>= 13)
-  int holdMetalHits = 0;
+  // ---------------- 4. GATE-LEVEL RESTING METAL VERIFICATION (400ms = 40 samples) ----------------
+  int gateMetalHits = 0;
   unsigned long holdStart = millis();
   const unsigned long metalHoldDurationMs = 400;
 
@@ -545,27 +550,33 @@ void processIncomingBottle(bool metalDetected)
   {
     if (isMetalDetected())
     {
-      holdMetalHits++;
+      gateMetalHits++;
     }
     delay(10);
   }
 
+  int totalMetalHits = slideMetalHits + gateMetalHits;
+
   // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
+  // 45-Degree 5" Pipe Calibration:
+  //   - Plastic PET Bottle: 0 hits throughout → PLASTIC
+  //   - Aluminium / Tin Can / Metal Bottle: Solid metal (slideMetalHits >= 4 OR gateMetalHits >= 10) → CAN
+  //   - Tetra Pak Juice Box: Micro-thin internal foil (1 to 3 slide hits) → TETRAPAK
   const char* materialType = "PLASTIC";
 
-  if (holdMetalHits == 0)
+  if (totalMetalHits == 0)
   {
-    // 1. ZERO METAL AT REST (0 hits) = PLASTIC PET BOTTLE
+    // 1. ZERO METAL DETECTED (0 hits) = PLASTIC PET BOTTLE
     materialType = "PLASTIC";
   }
-  else if (holdMetalHits >= 13)
+  else if (gateMetalHits >= 10 || slideMetalHits >= 4)
   {
-    // 2. SOLID CONTINUOUS METAL AT REST (13+ hits out of 40) = TIN / ALUMINIUM CAN / METAL BOTTLE
+    // 2. SOLID METAL CONTAINER (Solid sliding can or heavy resting bottle) = CAN
     materialType = "CAN";
   }
   else
   {
-    // 3. ATTENUATED INTERNAL FOIL AT REST (1 to 12 hits out of 40) = TETRA PAK CARTON
+    // 3. THIN INTERNAL FOIL PULSE (1 to 3 slide hits) = TETRA PAK CARTON
     materialType = "TETRAPAK";
   }
 
@@ -577,10 +588,13 @@ void processIncomingBottle(bool metalDetected)
   Serial.print(materialType);
 
   Serial.print(";METAL:");
-  Serial.print(holdMetalHits > 0 ? "1" : "0");
+  Serial.print(totalMetalHits > 0 ? "1" : "0");
 
-  Serial.print(";HOLDHITS:");
-  Serial.print(holdMetalHits);
+  Serial.print(";SLIDEHITS:");
+  Serial.print(slideMetalHits);
+
+  Serial.print(";GATEHITS:");
+  Serial.print(gateMetalHits);
 
   Serial.print(";SETTLED:");
   Serial.print(settled ? "1" : "0");
