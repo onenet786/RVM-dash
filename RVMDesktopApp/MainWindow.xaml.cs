@@ -571,21 +571,34 @@ public partial class MainWindow : Window
                 _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
 
-                // Check if admin remotely assigned a new active advertisement video to replace the currently playing one
+                // Sync & update remote multi-video advertisement rotation playlist from Central Dashboard
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        var remoteActivePath = await CentralSyncService.FetchRemoteActiveAdVideoAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
-                        if (!string.IsNullOrWhiteSpace(remoteActivePath) && !string.Equals(currentPlayingAdPath, remoteActivePath, StringComparison.OrdinalIgnoreCase))
+                        var remotePlaylist = await CentralSyncService.FetchRemoteActivePlaylistAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
+                        if (remotePlaylist.Count > 0)
                         {
                             await Dispatcher.InvokeAsync(() =>
                             {
-                                LogTelemetry($"[REMOTE AD 🚀] Remote Dashboard changed active video. Now playing: {Path.GetFileName(remoteActivePath)}");
-                                adPlaylist.Clear();
-                                adPlaylist.Add(remoteActivePath);
-                                adPlaylistIndex = 0;
-                                PlayAdVideo(remoteActivePath);
+                                bool sequenceChanged = adPlaylist.Count != remotePlaylist.Count ||
+                                                       !adPlaylist.SequenceEqual(remotePlaylist, StringComparer.OrdinalIgnoreCase);
+                                if (sequenceChanged)
+                                {
+                                    LogTelemetry($"[REMOTE PLAYLIST 🚀] Remote Dashboard updated multi-video playlist ({remotePlaylist.Count} video(s) in rotation).");
+                                    adPlaylist.Clear();
+                                    adPlaylist.AddRange(remotePlaylist);
+
+                                    if (string.IsNullOrWhiteSpace(currentPlayingAdPath) || !adPlaylist.Contains(currentPlayingAdPath, StringComparer.OrdinalIgnoreCase))
+                                    {
+                                        adPlaylistIndex = 0;
+                                        PlayAdVideo(adPlaylist[0]);
+                                    }
+                                    else
+                                    {
+                                        adPlaylistIndex = adPlaylist.FindIndex(p => string.Equals(p, currentPlayingAdPath, StringComparison.OrdinalIgnoreCase));
+                                    }
+                                }
                             });
                         }
                     }

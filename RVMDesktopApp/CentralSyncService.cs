@@ -338,4 +338,72 @@ public static class CentralSyncService
         }
         return null;
     }
+
+    /// <summary>
+    /// Fetches the complete active advertisement video rotation playlist from Central Dashboard.
+    /// Downloads all missing videos and returns the local file paths in sequence for continuous loop.
+    /// </summary>
+    public static async Task<System.Collections.Generic.List<string>> FetchRemoteActivePlaylistAsync(string machineId, string localAdsFolder, Action<string>? logCallback = null)
+    {
+        var playlist = new System.Collections.Generic.List<string>();
+        try
+        {
+            Directory.CreateDirectory(localAdsFolder);
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/machine/ads/playlist?machineId={Uri.EscapeDataString(machineId)}";
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode) return playlist;
+
+            string json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("playlist", out var listProp) && listProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in listProp.EnumerateArray())
+                {
+                    string? videoUrl = item.TryGetProperty("videoUrl", out var vUrl) ? vUrl.GetString() : null;
+                    string? fileName = item.TryGetProperty("fileName", out var fProp) ? fProp.GetString() : null;
+                    string? title = item.TryGetProperty("title", out var tProp) ? tProp.GetString() : null;
+
+                    if (string.IsNullOrWhiteSpace(videoUrl)) continue;
+
+                    if (videoUrl.StartsWith("/"))
+                    {
+                        videoUrl = $"{CentralApiUrl.TrimEnd('/')}{videoUrl}";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        try
+                        {
+                            fileName = Path.GetFileName(new Uri(videoUrl).LocalPath);
+                        }
+                        catch {}
+
+                        if (string.IsNullOrWhiteSpace(fileName) || !fileName.Contains('.'))
+                        {
+                            fileName = $"ad_{Guid.NewGuid().ToString("N")[..8]}.mp4";
+                        }
+                    }
+
+                    string localPath = Path.Combine(localAdsFolder, fileName);
+                    if (!File.Exists(localPath) || new FileInfo(localPath).Length == 0)
+                    {
+                        logCallback?.Invoke($"[REMOTE PLAYLIST 📥] Downloading rotation video: {fileName} ({title})...");
+                        var videoBytes = await _httpClient.GetByteArrayAsync(videoUrl);
+                        await File.WriteAllBytesAsync(localPath, videoBytes);
+                        logCallback?.Invoke($"[REMOTE PLAYLIST ✅] Saved rotation video: {fileName} ({videoBytes.Length / (1024 * 1024.0):F1} MB)");
+                    }
+
+                    if (File.Exists(localPath))
+                    {
+                        playlist.Add(localPath);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[REMOTE PLAYLIST ⚠️] Notice: {ex.Message}");
+        }
+        return playlist;
+    }
 }

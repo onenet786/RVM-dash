@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Tv, Upload, Film, Play, Pause, Trash2, Plus, RefreshCw, CheckCircle2, 
-  AlertCircle, Monitor, Sparkles, Sliders, ExternalLink, HardDrive, Layers, Eye
+  AlertCircle, Monitor, Sparkles, Sliders, ExternalLink, HardDrive, Layers, Eye,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 
 export default function AdvertisementsTab() {
@@ -179,13 +180,38 @@ export default function AdvertisementsTab() {
         body: JSON.stringify({ id: adId, machineId: targetMachine })
       });
       if (res.ok) {
-        setSuccessMsg(`🚀 Successfully deployed "${title}" as the active video! The RVM machine screen will now switch to this video.`);
+        setSuccessMsg(`🚀 Successfully deployed "${title}" to the active playlist! The RVM machine will now play this video.`);
         fetchAds();
         setTimeout(() => setSuccessMsg(''), 5000);
       }
     } catch (err) {
       console.error(err);
       setErrorMsg('Failed to set active video on RVM.');
+    }
+  };
+
+  const handleMoveOrder = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= ads.length) return;
+
+    const newAds = [...ads];
+    const temp = newAds[index];
+    newAds[index] = newAds[targetIndex];
+    newAds[targetIndex] = temp;
+
+    setAds(newAds);
+
+    try {
+      const activeOrderedIds = newAds.filter(a => a.isActive).map(a => a.id);
+      await fetch('/api/machine/ads/playlist/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds: activeOrderedIds, machineId: targetMachine })
+      });
+      setSuccessMsg('Playlist rotation order updated!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -318,6 +344,63 @@ export default function AdvertisementsTab() {
         </div>
       </div>
 
+      {/* Multi-Video Active Rotation Loop Ribbon */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/40 border border-emerald-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-400">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-black text-white flex items-center gap-2">
+              <span>Active Looping Rotation Queue</span>
+              <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30">
+                {totalActiveAds} Video(s) in Sequence
+              </span>
+            </div>
+            <div className="text-[11px] text-gray-300 mt-1 flex flex-wrap items-center gap-1.5">
+              {totalActiveAds === 0 ? (
+                <span className="text-amber-400">No active videos in playlist. Click "Activate" or "Play This Video" on videos below to include in rotation.</span>
+              ) : (
+                ads.filter(a => a.isActive).map((a, i) => (
+                  <span key={a.id} className="inline-flex items-center">
+                    <span className="px-2 py-0.5 rounded-lg bg-black/60 border border-cyan-500/30 text-cyan-300 font-bold">
+                      #{i + 1} {a.title}
+                    </span>
+                    {i < totalActiveAds - 1 && <span className="mx-1 text-emerald-400 font-black">➔</span>}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const activeOrderedIds = ads.filter(a => a.isActive).map(a => a.id);
+                const res = await fetch('/api/machine/ads/playlist/reorder', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ orderedIds: activeOrderedIds, machineId: targetMachine })
+                });
+                if (res.ok) {
+                  setSuccessMsg(`🚀 Successfully synced rotation of ${activeOrderedIds.length} video(s) to RVM machine!`);
+                  fetchAds();
+                  setTimeout(() => setSuccessMsg(''), 4000);
+                }
+              } catch (err) {
+                setErrorMsg('Failed to sync rotation.');
+              }
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg border border-emerald-400/40 transition-all active:scale-95 flex items-center gap-1.5"
+          >
+            <Monitor className="w-4 h-4" />
+            Sync Rotation to RVM
+          </button>
+        </div>
+      </div>
+
       {/* Target Machine Filter Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-900/60 border border-gray-800 rounded-2xl p-4">
         <div className="flex items-center gap-3">
@@ -430,45 +513,69 @@ export default function AdvertisementsTab() {
                   <span>Target: <strong className="text-cyan-400">{ad.machineId}</strong></span>
                 </div>
 
-                {/* Quick Action: Set as currently playing video on RVM machine screen */}
-                <button
-                  onClick={() => handleSetActiveVideo(ad.id, ad.title)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all active:scale-95"
-                  title="Deploy and start playing this video on the physical RVM machine screen immediately"
-                >
-                  <Monitor className="w-4 h-4" />
-                  Play This Video on RVM Screen
-                </button>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between gap-2 pt-1">
+                {/* Quick Action: Set / Toggle in Active Multi-Video Rotation */}
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleToggleActive(ad.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black transition-all shadow-md active:scale-95 ${
                       ad.isActive
-                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-emerald-950/40 border border-emerald-400/40'
+                        : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
                     }`}
+                    title={ad.isActive ? 'Included in active rotation' : 'Click to include in active rotation'}
                   >
-                    {ad.isActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    {ad.isActive ? 'Pause' : 'Activate'}
+                    <Monitor className="w-4 h-4" />
+                    {ad.isActive ? '✓ In Rotation Playlist' : '+ Add to Rotation'}
                   </button>
 
+                  {/* Reorder Up / Down Buttons */}
+                  <div className="flex items-center gap-1 bg-gray-900 border border-gray-800 rounded-xl p-1">
+                    <button
+                      onClick={() => handleMoveOrder(index, -1)}
+                      disabled={index === 0}
+                      className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-gray-800 transition-colors"
+                      title="Move Up in Rotation Order"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveOrder(index, 1)}
+                      disabled={index === ads.length - 1}
+                      className="p-1.5 text-gray-400 hover:text-white disabled:opacity-30 rounded-lg hover:bg-gray-800 transition-colors"
+                      title="Move Down in Rotation Order"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Secondary Actions */}
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-800/80">
                   <button
-                    onClick={() => setPreviewVideo(ad)}
-                    className="p-2 rounded-xl text-gray-300 bg-gray-800/80 hover:bg-gray-700 border border-gray-700 transition-all"
-                    title="Watch Preview"
+                    onClick={() => handleSetActiveVideo(ad.id, ad.title)}
+                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 py-1"
+                    title="Play this video as first priority on RVM screen"
                   >
-                    <Eye className="w-4 h-4 text-cyan-400" />
+                    ▶ Play Immediately
                   </button>
 
-                  <button
-                    onClick={() => handleDeleteAd(ad.id, ad.title)}
-                    className="p-2 rounded-xl text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
-                    title="Delete Video"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPreviewVideo(ad)}
+                      className="p-2 rounded-xl text-gray-300 bg-gray-800/80 hover:bg-gray-700 border border-gray-700 transition-all"
+                      title="Watch Preview"
+                    >
+                      <Eye className="w-4 h-4 text-cyan-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteAd(ad.id, ad.title)}
+                      className="p-2 rounded-xl text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
+                      title="Delete Video"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

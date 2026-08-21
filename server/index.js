@@ -3879,28 +3879,82 @@ app.get('/api/machine/ads/active', async (req, res) => {
   }
 });
 
-// Set specific advertisement video as the active video to play on RVM machine
-app.post('/api/machine/ads/set-active', async (req, res) => {
+// Fetch complete active advertisement playlist for RVM machine rotation
+app.get('/api/machine/ads/playlist', async (req, res) => {
   try {
-    const { id, machineId = '*' } = req.body;
+    const { machineId = '*' } = req.query;
     const pool = getPgPool();
-    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+    let playlist = [];
 
-    if (!id) return res.status(400).json({ success: false, error: 'Ad id is required' });
+    if (pool && activeDbType === 'postgres') {
+      try {
+        let queryText = `
+          SELECT id, machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order, created_at, updated_at
+          FROM machine_advertisements
+          WHERE is_active = true
+        `;
+        let queryParams = [];
 
-    // Set target ad to active and prioritize it (display_order = 1, updated_at = NOW())
-    await pool.query(`
-      UPDATE machine_advertisements
-      SET is_active = true, display_order = 1, updated_at = NOW()
-      WHERE id = $1;
-    `, [id]);
+        if (machineId && machineId !== 'ALL' && machineId !== '*') {
+          queryText += ` AND (machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL') `;
+          queryParams.push(machineId);
+          queryText += ` ORDER BY CASE WHEN machine_id = $1 THEN 0 ELSE 1 END, display_order ASC, created_at ASC;`;
+        } else {
+          queryText += ` ORDER BY display_order ASC, created_at ASC;`;
+        }
 
-    const result = await pool.query(`SELECT * FROM machine_advertisements WHERE id = $1`, [id]);
+        const result = await pool.query(queryText, queryParams);
+        playlist = result.rows.map((r, idx) => ({
+          id: r.id,
+          machineId: r.machine_id,
+          title: r.title,
+          videoUrl: r.video_url,
+          fileName: r.file_name,
+          fileSize: Number(r.file_size || 0),
+          durationSeconds: r.duration_seconds || 0,
+          isActive: r.is_active,
+          displayOrder: r.display_order || (idx + 1),
+          createdAt: r.created_at,
+          updatedAt: r.updated_at
+        }));
+      } catch (pgErr) {
+        console.error('[GET /api/machine/ads/playlist] PostgreSQL error:', pgErr.message);
+      }
+    }
 
     res.json({
       success: true,
-      message: `Active advertisement video updated! RVMDesktopApp on machine ${machineId} will now play this video.`,
-      activeVideo: result.rows[0]
+      machineId,
+      totalCount: playlist.length,
+      playlist
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Reorder or set multiple active videos in playlist
+app.post('/api/machine/ads/playlist/reorder', async (req, res) => {
+  try {
+    const { orderedIds = [], machineId = '*' } = req.body;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ success: false, error: 'orderedIds must be an array of IDs' });
+    }
+
+    for (let i = 0; i < orderedIds.length; i++) {
+      await pool.query(`
+        UPDATE machine_advertisements
+        SET display_order = $1, is_active = true, updated_at = NOW()
+        WHERE id = $2;
+      `, [i + 1, orderedIds[i]]);
+    }
+
+    res.json({
+      success: true,
+      message: `Updated rotation playlist order (${orderedIds.length} video(s)) for machine ${machineId}.`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
