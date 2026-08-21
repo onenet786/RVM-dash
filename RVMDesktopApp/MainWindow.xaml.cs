@@ -448,6 +448,35 @@ public partial class MainWindow : Window
         LogTelemetry($"[AD] Now playing: {Path.GetFileName(adPlaylist[adPlaylistIndex])}");
     }
 
+    public void ReloadAdvertisementPlaylist(IEnumerable<string>? customList = null)
+    {
+        adPlaylist.Clear();
+        if (customList != null)
+        {
+            adPlaylist.AddRange(customList);
+        }
+        else
+        {
+            adPlaylist.AddRange(FindVideoFiles(settings.AdvertisementVideoFolder));
+        }
+
+        if (adPlaylist.Count == 0)
+        {
+            AdvertisementPlayer.Visibility = Visibility.Collapsed;
+            LogTelemetry($"[AD] No videos in playlist.");
+            return;
+        }
+
+        adPlaylistIndex = 0;
+        PlayAdVideo(adPlaylist[0]);
+        LogTelemetry($"[AD] Playlist reloaded with {adPlaylist.Count} video(s).");
+    }
+
+    public void ReloadInstructionVideo()
+    {
+        StartInstructionVideo();
+    }
+
     private static string[] FindVideoFiles(string directory)
     {
         if (!Directory.Exists(directory))

@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +21,7 @@ public partial class AdminWindow : Window
             TxtMachineId.Text = settings.MachineId;
             Load();
             LoadConfigForm();
+            LoadAdVideosList();
             LogConsole("RVM Master Communication Console Initialized.");
             LogConsole("Ready to test live 2-way sync with Central Master Dashboard.");
             await CheckCentralConnectionAsync();
@@ -804,6 +808,287 @@ public partial class AdminWindow : Window
             Status = status
         };
     }
+
+    // ---------------- LOCAL ADVERTISEMENT VIDEO SIGNAGE MANAGER ----------------
+    private readonly List<AdVideoGridItem> adVideoItems = [];
+    private bool isPreviewPlaying = false;
+
+    private void LoadAdVideosList()
+    {
+        try
+        {
+            adVideoItems.Clear();
+            string folder = settings.AdvertisementVideoFolder;
+            if (!Path.IsPathRooted(folder))
+            {
+                folder = Path.Combine(AppContext.BaseDirectory, folder);
+            }
+
+            Directory.CreateDirectory(folder);
+            var supported = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp4", ".avi", ".wmv", ".mkv", ".mov", ".m4v", ".webm" };
+            var files = Directory.EnumerateFiles(folder)
+                .Where(f => supported.Contains(Path.GetExtension(f)))
+                .OrderBy(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            int idx = 1;
+            foreach (var file in files)
+            {
+                var fi = new FileInfo(file);
+                double mb = fi.Length / (1024.0 * 1024.0);
+                adVideoItems.Add(new AdVideoGridItem
+                {
+                    Index = idx++,
+                    FileName = fi.Name,
+                    FullPath = fi.FullName,
+                    FileSize = fi.Length,
+                    FileSizeFormatted = $"{mb:F1} MB",
+                    Extension = fi.Extension.ToUpperInvariant()
+                });
+            }
+
+            GridAdVideos.ItemsSource = null;
+            GridAdVideos.ItemsSource = adVideoItems;
+
+            if (adVideoItems.Count > 0)
+            {
+                GridAdVideos.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogConsole($"[Ad Video Load Error] {ex.Message}");
+        }
+    }
+
+    private void RefreshAdsList_Click(object sender, RoutedEventArgs e)
+    {
+        LoadAdVideosList();
+        RvmMessageDialog.ShowInfo("Refresh Playlist", $"Loaded {adVideoItems.Count} video(s) from {settings.AdvertisementVideoFolder}", this);
+    }
+
+    private void BrowseAddAdVideo_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Select Advertisement Video Files to Add",
+                Filter = "Video Files|*.mp4;*.webm;*.avi;*.wmv;*.mkv;*.mov;*.m4v|All Files|*.*",
+                Multiselect = true
+            };
+
+            if (dialog.ShowDialog(this) == true && dialog.FileNames.Length > 0)
+            {
+                string targetFolder = settings.AdvertisementVideoFolder;
+                if (!Path.IsPathRooted(targetFolder))
+                {
+                    targetFolder = Path.Combine(AppContext.BaseDirectory, targetFolder);
+                }
+                Directory.CreateDirectory(targetFolder);
+
+                int copiedCount = 0;
+                foreach (var srcPath in dialog.FileNames)
+                {
+                    string destName = Path.GetFileName(srcPath);
+                    string destPath = Path.Combine(targetFolder, destName);
+                    File.Copy(srcPath, destPath, overwrite: true);
+                    copiedCount++;
+                }
+
+                LoadAdVideosList();
+                RvmMessageDialog.ShowSuccess("Add Videos", $"Successfully added {copiedCount} video(s) to {targetFolder}!", this);
+                LogConsole($"[Ad Manager] Added {copiedCount} video(s) to {targetFolder}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            RvmMessageDialog.ShowError("Add Video Error", ex.Message, this);
+        }
+    }
+
+    private void OpenAdsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string folder = settings.AdvertisementVideoFolder;
+            if (!Path.IsPathRooted(folder))
+            {
+                folder = Path.Combine(AppContext.BaseDirectory, folder);
+            }
+            Directory.CreateDirectory(folder);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = folder,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            RvmMessageDialog.ShowError("Open Folder", ex.Message, this);
+        }
+    }
+
+    private void ApplyPlayAds_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (Application.Current.MainWindow is MainWindow mainWin)
+            {
+                mainWin.ReloadAdvertisementPlaylist();
+            }
+            else if (Application.Current.MainWindow is LandscapeWindow landWin)
+            {
+                landWin.ReloadAdvertisementPlaylist();
+            }
+
+            RvmMessageDialog.ShowSuccess("Apply & Play", $"Playlist updated with {adVideoItems.Count} video(s) and currently playing on main screen!", this);
+            LogConsole($"[Ad Manager] Applied updated playlist ({adVideoItems.Count} videos) to main display.");
+        }
+        catch (Exception ex)
+        {
+            RvmMessageDialog.ShowError("Apply Error", ex.Message, this);
+        }
+    }
+
+    private void GridAdVideos_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GridAdVideos.SelectedItem is AdVideoGridItem item)
+        {
+            SetPreviewVideo(item.FullPath, item.FileName);
+        }
+    }
+
+    private void PreviewSelectedAd_Click(object sender, RoutedEventArgs e)
+    {
+        if (GridAdVideos.SelectedItem is AdVideoGridItem item)
+        {
+            SetPreviewVideo(item.FullPath, item.FileName, autoPlay: true);
+        }
+        else
+        {
+            RvmMessageDialog.ShowWarning("Preview", "Please select a video from the list first.", this);
+        }
+    }
+
+    private void SetPreviewVideo(string path, string title, bool autoPlay = false)
+    {
+        try
+        {
+            TxtPreviewVideoTitle.Text = $"{title}";
+            TxtPlayerPlaceholder.Visibility = Visibility.Collapsed;
+            AdminAdPlayer.Source = new Uri(path);
+            if (autoPlay)
+            {
+                AdminAdPlayer.Play();
+                BtnPlayPausePreview.Content = "⏸ Pause";
+                isPreviewPlaying = true;
+            }
+            else
+            {
+                AdminAdPlayer.Stop();
+                BtnPlayPausePreview.Content = "▶️ Play";
+                isPreviewPlaying = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            LogConsole($"[Preview Error] {ex.Message}");
+        }
+    }
+
+    private void PlayPausePreview_Click(object sender, RoutedEventArgs e)
+    {
+        if (AdminAdPlayer.Source == null)
+        {
+            if (GridAdVideos.SelectedItem is AdVideoGridItem item)
+            {
+                SetPreviewVideo(item.FullPath, item.FileName, autoPlay: true);
+            }
+            return;
+        }
+
+        if (isPreviewPlaying)
+        {
+            AdminAdPlayer.Pause();
+            BtnPlayPausePreview.Content = "▶️ Play";
+            isPreviewPlaying = false;
+        }
+        else
+        {
+            AdminAdPlayer.Play();
+            BtnPlayPausePreview.Content = "⏸ Pause";
+            isPreviewPlaying = true;
+        }
+    }
+
+    private void StopPreview_Click(object sender, RoutedEventArgs e)
+    {
+        if (AdminAdPlayer.Source != null)
+        {
+            AdminAdPlayer.Stop();
+            AdminAdPlayer.Position = TimeSpan.Zero;
+            BtnPlayPausePreview.Content = "▶️ Play";
+            isPreviewPlaying = false;
+        }
+    }
+
+    private void AdminAdPlayer_MediaEnded(object sender, RoutedEventArgs e)
+    {
+        AdminAdPlayer.Position = TimeSpan.Zero;
+        AdminAdPlayer.Play();
+    }
+
+    private void AdminAdPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
+    {
+        LogConsole($"[Preview Player Error] {e.ErrorException.Message}");
+        TxtPlayerPlaceholder.Text = $"Failed to load video: {e.ErrorException.Message}";
+        TxtPlayerPlaceholder.Visibility = Visibility.Visible;
+    }
+
+    private void DeleteSelectedAd_Click(object sender, RoutedEventArgs e)
+    {
+        if (GridAdVideos.SelectedItem is not AdVideoGridItem item)
+        {
+            RvmMessageDialog.ShowWarning("Delete Video", "Please select a video to delete.", this);
+            return;
+        }
+
+        if (MessageBox.Show(this, $"Are you sure you want to permanently delete:\n\n{item.FileName}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            try
+            {
+                if (AdminAdPlayer.Source != null && AdminAdPlayer.Source.LocalPath.Equals(item.FullPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    AdminAdPlayer.Stop();
+                    AdminAdPlayer.Source = null;
+                }
+
+                if (File.Exists(item.FullPath))
+                {
+                    File.Delete(item.FullPath);
+                }
+
+                LoadAdVideosList();
+                RvmMessageDialog.ShowSuccess("Delete Video", $"Video '{item.FileName}' deleted.", this);
+                LogConsole($"[Ad Manager] Deleted video file: {item.FileName}");
+            }
+            catch (Exception ex)
+            {
+                RvmMessageDialog.ShowError("Delete Error", ex.Message, this);
+            }
+        }
+    }
+}
+
+public class AdVideoGridItem
+{
+    public int Index { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string FullPath { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public string FileSizeFormatted { get; set; } = string.Empty;
+    public string Extension { get; set; } = string.Empty;
 }
 
 public class VariantComparisonRow

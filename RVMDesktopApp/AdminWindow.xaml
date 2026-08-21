@@ -567,6 +567,136 @@
 
                     </Grid>
                 </TabItem>
+
+                <!-- NEW TAB: Local Advertisement & Video Signage Manager -->
+                <TabItem Header="📺 Advertisement &amp; Video Signage">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Top Action Bar -->
+                        <Border Grid.Row="0" Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="📺 RVM LOCAL ADVERTISEMENT &amp; VIDEO SIGNAGE" FontWeight="Bold" Foreground="#38BDF8" FontSize="15"/>
+                                    <TextBlock Text="Manage, select, preview, and play advertisement &amp; instruction videos directly on this RVM machine." Style="{StaticResource SecondaryText}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="📁 Browse &amp; Add Video(s)..." Click="BrowseAddAdVideo_Click" Height="38" Padding="14,4" Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
+                                    <Button Content="📂 Open Ads Folder" Click="OpenAdsFolder_Click" Height="38" Padding="12,4" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                    <Button Content="🔄 Refresh Playlist" Click="RefreshAdsList_Click" Height="38" Padding="12,4" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                    <Button Content="▶️ Apply &amp; Play on Main Screen" Click="ApplyPlayAds_Click" Height="38" Padding="16,4" Style="{StaticResource AccentButton}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Main Content Area: Left Playlist, Right Preview Player -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.2*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left Column: Video Playlist DataGrid -->
+                            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Padding="16" Margin="0,0,8,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                        <TextBlock Text="Active Advertisement Video Playlist" FontWeight="Bold" Foreground="#4ADE80" FontSize="13"/>
+                                        <TextBlock Text="Videos play in sequence and loop automatically on the bottom video player." Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <DataGrid Grid.Row="1" x:Name="GridAdVideos"
+                                              AutoGenerateColumns="False"
+                                              IsReadOnly="True"
+                                              CanUserAddRows="False"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="Horizontal"
+                                              Background="#090D16"
+                                              BorderBrush="#1E293B"
+                                              RowBackground="#0F172A"
+                                              AlternatingRowBackground="#090D16"
+                                              Foreground="White"
+                                              SelectionChanged="GridAdVideos_SelectionChanged">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
+                                            <DataGridTextColumn Header="Video File Name" Binding="{Binding FileName}" Width="2*" FontWeight="Bold" Foreground="#38BDF8"/>
+                                            <DataGridTextColumn Header="Size" Binding="{Binding FileSizeFormatted}" Width="80"/>
+                                            <DataGridTextColumn Header="Type" Binding="{Binding Extension}" Width="60"/>
+                                            <DataGridTextColumn Header="Full Path" Binding="{Binding FullPath}" Width="3*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+
+                                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+                                        <Button Content="▶️ Preview Selected" Click="PreviewSelectedAd_Click" Height="34" Padding="12,4" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                        <Button Content="🗑️ Delete Selected Video" Click="DeleteSelectedAd_Click" Height="34" Padding="12,4" Style="{StaticResource ModernButton}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Right Column: Live Video Player Preview -->
+                            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Padding="16" Margin="8,0,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                        <TextBlock Text="Live Video Player Preview" FontWeight="Bold" Foreground="#38BDF8" FontSize="13"/>
+                                        <TextBlock x:Name="TxtPreviewVideoTitle" Text="No video selected" Style="{StaticResource SecondaryText}" FontSize="11" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Embedded Video Screen -->
+                                    <Border Grid.Row="1" Background="#020617" CornerRadius="10" BorderBrush="#334155" BorderThickness="1" ClipToBounds="True">
+                                        <Grid>
+                                            <MediaElement x:Name="AdminAdPlayer"
+                                                          LoadedBehavior="Manual"
+                                                          UnloadedBehavior="Stop"
+                                                          Stretch="Uniform"
+                                                          MediaEnded="AdminAdPlayer_MediaEnded"
+                                                          MediaFailed="AdminAdPlayer_MediaFailed"/>
+                                            <TextBlock x:Name="TxtPlayerPlaceholder" Text="Select a video to preview playback" Foreground="#64748B" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Playback Controls -->
+                                    <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0" x:Name="BtnPlayPausePreview" Content="▶️ Play" Click="PlayPausePreview_Click" Height="34" Width="90" Style="{StaticResource ModernButton}" Margin="0,0,8,0"/>
+                                            <Button Grid.Column="0" x:Name="BtnStopPreview" Content="⏹ Stop" Click="StopPreview_Click" Height="34" Width="80" Style="{StaticResource ModernButton}" Margin="98,0,0,0"/>
+                                            <TextBlock Grid.Column="2" x:Name="TxtPlayerTime" Text="00:00" Foreground="#94A3B8" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12"/>
+                                        </Grid>
+
+                                        <Border Background="#0F172A" CornerRadius="8" Padding="10,8" BorderBrush="#334155" BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="💡 Tip: " Foreground="#38BDF8" FontWeight="Bold" FontSize="11"/>
+                                                <TextBlock Text="You can copy MP4 videos into Ads\Advertisements or use Browse button." Foreground="#94A3B8" FontSize="11"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
     </Grid>
