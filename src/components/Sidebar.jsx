@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
@@ -30,6 +30,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
     ...(isMasterDev ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },

@@ -380,12 +380,36 @@ public partial class LandscapeWindow : Window
         {
             AdvertisementPlayer.Visibility = Visibility.Collapsed;
             LogTelemetry($"[AD] No videos found in: {settings.AdvertisementVideoFolder}");
-            return;
+        }
+        else
+        {
+            adPlaylistIndex = 0;
+            PlayAdVideo(adPlaylist[0]);
+            LogTelemetry($"[AD] Loaded {adPlaylist.Count} video(s) from {settings.AdvertisementVideoFolder}");
         }
 
-        adPlaylistIndex = 0;
-        PlayAdVideo(adPlaylist[0]);
-        LogTelemetry($"[AD] Loaded {adPlaylist.Count} video(s) from {settings.AdvertisementVideoFolder}");
+        // Pull remote advertisement video updates from Central Dashboard in background
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var remoteAds = await CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
+                if (remoteAds.Count > 0)
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        adPlaylist.Clear();
+                        adPlaylist.AddRange(FindVideoFiles(settings.AdvertisementVideoFolder));
+                        if (adPlaylist.Count > 0 && AdvertisementPlayer.Source == null)
+                        {
+                            adPlaylistIndex = 0;
+                            PlayAdVideo(adPlaylist[0]);
+                        }
+                    });
+                }
+            }
+            catch {}
+        });
     }
 
     private void PlayAdVideo(string path)
@@ -537,9 +561,10 @@ public partial class LandscapeWindow : Window
 
                 SetLiveBadgeOnline();
 
-                // Auto-upload unsynced local sessions & silently pull latest point settings when online
+                // Auto-upload unsynced local sessions & silently pull latest point settings & ads when online
                 _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
+                _ = CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -195,5 +196,81 @@ public static class CentralSyncService
             Console.WriteLine($"[QR Verification Error] {ex.Message}");
         }
         return null;
+    }
+
+    /// <summary>
+    /// Syncs Advertisement Videos from Central Master Dashboard to local Ads/Advertisements directory.
+    /// </summary>
+    public static async Task<System.Collections.Generic.List<string>> SyncAdvertisementsFromCentralAsync(string machineId, string localAdsFolder, Action<string>? logCallback = null)
+    {
+        var updatedPlaylist = new System.Collections.Generic.List<string>();
+        try
+        {
+            Directory.CreateDirectory(localAdsFolder);
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/machine/ads?machineId={Uri.EscapeDataString(machineId)}";
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                return updatedPlaylist;
+            }
+
+            string json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("ads", out var adsElem) && adsElem.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in adsElem.EnumerateArray())
+                {
+                    bool isActive = !item.TryGetProperty("isActive", out var actProp) || actProp.GetBoolean();
+                    if (!isActive) continue;
+
+                    string? videoUrl = item.TryGetProperty("videoUrl", out var vUrl) ? vUrl.GetString() : null;
+                    string? title = item.TryGetProperty("title", out var tProp) ? tProp.GetString() : null;
+                    string? fileName = item.TryGetProperty("fileName", out var fProp) ? fProp.GetString() : null;
+
+                    if (string.IsNullOrWhiteSpace(videoUrl)) continue;
+
+                    // If relative URL from central server, prefix with CentralApiUrl
+                    if (videoUrl.StartsWith("/"))
+                    {
+                        videoUrl = $"{CentralApiUrl.TrimEnd('/')}{videoUrl}";
+                    }
+
+                    if (string.IsNullOrWhiteSpace(fileName))
+                    {
+                        try
+                        {
+                            fileName = Path.GetFileName(new Uri(videoUrl).LocalPath);
+                        }
+                        catch {}
+
+                        if (string.IsNullOrWhiteSpace(fileName) || !fileName.Contains('.'))
+                        {
+                            fileName = $"ad_{Guid.NewGuid().ToString("N")[..8]}.mp4";
+                        }
+                    }
+
+                    string localPath = Path.Combine(localAdsFolder, fileName);
+                    
+                    // Download file if missing or empty
+                    if (!File.Exists(localPath) || new FileInfo(localPath).Length == 0)
+                    {
+                        logCallback?.Invoke($"[AD SYNC 📥] Downloading advertisement video: {fileName}...");
+                        var videoBytes = await _httpClient.GetByteArrayAsync(videoUrl);
+                        await File.WriteAllBytesAsync(localPath, videoBytes);
+                        logCallback?.Invoke($"[AD SYNC ✅] Saved ad video: {fileName} ({videoBytes.Length / (1024 * 1024.0):F1} MB)");
+                    }
+
+                    if (File.Exists(localPath))
+                    {
+                        updatedPlaylist.Add(localPath);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[AD SYNC ⚠️] Notice: {ex.Message}");
+        }
+        return updatedPlaylist;
     }
 }

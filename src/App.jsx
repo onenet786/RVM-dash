@@ -5,6 +5,7 @@ import OverviewTab from './components/OverviewTab';
 import AnalyticsTab from './components/AnalyticsTab';
 import MachineHealthTab from './components/MachineHealthTab';
 import MachineConfigsTab from './components/MachineConfigsTab';
+import AdvertisementsTab from './components/AdvertisementsTab';
 import RvmManagementTab from './components/RvmManagementTab';
 import DbBackupTab from './components/DbBackupTab';
 import DbSwitcherTab from './components/DbSwitcherTab';
@@ -94,6 +95,9 @@ export default function App() {
 
     if (activeTab === 'machines') {
       return <MachineHealthTab />;
+    }
+    if (activeTab === 'advertisements') {
+      return <AdvertisementsTab />;
     }
     if (activeTab === 'col_machines') {
       return <RvmManagementTab />;

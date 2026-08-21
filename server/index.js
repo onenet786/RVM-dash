@@ -9,14 +9,45 @@ import dns from 'dns';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const BACKUPS_DIR = path.join(__dirname, '..', 'backups');
+const ADS_UPLOAD_DIR = path.join(__dirname, 'uploads', 'advertisements');
 
 if (!fs.existsSync(BACKUPS_DIR)) {
   fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
+if (!fs.existsSync(ADS_UPLOAD_DIR)) {
+  fs.mkdirSync(ADS_UPLOAD_DIR, { recursive: true });
+}
+
+// Configure Multer storage for RVM Advertisement Video uploads
+const adVideoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, ADS_UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+    cb(null, `ad_${Date.now()}_${base}${ext}`);
+  }
+});
+
+const adVideoUpload = multer({
+  storage: adVideoStorage,
+  limits: { fileSize: 250 * 1024 * 1024 }, // 250 MB max video size
+  fileFilter: (req, file, cb) => {
+    const allowedExts = ['.mp4', '.webm', '.avi', '.mov', '.mkv', '.m4v'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExts.includes(ext) || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid video format. Supported: .mp4, .webm, .avi, .mov, .mkv, .m4v'));
+    }
+  }
+});
 
 // Fix Windows DNS SRV lookup for MongoDB Atlas (+srv URIs)
 try {
@@ -31,12 +62,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5009;
 
-
-
 app.use(cors());
 // Set high payload limit (50MB) for database restoration JSON uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve uploaded advertisement videos statically
+app.use('/uploads/advertisements', express.static(ADS_UPLOAD_DIR));
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
@@ -246,7 +278,25 @@ async function initProductionPostgresSchemas() {
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS paper_unit VARCHAR(20) DEFAULT 'per_kg';`);
     await pool.query(`ALTER TABLE machine_configs ADD COLUMN IF NOT EXISTS glass_unit VARCHAR(20) DEFAULT 'per_piece';`);
 
-    console.log('[PostgreSQL Schemas] Production relational tables and indexes initialized successfully.');
+    // 5. Machine Advertisement Media Table (for Digital Signage & Ad Video Management)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS machine_advertisements (
+        id SERIAL PRIMARY KEY,
+        machine_id VARCHAR(100) NOT NULL DEFAULT '*',
+        title VARCHAR(255) NOT NULL,
+        video_url TEXT NOT NULL,
+        file_name VARCHAR(255),
+        file_size BIGINT DEFAULT 0,
+        duration_seconds INT DEFAULT 0,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        display_order INT DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_machine_ads_target ON machine_advertisements (machine_id, is_active, display_order ASC);
+    `);
+
+    console.log('[PostgreSQL Schemas] Production relational tables, ad media schemas and indexes initialized successfully.');
   } catch (err) {
     console.warn('[PostgreSQL Schemas Init Warning]', err.message);
   }
@@ -3552,6 +3602,224 @@ app.post('/api/machine/point-settings', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------- RVM ADVERTISEMENT VIDEO MANAGEMENT APIS ----------------
+// Upload advertisement video file (supports .mp4, .webm, .avi, .mov up to 250MB)
+app.post('/api/machine/ads/upload', (req, res) => {
+  adVideoUpload.single('video')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No video file provided in form-data (field: "video")' });
+    }
+
+    const relativeUrl = `/uploads/advertisements/${req.file.filename}`;
+    const fullUrl = `${req.protocol}://${req.get('host')}${relativeUrl}`;
+
+    res.json({
+      success: true,
+      url: relativeUrl,
+      fullUrl,
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      fileSize: req.file.size,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date().toISOString()
+    });
+  });
+});
+
+// Fetch active advertisement video playlist for RVM fleet / specific machine
+app.get('/api/machine/ads', async (req, res) => {
+  try {
+    const { machineId = '*' } = req.query;
+    const pool = getPgPool();
+    let adsList = [];
+
+    if (pool && activeDbType === 'postgres') {
+      try {
+        let queryText = `
+          SELECT id, machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order, created_at, updated_at
+          FROM machine_advertisements
+        `;
+        let queryParams = [];
+
+        if (machineId && machineId !== 'ALL' && machineId !== '*') {
+          queryText += ` WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL' `;
+          queryParams.push(machineId);
+        }
+
+        queryText += ` ORDER BY display_order ASC, created_at DESC;`;
+        const result = await pool.query(queryText, queryParams);
+        adsList = result.rows.map(r => ({
+          id: r.id,
+          machineId: r.machine_id,
+          title: r.title,
+          videoUrl: r.video_url,
+          fileName: r.file_name,
+          fileSize: Number(r.file_size || 0),
+          durationSeconds: r.duration_seconds || 0,
+          isActive: r.is_active,
+          displayOrder: r.display_order || 1,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at
+        }));
+      } catch (pgErr) {
+        console.error('[GET /api/machine/ads] PostgreSQL error:', pgErr.message);
+      }
+    }
+
+    // If no ads in DB yet, look for local default files in Ads directory
+    if (adsList.length === 0) {
+      try {
+        if (fs.existsSync(ADS_UPLOAD_DIR)) {
+          const localFiles = fs.readdirSync(ADS_UPLOAD_DIR);
+          adsList = localFiles
+            .filter(f => /\.(mp4|webm|avi|mov|mkv|m4v)$/i.test(f))
+            .map((f, i) => ({
+              id: i + 1,
+              machineId: '*',
+              title: f.replace(/_/g, ' ').replace(/\.[^.]+$/, ''),
+              videoUrl: `/uploads/advertisements/${f}`,
+              fileName: f,
+              fileSize: fs.statSync(path.join(ADS_UPLOAD_DIR, f)).size,
+              durationSeconds: 30,
+              isActive: true,
+              displayOrder: i + 1,
+              createdAt: new Date().toISOString()
+            }));
+        }
+      } catch (e) {}
+    }
+
+    res.json({
+      success: true,
+      machineId,
+      totalCount: adsList.length,
+      ads: adsList
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Save or Update Advertisement Video Configuration
+app.post('/api/machine/ads', async (req, res) => {
+  try {
+    const {
+      id,
+      machineId = '*',
+      title,
+      videoUrl,
+      fileName,
+      fileSize = 0,
+      durationSeconds = 0,
+      isActive = true,
+      displayOrder = 1
+    } = req.body;
+
+    if (!title || !videoUrl) {
+      return res.status(400).json({ success: false, error: 'Title and videoUrl are required' });
+    }
+
+    const pool = getPgPool();
+    if (!pool || activeDbType !== 'postgres') {
+      return res.status(500).json({ success: false, error: 'PostgreSQL database connection required' });
+    }
+
+    let savedAd;
+    if (id) {
+      // Update existing ad
+      const updateRes = await pool.query(`
+        UPDATE machine_advertisements
+        SET machine_id = $1, title = $2, video_url = $3, file_name = $4, file_size = $5,
+            duration_seconds = $6, is_active = $7, display_order = $8, updated_at = NOW()
+        WHERE id = $9
+        RETURNING *;
+      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder, id]);
+      savedAd = updateRes.rows[0];
+    } else {
+      // Create new ad
+      const insertRes = await pool.query(`
+        INSERT INTO machine_advertisements (machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        RETURNING *;
+      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder]);
+      savedAd = insertRes.rows[0];
+    }
+
+    res.json({
+      success: true,
+      message: `Advertisement '${title}' saved successfully for ${machineId === '*' || machineId === 'ALL' ? 'ALL RVM Machines' : `machine ${machineId}`}`,
+      ad: savedAd
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Toggle Advertisement Video Active State
+app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+
+    const result = await pool.query(`
+      UPDATE machine_advertisements
+      SET is_active = NOT is_active, updated_at = NOW()
+      WHERE id = $1
+      RETURNING *;
+    `, [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Advertisement not found' });
+    }
+
+    res.json({
+      success: true,
+      ad: result.rows[0],
+      message: `Advertisement status changed to ${result.rows[0].is_active ? 'ACTIVE' : 'PAUSED'}`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete Advertisement Video
+app.delete('/api/machine/ads/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+
+    const selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE id = $1`, [id]);
+    if (selRes.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Advertisement not found' });
+    }
+
+    const ad = selRes.rows[0];
+    await pool.query(`DELETE FROM machine_advertisements WHERE id = $1`, [id]);
+
+    // Clean up local uploaded file if it exists
+    if (ad.file_name) {
+      const localFilePath = path.join(ADS_UPLOAD_DIR, ad.file_name);
+      if (fs.existsSync(localFilePath)) {
+        try {
+          fs.unlinkSync(localFilePath);
+        } catch (e) {}
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Advertisement '${ad.title}' deleted successfully`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
