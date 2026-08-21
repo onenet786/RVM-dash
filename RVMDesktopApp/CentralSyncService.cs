@@ -273,4 +273,69 @@ public static class CentralSyncService
         }
         return updatedPlaylist;
     }
+
+    /// <summary>
+    /// Fetches the currently designated active advertisement video from Central Dashboard.
+    /// If newly assigned or updated, downloads it to localAdsFolder and returns the local file path to play immediately.
+    /// </summary>
+    public static async Task<string?> FetchRemoteActiveAdVideoAsync(string machineId, string localAdsFolder, Action<string>? logCallback = null)
+    {
+        try
+        {
+            Directory.CreateDirectory(localAdsFolder);
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/machine/ads/active?machineId={Uri.EscapeDataString(machineId)}";
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode) return null;
+
+            string json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("hasActiveVideo", out var hasProp) && hasProp.GetBoolean() &&
+                doc.RootElement.TryGetProperty("activeVideo", out var activeProp) && activeProp.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                string? videoUrl = activeProp.TryGetProperty("videoUrl", out var vUrl) ? vUrl.GetString() : null;
+                string? fileName = activeProp.TryGetProperty("fileName", out var fProp) ? fProp.GetString() : null;
+                string? title = activeProp.TryGetProperty("title", out var tProp) ? tProp.GetString() : null;
+
+                if (string.IsNullOrWhiteSpace(videoUrl)) return null;
+
+                if (videoUrl.StartsWith("/"))
+                {
+                    videoUrl = $"{CentralApiUrl.TrimEnd('/')}{videoUrl}";
+                }
+
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    try
+                    {
+                        fileName = Path.GetFileName(new Uri(videoUrl).LocalPath);
+                    }
+                    catch {}
+
+                    if (string.IsNullOrWhiteSpace(fileName) || !fileName.Contains('.'))
+                    {
+                        fileName = $"ad_{Guid.NewGuid().ToString("N")[..8]}.mp4";
+                    }
+                }
+
+                string localPath = Path.Combine(localAdsFolder, fileName);
+                if (!File.Exists(localPath) || new FileInfo(localPath).Length == 0)
+                {
+                    logCallback?.Invoke($"[REMOTE AD 📥] Downloading new advertisement assigned from dashboard: {fileName} ({title})...");
+                    var videoBytes = await _httpClient.GetByteArrayAsync(videoUrl);
+                    await File.WriteAllBytesAsync(localPath, videoBytes);
+                    logCallback?.Invoke($"[REMOTE AD ✅] Saved new ad video: {fileName} ({videoBytes.Length / (1024 * 1024.0):F1} MB)");
+                }
+
+                if (File.Exists(localPath))
+                {
+                    return localPath;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[REMOTE AD ⚠️] Notice: {ex.Message}");
+        }
+        return null;
+    }
 }

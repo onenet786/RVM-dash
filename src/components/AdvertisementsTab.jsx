@@ -171,6 +171,24 @@ export default function AdvertisementsTab() {
     }
   };
 
+  const handleSetActiveVideo = async (adId, title) => {
+    try {
+      const res = await fetch('/api/machine/ads/set-active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: adId, machineId: targetMachine })
+      });
+      if (res.ok) {
+        setSuccessMsg(`🚀 Successfully deployed "${title}" as the active video! The RVM machine screen will now switch to this video.`);
+        fetchAds();
+        setTimeout(() => setSuccessMsg(''), 5000);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg('Failed to set active video on RVM.');
+    }
+  };
+
   const handleDeleteAd = async (id, title) => {
     if (!window.confirm(`Are you sure you want to delete the advertisement "${title}"?`)) return;
     try {
@@ -412,8 +430,18 @@ export default function AdvertisementsTab() {
                   <span>Target: <strong className="text-cyan-400">{ad.machineId}</strong></span>
                 </div>
 
+                {/* Quick Action: Set as currently playing video on RVM machine screen */}
+                <button
+                  onClick={() => handleSetActiveVideo(ad.id, ad.title)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition-all active:scale-95"
+                  title="Deploy and start playing this video on the physical RVM machine screen immediately"
+                >
+                  <Monitor className="w-4 h-4" />
+                  Play This Video on RVM Screen
+                </button>
+
                 {/* Actions */}
-                <div className="flex items-center justify-between gap-2 pt-2">
+                <div className="flex items-center justify-between gap-2 pt-1">
                   <button
                     onClick={() => handleToggleActive(ad.id)}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
@@ -423,7 +451,7 @@ export default function AdvertisementsTab() {
                     }`}
                   >
                     {ad.isActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                    {ad.isActive ? 'Pause Video' : 'Activate Video'}
+                    {ad.isActive ? 'Pause' : 'Activate'}
                   </button>
 
                   <button

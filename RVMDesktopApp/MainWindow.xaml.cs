@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<string> telemetryLog = [];
     private readonly List<string> adPlaylist = [];
     private int adPlaylistIndex;
+    private string? currentPlayingAdPath;
 
     public MainWindow()
     {
@@ -422,8 +423,9 @@ public partial class MainWindow : Window
     {
         try
         {
+            currentPlayingAdPath = Path.GetFullPath(path);
             AdvertisementPlayer.Visibility = Visibility.Visible;
-            AdvertisementPlayer.Source = new Uri(Path.GetFullPath(path));
+            AdvertisementPlayer.Source = new Uri(currentPlayingAdPath);
             AdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
             AdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
             AdvertisementPlayer.Stretch = Stretch.Fill;
@@ -568,6 +570,27 @@ public partial class MainWindow : Window
                 _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
+
+                // Check if admin remotely assigned a new active advertisement video to replace the currently playing one
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var remoteActivePath = await CentralSyncService.FetchRemoteActiveAdVideoAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
+                        if (!string.IsNullOrWhiteSpace(remoteActivePath) && !string.Equals(currentPlayingAdPath, remoteActivePath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                LogTelemetry($"[REMOTE AD 🚀] Remote Dashboard changed active video. Now playing: {Path.GetFileName(remoteActivePath)}");
+                                adPlaylist.Clear();
+                                adPlaylist.Add(remoteActivePath);
+                                adPlaylistIndex = 0;
+                                PlayAdVideo(remoteActivePath);
+                            });
+                        }
+                    }
+                    catch {}
+                });
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
