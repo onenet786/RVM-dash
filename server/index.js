@@ -3759,7 +3759,9 @@ app.post('/api/machine/ads', async (req, res) => {
       fileSize = 0,
       durationSeconds = 0,
       isActive = true,
-      displayOrder = 1
+      displayOrder = 1,
+      replaceMode = 'append', // 'append' (keep old) or 'replace_delete' (delete old) or 'replace_deactivate'
+      cleanupOldVideos = false
     } = req.body;
 
     if (!title || !videoUrl) {
@@ -3769,6 +3771,44 @@ app.post('/api/machine/ads', async (req, res) => {
     const pool = getPgPool();
     if (!pool || activeDbType !== 'postgres') {
       return res.status(500).json({ success: false, error: 'PostgreSQL database connection required' });
+    }
+
+    // Handle replacement of old videos if requested
+    if (!id && (replaceMode === 'replace_delete' || cleanupOldVideos === true)) {
+      let oldAdsQuery = `SELECT * FROM machine_advertisements`;
+      let oldParams = [];
+      if (machineId && machineId !== 'ALL' && machineId !== '*') {
+        oldAdsQuery += ` WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL'`;
+        oldParams.push(machineId);
+      }
+      const oldAdsRes = await pool.query(oldAdsQuery, oldParams);
+      for (const oldAd of oldAdsRes.rows) {
+        if (oldAd.file_name && oldAd.file_name !== fileName) {
+          const oldFilePath = path.join(ADS_UPLOAD_DIR, oldAd.file_name);
+          if (fs.existsSync(oldFilePath)) {
+            try { fs.unlinkSync(oldFilePath); } catch (e) {}
+          }
+        }
+      }
+      if (oldParams.length > 0) {
+        await pool.query(`DELETE FROM machine_advertisements WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL'`, oldParams);
+      } else {
+        await pool.query(`DELETE FROM machine_advertisements`);
+      }
+      displayOrder = 1;
+    } else if (!id && replaceMode === 'replace_deactivate') {
+      let deactQuery = `UPDATE machine_advertisements SET is_active = false, updated_at = NOW()`;
+      let deactParams = [];
+      if (machineId && machineId !== 'ALL' && machineId !== '*') {
+        deactQuery += ` WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL'`;
+        deactParams.push(machineId);
+      }
+      await pool.query(deactQuery, deactParams);
+      displayOrder = 1;
+    } else if (!id) {
+      // Auto-assign next display order if not specified
+      const maxOrderRes = await pool.query(`SELECT COALESCE(MAX(display_order), 0) AS max_order FROM machine_advertisements WHERE is_active = true`);
+      displayOrder = (maxOrderRes.rows[0]?.max_order || 0) + 1;
     }
 
     let savedAd;
@@ -3794,7 +3834,7 @@ app.post('/api/machine/ads', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Advertisement '${title}' saved successfully for ${machineId === '*' || machineId === 'ALL' ? 'ALL RVM Machines' : `machine ${machineId}`}`,
+      message: `Advertisement '${title}' saved successfully! RVMDesktopApp will automatically download and start playing this video.`,
       ad: savedAd
     });
   } catch (err) {

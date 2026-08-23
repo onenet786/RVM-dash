@@ -399,6 +399,31 @@ public static class CentralSyncService
                         playlist.Add(localPath);
                     }
                 }
+
+                // If remote playlist has active videos, clean up any obsolete local video files that were deleted on dashboard
+                if (playlist.Count > 0 && Directory.Exists(localAdsFolder))
+                {
+                    var supportedExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".m4v", ".wmv" };
+                    var currentLocalFiles = Directory.EnumerateFiles(localAdsFolder)
+                        .Where(f => supportedExts.Contains(Path.GetExtension(f)))
+                        .ToList();
+
+                    var activeNormalizedPaths = new HashSet<string>(playlist.Select(Path.GetFullPath), StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var localFile in currentLocalFiles)
+                    {
+                        string fullLocal = Path.GetFullPath(localFile);
+                        if (!activeNormalizedPaths.Contains(fullLocal))
+                        {
+                            try
+                            {
+                                File.Delete(fullLocal);
+                                logCallback?.Invoke($"[REMOTE CLEANUP 🗑️] Cleaned up obsolete local ad video: {Path.GetFileName(fullLocal)}");
+                            }
+                            catch {}
+                        }
+                    }
+                }
             }
         }
         catch (Exception ex)

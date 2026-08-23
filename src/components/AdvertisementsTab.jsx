@@ -21,6 +21,7 @@ export default function AdvertisementsTab() {
   const [uploading, setUploading] = useState(false);
   const [displayOrder, setDisplayOrder] = useState(1);
   const [formMachine, setFormMachine] = useState('ALL');
+  const [replaceMode, setReplaceMode] = useState('append'); // 'append' (keep old) or 'replace_delete' (delete old)
 
   // Preview Modal
   const [previewVideo, setPreviewVideo] = useState(null);
@@ -137,7 +138,9 @@ export default function AdvertisementsTab() {
           fileName: uploadedFileName,
           fileSize: uploadedFileSize,
           displayOrder: parseInt(displayOrder) || 1,
-          isActive: true
+          isActive: true,
+          replaceMode,
+          cleanupOldVideos: replaceMode === 'replace_delete'
         })
       });
 
@@ -146,13 +149,14 @@ export default function AdvertisementsTab() {
         throw new Error(errData.error || 'Failed to save advertisement entry.');
       }
 
-      setSuccessMsg(`Advertisement "${adTitle}" saved successfully!`);
+      setSuccessMsg(`🚀 Advertisement "${adTitle}" saved & deployed! RVMDesktopApp will automatically download and start playback.`);
       setShowUploadModal(false);
       setAdTitle('');
       setAdVideoUrl('');
       setSelectedFile(null);
+      setReplaceMode('append');
       fetchAds();
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
       console.error(err);
       setErrorMsg(err.message || 'An error occurred while uploading.');
@@ -707,17 +711,47 @@ export default function AdvertisementsTab() {
                 </div>
               )}
 
-              {/* Display Order */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-300">Playlist Display Order Priority</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={displayOrder}
-                  onChange={(e) => setDisplayOrder(e.target.value)}
-                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
-                />
+              {/* Playlist Strategy: Keep or Delete Old Videos */}
+              <div className="space-y-2 p-3.5 bg-gray-950/80 rounded-2xl border border-gray-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-200">Playlist Rotation &amp; Storage Action</label>
+                  <span className="text-[10px] text-cyan-400 font-bold">Auto-Sync to RVM</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                    replaceMode === 'append' ? 'bg-emerald-500/10 border-emerald-500/50 text-white' : 'bg-gray-900/80 border-gray-800 text-gray-400 hover:text-gray-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="replaceMode"
+                      value="append"
+                      checked={replaceMode === 'append'}
+                      onChange={() => setReplaceMode('append')}
+                      className="mt-0.5 text-emerald-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-emerald-300">Keep Old Videos</div>
+                      <div className="text-[10px] text-gray-400">Append to sequential multi-video loop</div>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                    replaceMode === 'replace_delete' ? 'bg-rose-500/10 border-rose-500/50 text-white' : 'bg-gray-900/80 border-gray-800 text-gray-400 hover:text-gray-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="replaceMode"
+                      value="replace_delete"
+                      checked={replaceMode === 'replace_delete'}
+                      onChange={() => setReplaceMode('replace_delete')}
+                      className="mt-0.5 text-rose-500"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-rose-300">Delete Old Videos</div>
+                      <div className="text-[10px] text-gray-400">Replace all previous videos on RVM</div>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* Submit Buttons */}
