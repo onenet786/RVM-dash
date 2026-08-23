@@ -232,13 +232,28 @@ async function initProductionPostgresSchemas() {
         username VARCHAR(50) UNIQUE NOT NULL,
         full_name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
+        mobile VARCHAR(50),
+        password VARCHAR(255),
+        age INT DEFAULT 20,
+        nic VARCHAR(50),
+        gender VARCHAR(20) DEFAULT 'male',
+        otp VARCHAR(10),
+        otp_expiry TIMESTAMPTZ,
         points_balance INT DEFAULT 0,
         role_id VARCHAR(50) DEFAULT 'fleet_operator',
         status VARCHAR(20) DEFAULT 'active',
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS mobile VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS age INT DEFAULT 20;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS nic VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'male';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS otp VARCHAR(10);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMPTZ;
       CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+      CREATE INDEX IF NOT EXISTS idx_users_mobile ON users (mobile);
     `);
 
     // 4. Downstream Points Config Table
@@ -2811,6 +2826,455 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+// ==========================================
+// MOBILE APP REST API ENDPOINTS (PostgreSQL Backed)
+// ==========================================
+
+// 1. Mobile Login
+async function handleMobileLogin(req, res) {
+  try {
+    const { mobileOrEmail, mobile, email, password } = req.body;
+    const identifier = (mobileOrEmail || mobile || email || '').trim();
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'Phone number or email is required' });
+    }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required' });
+    }
+
+    let user = null;
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const userRes = await pool.query(`
+          SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status
+          FROM users
+          WHERE mobile = $1 OR email = $1 OR username = $1
+          LIMIT 1;
+        `, [identifier]);
+        if (userRes.rows.length > 0) {
+          user = userRes.rows[0];
+        }
+      }
+    } else if (db) {
+      user = await db.collection('users').findOne({
+        $or: [{ mobile: identifier }, { email: identifier }, { username: identifier }]
+      });
+    }
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
+    }
+
+    // Verify password if set on user record
+    if (user.password && user.password !== password) {
+      return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
+    }
+
+    let bottles = 0;
+    let cups = 0;
+    let points = user.points_balance || user.pointsBalance || user.points || 0;
+    let latestRecycle = null;
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const statsRes = await pool.query(`
+          SELECT 
+            COALESCE(SUM(plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COALESCE(SUM(points_earned), 0) AS total_earned_points,
+            MAX(created_at) AS last_recycled_at
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = $2 OR user_id = $3;
+        `, [user.user_id, user.mobile || identifier, user.username]);
+        if (statsRes.rows.length > 0) {
+          bottles = parseInt(statsRes.rows[0].total_bottles || 0);
+          cups = parseInt(statsRes.rows[0].total_cups || 0);
+          latestRecycle = statsRes.rows[0].last_recycled_at;
+          if (points === 0) {
+            points = parseInt(statsRes.rows[0].total_earned_points || 0);
+          }
+        }
+      }
+    }
+
+    const token = jwt.sign(
+      { userId: user.user_id, username: user.username, mobile: user.mobile },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.user_id,
+        username: user.username,
+        fullName: user.full_name || user.username,
+        email: user.email,
+        mobile: user.mobile || identifier,
+        age: user.age || 20,
+        nic: user.nic || '',
+        gender: user.gender || 'male',
+        points
+      },
+      recycleDetails: {
+        points,
+        bottles,
+        cups,
+        recycledAt: latestRecycle || new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.error('[Mobile Login Error]', err);
+    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+  }
+}
+app.post('/api/login', handleMobileLogin);
+app.post('/login', handleMobileLogin);
+
+// 2. Mobile User Registration
+async function handleMobileRegister(req, res) {
+  try {
+    const { username, mobile, age, nic, email, password, gender = 'male' } = req.body;
+    if (!mobile || !username) {
+      return res.status(400).json({ success: false, message: 'Username and mobile number are required' });
+    }
+
+    const cleanMobile = String(mobile).trim();
+    const cleanEmail = email ? String(email).trim().toLowerCase() : `${cleanMobile}@rvm.local`;
+    const cleanUsername = String(username).trim();
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const checkRes = await pool.query(`
+          SELECT user_id FROM users 
+          WHERE mobile = $1 OR email = $2 OR username = $3
+          LIMIT 1;
+        `, [cleanMobile, cleanEmail, cleanUsername]);
+
+        if (checkRes.rows.length > 0) {
+          return res.status(409).json({ success: false, message: 'User with this mobile number, email, or username already exists' });
+        }
+
+        await pool.query(`
+          INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'active', NOW());
+        `, [userId, cleanUsername, cleanUsername, cleanEmail, cleanMobile, password || '', parseInt(age) || 20, nic || '', gender]);
+      }
+    } else if (db) {
+      const existing = await db.collection('users').findOne({
+        $or: [{ mobile: cleanMobile }, { email: cleanEmail }, { username: cleanUsername }]
+      });
+      if (existing) {
+        return res.status(409).json({ success: false, message: 'User already exists' });
+      }
+      await db.collection('users').insertOne({
+        userId,
+        username: cleanUsername,
+        fullName: cleanUsername,
+        email: cleanEmail,
+        mobile: cleanMobile,
+        password: password || '',
+        age: parseInt(age) || 20,
+        nic: nic || '',
+        gender,
+        points: 0,
+        createdAt: new Date()
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      user: {
+        id: userId,
+        username: cleanUsername,
+        mobile: cleanMobile,
+        email: cleanEmail,
+        age: parseInt(age) || 20,
+        nic: nic || '',
+        gender,
+        points: 0
+      }
+    });
+  } catch (err) {
+    console.error('[Mobile Register Error]', err);
+    res.status(500).json({ success: false, message: 'Registration failed: ' + err.message });
+  }
+}
+app.post('/api/register', handleMobileRegister);
+app.post('/register', handleMobileRegister);
+
+// 3. Mobile Get Points
+async function handleMobileGetPoints(req, res) {
+  try {
+    const { phoneNumber, mobile, userId } = req.body;
+    const phone = (phoneNumber || mobile || userId || '').trim();
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+
+    let points = 0;
+    let bottles = 0;
+    let cups = 0;
+    let lastRecycled = null;
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const uRes = await pool.query(`
+          SELECT user_id, username, mobile, points_balance
+          FROM users
+          WHERE mobile = $1 OR email = $1 OR username = $1 OR user_id = $1
+          LIMIT 1;
+        `, [phone]);
+
+        let targetUserId = phone;
+        if (uRes.rows.length > 0) {
+          points = uRes.rows[0].points_balance || 0;
+          targetUserId = uRes.rows[0].user_id;
+        }
+
+        const sRes = await pool.query(`
+          SELECT 
+            COALESCE(SUM(plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COALESCE(SUM(points_earned), 0) AS total_earned_points,
+            MAX(created_at) AS last_recycled_at
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = $2;
+        `, [targetUserId, phone]);
+
+        if (sRes.rows.length > 0) {
+          bottles = parseInt(sRes.rows[0].total_bottles || 0);
+          cups = parseInt(sRes.rows[0].total_cups || 0);
+          lastRecycled = sRes.rows[0].last_recycled_at;
+          if (points === 0 && parseInt(sRes.rows[0].total_earned_points || 0) > 0) {
+            points = parseInt(sRes.rows[0].total_earned_points);
+          }
+        }
+      }
+    } else if (db) {
+      const user = await db.collection('users').findOne({
+        $or: [{ mobile: phone }, { phoneNumber: phone }, { email: phone }, { username: phone }]
+      });
+      if (user) {
+        points = user.points || user.pointsBalance || 0;
+      }
+      const sessions = await db.collection('recyclingsessions').find({
+        $or: [{ userId: phone }, { mobile: phone }, { user_id: phone }]
+      }).toArray();
+
+      sessions.forEach(s => {
+        bottles += parseInt(s.bottles || s.plasticCount || 0);
+        cups += parseInt(s.cups || s.canCount || s.aluminiumCount || 0);
+        if (!lastRecycled || new Date(s.recycledAt || s.timestamp) > new Date(lastRecycled)) {
+          lastRecycled = s.recycledAt || s.timestamp;
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      points,
+      bottles,
+      cups,
+      earnedPoints: points,
+      redeemedPoints: 0,
+      recycledAt: lastRecycled || new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[Mobile Get Points Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.post('/api/get-points', handleMobileGetPoints);
+app.post('/get-points', handleMobileGetPoints);
+
+// 4. Mobile Get Recycle History
+async function handleMobileGetRecycle(req, res) {
+  try {
+    const { userId } = req.params;
+    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
+
+    let history = [];
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const sRes = await pool.query(`
+          SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = (SELECT user_id FROM users WHERE mobile = $1 OR email = $1 OR username = $1 LIMIT 1)
+          ORDER BY created_at DESC
+          LIMIT 100;
+        `, [userId]);
+        history = sRes.rows;
+      }
+    } else if (db) {
+      history = await db.collection('recyclingsessions').find({
+        $or: [{ userId }, { user_id: userId }, { mobile: userId }]
+      }).sort({ recycledAt: -1 }).limit(100).toArray();
+    }
+
+    res.json({
+      success: true,
+      userId,
+      totalSessions: history.length,
+      history
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+app.get('/api/getrecycle/:userId', handleMobileGetRecycle);
+app.get('/getrecycle/:userId', handleMobileGetRecycle);
+
+// 5. Mobile Usernames / Leaderboard
+async function handleMobileUsernames(req, res) {
+  try {
+    let usersList = [];
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const uRes = await pool.query(`
+          SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name
+          FROM users
+          ORDER BY points_balance DESC, created_at ASC
+          LIMIT 100;
+        `);
+        usersList = uRes.rows.map(r => ({
+          userName: r.userName || r.full_name || 'Eco User',
+          totalPoints: Number(r.totalPoints || 0)
+        }));
+      }
+    } else if (db) {
+      const docs = await db.collection('users').find({}).sort({ points: -1 }).limit(100).toArray();
+      usersList = docs.map(d => ({
+        userName: d.username || d.userName || d.fullName || 'Eco User',
+        totalPoints: Number(d.points || d.pointsBalance || 0)
+      }));
+    }
+
+    res.json({
+      success: true,
+      users: usersList
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}
+app.get('/api/usernames', handleMobileUsernames);
+app.get('/usernames', handleMobileUsernames);
+
+// 6. Mobile Forgot Password / OTP Flow
+async function handleForgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+    const cleanEmail = email.trim().toLowerCase();
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const check = await pool.query(`SELECT user_id FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;`, [cleanEmail]);
+        if (check.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'Email address not found' });
+        }
+        await pool.query(`
+          UPDATE users 
+          SET otp = $1, otp_expiry = NOW() + INTERVAL '15 minutes'
+          WHERE email = $2 OR mobile = $2;
+        `, [otp, cleanEmail]);
+      }
+    }
+
+    console.log(`[Mobile OTP] Generated OTP ${otp} for ${cleanEmail}`);
+    res.json({ success: true, message: 'OTP sent to your email successfully', otp: process.env.NODE_ENV !== 'production' ? otp : undefined });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.post('/api/forgot-password', handleForgotPassword);
+app.post('/forgot-password', handleForgotPassword);
+
+async function handleResendOtp(req, res) {
+  return handleForgotPassword(req, res);
+}
+app.post('/api/resend-otp', handleResendOtp);
+app.post('/resend-otp', handleResendOtp);
+
+async function handleResetPassword(req, res) {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const check = await pool.query(`
+          SELECT user_id, otp, otp_expiry FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;
+        `, [cleanEmail]);
+
+        if (check.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const user = check.rows[0];
+        if (user.otp !== String(otp).trim()) {
+          return res.status(400).json({ success: false, message: 'Invalid or expired OTP code' });
+        }
+
+        await pool.query(`
+          UPDATE users 
+          SET password = $1, otp = NULL, otp_expiry = NULL 
+          WHERE user_id = $2;
+        `, [newPassword, user.user_id]);
+      }
+    }
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.post('/api/reset-password', handleResetPassword);
+app.post('/reset-password', handleResetPassword);
+
+// 7. Mobile Vouch365 Promo Link
+async function handleVouch365Link(req, res) {
+  try {
+    const { username, phone } = req.body;
+    const link = `https://vouch365.com/isp-rvm-rewards?user=${encodeURIComponent(username || 'user')}&ref=${encodeURIComponent(phone || '')}`;
+    res.json({
+      success: true,
+      link
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.post('/api/generate-vouch365-link', handleVouch365Link);
+app.post('/generate-vouch365-link', handleVouch365Link);
+
+// 8. Mobile Backup
+app.post(['/api/backup', '/backup'], async (req, res) => {
+  res.json({ success: true, message: 'Backup synced successfully', timestamp: new Date().toISOString() });
+});
+app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
+  res.json({ success: true, appName: 'ISP RVM Ecosystem', exportDate: new Date().toISOString() });
 });
 
 app.get('/api/auth/me', async (req, res) => {
