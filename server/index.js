@@ -251,6 +251,10 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'male';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp VARCHAR(10);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NOW();
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ DEFAULT NOW();
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS device_info VARCHAR(255);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
       CREATE INDEX IF NOT EXISTS idx_users_mobile ON users (mobile);
@@ -2873,6 +2877,18 @@ async function handleMobileLogin(req, res) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
 
+    // Update online & last_login status in PostgreSQL
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          UPDATE users 
+          SET is_online = TRUE, last_login = NOW(), last_active = NOW()
+          WHERE user_id = $1;
+        `, [user.user_id]);
+      }
+    }
+
     let bottles = 0;
     let cups = 0;
     let points = user.points_balance || user.pointsBalance || user.points || 0;
@@ -3275,6 +3291,130 @@ app.post(['/api/backup', '/backup'], async (req, res) => {
 });
 app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
   res.json({ success: true, appName: 'ISP RVM Ecosystem', exportDate: new Date().toISOString() });
+});
+
+// 9. Mobile Users & Active Logins for Dashboard
+app.get('/api/analytics/mobile-users', async (req, res) => {
+  try {
+    let usersList = [];
+    let stats = {
+      totalUsers: 0,
+      onlineNow: 0,
+      totalPoints: 0,
+      totalBottles: 0,
+      totalCups: 0
+    };
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const uRes = await pool.query(`
+          SELECT 
+            u.user_id,
+            u.username,
+            u.full_name,
+            u.email,
+            u.mobile,
+            u.age,
+            u.nic,
+            u.gender,
+            COALESCE(u.points_balance, 0) AS points_balance,
+            COALESCE(u.is_online, FALSE) AS is_online,
+            u.last_login,
+            u.last_active,
+            u.created_at,
+            COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COUNT(s.session_id) AS total_sessions
+          FROM users u
+          LEFT JOIN recycling_sessions s 
+            ON s.user_id = u.user_id OR s.user_id = u.mobile OR s.user_id = u.username
+          GROUP BY u.user_id
+          ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
+        `);
+
+        usersList = uRes.rows.map(u => {
+          const isRecentlyActive = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 15 * 60 * 1000);
+          const isOnline = Boolean(u.is_online || isRecentlyActive);
+          return {
+            id: u.user_id,
+            username: u.username,
+            fullName: u.full_name || u.username,
+            email: u.email,
+            mobile: u.mobile || '-',
+            age: u.age || 20,
+            nic: u.nic || '-',
+            gender: u.gender || 'male',
+            points: parseInt(u.points_balance || 0),
+            bottles: parseInt(u.total_bottles || 0),
+            cups: parseInt(u.total_cups || 0),
+            sessions: parseInt(u.total_sessions || 0),
+            isOnline,
+            lastLogin: u.last_login || u.created_at,
+            lastActive: u.last_active || u.last_login || u.created_at,
+            createdAt: u.created_at
+          };
+        });
+
+        stats.totalUsers = usersList.length;
+        stats.onlineNow = usersList.filter(u => u.isOnline).length;
+        stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
+        stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
+        stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
+      }
+    } else if (db) {
+      const users = await db.collection('users').find({}).toArray();
+      usersList = users.map(u => ({
+        id: u._id,
+        username: u.username || u.name,
+        fullName: u.fullName || u.username,
+        email: u.email,
+        mobile: u.mobile || u.phoneNumber || '-',
+        points: u.points || 0,
+        bottles: 0,
+        cups: 0,
+        sessions: 0,
+        isOnline: Boolean(u.isOnline),
+        lastLogin: u.lastLogin || u.createdAt,
+        lastActive: u.lastActive || u.createdAt,
+        createdAt: u.createdAt
+      }));
+      stats.totalUsers = usersList.length;
+      stats.onlineNow = usersList.filter(u => u.isOnline).length;
+    }
+
+    res.json({
+      success: true,
+      stats,
+      users: usersList
+    });
+  } catch (err) {
+    console.error('[Get Mobile Users Error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Mobile App Heartbeat / Active Ping
+app.post(['/api/mobile/heartbeat', '/mobile/heartbeat'], async (req, res) => {
+  try {
+    const { userId, mobile } = req.body;
+    const id = (userId || mobile || '').trim();
+    if (!id) return res.status(400).json({ error: 'userId required' });
+
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          UPDATE users 
+          SET is_online = TRUE, last_active = NOW()
+          WHERE user_id = $1 OR mobile = $1 OR username = $1;
+        `, [id]);
+      }
+    }
+    res.json({ success: true, timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/auth/me', async (req, res) => {

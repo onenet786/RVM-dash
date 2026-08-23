@@ -14,6 +14,7 @@ import {
   ToastAndroid 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import RewardImage from '../assets/images/reward.png';
@@ -43,6 +44,32 @@ const DashboardScreen = ({ route }) => {
       }
     };
     fetchLastBackup();
+  }, []);
+
+  // Real-time Heartbeat for Dashboard Live Status
+  useEffect(() => {
+    let heartbeatInterval = null;
+    const sendHeartbeat = async () => {
+      try {
+        const userStr = await AsyncStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (u?.id || u?.mobile || u?.username) {
+            axios.post(`${API_BASE_URL}/mobile/heartbeat`, {
+              userId: u.id,
+              mobile: u.mobile,
+              username: u.username
+            }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+    };
+
+    sendHeartbeat();
+    heartbeatInterval = setInterval(sendHeartbeat, 30000); // Ping every 30s
+    return () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
   }, []);
 
   const handleBackup = async () => {

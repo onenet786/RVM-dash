@@ -11,6 +11,7 @@ import DbBackupTab from './components/DbBackupTab';
 import DbSwitcherTab from './components/DbSwitcherTab';
 import SecurityTab from './components/SecurityTab';
 import EnvironmentalImpactTab from './components/EnvironmentalImpactTab';
+import MobileUsersTab from './components/MobileUsersTab';
 import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
 
@@ -84,6 +85,10 @@ export default function App() {
 
     if (activeTab === 'overview') {
       return <OverviewTab currentUser={currentUser} />;
+    }
+
+    if (activeTab === 'mobile_users' || activeTab === 'col_users') {
+      return <MobileUsersTab />;
     }
 
     if (activeTab === 'esg_impact') {
