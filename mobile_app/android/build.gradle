@@ -18,8 +18,6 @@ buildscript {
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
-
 allprojects {
     repositories {
         maven {
@@ -37,3 +35,16 @@ allprojects {
         maven { url 'https://www.jitpack.io' }
     }
 }
+
+subprojects { subproject ->
+    subproject.afterEvaluate {
+        if (subproject.hasProperty("android")) {
+            subproject.android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+                buildToolsVersion rootProject.ext.buildToolsVersion
+            }
+        }
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
