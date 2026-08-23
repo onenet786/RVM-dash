@@ -2899,8 +2899,14 @@ async function handleMobileLogin(req, res) {
 
     let bottles = 0;
     let cups = 0;
+    let glass = 0;
+    let paper = 0;
+    let totalWeightKg = 0;
+    let totalCo2Kg = 0;
+    let totalSessions = 0;
     let points = user.points_balance || user.pointsBalance || user.points || 0;
     let latestRecycle = null;
+    let recentSessions = [];
 
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
@@ -2909,20 +2915,59 @@ async function handleMobileLogin(req, res) {
           SELECT 
             COALESCE(SUM(plastic_count), 0) AS total_bottles,
             COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COALESCE(SUM(glass_count), 0) AS total_glass,
+            COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
+            COALESCE(SUM(total_weight_kg), 0) AS total_weight,
+            COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
             COALESCE(SUM(points_earned), 0) AS total_earned_points,
+            COUNT(session_id) AS session_count,
             MAX(created_at) AS last_recycled_at
           FROM recycling_sessions
           WHERE user_id = $1 OR user_id = $2 OR user_id = $3;
         `, [user.user_id, user.mobile || identifier, user.username]);
+
         if (statsRes.rows.length > 0) {
           bottles = parseInt(statsRes.rows[0].total_bottles || 0);
           cups = parseInt(statsRes.rows[0].total_cups || 0);
+          glass = parseInt(statsRes.rows[0].total_glass || 0);
+          paper = parseInt(statsRes.rows[0].total_paper || 0);
+          totalWeightKg = parseFloat(statsRes.rows[0].total_weight || 0);
+          totalCo2Kg = parseFloat(statsRes.rows[0].total_co2 || 0);
+          totalSessions = parseInt(statsRes.rows[0].session_count || 0);
           latestRecycle = statsRes.rows[0].last_recycled_at;
           if (points === 0) {
             points = parseInt(statsRes.rows[0].total_earned_points || 0);
           }
         }
+
+        const recentRes = await pool.query(`
+          SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = $2 OR user_id = $3
+          ORDER BY created_at DESC
+          LIMIT 10;
+        `, [user.user_id, user.mobile || identifier, user.username]);
+        recentSessions = recentRes.rows || [];
       }
+    } else if (db) {
+      const sessions = await db.collection('recyclingsessions').find({
+        $or: [{ userId: user.user_id }, { mobile: user.mobile || identifier }, { username: user.username }]
+      }).sort({ recycledAt: -1 }).limit(20).toArray();
+
+      sessions.forEach(s => {
+        bottles += parseInt(s.bottles || s.plasticCount || 0);
+        cups += parseInt(s.cups || s.canCount || s.aluminiumCount || 0);
+        glass += parseInt(s.glassCount || s.glass || 0);
+        paper += parseInt(s.paperCount || s.paper || 0);
+        totalWeightKg += parseFloat(s.totalWeightKg || s.weight || 0);
+        totalCo2Kg += parseFloat(s.co2AvoidedKg || s.co2 || 0);
+        if (!latestRecycle || new Date(s.recycledAt || s.timestamp) > new Date(latestRecycle)) {
+          latestRecycle = s.recycledAt || s.timestamp;
+        }
+      });
+      totalSessions = sessions.length;
+      recentSessions = sessions.slice(0, 10);
     }
 
     let token = '';
@@ -2936,6 +2981,8 @@ async function handleMobileLogin(req, res) {
       console.warn('[JWT Sign Warning]', tokenErr.message);
       token = `token_${user.user_id || user.username}_${Date.now()}`;
     }
+
+    const totalRecovered = bottles + cups + glass + paper;
 
     res.json({
       success: true,
@@ -2954,8 +3001,25 @@ async function handleMobileLogin(req, res) {
       },
       recycleDetails: {
         points,
+        earnedPoints: points,
+        redeemedPoints: 0,
         bottles,
+        plasticCount: bottles,
         cups,
+        aluminiumCount: cups,
+        glassCount: glass,
+        paperCount: paper,
+        totalItems: totalRecovered,
+        totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
+        co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
+        totalSessions,
+        variants: {
+          petPlastic: bottles,
+          aluminiumCans: cups,
+          glassBottles: glass,
+          paperCartons: paper
+        },
+        recentSessions,
         recycledAt: latestRecycle || new Date().toISOString()
       }
     });
@@ -3054,7 +3118,13 @@ async function handleMobileGetPoints(req, res) {
     let points = 0;
     let bottles = 0;
     let cups = 0;
+    let glass = 0;
+    let paper = 0;
+    let totalWeightKg = 0;
+    let totalCo2Kg = 0;
+    let totalSessions = 0;
     let lastRecycled = null;
+    let recentSessions = [];
 
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
@@ -3076,7 +3146,12 @@ async function handleMobileGetPoints(req, res) {
           SELECT 
             COALESCE(SUM(plastic_count), 0) AS total_bottles,
             COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COALESCE(SUM(glass_count), 0) AS total_glass,
+            COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
+            COALESCE(SUM(total_weight_kg), 0) AS total_weight,
+            COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
             COALESCE(SUM(points_earned), 0) AS total_earned_points,
+            COUNT(session_id) AS session_count,
             MAX(created_at) AS last_recycled_at
           FROM recycling_sessions
           WHERE user_id = $1 OR user_id = $2;
@@ -3085,11 +3160,26 @@ async function handleMobileGetPoints(req, res) {
         if (sRes.rows.length > 0) {
           bottles = parseInt(sRes.rows[0].total_bottles || 0);
           cups = parseInt(sRes.rows[0].total_cups || 0);
+          glass = parseInt(sRes.rows[0].total_glass || 0);
+          paper = parseInt(sRes.rows[0].total_paper || 0);
+          totalWeightKg = parseFloat(sRes.rows[0].total_weight || 0);
+          totalCo2Kg = parseFloat(sRes.rows[0].total_co2 || 0);
+          totalSessions = parseInt(sRes.rows[0].session_count || 0);
           lastRecycled = sRes.rows[0].last_recycled_at;
           if (points === 0 && parseInt(sRes.rows[0].total_earned_points || 0) > 0) {
             points = parseInt(sRes.rows[0].total_earned_points);
           }
         }
+
+        const recentRes = await pool.query(`
+          SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = $2
+          ORDER BY created_at DESC
+          LIMIT 10;
+        `, [targetUserId, phone]);
+        recentSessions = recentRes.rows || [];
       }
     } else if (db) {
       const user = await db.collection('users').findOne({
@@ -3100,24 +3190,47 @@ async function handleMobileGetPoints(req, res) {
       }
       const sessions = await db.collection('recyclingsessions').find({
         $or: [{ userId: phone }, { mobile: phone }, { user_id: phone }]
-      }).toArray();
+      }).sort({ recycledAt: -1 }).limit(20).toArray();
 
       sessions.forEach(s => {
         bottles += parseInt(s.bottles || s.plasticCount || 0);
         cups += parseInt(s.cups || s.canCount || s.aluminiumCount || 0);
+        glass += parseInt(s.glassCount || s.glass || 0);
+        paper += parseInt(s.paperCount || s.paper || 0);
+        totalWeightKg += parseFloat(s.totalWeightKg || s.weight || 0);
+        totalCo2Kg += parseFloat(s.co2AvoidedKg || s.co2 || 0);
         if (!lastRecycled || new Date(s.recycledAt || s.timestamp) > new Date(lastRecycled)) {
           lastRecycled = s.recycledAt || s.timestamp;
         }
       });
+      totalSessions = sessions.length;
+      recentSessions = sessions.slice(0, 10);
     }
+
+    const totalRecovered = bottles + cups + glass + paper;
 
     res.json({
       success: true,
       points,
-      bottles,
-      cups,
       earnedPoints: points,
       redeemedPoints: 0,
+      bottles,
+      plasticCount: bottles,
+      cups,
+      aluminiumCount: cups,
+      glassCount: glass,
+      paperCount: paper,
+      totalItems: totalRecovered,
+      totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
+      co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
+      totalSessions,
+      variants: {
+        petPlastic: bottles,
+        aluminiumCans: cups,
+        glassBottles: glass,
+        paperCartons: paper
+      },
+      recentSessions,
       recycledAt: lastRecycled || new Date().toISOString()
     });
   } catch (err) {

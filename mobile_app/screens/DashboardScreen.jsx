@@ -30,6 +30,7 @@ const DashboardScreen = ({ route }) => {
   const [rewardPoints, setRewardPoints] = useState(1000);
   const [lastBackup, setLastBackup] = useState(null);
   const [backupLoading, setBackupLoading] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState('all');
   
   const navigation = useNavigation();
   const rotateValue = useRef(new Animated.Value(0)).current;
@@ -66,7 +67,7 @@ const DashboardScreen = ({ route }) => {
     };
 
     sendHeartbeat();
-    heartbeatInterval = setInterval(sendHeartbeat, 30000); // Ping every 30s
+    heartbeatInterval = setInterval(sendHeartbeat, 30000);
     return () => {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     };
@@ -154,7 +155,6 @@ const DashboardScreen = ({ route }) => {
     }
   };
 
-  // Helper function to get data from AsyncStorage
   const getData = async (key) => {
     try {
       const jsonValue = await AsyncStorage.getItem(key);
@@ -165,7 +165,6 @@ const DashboardScreen = ({ route }) => {
     }
   };
 
-  // Helper function to store data in AsyncStorage
   const storeData = async (key, value) => {
     try {
       const jsonValue = JSON.stringify(value);
@@ -178,20 +177,15 @@ const DashboardScreen = ({ route }) => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        // First check if we have new data from route params
         const { user, hasRecycleHistory } = route.params || {};
         
         if (user || hasRecycleHistory) {
-          // Store the new data
           if (user) await storeData('user', user);
-          console.log("the recycle history is ", hasRecycleHistory);
           if (hasRecycleHistory) await storeData('recycleHistory', hasRecycleHistory);
           
-          // Update local state
           setLocalUser(user || null);
           setLocalHistory(hasRecycleHistory || null);
         } else {
-          // No new data, load from AsyncStorage
           const [userData, historyData, isLogged] = await Promise.all([
             getData('user'),
             getData('recycleHistory'),
@@ -221,7 +215,6 @@ const DashboardScreen = ({ route }) => {
     loadUserData();
   }, [route.params, navigation]);
 
-  // Update reward points when localHistory changes
   useEffect(() => {
     if (localHistory && localHistory.points) {
       if (localHistory.points >= rewardPoints) {
@@ -244,20 +237,20 @@ const DashboardScreen = ({ route }) => {
     outputRange: ["0deg", "360deg"],
   });
 
-  // Pull the current totals from the backend. `points` is the spendable
-  // balance (what has been earned minus anything already claimed at the
-  // counter), which is the same figure the admin dashboard shows.
   const fetchPoints = useCallback(async ({ silent } = {}) => {
     const user = await getData('user');
-    if (!user?.mobile) {
-      if (!silent) ToastAndroid.show("No phone number found!", ToastAndroid.SHORT);
+    if (!user?.mobile && !user?.username && !user?.id) {
+      if (!silent) ToastAndroid.show("No user details found!", ToastAndroid.SHORT);
       return false;
     }
 
     const response = await fetch(`${API_BASE_URL}/get-points`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phoneNumber: user.mobile }),
+      body: JSON.stringify({ 
+        phoneNumber: user.mobile || user.username || user.id,
+        userId: user.id
+      }),
     });
 
     const data = await response.json();
@@ -286,9 +279,6 @@ const DashboardScreen = ({ route }) => {
     }
   }, [fetchPoints, startRotateAnimation]);
 
-  // The cached totals go stale as soon as an admin redeems points or the user
-  // visits a machine, so re-sync every time the screen comes into view. The
-  // cache still renders immediately; this just corrects it in the background.
   useEffect(() => {
     const sync = () => { fetchPoints({ silent: true }).catch(() => {}); };
     sync();
@@ -309,10 +299,7 @@ const DashboardScreen = ({ route }) => {
           text: 'Yes',
           onPress: async () => {
             try {
-              // Clear auth-related data
               await AsyncStorage.multiRemove(['isLoggedIn', 'user', 'recycleHistory']);
-              
-              // Reset navigation stack
               navigation.dispatch(
                 CommonActions.reset({
                   index: 0,
@@ -334,16 +321,34 @@ const DashboardScreen = ({ route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+          <Text style={{ color: '#0EA5E9', fontWeight: 'bold' }}>Loading Dashboard...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
+  // Calculated recovery and variant stats
+  const plasticCount = parseInt(localHistory?.plasticCount || localHistory?.bottles || 0);
+  const aluminiumCount = parseInt(localHistory?.aluminiumCount || localHistory?.cups || 0);
+  const glassCount = parseInt(localHistory?.glassCount || 0);
+  const paperCount = parseInt(localHistory?.paperCount || 0);
+  const totalItemsCount = parseInt(localHistory?.totalItems || (plasticCount + aluminiumCount + glassCount + paperCount) || 0);
+  
+  const totalWeightKg = localHistory?.totalWeightKg !== undefined
+    ? localHistory.totalWeightKg 
+    : (plasticCount * 0.025 + aluminiumCount * 0.015 + glassCount * 0.2 + paperCount * 0.03).toFixed(2);
+    
+  const co2AvoidedKg = localHistory?.co2AvoidedKg !== undefined
+    ? localHistory.co2AvoidedKg 
+    : (plasticCount * 0.08 + aluminiumCount * 0.15 + glassCount * 0.12 + paperCount * 0.05).toFixed(2);
+
+  const recentSessions = localHistory?.recentSessions || [];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Statistics Card */}
+        
+        {/* Main Header / Statistics Card */}
         <View style={styles.card}>
           <TouchableOpacity 
             style={styles.logoutButton}
@@ -351,112 +356,241 @@ const DashboardScreen = ({ route }) => {
           >
             <MaterialCommunityIcons 
               name="logout" 
-              size={24} 
-              color="red" 
+              size={22} 
+              color="#EF4444" 
             />
           </TouchableOpacity>
           
-          <Text style={styles.cardTitle}>Statistics</Text>
+          <Text style={styles.cardTitle}>Eco Dashboard</Text>
           
           {/* User Information Section */}
           <View style={styles.userInfoContainer}>
             <View style={styles.userNameContainer}>
+              <MaterialCommunityIcons name="account-circle" size={24} color="#0284C7" style={{ marginRight: 6 }} />
               <Text style={styles.userName}>
                 {localUser?.username || "Welcome User"}
               </Text>
             </View>
 
             <View style={styles.refreshButton}>
-              <Text style={styles.userPoints}>
-                Points: {localHistory?.points || 0} / {rewardPoints}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="star-circle" size={20} color="#EAB308" style={{ marginRight: 6 }} />
+                <Text style={styles.userPoints}>
+                  Points: {localHistory?.points || 0} / {rewardPoints}
+                </Text>
+              </View>
               <TouchableOpacity 
                 onPress={handleRefresh}
                 accessibilityLabel="Refresh points"
-                accessibilityHint="Updates your current points balance"
                 disabled={refreshing}
+                style={{ padding: 4 }}
               >
                 <Animated.View style={{ transform: [{ rotate }] }}>
                   <MaterialCommunityIcons 
                     name="refresh" 
-                    size={20} 
-                    color={refreshing ? "rgba(150, 150, 150, 1)" : "rgba(65, 68, 65, 1)"} 
+                    size={22} 
+                    color={refreshing ? "#94A3B8" : "#0284C7"} 
                   />
                 </Animated.View>
               </TouchableOpacity>
             </View>
           </View>
-          
-          <View style={styles.statisticsContainer}>
-            <View style={styles.statisticsLeft}>
-              {localHistory ? (
-                <>
-                  <Text style={styles.recoveredText}>Recovered Items</Text>
-                  
-                  {/* Bottles */}
-                  <View style={styles.statisticRow}>
-                    <Image
-                      source={require('../assets/images/bottle.png')}
-                      style={styles.bottleIcon}
-                    />
-                    <Text style={styles.statisticLabel}>PET Bottles: {localHistory.bottles || 0}</Text>
-                  </View>
-                  
-                  {/* Cups */}
-                  <View style={styles.statisticRow}>
-                    <Image
-                      source={require('../assets/images/dustbin.png')}
-                      style={styles.bottleIcon}
-                    />
-                    <Text style={styles.statisticLabel}>Cups: {localHistory.cups || 0}</Text>
-                  </View>
-                  
-                  <Text style={styles.recoveredSubtext}>
-                    Last recycled on: {localHistory.recycledAt ?
-                    new Date(localHistory.recycledAt).toLocaleDateString() : 'Never'}
-                  </Text>
 
-                  {/* Points shown above are the spendable balance. When some
-                      have already been claimed at the counter, show the split
-                      so the drop in the total is not a mystery. */}
-                  {localHistory.redeemedPoints > 0 && (
-                    <Text style={styles.recoveredSubtext}>
-                      Earned {localHistory.earnedPoints || 0} · claimed {localHistory.redeemedPoints}
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>No recycling history yet</Text>
-                  <Text style={styles.emptyStateSubtext}>Try our RVM and unlock new prizes!</Text>
-                </View>
-              )}
+          {/* Quick Eco-Impact Metrics */}
+          <View style={styles.impactMetricsGrid}>
+            <View style={styles.impactMetricItem}>
+              <MaterialCommunityIcons name="recycle" size={22} color="#10B981" />
+              <Text style={styles.impactValue}>{totalItemsCount}</Text>
+              <Text style={styles.impactLabel}>Items Recycled</Text>
             </View>
-            
-            <View style={styles.statisticsRight}>
-              {localHistory ? (
-                <Image source={StatsImage} style={styles.statsImage1} />
-              ) : (
-                <Image 
-                  source={require('../assets/images/recycle.png')}
-                  style={styles.statsImage1}
-                />
-              )}
+            <View style={styles.impactMetricItem}>
+              <MaterialCommunityIcons name="scale" size={22} color="#0EA5E9" />
+              <Text style={styles.impactValue}>{totalWeightKg} kg</Text>
+              <Text style={styles.impactLabel}>Diverted Weight</Text>
+            </View>
+            <View style={styles.impactMetricItem}>
+              <MaterialCommunityIcons name="leaf" size={22} color="#16A34A" />
+              <Text style={styles.impactValue}>{co2AvoidedKg} kg</Text>
+              <Text style={styles.impactLabel}>CO₂ Avoided</Text>
             </View>
           </View>
         </View>
+
+        {/* Recovered Items & Material Variants Section */}
+        <View style={styles.variantsCard}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="shape-outline" size={22} color="#0EA5E9" style={{ marginRight: 6 }} />
+              <Text style={styles.sectionTitle}>Recovered Items & Variants</Text>
+            </View>
+            <View style={styles.totalBadge}>
+              <Text style={styles.totalBadgeText}>{totalItemsCount} Total</Text>
+            </View>
+          </View>
+
+          <Text style={styles.variantsSubtitle}>
+            Detailed breakdown of all recyclable material variants deposited into RVMs:
+          </Text>
+
+          {/* 4 Variant Types Grid */}
+          <View style={styles.variantGrid}>
+            
+            {/* 1. PET Plastic Bottles */}
+            <View style={[styles.variantCard, styles.petCard]}>
+              <View style={styles.variantTopRow}>
+                <View style={[styles.variantIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <MaterialCommunityIcons name="bottle-soda-classic" size={24} color="#0284C7" />
+                </View>
+                <Text style={styles.variantCountNumber}>{plasticCount}</Text>
+              </View>
+              <Text style={styles.variantTitle}>PET Bottles</Text>
+              <Text style={styles.variantSpecs}>Clear & Colored Plastic</Text>
+              
+              <View style={styles.variantSubtagsContainer}>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>250ml - 500ml</Text>
+                </View>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>1.0L - 1.5L</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 2. Aluminium Cans */}
+            <View style={[styles.variantCard, styles.canCard]}>
+              <View style={styles.variantTopRow}>
+                <View style={[styles.variantIconCircle, { backgroundColor: '#CCFBF1' }]}>
+                  <MaterialCommunityIcons name="cup-water" size={24} color="#0D9488" />
+                </View>
+                <Text style={styles.variantCountNumber}>{aluminiumCount}</Text>
+              </View>
+              <Text style={styles.variantTitle}>Aluminium Cans</Text>
+              <Text style={styles.variantSpecs}>Soda & Beverage Cans</Text>
+              
+              <View style={styles.variantSubtagsContainer}>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>250ml Sleek</Text>
+                </View>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>330ml Std</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 3. Glass Containers */}
+            <View style={[styles.variantCard, styles.glassCard]}>
+              <View style={styles.variantTopRow}>
+                <View style={[styles.variantIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <MaterialCommunityIcons name="glass-wine" size={24} color="#D97706" />
+                </View>
+                <Text style={styles.variantCountNumber}>{glassCount}</Text>
+              </View>
+              <Text style={styles.variantTitle}>Glass Bottles</Text>
+              <Text style={styles.variantSpecs}>Beverages & Glass Jars</Text>
+              
+              <View style={styles.variantSubtagsContainer}>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>Returnable</Text>
+                </View>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>Recyclable</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 4. Cartons & Paper */}
+            <View style={[styles.variantCard, styles.paperCard]}>
+              <View style={styles.variantTopRow}>
+                <View style={[styles.variantIconCircle, { backgroundColor: '#EEF2FF' }]}>
+                  <MaterialCommunityIcons name="package-variant-closed" size={24} color="#4F46E5" />
+                </View>
+                <Text style={styles.variantCountNumber}>{paperCount}</Text>
+              </View>
+              <Text style={styles.variantTitle}>Tetra & Cartons</Text>
+              <Text style={styles.variantSpecs}>Milk & Juice Cartons</Text>
+              
+              <View style={styles.variantSubtagsContainer}>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>Tetra Pak</Text>
+                </View>
+                <View style={styles.variantTag}>
+                  <Text style={styles.variantTagText}>Paper Board</Text>
+                </View>
+              </View>
+            </View>
+
+          </View>
+
+          {/* Last Recycling Timestamp & Point details */}
+          <View style={styles.sessionMetaCard}>
+            <MaterialCommunityIcons name="clock-check-outline" size={18} color="#64748B" style={{ marginRight: 6 }} />
+            <Text style={styles.sessionMetaText}>
+              Last recycled on: {localHistory?.recycledAt ? new Date(localHistory.recycledAt).toLocaleString() : 'Never'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Recent Recycling Activity Log */}
+        {recentSessions.length > 0 && (
+          <View style={styles.activityCard}>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="history" size={22} color="#0284C7" style={{ marginRight: 6 }} />
+                <Text style={styles.sectionTitle}>Recent Recovery Activity</Text>
+              </View>
+            </View>
+
+            {recentSessions.map((session, idx) => {
+              const pCount = parseInt(session.plastic_count || session.bottles || 0);
+              const aCount = parseInt(session.aluminium_count || session.cups || 0);
+              const gCount = parseInt(session.glass_count || 0);
+              const cardCount = parseInt(session.paper_cardboard_count || 0);
+              const points = session.points_earned || session.points || (pCount * 10 + aCount * 15);
+              const machine = session.machine_id || session.machineId || 'RVM Station';
+              const dateStr = session.created_at || session.recycledAt || session.timestamp;
+
+              return (
+                <View key={session.session_id || idx} style={styles.activityItem}>
+                  <View style={styles.activityIconCircle}>
+                    <MaterialCommunityIcons 
+                      name={pCount > 0 ? "bottle-soda-classic" : aCount > 0 ? "cup-water" : "recycle"} 
+                      size={20} 
+                      color="#0284C7" 
+                    />
+                  </View>
+                  <View style={styles.activityDetails}>
+                    <Text style={styles.activityTitle}>
+                      {pCount > 0 && `${pCount}x PET `}
+                      {aCount > 0 && `${aCount}x Can `}
+                      {gCount > 0 && `${gCount}x Glass `}
+                      {cardCount > 0 && `${cardCount}x Carton `}
+                      {session.item_variant ? `(${session.item_variant})` : ''}
+                    </Text>
+                    <Text style={styles.activitySubtext}>
+                      {machine} • {dateStr ? new Date(dateStr).toLocaleDateString() : 'Recent'}
+                    </Text>
+                  </View>
+                  <View style={styles.activityPointsBadge}>
+                    <Text style={styles.activityPointsText}>+{points} pts</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Get Rewards Card */}
         <TouchableOpacity 
           style={[styles.card, styles.getRewardsCard]}
           onPress={() => navigation.navigate('QrCode')}
+          activeOpacity={0.8}
         >
           <Text style={styles.cardTitle}>Get Rewards</Text>
           <View style={styles.rewardsContainer}>
             <View style={styles.rewardsLeft}>
-              <Text style={styles.rewardsText}>Please Recycle Through our</Text>
-              <Text style={styles.rewardsText}>RVM and claim your</Text>
-              <Text style={styles.rewardsText}>Reward</Text>
+              <Text style={styles.rewardsText}>Deposit your bottles & cans</Text>
+              <Text style={styles.rewardsText}>in our smart RVM machines</Text>
+              <Text style={styles.rewardsText}>to earn points instantly!</Text>
             </View>
             <View style={styles.rewardsRight}>
               <Image source={RewardImage} style={styles.rewardImage} />
@@ -468,13 +602,16 @@ const DashboardScreen = ({ route }) => {
         <TouchableOpacity 
           style={[styles.card, styles.spendRewardsCard]}
           onPress={() => navigation.navigate('Promotions')}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Text style={styles.cardTitle}>Spend Rewards</Text>
+          <Text style={[styles.cardTitle, { color: '#059669' }]}>Spend Rewards</Text>
           <View style={styles.spendContainer}>
             <View style={styles.spendLeft}>
-              <Text style={styles.availableCoins}>Available Coins</Text>
+              <Text style={styles.availableCoins}>Available Points Balance</Text>
               <Text style={styles.coinsCount}>{localHistory?.points || 0}</Text>
+              <Text style={{ fontSize: 12, color: '#10B981', marginTop: 4 }}>
+                Redeem for vouchers & discounts
+              </Text>
             </View>
             <View style={styles.spendRight}>
               <Image source={SpendImage} style={styles.spendImage} />
@@ -484,10 +621,11 @@ const DashboardScreen = ({ route }) => {
 
         {/* Scrap Bazar Card */}
         <View style={[styles.card, styles.scrapBazarCard]}>
-          <Text style={styles.cardTitle}>Scrap Bazar</Text>
+          <Text style={[styles.cardTitle, { color: '#D97706' }]}>Scrap Bazar</Text>
           <View style={styles.scrapContainer}>
             <View style={styles.scrapLeft}>
-              <Text style={styles.availableCoins}>Coming soon</Text>
+              <Text style={styles.availableCoins}>Direct Material Trade</Text>
+              <Text style={{ fontSize: 13, color: '#92400E', fontWeight: '600' }}>Coming Soon</Text>
             </View>
             <View style={styles.scrapRight}>
               <Image source={ShopImage} style={styles.shopImage} />
@@ -503,7 +641,7 @@ const DashboardScreen = ({ route }) => {
           </View>
           
           <Text style={styles.backupSubtext}>
-            {lastBackup ? `Last Backup: ${lastBackup}` : 'No local backup found yet. Back up your profile and recycling history.'}
+            {lastBackup ? `Last Backup: ${lastBackup}` : 'Back up your profile, recovery variants, and points balance.'}
           </Text>
 
           <View style={styles.backupActionsRow}>
@@ -529,6 +667,7 @@ const DashboardScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -537,7 +676,7 @@ const DashboardScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   loadingContainer: {
     flex: 1,
@@ -549,57 +688,36 @@ const styles = StyleSheet.create({
     top: 16,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 20,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 10,
+    paddingTop: 16,
   },
   card: {
-    backgroundColor: '#E0F2FE',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  getRewardsCard: {
-    backgroundColor: '#E0F2FE',
-    shadowColor: '#7DD3FC',
-  },
-  spendRewardsCard: {
-    backgroundColor: '#F0FDF4',
-    shadowColor: '#86EFAC',
-  },
-  scrapBazarCard: {
-    backgroundColor: '#FEF3C7',
-    shadowColor: '#FCD34D',
-    marginBottom: 80,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#0EA5E9',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   userInfoContainer: {
-    marginBottom: 15,
+    marginBottom: 14,
   },
   userNameContainer: {
     flexDirection: 'row',
@@ -607,75 +725,246 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginTop: 10,
   },
   userPoints: {
-    fontSize: 16,
-    color: '#4CAF50',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#047857',
   },
-  statisticsContainer: {
+  impactMetricsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  impactMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  impactValue: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0F172A',
+    marginTop: 4,
+  },
+  impactLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  variantsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
   },
-  statisticsLeft: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  statisticsRight: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recoveredText: {
+  sectionTitle: {
     fontSize: 16,
+    fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 8,
-    fontWeight: '600',
   },
-  statisticRow: {
-    paddingVertical: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 8,
+  totalBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  statisticLabel: {
-    fontSize: 14,
-    color: '#64748B',
-    marginLeft: 8,
+  totalBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0284C7',
   },
-  bottleIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
-  },
-  recoveredSubtext: {
+  variantsSubtitle: {
     fontSize: 12,
     color: '#64748B',
-    opacity: 0.8,
-    marginTop: 10,
+    marginBottom: 14,
+    lineHeight: 16,
   },
-  emptyState: {
+  variantGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  variantCard: {
+    width: '48%',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+  },
+  petCard: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+  },
+  canCard: {
+    backgroundColor: '#F0FDFA',
+    borderColor: '#99F6E4',
+  },
+  glassCard: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  paperCard: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  variantTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  variantIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
-    paddingVertical: 20,
+    alignItems: 'center',
   },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
+  variantCountNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
   },
-  emptyStateSubtext: {
+  variantTitle: {
     fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
   },
-  statsImage1: {
-    borderRadius: 80,
-    width: 150,
-    height: 150,
-    resizeMode: 'contain',
+  variantSpecs: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 8,
+  },
+  variantSubtagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  variantTag: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  variantTagText: {
+    fontSize: 10,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  sessionMetaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  sessionMetaText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  activityIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  activityDetails: {
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  activitySubtext: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  activityPointsBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  activityPointsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  getRewardsCard: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+  },
+  spendRewardsCard: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  scrapBazarCard: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    marginBottom: 20,
   },
   rewardsContainer: {
     flexDirection: 'row',
@@ -690,13 +979,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rewardsText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#0F172A',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   rewardImage: {
-    width: 100,
-    height: 150,
+    width: 80,
+    height: 90,
     resizeMode: 'contain',
   },
   spendContainer: {
@@ -712,18 +1001,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   availableCoins: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   coinsCount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#64748B',
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#059669',
   },
   spendImage: {
-    width: 140,
-    height: 100,
+    width: 90,
+    height: 80,
     resizeMode: 'contain',
   },
   scrapContainer: {
@@ -739,16 +1028,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shopImage: {
-    width: 150,
-    height: 100,
+    width: 90,
+    height: 80,
     resizeMode: 'contain',
   },
   backupCard: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#BAE6FD',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   backupHeader: {
     flexDirection: 'row',
