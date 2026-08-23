@@ -78,15 +78,13 @@ export default function LoginScreen({ navigation }) {
       console.error('Login error:', error);
       
       let errorMessage = 'Login failed. Please try again.';
-      if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage = 'Invalid phone number or password';
-        } else if (error.response.data?.message) {
-          errorMessage = error.response.data.message;
-        }
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid phone number or password';
       }
       
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Login Error', errorMessage);
     } finally {
       setLoading(false);
     }
