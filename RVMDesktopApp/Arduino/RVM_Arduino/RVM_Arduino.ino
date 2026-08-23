@@ -592,7 +592,17 @@ void processIncomingBottle()
   }
   else
   {
-    materialType = "PLASTIC";
+    // Non-metallic items: Distinguish Paper/Foam Cups from PET Plastic Bottles
+    // Paper and foam cups have a distinct low-height profile (<= 14 cm) and do not reach middle/top IR beams
+    if (!middleIsCurrentlyBlocked && !topIsCurrentlyBlocked && maxDistanceChangeCM <= 14 && maxDistanceChangeCM >= 4)
+    {
+      materialType = "PAPER_CUP";
+      bottleSize = "SMALL";
+    }
+    else
+    {
+      materialType = "PLASTIC";
+    }
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------

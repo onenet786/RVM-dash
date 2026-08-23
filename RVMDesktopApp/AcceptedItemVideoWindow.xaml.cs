@@ -29,9 +29,9 @@ public partial class AcceptedItemVideoWindow : Window
                 fileName = "DancingCan.mp4";
             }
         }
-        else if (mat.Contains("TETRA") || mat.Contains("PAPER") || mat.Contains("CARTON"))
+        else if (mat.Contains("TETRA") || mat.Contains("PAPER") || mat.Contains("CARTON") || mat.Contains("CUP"))
         {
-            titleText = "Tetra Pak accepted";
+            titleText = mat.Contains("CUP") ? "Paper/Foam cup accepted" : "Tetra Pak accepted";
             fileName = "DancingTetra.mp4";
         }
         else
