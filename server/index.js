@@ -178,8 +178,12 @@ async function initProductionPostgresSchemas() {
         bin_fill_percentage INT DEFAULT 0,
         total_bottles_recycled BIGINT DEFAULT 0,
         total_weight_kg NUMERIC(10,3) DEFAULT 0.000,
+        public_ip VARCHAR(100),
+        local_ip VARCHAR(100),
         last_ping_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS public_ip VARCHAR(100);
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS local_ip VARCHAR(100);
     `);
 
     // 2. Recycling Sessions Table with Foreign Key & Indexes
@@ -1267,7 +1271,7 @@ app.get('/api/analytics/machines', async (req, res) => {
       if (pool) {
         try {
           const metaRes = await pool.query(`
-            SELECT m.machine_id, m.name, m.location, m.status, m.last_ping_at,
+            SELECT m.machine_id, m.name, m.location, m.status, m.last_ping_at, m.public_ip, m.local_ip,
                    c.points_per_plastic, c.points_plastic_small, c.points_plastic_medium, c.points_plastic_large,
                    c.points_per_aluminium, c.points_can_small, c.points_can_medium, c.points_can_large,
                    c.points_per_paper_kg, c.points_per_glass, c.points_glass_small, c.points_glass_medium, c.points_glass_large,
@@ -1282,6 +1286,8 @@ app.get('/api/analytics/machines', async (req, res) => {
               location: r.location || 'Islamabad Campus',
               status: r.status,
               lastPingAt: r.last_ping_at,
+              publicIp: r.public_ip || 'N/A',
+              localIp: r.local_ip || 'N/A',
               pointsPerPlasticBottle: r.points_per_plastic ?? 10,
               pointsPlasticSmall: r.points_plastic_small ?? 5,
               pointsPlasticMedium: r.points_plastic_medium ?? 10,
@@ -1317,6 +1323,8 @@ app.get('/api/analytics/machines', async (req, res) => {
           status: isOnline ? 'ONLINE' : 'OFFLINE',
           isOnline,
           lastPingAt: m.lastPingAt,
+          publicIp: m.publicIp || 'N/A',
+          localIp: m.localIp || 'N/A',
           pointsPerPlasticBottle: m.pointsPerPlasticBottle,
           pointsPlasticSmall: m.pointsPlasticSmall,
           pointsPlasticMedium: m.pointsPlasticMedium,
@@ -3098,6 +3106,21 @@ app.post('/api/machine/sync-session', async (req, res) => {
   }
 });
 
+// Helper to extract Public and Local IP from client requests
+function getClientIpInfo(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  let publicIp = forwarded ? forwarded.split(',')[0].trim() : (req.headers['x-real-ip'] || req.socket.remoteAddress || req.ip || '');
+  publicIp = publicIp.replace(/^::ffff:/, '').replace(/^::1$/, '127.0.0.1');
+  if (publicIp === '::' || !publicIp) publicIp = '127.0.0.1';
+
+  let localIp = req.body?.localIp || req.query?.localIp || req.headers['x-local-ip'] || req.headers['x-rvm-local-ip'] || '';
+  localIp = String(localIp).trim().replace(/^::ffff:/, '');
+  if (!localIp || localIp === '::1' || localIp === '::') {
+    localIp = publicIp;
+  }
+  return { publicIp, localIp };
+}
+
 // Upstream Telemetry Heartbeat & Bin Level Alerts
 app.post('/api/machine/heartbeat', async (req, res) => {
   try {
@@ -3109,14 +3132,21 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       return res.status(403).json({ success: false, authorized: false, error: authCheck.reason });
     }
 
+    const { publicIp, localIp } = getClientIpInfo(req);
+
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
         await pool.query(`
-          UPDATE machines 
-          SET status = $2, bin_fill_percentage = $3, last_ping_at = NOW()
-          WHERE machine_id = $1;
-        `, [machineId, status, binFillPercentage]);
+          INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip)
+          VALUES ($1, $1, $2, $3, NOW(), $4, $5)
+          ON CONFLICT (machine_id) DO UPDATE 
+          SET status = EXCLUDED.status, 
+              bin_fill_percentage = EXCLUDED.bin_fill_percentage, 
+              last_ping_at = NOW(),
+              public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
+              local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
+        `, [machineId, status, binFillPercentage, publicIp, localIp]);
       }
     }
 
@@ -3125,7 +3155,8 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       if (db) {
         await db.collection('machines').updateOne(
           { machineId },
-          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage } }
+          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage, publicIp, localIp } },
+          { upsert: true }
         ).catch(() => {});
       }
     }
@@ -3145,6 +3176,8 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       machineId,
       binFillPercentage,
       status,
+      publicIp,
+      localIp,
       receivedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -3162,11 +3195,15 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
       return res.status(403).json({ success: false, authorized: false, error: authCheck.reason });
     }
 
+    const { publicIp, localIp } = getClientIpInfo(req);
+
     let config = {
       machineId,
       name: `RVM Machine ${machineId}`,
       location: 'Main Kiosk',
       configVersion: 1,
+      publicIp,
+      localIp,
       pointsPerPlasticBottle: 10,
       pointsPerAluminiumCan: 20,
       pointsPerPaperKg: 15,
@@ -3182,10 +3219,14 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
       const pool = getPgPool();
       if (pool) {
         await pool.query(`
-          INSERT INTO machines (machine_id, name, status, last_ping_at)
-          VALUES ($1, $1, 'active', NOW())
-          ON CONFLICT (machine_id) DO UPDATE SET last_ping_at = NOW(), status = 'active';
-        `, [machineId]).catch(() => {});
+          INSERT INTO machines (machine_id, name, status, last_ping_at, public_ip, local_ip)
+          VALUES ($1, $1, 'active', NOW(), $2, $3)
+          ON CONFLICT (machine_id) DO UPDATE SET 
+            last_ping_at = NOW(), 
+            status = 'active',
+            public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
+            local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
+        `, [machineId, publicIp, localIp]).catch(() => {});
 
         const result = await pool.query(
           `SELECT c.*, m.name, m.location 

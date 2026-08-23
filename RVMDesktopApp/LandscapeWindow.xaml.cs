@@ -568,6 +568,8 @@ public partial class LandscapeWindow : Window
         {
             string serverUrl = settings.CentralApiUrl.TrimEnd('/');
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            string localIp = HeartbeatService.GetLocalIpAddress();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
 
             var response = await client.GetAsync($"{serverUrl}/api/machine/config/{settings.MachineId}");
             if (response.IsSuccessStatusCode)

@@ -40,15 +40,46 @@ public static class HeartbeatService
         _timer = null;
     }
 
+    public static string GetLocalIpAddress()
+    {
+        try
+        {
+            using var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, 0);
+            socket.Connect("8.8.8.8", 65530);
+            if (socket.LocalEndPoint is System.Net.IPEndPoint endPoint)
+            {
+                return endPoint.Address.ToString();
+            }
+        }
+        catch
+        {
+            try
+            {
+                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                foreach (var ip in host.AddressList)
+                {
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(ip))
+                    {
+                        return ip.ToString();
+                    }
+                }
+            }
+            catch {}
+        }
+        return "127.0.0.1";
+    }
+
     private static async Task SendHeartbeatAsync()
     {
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             string baseUrl = _serverUrl.TrimEnd('/');
+            string localIp = GetLocalIpAddress();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
 
-            // 1. Post telemetry heartbeat
-            var heartbeatObj = new { machineId = _machineId, status = "active", binFillPercentage = 0 };
+            // 1. Post telemetry heartbeat with Local IP & Status
+            var heartbeatObj = new { machineId = _machineId, status = "active", binFillPercentage = 0, localIp };
             var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
             using var content = new StringContent(heartbeatJson, Encoding.UTF8, "application/json");
             var hbResponse = await client.PostAsync($"{baseUrl}/api/machine/heartbeat", content);

@@ -158,7 +158,8 @@ public static class CentralSyncService
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
                 binFillPercentage = binFillPercentage,
-                status = status
+                status = status,
+                localIp = HeartbeatService.GetLocalIpAddress()
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(payload);

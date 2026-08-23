@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X } from 'lucide-react';
+import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi } from 'lucide-react';
 import DataTable from './DataTable';
 
 export default function RvmManagementTab() {
@@ -158,6 +158,33 @@ export default function RvmManagementTab() {
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit RVM</span>
               </button>
+            </div>
+
+            {/* Connected IP Addresses: Public IP & Local IP */}
+            <div className="grid grid-cols-2 gap-2 text-[11px] p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/90 shadow-inner">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex-shrink-0">
+                  <Globe className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Public IP</span>
+                  <span className="font-mono font-bold text-cyan-300 truncate block text-[11px]" title={m.publicIp || 'Not Detected'}>
+                    {m.publicIp && m.publicIp !== 'N/A' ? m.publicIp : '127.0.0.1'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-hidden border-l border-slate-800/80 pl-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                  <Wifi className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Local IP (LAN)</span>
+                  <span className="font-mono font-bold text-emerald-300 truncate block text-[11px]" title={m.localIp || 'Not Detected'}>
+                    {m.localIp && m.localIp !== 'N/A' ? m.localIp : '127.0.0.1'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800/80">

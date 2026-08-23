@@ -528,9 +528,12 @@ public partial class MainWindow : Window
         {
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             
+            string localIp = HeartbeatService.GetLocalIpAddress();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
+            
             try
             {
-                var heartbeatObj = new { machineId = settings.MachineId, status = "active", binFillPercentage = 0 };
+                var heartbeatObj = new { machineId = settings.MachineId, status = "active", binFillPercentage = 0, localIp };
                 var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
                 var content = new System.Net.Http.StringContent(heartbeatJson, System.Text.Encoding.UTF8, "application/json");
                 await client.PostAsync($"{serverUrl}/api/machine/heartbeat", content);
