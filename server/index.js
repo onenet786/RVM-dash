@@ -2880,8 +2880,15 @@ async function handleMobileLogin(req, res) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
 
-    // Verify password if set on user record
-    if (user.password && user.password !== password) {
+    // Strictly verify password match
+    if (!user.password || user.password.trim() === '') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Account password not set. Please use "Forgot Password" or Register.' 
+      });
+    }
+
+    if (user.password !== password) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
 
