@@ -2844,6 +2844,70 @@ app.post('/api/auth/logout', (req, res) => {
 // MOBILE APP REST API ENDPOINTS (PostgreSQL Backed)
 // ==========================================
 
+// Helper to look up and verify user in legacy MongoDB clusters (rvmapp and ONS-RVM)
+async function verifyAgainstMongoDatabases(identifier, password) {
+  const mongoTargets = [
+    {
+      name: 'rvmapp',
+      uri: 'mongodb+srv://mcsrwp_db_user:8ctdZ%23TjEx%26N%25H4@cluster0.fuycg6c.mongodb.net/rvmapp?retryWrites=true&w=majority',
+      dbName: 'rvmapp'
+    },
+    {
+      name: 'ONS-RVM',
+      uri: 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority',
+      dbName: 'ONS-RVM'
+    }
+  ];
+
+  for (const target of mongoTargets) {
+    let client = null;
+    try {
+      client = new MongoClient(target.uri, { serverSelectionTimeoutMS: 4000 });
+      await client.connect();
+      const mongoDb = client.db(target.dbName);
+
+      const possibleCollections = ['userprofile', 'users', 'userprofiles', 'citizens'];
+      for (const colName of possibleCollections) {
+        try {
+          const col = mongoDb.collection(colName);
+          const found = await col.findOne({
+            $or: [
+              { mobile: identifier },
+              { phoneNumber: identifier },
+              { phone: identifier },
+              { username: identifier },
+              { email: identifier },
+              { userId: identifier }
+            ]
+          });
+
+          if (found) {
+            const storedPass = String(found.password || found.pass || '').trim();
+            const inputPass = String(password).trim();
+            if (storedPass && storedPass === inputPass) {
+              console.log(`[Mongo Auth Sync] Successfully verified user ${identifier} from MongoDB cluster ${target.name}.${colName}`);
+              await client.close();
+              return {
+                matched: true,
+                mongoUser: found,
+                sourceDb: target.name,
+                sourceCol: colName
+              };
+            }
+          }
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn(`[Mongo Auth Sync Warning] Error connecting to ${target.name}:`, err.message);
+    } finally {
+      if (client) {
+        try { await client.close(); } catch (e) {}
+      }
+    }
+  }
+  return { matched: false };
+}
+
 // 1. Mobile Login
 async function handleMobileLogin(req, res) {
   try {
@@ -2857,18 +2921,16 @@ async function handleMobileLogin(req, res) {
     }
 
     let user = null;
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const userRes = await pool.query(`
-          SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status
-          FROM users
-          WHERE mobile = $1 OR email = $1 OR username = $1
-          LIMIT 1;
-        `, [identifier]);
-        if (userRes.rows.length > 0) {
-          user = userRes.rows[0];
-        }
+    const pool = getPgPool();
+    if (activeDbType === 'postgres' && pool) {
+      const userRes = await pool.query(`
+        SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status
+        FROM users
+        WHERE mobile = $1 OR email = $1 OR username = $1
+        LIMIT 1;
+      `, [identifier]);
+      if (userRes.rows.length > 0) {
+        user = userRes.rows[0];
       }
     } else if (db) {
       user = await db.collection('users').findOne({
@@ -2876,32 +2938,84 @@ async function handleMobileLogin(req, res) {
       });
     }
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
+    let isAuthenticated = false;
+
+    // A. Check password match in PostgreSQL user record
+    if (user && user.password && String(user.password).trim() === String(password).trim()) {
+      isAuthenticated = true;
     }
 
-    // Strictly verify password match
-    if (!user.password || user.password.trim() === '') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Account password not set. Please use "Forgot Password" or Register.' 
-      });
+    // B. If not verified in PostgreSQL, check legacy MongoDB database
+    if (!isAuthenticated) {
+      const mongoCheck = await verifyAgainstMongoDatabases(identifier, password);
+      if (mongoCheck.matched && mongoCheck.mongoUser) {
+        const mUser = mongoCheck.mongoUser;
+        isAuthenticated = true;
+
+        const mUsername = mUser.username || mUser.userName || mUser.name || (user ? user.username : identifier);
+        const mFullName = mUser.name || mUser.fullName || mUsername;
+        const mEmail = mUser.email || (user ? user.email : `${identifier}@rvm.local`);
+        const mMobile = mUser.mobile || mUser.phoneNumber || mUser.phone || identifier;
+        const mPoints = parseInt(mUser.points || mUser.pointsBalance || (user ? user.points_balance : 0) || 0);
+        const mAge = parseInt(mUser.age || (user ? user.age : 20) || 20);
+        const mNic = mUser.nic || mUser.cnic || (user ? user.nic : '') || '';
+        const mGender = mUser.gender || (user ? user.gender : 'male') || 'male';
+
+        if (pool) {
+          if (user) {
+            // Update existing PostgreSQL user with password & profile from MongoDB
+            await pool.query(`
+              UPDATE users 
+              SET password = $1, 
+                  full_name = COALESCE(full_name, $2), 
+                  points_balance = GREATEST(COALESCE(points_balance, 0), $3),
+                  age = $4, 
+                  nic = $5, 
+                  gender = $6, 
+                  is_online = TRUE, 
+                  last_login = NOW(), 
+                  last_active = NOW()
+              WHERE user_id = $7;
+            `, [password, mFullName, mPoints, mAge, mNic, mGender, user.user_id]);
+            user.password = password;
+            user.full_name = mFullName;
+            user.points_balance = Math.max(user.points_balance || 0, mPoints);
+          } else {
+            // Insert newly discovered user from MongoDB into PostgreSQL
+            const newUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            await pool.query(`
+              INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, is_online, last_login, last_active, status, created_at)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE, NOW(), NOW(), 'active', NOW());
+            `, [newUserId, mUsername, mFullName, mEmail, mMobile, password, mAge, mNic, mGender, mPoints]);
+            
+            user = {
+              user_id: newUserId,
+              username: mUsername,
+              full_name: mFullName,
+              email: mEmail,
+              mobile: mMobile,
+              password: password,
+              age: mAge,
+              nic: mNic,
+              gender: mGender,
+              points_balance: mPoints
+            };
+          }
+        }
+      }
     }
 
-    if (user.password !== password) {
+    if (!isAuthenticated || !user) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
 
     // Update online & last_login status in PostgreSQL
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        await pool.query(`
-          UPDATE users 
-          SET is_online = TRUE, last_login = NOW(), last_active = NOW()
-          WHERE user_id = $1;
-        `, [user.user_id]);
-      }
+    if (activeDbType === 'postgres' && pool && user.user_id) {
+      await pool.query(`
+        UPDATE users 
+        SET is_online = TRUE, last_login = NOW(), last_active = NOW()
+        WHERE user_id = $1;
+      `, [user.user_id]);
     }
 
     let bottles = 0;
