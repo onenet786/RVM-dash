@@ -3785,7 +3785,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
         const paperGrams = paperWeightGrams || (paperCardboardCount > 0 ? Math.round(weightKg * 1000) : 0);
         const tetrapakGrams = tetrapakWeightGrams || 0;
 
-        // 2. Insert into recycling_sessions table
+        // 2. Insert or Update recycling_sessions table
         await pool.query(`
           INSERT INTO recycling_sessions (
             session_id, machine_id, user_id, 
@@ -3797,7 +3797,29 @@ app.post('/api/machine/sync-session', async (req, res) => {
             item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'completed')
-          ON CONFLICT (session_id) DO NOTHING;
+          ON CONFLICT (session_id) DO UPDATE SET 
+            user_id = CASE WHEN EXCLUDED.user_id != 'anonymous' AND EXCLUDED.user_id != '' THEN EXCLUDED.user_id ELSE recycling_sessions.user_id END,
+            plastic_count = EXCLUDED.plastic_count,
+            aluminium_count = EXCLUDED.aluminium_count,
+            paper_cardboard_count = EXCLUDED.paper_cardboard_count,
+            glass_count = EXCLUDED.glass_count,
+            plastic_small_count = EXCLUDED.plastic_small_count,
+            plastic_medium_count = EXCLUDED.plastic_medium_count,
+            plastic_large_count = EXCLUDED.plastic_large_count,
+            can_small_count = EXCLUDED.can_small_count,
+            can_medium_count = EXCLUDED.can_medium_count,
+            can_large_count = EXCLUDED.can_large_count,
+            paper_weight_grams = EXCLUDED.paper_weight_grams,
+            tetrapak_weight_grams = EXCLUDED.tetrapak_weight_grams,
+            glass_small_count = EXCLUDED.glass_small_count,
+            glass_medium_count = EXCLUDED.glass_medium_count,
+            glass_large_count = EXCLUDED.glass_large_count,
+            item_variant = EXCLUDED.item_variant,
+            bottle_size = EXCLUDED.bottle_size,
+            total_weight_kg = EXCLUDED.total_weight_kg,
+            co2_avoided_kg = EXCLUDED.co2_avoided_kg,
+            points_earned = EXCLUDED.points_earned,
+            session_status = 'completed';
         `, [
           sessionId, machineId, userId || 'anonymous',
           plasticCount, aluminiumCount, paperCardboardCount, glassCount,
@@ -3810,11 +3832,26 @@ app.post('/api/machine/sync-session', async (req, res) => {
 
         // 3. Upsert user points
         if (userId && userId !== 'anonymous') {
-          await pool.query(`
-            INSERT INTO users (user_id, username, full_name, email, points_balance, role_id, status)
-            VALUES ($1, $2, $2, $3, $4, 'fleet_operator', 'active')
-            ON CONFLICT (user_id) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance;
-          `, [userId, userId, `${userId}@rvm-dash.io`, pointsEarned]);
+          const userCheck = await pool.query(`
+            SELECT user_id, points_balance FROM users
+            WHERE user_id = $1 OR mobile = $1 OR email = $1 OR username = $1
+            LIMIT 1;
+          `, [userId]);
+
+          if (userCheck.rows.length > 0) {
+            const existingUid = userCheck.rows[0].user_id;
+            await pool.query(`
+              UPDATE users 
+              SET points_balance = points_balance + $1, last_active = NOW()
+              WHERE user_id = $2;
+            `, [pointsEarned, existingUid]);
+          } else {
+            await pool.query(`
+              INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
+              VALUES ($1, $1, $1, $1, $2, $3, 'fleet_operator', 'active')
+              ON CONFLICT (user_id) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance;
+            `, [userId, `${userId}@rvm-dash.io`, pointsEarned]);
+          }
         }
       }
     } catch (pgSyncErr) {

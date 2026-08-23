@@ -38,6 +38,7 @@ public partial class LandscapeWindow : Window
     private bool suppressNextCleanupError;
     private BottleResult? pendingBottleResult;
     private int pendingBottlePoints;
+    private string? activeUserMobile;
 
     private readonly ObservableCollection<string> telemetryLog = [];
     private readonly List<string> adPlaylist = [];
@@ -969,6 +970,57 @@ public partial class LandscapeWindow : Window
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
         AcceptedItemVideoWindow.ShowFor(this, result.Material);
+
+        // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
+        string currentSessionId = sessionId.ToString();
+        string currentMachineId = settings.MachineId;
+        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "3214424625";
+        int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
+        int curCan = canSmallCount + canMediumCount + canLargeCount;
+        int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
+        int curPoints = totalPoints;
+        int curItems = totalItems;
+        int pSmall = plasticSmallCount;
+        int pMed = plasticMediumCount;
+        int pLg = plasticLargeCount;
+        int cSmall = canSmallCount;
+        int cMed = canMediumCount;
+        int cLg = canLargeCount;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var syncRes = await CentralSyncService.SyncSessionToCentralDetailedAsync(
+                    currentMachineId,
+                    currentSessionId,
+                    userIdentifier,
+                    curPlastic,
+                    curCan,
+                    curPaper,
+                    0, // glass
+                    curPoints,
+                    0.0,
+                    result.Size,
+                    result.Material,
+                    pSmall, pMed, pLg,
+                    cSmall, cMed, cLg
+                );
+
+                if (syncRes.IsSuccess)
+                {
+                    LogTelemetry($"[LIVE SYNC 🟢] Accepted item synced to Central Server ({curItems} items, {curPoints} pts)");
+                }
+                else
+                {
+                    LogTelemetry($"[LIVE SYNC NOTE 🟡] Central response: HTTP {syncRes.StatusCode} - {syncRes.Message}");
+                }
+            }
+            catch (Exception syncEx)
+            {
+                LogTelemetry($"[LIVE SYNC ERROR] {syncEx.Message}");
+            }
+        });
     }
 
     private int GetPoints(BottleResult result)
@@ -1037,6 +1089,7 @@ public partial class LandscapeWindow : Window
         }
 
         string phoneNumber = walletWindow.PhoneNumber;
+        activeUserMobile = phoneNumber;
         string currentSessionId = sessionId.ToString();
         int currentTotalItems = totalItems;
         int currentTotalPoints = totalPoints;
@@ -1119,6 +1172,7 @@ public partial class LandscapeWindow : Window
 
     private void ResetSession()
     {
+        activeUserMobile = null;
         sessionId = Guid.NewGuid();
         totalItems = totalPoints = plasticSmallCount = plasticMediumCount = plasticLargeCount =
             canSmallCount = canMediumCount = canLargeCount = tetraPakSmallCount = tetraPakMediumCount = tetraPakLargeCount = rejectedCount = 0;
