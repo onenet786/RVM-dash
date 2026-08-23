@@ -9,12 +9,15 @@ const DEFAULT_SETTINGS = [
   { id: 4, materialType: 'CAN', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
   { id: 5, materialType: 'CAN', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
   { id: 6, materialType: 'CAN', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
-  { id: 7, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
-  { id: 8, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
-  { id: 9, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
-  { id: 10, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
-  { id: 11, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
-  { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
+  { id: 7, materialType: 'CUP', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+  { id: 8, materialType: 'CUP', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+  { id: 9, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
+  { id: 10, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
+  { id: 11, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
+  { id: 12, materialType: 'PAPER', bottleSize: 'MEDIUM', points: 5, unit: 'per_piece', isActive: true },
+  { id: 13, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
+  { id: 14, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
+  { id: 15, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
 ];
 
 export default function MachineConfigsTab() {
@@ -375,9 +378,10 @@ export default function MachineConfigsTab() {
                 >
                   <option value="PLASTIC">🥤 PLASTIC (PET Bottles)</option>
                   <option value="CAN">🥫 CAN (Aluminium / Metal)</option>
+                  <option value="CUP">☕ CUP (Plastic / Paper / Foam Cup)</option>
                   <option value="TETRA PAK">📦 TETRA PAK (Juice Pack / Carton)</option>
                   <option value="GLASS">🍾 GLASS (Glass Bottles)</option>
-                  <option value="PAPER">📄 PAPER (Paper & Cardboard)</option>
+                  <option value="PAPER">📄 PAPER (Paper &amp; Cardboard)</option>
                   <option value="CUSTOM">+ CUSTOM MATERIAL TYPE...</option>
                 </select>
                 {newMaterial === 'CUSTOM' && (

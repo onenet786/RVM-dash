@@ -1,7 +1,8 @@
 <Window x:Class="RVMDesktopApp.MainWindow"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- WindowState="Maximized" WindowStyle="None" Icon="Assets/RvmIcon.ico"
+ WindowState="Maximized" WindowStyle="None" ShowInTaskbar="True"
+ Icon="pack://application:,,,/RVMDesktopApp;component/Assets/RvmIcon.ico"
  Background="#EEF2F7" PreviewKeyDown="Window_KeyDown">
  <Window.Resources>
   <SolidColorBrush x:Key="InkText" Color="#0F172A"/><SolidColorBrush x:Key="InkMuted" Color="#64748B"/>

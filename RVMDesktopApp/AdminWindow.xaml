@@ -3,7 +3,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="RVM Master Admin &amp; Live Communication Suite"
-    Icon="Assets/RvmIcon.ico"
+    Icon="pack://application:,,,/RVMDesktopApp;component/Assets/RvmIcon.ico"
+    ShowInTaskbar="True"
     Width="1360"
     Height="860"
     MinWidth="1200"
@@ -473,10 +474,12 @@
                                             <StackPanel Grid.Column="0" Margin="0,0,6,0">
                                                 <TextBlock Text="Material Type:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4" />
                                                 <ComboBox x:Name="CmbMaterial" Height="32" SelectedIndex="0" Background="#F1F5F9" Foreground="#0F172A" FontWeight="Bold" VerticalContentAlignment="Center">
-                                                    <ComboBoxItem Content="PLASTIC" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
-                                                    <ComboBoxItem Content="CAN (Metal)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
-                                                    <ComboBoxItem Content="GLASS" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
-                                                    <ComboBoxItem Content="PAPER" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="PLASTIC (PET Bottle)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="CAN (Aluminium / Metal)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="CUP (Plastic / Paper / Foam)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="TETRA PAK (Juice Carton)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="PAPER / CARDBOARD" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
+                                                    <ComboBoxItem Content="GLASS (Glass Bottle)" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" />
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="6,0,0,0">

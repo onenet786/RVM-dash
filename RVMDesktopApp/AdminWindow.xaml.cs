@@ -321,21 +321,28 @@ public partial class AdminWindow : Window
         }
 
         // Step 2: Sync to Remote Central Master Dashboard API
-        int plasticCount = material.Contains("PLASTIC") ? itemCount : 0;
-        int aluminiumCount = (material.Contains("CAN") || material.Contains("METAL")) ? itemCount : 0;
-        int paperCount = material.Contains("PAPER") ? itemCount : 0;
-        int glassCount = material.Contains("GLASS") ? itemCount : 0;
+        bool isCup = material.Contains("CUP");
+        bool isTetra = material.Contains("TETRA") || material.Contains("PAK");
+        bool isCan = material.Contains("CAN") || material.Contains("METAL") || material.Contains("ALUMINIUM");
+        bool isGlass = material.Contains("GLASS");
+        bool isPaper = material.Contains("PAPER") || material.Contains("CARDBOARD") || isCup || isTetra;
+        bool isPlastic = material.Contains("PLASTIC") && !isCup;
 
-        int pSmall = material.Contains("PLASTIC") && size == "SMALL" ? itemCount : 0;
-        int pMedium = material.Contains("PLASTIC") && size == "MEDIUM" ? itemCount : 0;
-        int pLarge = material.Contains("PLASTIC") && size == "LARGE" ? itemCount : 0;
+        int plasticCount = isPlastic ? itemCount : 0;
+        int aluminiumCount = isCan ? itemCount : 0;
+        int paperCount = isPaper ? itemCount : 0;
+        int glassCount = isGlass ? itemCount : 0;
 
-        int cSmall = (material.Contains("CAN") || material.Contains("METAL")) && size == "SMALL" ? itemCount : 0;
-        int cMedium = (material.Contains("CAN") || material.Contains("METAL")) && size == "MEDIUM" ? itemCount : 0;
-        int cLarge = (material.Contains("CAN") || material.Contains("METAL")) && size == "LARGE" ? itemCount : 0;
+        int pSmall = isPlastic && size == "SMALL" ? itemCount : 0;
+        int pMedium = isPlastic && size == "MEDIUM" ? itemCount : 0;
+        int pLarge = isPlastic && size == "LARGE" ? itemCount : 0;
 
-        int paperGrams = material.Contains("PAPER") ? Math.Max(100, (int)(weightKg * 1000)) : 0;
-        int tetrapakGrams = material.Contains("TETRA") || material.Contains("PAK") ? Math.Max(700, (int)(weightKg * 1000)) : 0;
+        int cSmall = isCan && size == "SMALL" ? itemCount : 0;
+        int cMedium = isCan && size == "MEDIUM" ? itemCount : 0;
+        int cLarge = isCan && size == "LARGE" ? itemCount : 0;
+
+        int paperGrams = isPaper ? Math.Max(100, (int)(weightKg * 1000)) : 0;
+        int tetrapakGrams = isTetra ? Math.Max(700, (int)(weightKg * 1000)) : 0;
 
         CentralSyncService.CentralApiUrl = TxtServerUrl.Text.Trim();
 
