@@ -31,7 +31,7 @@ public partial class AcceptedItemVideoWindow : Window
         }
         else if (mat.Contains("TETRA") || mat.Contains("PAPER") || mat.Contains("CARTON") || mat.Contains("CUP"))
         {
-            titleText = mat.Contains("CUP") ? "Paper/Foam cup accepted" : "Tetra Pak accepted";
+            titleText = mat.Contains("CUP") ? "Cup accepted (Plastic / Paper / Foam)" : "Tetra Pak accepted";
             fileName = "DancingTetra.mp4";
         }
         else
