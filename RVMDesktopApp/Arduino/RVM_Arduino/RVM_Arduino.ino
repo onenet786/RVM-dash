@@ -15,6 +15,7 @@ const byte servoPin = 9;
 
 // ---- ENTRANCE & BIN HARDWARE PINS ----
 const byte newTrigPin = 12;     // Entrance HC-SR04 Trig pin
+const byte newEchoPin = 13;     // Entrance HC-SR04 Echo pin (Pin D13)
 const byte binSensorPin = 11;    // Bin Full / Bin Blocked sensor on Pin D11
 const byte newServoPin = 6;      // Entrance Servo pin
 const byte tetraPakSensorPin = 10; // Inductive sensor for Tetra Pak cartons
@@ -31,7 +32,7 @@ const int entranceOpenAngle = 90;     // Entrance gate open angle
 // Note: If NPN sensors output HIGH through your voltage divider, change this to HIGH
 const bool IR_DETECTED_STATE = LOW; 
 const bool METAL_DETECTED_STATE = LOW; 
-const bool BIN_BLOCKED_STATE = LOW; // Active LOW when blocked by items/bin full (Standard NPN IR Sensor) 
+const bool BIN_BLOCKED_STATE = HIGH; // Active LOW when blocked by items/bin full (Standard NPN IR Sensor) 
 
 // ---------------- FAST TIMING SETTINGS ----------------
 const unsigned long echoTimeoutUs = 8000;
@@ -175,6 +176,7 @@ void setup()
   digitalWrite(trigPin, LOW);
 
   pinMode(newTrigPin, OUTPUT);
+  pinMode(newEchoPin, INPUT);
   digitalWrite(newTrigPin, LOW);
   
   entranceServo.attach(newServoPin);
