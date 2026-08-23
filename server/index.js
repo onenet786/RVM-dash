@@ -3750,7 +3750,7 @@ app.get('/api/machine/ads', async (req, res) => {
 // Save or Update Advertisement Video Configuration
 app.post('/api/machine/ads', async (req, res) => {
   try {
-    const {
+    let {
       id,
       machineId = '*',
       title,
