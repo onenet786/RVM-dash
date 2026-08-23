@@ -252,12 +252,20 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp VARCHAR(10);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMPTZ;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NOW();
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ DEFAULT NOW();
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ DEFAULT NULL;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS device_info VARCHAR(255);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
       CREATE INDEX IF NOT EXISTS idx_users_mobile ON users (mobile);
+      CREATE INDEX IF NOT EXISTS idx_users_is_online ON users (is_online);
+    `);
+
+    // Reset online flags on server boot to ensure only actively connected mobile devices show online
+    await pool.query(`
+      UPDATE users 
+      SET is_online = FALSE 
+      WHERE last_active IS NULL OR last_active < NOW() - INTERVAL '2 minutes';
     `);
 
     // 4. Downstream Points Config Table
@@ -3334,8 +3342,10 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
         `);
 
         usersList = uRes.rows.map(u => {
-          const isRecentlyActive = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 15 * 60 * 1000);
-          const isOnline = Boolean(u.is_online || isRecentlyActive);
+          // A user is strictly online ONLY if they sent a heartbeat/login within the last 2 minutes AND is_online is true
+          const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
+          const isOnline = Boolean(u.is_online && hasRecentHeartbeat);
+
           return {
             id: u.user_id,
             username: u.username,
@@ -3350,8 +3360,8 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
             cups: parseInt(u.total_cups || 0),
             sessions: parseInt(u.total_sessions || 0),
             isOnline,
-            lastLogin: u.last_login || u.created_at,
-            lastActive: u.last_active || u.last_login || u.created_at,
+            lastLogin: u.last_login || null,
+            lastActive: u.last_active || null,
             createdAt: u.created_at
           };
         });
