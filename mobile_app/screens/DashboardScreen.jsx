@@ -192,11 +192,22 @@ const DashboardScreen = ({ route }) => {
           setLocalHistory(hasRecycleHistory || null);
         } else {
           // No new data, load from AsyncStorage
-          const [userData, historyData] = await Promise.all([
+          const [userData, historyData, isLogged] = await Promise.all([
             getData('user'),
-            getData('recycleHistory')
+            getData('recycleHistory'),
+            AsyncStorage.getItem('isLoggedIn')
           ]);
           
+          if (isLogged !== 'true' || !userData) {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              })
+            );
+            return;
+          }
+
           setLocalUser(userData);
           setLocalHistory(historyData);
         }
@@ -208,7 +219,7 @@ const DashboardScreen = ({ route }) => {
     };
 
     loadUserData();
-  }, [route.params]);
+  }, [route.params, navigation]);
 
   // Update reward points when localHistory changes
   useEffect(() => {
