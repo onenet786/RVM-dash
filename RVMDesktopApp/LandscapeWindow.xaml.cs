@@ -853,6 +853,28 @@ public partial class LandscapeWindow : Window
             return;
         }
 
+        if (message == "BIN:FULL" || message == "BIN:BLOCKED" || message == "ERROR:BIN_FULL")
+        {
+            machineStarted = false;
+            scanTimer.Stop();
+            StatusText.Text = "Bin Full / Blocked";
+            StatusText.Foreground = Brushes.OrangeRed;
+            BottleInfoText.Text = "Collection bin is full or sensor blocked (D11)";
+            MachineStateText.Text = "MACHINE: BIN FULL";
+            LogTelemetry("[SAFETY 🔴] Bin sensor (Pin D11) is blocked. Machine stopped.");
+            return;
+        }
+
+        if (message == "BIN:CLEARED")
+        {
+            StatusText.Text = "Bin Cleared";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "Bin sensor clear. Press 0 or Start to resume.";
+            MachineStateText.Text = "MACHINE: READY";
+            LogTelemetry("[SAFETY 🟢] Bin sensor (Pin D11) is clear.");
+            return;
+        }
+
         if (message.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase))
         {
             scanTimer.Stop();

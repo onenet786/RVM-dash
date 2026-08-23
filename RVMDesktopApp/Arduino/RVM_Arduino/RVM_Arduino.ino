@@ -13,24 +13,25 @@ const byte irMiddlePin = 7;
 const byte irTopPin = 8;
 const byte servoPin = 9;
 
-// ---- ENTRANCE HARDWARE PINS ----
+// ---- ENTRANCE & BIN HARDWARE PINS ----
 const byte newTrigPin = 12;     // Entrance HC-SR04 Trig pin
-const byte newEchoPin = 11;     // Entrance HC-SR04 Echo iopin
+const byte binSensorPin = 11;    // Bin Full / Bin Blocked sensor on Pin D11
 const byte newServoPin = 6;      // Entrance Servo pin
-const byte binFullSensorPin = 10; // Bin full sensor input, stops machine when full
+const byte tetraPakSensorPin = 10; // Inductive sensor for Tetra Pak cartons
 
 // ---------------- SERVO SETTINGS ----------------
-const int gateClosedAngle = 60;
-const int gateOpenAngle = 180;
+const int gateClosedAngle = 71;
+const int gateOpenAngle = 199;
 
 // ---- ENTRANCE SERVO ANGLE SETTING ----
 const int entranceClosedAngle = 75;   // Entrance gate closed angle
 const int entranceOpenAngle = 90;     // Entrance gate open angle
 
 // ---------------- SENSOR LOGIC SETTINGS ----------------
+// Note: If NPN sensors output HIGH through your voltage divider, change this to HIGH
 const bool IR_DETECTED_STATE = LOW; 
 const bool METAL_DETECTED_STATE = LOW; 
-const bool BIN_FULL_DETECTED_STATE = HIGH; 
+const bool BIN_BLOCKED_STATE = LOW; // Active LOW when blocked by items/bin full (Standard NPN IR Sensor) 
 
 // ---------------- FAST TIMING SETTINGS ----------------
 const unsigned long echoTimeoutUs = 8000;
@@ -51,7 +52,7 @@ const unsigned long bottleProcessingDelayMs = 2500; // Cooldown after sequence c
 const byte calibrationReadings = 12;
 const int maxSensorDistanceCM = 80;
 const byte bottleDetectChangeCM = 2;
-const int calibrationBlockedDistanceCM = 6;
+const int calibrationBlockedDistanceCM = 4;
 const byte calibrationMaxAttempts = 3;
 
 // ---- ENTRANCE SENSOR SETTINGS ----
@@ -64,7 +65,6 @@ Servo entranceServo;
 bool machineStarted = false;
 bool calibrated = false;
 bool bottleProcessing = false;
-bool metalDetectedForNextBottle = false;
 bool waitingForStuckBottleRemoval = false;
 
 bool mainGateCurrentlyOpen = false;
@@ -82,26 +82,35 @@ bool isMetalDetected()
   return (digitalRead(metalSensorPin) == METAL_DETECTED_STATE);
 }
 
-bool isBinFull()
+bool isTetraPakDetected()
 {
-  return (digitalRead(binFullSensorPin) == BIN_FULL_DETECTED_STATE);
+  return (digitalRead(tetraPakSensorPin) == METAL_DETECTED_STATE);
+}
+
+bool isBinBlocked()
+{
+  return (digitalRead(binSensorPin) == BIN_BLOCKED_STATE);
 }
 
 // ---------------- FORWARD DECLARATIONS ----------------
 int readDistanceCM();
 int readEntranceDistanceCM();
 void calibrateEmptyPipe();
-void processIncomingBottle(bool metalDetected);
+void processIncomingBottle();
 void waitForBottomIRReset();
 bool waitForBottleClear(const char* bottleSize);
 void sortReadings(int readings[], int count);
 void executeCommand(String command);
+void handleSerialCommand();
 
 // ---------------- MAIN SERVO FUNCTIONS ----------------
 void openGate()
 {
   if (!mainGateCurrentlyOpen)
   {
+    if (!gateServo.attached())
+      gateServo.attach(servoPin);
+
     gateServo.write(gateOpenAngle);
     mainGateCurrentlyOpen = true;
     Serial.println("GATE:OPEN");
@@ -110,8 +119,11 @@ void openGate()
 
 void closeGate()
 {
-  if (mainGateCurrentlyOpen || true)
+  if (mainGateCurrentlyOpen)
   {
+    if (!gateServo.attached())
+      gateServo.attach(servoPin);
+
     gateServo.write(gateClosedAngle);
     mainGateCurrentlyOpen = false;
     Serial.println("GATE:CLOSED");
@@ -122,6 +134,9 @@ void openEntranceGate()
 {
   if (!entranceGateCurrentlyOpen)
   {
+    if (!entranceServo.attached())
+      entranceServo.attach(newServoPin);
+
     entranceServo.write(entranceOpenAngle);
     entranceGateCurrentlyOpen = true;
     Serial.println("ENTRANCE_GATE:OPEN");
@@ -132,6 +147,9 @@ void closeEntranceGate()
 {
   if (entranceGateCurrentlyOpen)
   {
+    if (!entranceServo.attached())
+      entranceServo.attach(newServoPin);
+
     entranceServo.write(entranceClosedAngle);
     entranceGateCurrentlyOpen = false;
     entranceClearStartTime = 0;
@@ -148,15 +166,15 @@ void setup()
   pinMode(irMiddlePin, INPUT_PULLUP);
   pinMode(irTopPin, INPUT_PULLUP);
 
-  pinMode(metalSensorPin, INPUT);
-  pinMode(binFullSensorPin, INPUT_PULLUP);
+  pinMode(metalSensorPin, INPUT_PULLUP);
+  pinMode(tetraPakSensorPin, INPUT_PULLUP);
+  pinMode(binSensorPin, INPUT_PULLUP); // Pin D11: Bin Full / Blocked Sensor
 
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   digitalWrite(trigPin, LOW);
 
   pinMode(newTrigPin, OUTPUT);
-  pinMode(newEchoPin, INPUT);
   digitalWrite(newTrigPin, LOW);
   
   entranceServo.attach(newServoPin);
@@ -177,18 +195,19 @@ void loop()
 {
   handleSerialCommand();
 
-  if (isBinFull())
+  // ---------------- 1. BIN SENSOR FULL/BLOCKED SAFETY CHECK (PIN D11) ----------------
+  if (isBinBlocked())
   {
     if (machineStarted)
     {
       machineStarted = false;
+      waitingForStuckBottleRemoval = false;
       closeGate();
       closeEntranceGate();
-      Serial.println("BIN:FULL");
+      Serial.println("BIN:BLOCKED");
+      Serial.println("ERROR:BIN_FULL");
       Serial.println("MACHINE:STOPPED");
     }
-    delay(50);
-    return;
   }
 
   if (machineStarted)
@@ -257,9 +276,7 @@ void loop()
   if (bottomTriggered && !bottleProcessing)
   {
     bottleProcessing = true;
-    metalDetectedForNextBottle = false;
-    
-    processIncomingBottle(false);
+    processIncomingBottle();
     
     bottleProcessing = false;
   }
@@ -292,14 +309,18 @@ void handleSerialCommand()
 
 void executeCommand(String command)
 {
-  if (command == "START")
+  if (command == "START" || command == "0")
   {
     waitingForStuckBottleRemoval = false;
-    if (isBinFull())
+
+    // Safety check: Cannot start machine if bin is full / blocked on Pin D11
+    if (isBinBlocked())
     {
       machineStarted = false;
-      Serial.println("BIN:FULL");
-      Serial.println("MACHINE:STOPPED");
+      closeGate();
+      closeEntranceGate();
+      Serial.println("BIN:BLOCKED");
+      Serial.println("ERROR:BIN_FULL");
       return;
     }
 
@@ -311,7 +332,6 @@ void executeCommand(String command)
     if (calibrated)
     {
       machineStarted = true;
-      metalDetectedForNextBottle = false;
       closeGate();
       Serial.println("MACHINE:STARTED");
     }
@@ -324,7 +344,6 @@ void executeCommand(String command)
   else if (command == "STOP")
   {
     machineStarted = false;
-    metalDetectedForNextBottle = false;
     waitingForStuckBottleRemoval = false;
     closeGate();
     closeEntranceGate();
@@ -332,8 +351,6 @@ void executeCommand(String command)
   }
   else if (command == "RESET")
   {
-    machineStarted = false;
-    metalDetectedForNextBottle = false;
     waitingForStuckBottleRemoval = false;
     closeGate();
     closeEntranceGate();
@@ -342,7 +359,6 @@ void executeCommand(String command)
   else if (command == "CALIBRATE")
   {
     machineStarted = false;
-    metalDetectedForNextBottle = false;
     closeGate();
     calibrateEmptyPipe();
   }
@@ -366,7 +382,13 @@ void executeCommand(String command)
     Serial.print(emptyPipeDistanceCM);
     
     Serial.print(";METAL_PIN_STATE:");
-    Serial.println(digitalRead(metalSensorPin));
+    Serial.print(digitalRead(metalSensorPin));
+
+    Serial.print(";TETRAPAK_PIN_STATE:");
+    Serial.print(digitalRead(tetraPakSensorPin));
+
+    Serial.print(";BIN_BLOCKED:");
+    Serial.println(isBinBlocked() ? "1" : "0");
   }
   else
   {
@@ -394,7 +416,7 @@ void calibrateEmptyPipe()
     {
       int distance = readDistanceCM();
 
-      // Only accept true pipe depth readings (>= 10 cm) to filter out 5cm blind-zone/lip echoes
+      // Only accept true pipe depth readings (>= 10 cm) to filter out blind-zone/lip echoes
       if (distance >= 10 && distance <= maxSensorDistanceCM)
         readings[validReadings++] = distance;
 
@@ -414,7 +436,6 @@ void calibrateEmptyPipe()
     }
 
     sortReadings(readings, validReadings);
-    // Select true maximum empty distance (e.g. 36 cm)
     int measuredEmptyDistanceCM = readings[validReadings - 1];
 
     if (measuredEmptyDistanceCM < calibrationBlockedDistanceCM)
@@ -442,7 +463,7 @@ void calibrateEmptyPipe()
 }
 
 // ---------------- BOTTLE PROCESS (STATIC SIZING AT REST) ----------------
-void processIncomingBottle(bool metalDetected)
+void processIncomingBottle()
 {
   Serial.println("IR:DETECTED_TRIGGER");
 
@@ -453,20 +474,12 @@ void processIncomingBottle(bool metalDetected)
   int lastDistance = -1;
   int stableCount = 0;
 
-  int slideMetalHits = 0;
-
   unsigned long settleStart = millis();
 
-  // ---------------- 1. APPROACH & SLIDE-DOWN TRACKING (350ms) ----------------
-  // As the item slides down the 45-degree pipe past the 8" metal sensor
+  // 1. Wait for bottle to drop down completely
   while (millis() - settleStart < approachTimeoutMs)
   {
     int currentDistance = readDistanceCM();
-
-    if (isMetalDetected())
-    {
-      slideMetalHits++;
-    }
 
     if (currentDistance > 0 && currentDistance <= maxSensorDistanceCM)
     {
@@ -509,20 +522,16 @@ void processIncomingBottle(bool metalDetected)
     return;
   }
 
-  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE (600ms) ----------------
+  // ---------------- 2. WAITING FOR BOTTLE TO STOP AT GATE ----------------
   unsigned long waitStart = millis();
   while (millis() - waitStart < bottleSettleDelayMs)
   {
-    if (isMetalDetected())
-    {
-      slideMetalHits++;
-    }
     delay(10);
   }
 
-  // ---------------- 3. READ STATIC BOTTLE SIZE AT GATE (IR at 4", 8", 11") ----------------
-  bool topIsCurrentlyBlocked    = (digitalRead(irTopPin) == IR_DETECTED_STATE);    // 11" sensor (LARGE)
-  bool middleIsCurrentlyBlocked = (digitalRead(irMiddlePin) == IR_DETECTED_STATE); // 8" sensor (MEDIUM)
+  // ---------------- 3. READ STATIC BOTTLE SIZE NOW ----------------
+  bool topIsCurrentlyBlocked    = (digitalRead(irTopPin) == IR_DETECTED_STATE);
+  bool middleIsCurrentlyBlocked = (digitalRead(irMiddlePin) == IR_DETECTED_STATE);
 
   const char* bottleSize = "SMALL";
 
@@ -541,43 +550,47 @@ void processIncomingBottle(bool metalDetected)
 
   unsigned long measurementDurationMs = millis() - settleStart;
 
-  // ---------------- 4. GATE-LEVEL RESTING METAL VERIFICATION (400ms = 40 samples) ----------------
-  int gateMetalHits = 0;
-  unsigned long holdStart = millis();
-  const unsigned long metalHoldDurationMs = 400;
+  // ---------------- INDUCTIVE SENSOR SAMPLING ----------------
+  int solidMetalCount = 0;
+  int tetraPakCount = 0;
 
-  while (millis() - holdStart < metalHoldDurationMs)
+  // Take 20 readings over 200ms to allow physical settling
+  for (int i = 0; i < 20; i++)
   {
-    if (isMetalDetected())
+    if (digitalRead(metalSensorPin) == METAL_DETECTED_STATE)
     {
-      gateMetalHits++;
+      solidMetalCount++;
+    }
+    if (digitalRead(tetraPakSensorPin) == METAL_DETECTED_STATE)
+    {
+      tetraPakCount++;
     }
     delay(10);
   }
 
-  int totalMetalHits = slideMetalHits + gateMetalHits;
+  // Require most readings so a brief sensor pulse cannot change the material.
+  const int sensorSampleThreshold = 15;
+  bool metalSensorActive = (solidMetalCount >= sensorSampleThreshold);
+  bool tetraPakSensorActive = (tetraPakCount >= sensorSampleThreshold);
 
-  // ---------------- PHYSICAL SENSOR MATERIAL CLASSIFICATION ----------------
-  // 45-Degree 5" Pipe Calibration:
-  //   - Plastic PET Bottle: 0 hits throughout → PLASTIC
-  //   - Aluminium / Tin Can / Metal Bottle: Solid metal (slideMetalHits >= 4 OR gateMetalHits >= 10) → CAN
-  //   - Tetra Pak Juice Box: Micro-thin internal foil (1 to 3 slide hits) → TETRAPAK
-  const char* materialType = "PLASTIC";
+  const char* materialType;
 
-  if (totalMetalHits == 0)
+  // ---------------- MATERIAL CLASSIFICATION ----------------
+  if (metalSensorActive && tetraPakSensorActive)
   {
-    // 1. ZERO METAL DETECTED (0 hits) = PLASTIC PET BOTTLE
-    materialType = "PLASTIC";
+    materialType = "TETRAPAK";
   }
-  else if (gateMetalHits >= 10 || slideMetalHits >= 4)
+  else if (metalSensorActive)
   {
-    // 2. SOLID METAL CONTAINER (Solid sliding can or heavy resting bottle) = CAN
     materialType = "CAN";
+  }
+  else if (tetraPakSensorActive)
+  {
+    materialType = "REJECT";
   }
   else
   {
-    // 3. THIN INTERNAL FOIL PULSE (1 to 3 slide hits) = TETRA PAK CARTON
-    materialType = "TETRAPAK";
+    materialType = "PLASTIC";
   }
 
   // ---------------- SEND RESULT TO SYSTEM ----------------
@@ -587,14 +600,17 @@ void processIncomingBottle(bool metalDetected)
   Serial.print(";MATERIAL:");
   Serial.print(materialType);
 
-  Serial.print(";METAL:");
-  Serial.print(totalMetalHits > 0 ? "1" : "0");
+  Serial.print(";METAL_SENSOR:");
+  Serial.print(metalSensorActive ? "1" : "0");
 
-  Serial.print(";SLIDEHITS:");
-  Serial.print(slideMetalHits);
+  Serial.print(";TETRAPAK_SENSOR:");
+  Serial.print(tetraPakSensorActive ? "1" : "0");
 
-  Serial.print(";GATEHITS:");
-  Serial.print(gateMetalHits);
+  Serial.print(";METAL_COUNT:");
+  Serial.print(solidMetalCount);
+
+  Serial.print(";TETRAPAK_COUNT:");
+  Serial.print(tetraPakCount);
 
   Serial.print(";SETTLED:");
   Serial.print(settled ? "1" : "0");
@@ -660,7 +676,6 @@ bool waitForBottleClear(const char* bottleSize)
 
     if (currentDistance > 0)
     {
-      // Distance is clear if it reaches/exceeds empty baseline (bottle dropped past sensor into bin)
       bool distanceIsClear = (currentDistance >= (emptyPipeDistanceCM - bottleDetectChangeCM));
 
       if (distanceIsClear && sizeSensorClear)
