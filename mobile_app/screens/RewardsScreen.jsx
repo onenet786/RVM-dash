@@ -36,7 +36,9 @@ const RewardsScreen = () => {
         id: index + 1,
         Points: user.totalPoints.toString(),
         place: (index + 1).toString().padStart(2, '0'),
-        userName: user.userName || 'Anonymous', // Using username field
+        userName: user.fullName || user.userName || 'Anonymous',
+        profileImage: user.profileImage || '',
+        isBirthday: Boolean(user.isBirthday),
         bottles: user.totalPoints.toString()
       }));
       
@@ -65,9 +67,20 @@ const RewardsScreen = () => {
     await fetchData(true); // Pass true to show toast message
   };
 
-  const ParticipantAvatar = () => (
+  const ParticipantAvatar = ({ avatar }) => (
     <View style={styles.avatar}>
-      <MaterialCommunityIcons name="account" size={24} color="#fff" />
+      <MaterialCommunityIcons 
+        name={
+          avatar === 'female' ? 'account-heart' :
+          avatar === 'leaf' ? 'leaf' :
+          avatar === 'earth' ? 'earth' :
+          avatar === 'recycle' ? 'recycle-variant' :
+          avatar === 'star' ? 'star-shooting' :
+          'account'
+        } 
+        size={20} 
+        color="#fff" 
+      />
     </View>
   );
 
@@ -85,9 +98,6 @@ const RewardsScreen = () => {
     );
   }
 
-  console.log("username", currentUser?.username);
-  console.log("username", currentUser);
-  
   return (
     <ImageBackground
       source={require('../assets/images/rankingbg.png')}
@@ -96,22 +106,32 @@ const RewardsScreen = () => {
     >
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={{ fontSize: 24, color: 'black', marginBottom: 10 }}>Ranking</Text>
+        <Text style={{ fontSize: 24, color: 'black', marginBottom: 10 }}>Eco Leaderboard</Text>
         <View style={styles.headerContent}>
           <View style={styles.profileSection}>
             <View style={styles.profileAvatar}>
-              {currentUser?.username ? (
-                <Text style={styles.avatarText}>
-                  {currentUser.username.charAt(0).toUpperCase()}
-                </Text>
-              ) : (
-                <MaterialCommunityIcons name="account" size={24} color="#fff" />
-              )}
+              <MaterialCommunityIcons 
+                name={
+                  currentUser?.profileImage === 'female' ? 'account-heart' :
+                  currentUser?.profileImage === 'leaf' ? 'leaf' :
+                  currentUser?.profileImage === 'earth' ? 'earth' :
+                  currentUser?.profileImage === 'recycle' ? 'recycle-variant' :
+                  currentUser?.profileImage === 'star' ? 'star-shooting' :
+                  'account'
+                } 
+                size={24} 
+                color="#fff" 
+              />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.welcomeText}>
-                Welcome {currentUser ? currentUser.username : 'Guest'}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.welcomeText}>
+                  Welcome, {currentUser?.fullName || currentUser?.username || 'Eco Hero'}
+                </Text>
+                {currentUser?.isBirthday && (
+                  <Text style={{ marginLeft: 6, fontSize: 16 }}>🎂</Text>
+                )}
+              </View>
               
               <View style={styles.profileLines}>
                 <View style={styles.profileLine1} />
@@ -138,8 +158,8 @@ const RewardsScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#0EA5E9']} // Android
-            tintColor="#0EA5E9" // iOS
+            colors={['#0EA5E9']}
+            tintColor="#0EA5E9"
             title="Refreshing..."
             titleColor="#666"
           />
@@ -148,12 +168,17 @@ const RewardsScreen = () => {
         {rankingList.map((item) => (
           <View key={item.id} style={styles.rankingRow}>
             <View style={styles.participantSection}>
-              <ParticipantAvatar />
-              <Text style={styles.userNameText}>{item.userName}</Text>
+              <ParticipantAvatar avatar={item.profileImage} />
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.userNameText} numberOfLines={1}>{item.userName}</Text>
+                  {item.isBirthday && <Text style={{ marginLeft: 4, fontSize: 14 }}>🎂</Text>}
+                </View>
+              </View>
             </View>
             <View style={styles.bottlesSection}>
               <View style={styles.bottleInfo}>
-                <MaterialCommunityIcons name="bottle-soda" size={18} color="#0EA5E9" />
+                <MaterialCommunityIcons name="star-circle" size={18} color="#EAB308" />
                 <Text style={styles.bottlesText}>{item.Points}</Text>
               </View>
             </View>

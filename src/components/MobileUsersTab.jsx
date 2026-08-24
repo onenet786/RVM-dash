@@ -298,21 +298,28 @@ export default function MobileUsersTab() {
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-sm ${
-                          user.gender === 'female' 
+                          user.profileImage === 'female' || user.gender === 'female' 
                             ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' 
                             : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                         }`}>
-                          {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
+                          {user.profileImage === 'leaf' ? '🌿' :
+                           user.profileImage === 'earth' ? '🌍' :
+                           user.profileImage === 'recycle' ? '♻️' :
+                           user.profileImage === 'star' ? '⭐' :
+                           (user.fullName || user.username ? (user.fullName || user.username).charAt(0).toUpperCase() : 'U')}
                         </div>
                         <div>
                           <div className="font-bold t-text-primary text-sm flex items-center gap-1.5">
                             {user.fullName || user.username}
+                            {user.isBirthday && (
+                              <span title="Happy Birthday! 🎂" className="cursor-default">🎂</span>
+                            )}
                             {user.isOnline && (
                               <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" title="Online Now"></span>
                             )}
                           </div>
                           <div className="text-[11px] t-text-muted mono">
-                            @{user.username} {user.nic && user.nic !== '-' ? `• NIC: ${user.nic}` : ''}
+                            @{user.username} {user.dob ? `• DOB: ${user.dob}` : ''} {user.nic && user.nic !== '-' ? `• NIC: ${user.nic}` : ''}
                           </div>
                         </div>
                       </div>

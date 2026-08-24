@@ -253,6 +253,8 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(20) DEFAULT 'male';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp VARCHAR(10);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS dob VARCHAR(50);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NULL;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ DEFAULT NULL;
@@ -2981,6 +2983,8 @@ async function handleMobileLogin(req, res) {
 
         const totalRecovered = bottles + cups + glass + paper;
 
+        const isBirthday = checkIsBirthday(user.dob);
+
         return res.json({
           success: true,
           message: 'Login successful',
@@ -2992,9 +2996,12 @@ async function handleMobileLogin(req, res) {
             email: user.email,
             mobile: user.mobile || identifier,
             age: user.age || 20,
+            dob: user.dob || '',
+            profileImage: user.profile_image || '',
             nic: user.nic || '',
             gender: user.gender || 'male',
-            points
+            points,
+            isBirthday
           },
           hasRecycleHistory: {
             points,
@@ -3031,10 +3038,22 @@ async function handleMobileLogin(req, res) {
 app.post('/api/login', handleMobileLogin);
 app.post('/login', handleMobileLogin);
 
-// 2. Mobile User Registration
+// Birthday Helper
+function checkIsBirthday(dobStr) {
+  if (!dobStr) return false;
+  try {
+    const dob = new Date(dobStr);
+    const today = new Date();
+    return dob.getMonth() === today.getMonth() && dob.getDate() === today.getDate();
+  } catch (e) {
+    return false;
+  }
+}
+
+// 2. Mobile User Registration (with Full Name, DOB, Profile Picture)
 async function handleMobileRegister(req, res) {
   try {
-    const { username, mobile, age, nic, email, password, gender = 'male' } = req.body;
+    const { username, fullName, mobile, age, nic, email, password, gender = 'male', dob = '', profileImage = '' } = req.body;
     if (!mobile || !username) {
       return res.status(400).json({ success: false, message: 'Username and mobile number are required' });
     }
@@ -3042,6 +3061,15 @@ async function handleMobileRegister(req, res) {
     const cleanMobile = String(mobile).trim();
     const cleanEmail = email ? String(email).trim().toLowerCase() : `${cleanMobile}@rvm.local`;
     const cleanUsername = String(username).trim();
+    const cleanFullName = (fullName || cleanUsername).trim();
+    const cleanDob = dob ? String(dob).trim() : '';
+    const cleanProfileImage = profileImage ? String(profileImage).trim() : '';
+    let userAge = parseInt(age);
+    if ((!userAge || isNaN(userAge)) && cleanDob) {
+      userAge = Math.floor((new Date() - new Date(cleanDob)) / (365.25 * 24 * 60 * 60 * 1000));
+    }
+    if (!userAge || isNaN(userAge) || userAge <= 0) userAge = 20;
+
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     if (activeDbType === 'postgres') {
@@ -3058,9 +3086,9 @@ async function handleMobileRegister(req, res) {
         }
 
         await pool.query(`
-          INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'active', NOW());
-        `, [userId, cleanUsername, cleanUsername, cleanEmail, cleanMobile, password || '', parseInt(age) || 20, nic || '', gender]);
+          INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, dob, profile_image, points_balance, status, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', NOW());
+        `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage]);
       }
     } else if (db) {
       const existing = await db.collection('users').findOne({
@@ -3072,17 +3100,21 @@ async function handleMobileRegister(req, res) {
       await db.collection('users').insertOne({
         userId,
         username: cleanUsername,
-        fullName: cleanUsername,
+        fullName: cleanFullName,
         email: cleanEmail,
         mobile: cleanMobile,
         password: password || '',
-        age: parseInt(age) || 20,
+        age: userAge,
         nic: nic || '',
         gender,
+        dob: cleanDob,
+        profileImage: cleanProfileImage,
         points: 0,
         createdAt: new Date()
       });
     }
+
+    const isBirthday = checkIsBirthday(cleanDob);
 
     res.status(201).json({
       success: true,
@@ -3090,12 +3122,16 @@ async function handleMobileRegister(req, res) {
       user: {
         id: userId,
         username: cleanUsername,
+        fullName: cleanFullName,
         mobile: cleanMobile,
         email: cleanEmail,
-        age: parseInt(age) || 20,
+        age: userAge,
+        dob: cleanDob,
+        profileImage: cleanProfileImage,
         nic: nic || '',
         gender,
-        points: 0
+        points: 0,
+        isBirthday
       }
     });
   } catch (err) {
@@ -3105,6 +3141,109 @@ async function handleMobileRegister(req, res) {
 }
 app.post('/api/register', handleMobileRegister);
 app.post('/register', handleMobileRegister);
+
+// 2b. Update User Profile (Runtime Full Name, DOB, Profile Picture)
+async function handleUpdateProfile(req, res) {
+  try {
+    const { userId, username, mobile, fullName, dob, profileImage, email, gender, nic } = req.body;
+    const identifier = userId || username || mobile;
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: 'User identifier is required' });
+    }
+
+    let updatedUser = null;
+    if (activeDbType === 'postgres') {
+      const pool = getPgPool();
+      if (pool) {
+        const uRes = await pool.query(`
+          SELECT user_id, username, full_name, email, mobile, age, nic, gender, dob, profile_image, points_balance
+          FROM users
+          WHERE user_id = $1 OR username = $1 OR mobile = $1 OR email = $1
+          LIMIT 1;
+        `, [identifier]);
+
+        if (uRes.rows.length === 0) {
+          return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const targetUid = uRes.rows[0].user_id;
+        const newFullName = (fullName !== undefined ? fullName : uRes.rows[0].full_name) || uRes.rows[0].username;
+        const newDob = dob !== undefined ? dob : uRes.rows[0].dob;
+        const newImg = profileImage !== undefined ? profileImage : uRes.rows[0].profile_image;
+        const newEmail = email !== undefined ? email : uRes.rows[0].email;
+        const newGender = gender !== undefined ? gender : uRes.rows[0].gender;
+        const newNic = nic !== undefined ? nic : uRes.rows[0].nic;
+
+        let newAge = uRes.rows[0].age;
+        if (newDob) {
+          try {
+            const parsedAge = Math.floor((new Date() - new Date(newDob)) / (365.25 * 24 * 60 * 60 * 1000));
+            if (parsedAge > 0) newAge = parsedAge;
+          } catch(e) {}
+        }
+
+        await pool.query(`
+          UPDATE users 
+          SET full_name = $1, dob = $2, profile_image = $3, email = $4, gender = $5, nic = $6, age = $7, last_active = NOW()
+          WHERE user_id = $8;
+        `, [newFullName, newDob, newImg, newEmail, newGender, newNic, newAge, targetUid]);
+
+        updatedUser = {
+          id: targetUid,
+          username: uRes.rows[0].username,
+          fullName: newFullName,
+          email: newEmail,
+          mobile: uRes.rows[0].mobile,
+          age: newAge,
+          dob: newDob,
+          profileImage: newImg,
+          nic: newNic,
+          gender: newGender,
+          points: uRes.rows[0].points_balance || 0,
+          isBirthday: checkIsBirthday(newDob)
+        };
+      }
+    } else if (db) {
+      const user = await db.collection('users').findOne({
+        $or: [{ userId: identifier }, { username: identifier }, { mobile: identifier }]
+      });
+      if (user) {
+        const newFullName = fullName || user.fullName || user.username;
+        const newDob = dob !== undefined ? dob : user.dob;
+        const newImg = profileImage !== undefined ? profileImage : user.profileImage;
+        await db.collection('users').updateOne(
+          { _id: user._id },
+          { $set: { fullName: newFullName, dob: newDob, profileImage: newImg } }
+        );
+        updatedUser = {
+          id: user.userId || user._id,
+          username: user.username,
+          fullName: newFullName,
+          dob: newDob,
+          profileImage: newImg,
+          points: user.points || 0,
+          isBirthday: checkIsBirthday(newDob)
+        };
+      }
+    }
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'User profile update failed' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error('[Update Profile Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.post('/api/user/profile', handleUpdateProfile);
+app.put('/api/user/profile', handleUpdateProfile);
+app.post('/api/update-profile', handleUpdateProfile);
 
 // 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {
@@ -3301,7 +3440,7 @@ async function handleMobileGetRecycle(req, res) {
 app.get('/api/getrecycle/:userId', handleMobileGetRecycle);
 app.get('/getrecycle/:userId', handleMobileGetRecycle);
 
-// 5. Mobile Usernames / Leaderboard
+// 5. Mobile Usernames / Leaderboard (Mobile & RVM Kiosk Leaderboard)
 async function handleMobileUsernames(req, res) {
   try {
     let usersList = [];
@@ -3309,13 +3448,17 @@ async function handleMobileUsernames(req, res) {
       const pool = getPgPool();
       if (pool) {
         const uRes = await pool.query(`
-          SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name
+          SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name, profile_image, dob
           FROM users
           ORDER BY points_balance DESC, created_at ASC
           LIMIT 100;
         `);
         usersList = uRes.rows.map(r => ({
           userName: r.userName || r.full_name || 'Eco User',
+          fullName: r.full_name || r.userName || 'Eco User',
+          profileImage: r.profile_image || '',
+          dob: r.dob || '',
+          isBirthday: checkIsBirthday(r.dob),
           totalPoints: Number(r.totalPoints || 0)
         }));
       }
@@ -3323,6 +3466,10 @@ async function handleMobileUsernames(req, res) {
       const docs = await db.collection('users').find({}).sort({ points: -1 }).limit(100).toArray();
       usersList = docs.map(d => ({
         userName: d.username || d.userName || d.fullName || 'Eco User',
+        fullName: d.fullName || d.username || 'Eco User',
+        profileImage: d.profileImage || '',
+        dob: d.dob || '',
+        isBirthday: checkIsBirthday(d.dob),
         totalPoints: Number(d.points || d.pointsBalance || 0)
       }));
     }
@@ -3466,6 +3613,8 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
             u.age,
             u.nic,
             u.gender,
+            u.dob,
+            u.profile_image,
             COALESCE(u.points_balance, 0) AS points_balance,
             COALESCE(u.is_online, FALSE) AS is_online,
             u.last_login,
@@ -3493,6 +3642,9 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
             email: u.email,
             mobile: u.mobile || '-',
             age: u.age || 20,
+            dob: u.dob || '',
+            profileImage: u.profile_image || '',
+            isBirthday: checkIsBirthday(u.dob),
             nic: u.nic || '-',
             gender: u.gender || 'male',
             points: parseInt(u.points_balance || 0),

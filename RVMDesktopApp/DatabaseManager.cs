@@ -544,17 +544,87 @@ public static class DatabaseManager
     public static DataTable GetLeaderboard() =>
         Get(
             """
+            IF COL_LENGTH('dbo.WalletAccounts', 'FullName') IS NULL
+                ALTER TABLE dbo.WalletAccounts ADD FullName NVARCHAR(100) NULL;
+            IF COL_LENGTH('dbo.WalletAccounts', 'UserName') IS NULL
+                ALTER TABLE dbo.WalletAccounts ADD UserName NVARCHAR(50) NULL;
+            IF COL_LENGTH('dbo.WalletAccounts', 'ProfileImage') IS NULL
+                ALTER TABLE dbo.WalletAccounts ADD ProfileImage NVARCHAR(100) NULL;
+            IF COL_LENGTH('dbo.WalletAccounts', 'DOB') IS NULL
+                ALTER TABLE dbo.WalletAccounts ADD DOB NVARCHAR(50) NULL;
+
             SELECT TOP 5
                 ROW_NUMBER() OVER (ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC) AS Rank,
-                CASE
-                    WHEN LEN(wallet.PhoneNumber) > 7
-                        THEN LEFT(wallet.PhoneNumber, 3) + REPLICATE('*', LEN(wallet.PhoneNumber) - 6) + RIGHT(wallet.PhoneNumber, 3)
-                    ELSE wallet.PhoneNumber
-                END AS PhoneNumber,
+                COALESCE(wallet.FullName, wallet.UserName,
+                    CASE
+                        WHEN LEN(wallet.PhoneNumber) > 7
+                            THEN LEFT(wallet.PhoneNumber, 3) + REPLICATE('*', LEN(wallet.PhoneNumber) - 6) + RIGHT(wallet.PhoneNumber, 3)
+                        ELSE wallet.PhoneNumber
+                    END
+                ) AS DisplayName,
+                COALESCE(wallet.PhoneNumber, '') AS PhoneNumber,
+                COALESCE(wallet.ProfileImage, 'male') AS ProfileImage,
+                CASE 
+                    WHEN wallet.DOB IS NOT NULL AND SUBSTRING(wallet.DOB, 6, 5) = FORMAT(GETDATE(), 'MM-dd') THEN 1 
+                    ELSE 0 
+                END AS IsBirthday,
                 wallet.PointsBalance
             FROM dbo.WalletAccounts AS wallet
             ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC;
             """);
+
+    public static void UpdateLeaderboardUsers(System.Text.Json.JsonElement usersArr)
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            using var schemaCmd = new SqlCommand(@"
+                IF COL_LENGTH('dbo.WalletAccounts', 'FullName') IS NULL
+                    ALTER TABLE dbo.WalletAccounts ADD FullName NVARCHAR(100) NULL;
+                IF COL_LENGTH('dbo.WalletAccounts', 'UserName') IS NULL
+                    ALTER TABLE dbo.WalletAccounts ADD UserName NVARCHAR(50) NULL;
+                IF COL_LENGTH('dbo.WalletAccounts', 'ProfileImage') IS NULL
+                    ALTER TABLE dbo.WalletAccounts ADD ProfileImage NVARCHAR(100) NULL;
+                IF COL_LENGTH('dbo.WalletAccounts', 'DOB') IS NULL
+                    ALTER TABLE dbo.WalletAccounts ADD DOB NVARCHAR(50) NULL;
+            ", connection);
+            schemaCmd.ExecuteNonQuery();
+
+            foreach (var u in usersArr.EnumerateArray())
+            {
+                string userName = u.TryGetProperty("userName", out var un) ? un.GetString() ?? "" : "";
+                string fullName = u.TryGetProperty("fullName", out var fn) ? fn.GetString() ?? userName : userName;
+                string profileImage = u.TryGetProperty("profileImage", out var img) ? img.GetString() ?? "male" : "male";
+                string dob = u.TryGetProperty("dob", out var d) ? d.GetString() ?? "" : "";
+                int points = u.TryGetProperty("totalPoints", out var pts) ? pts.GetInt32() : 0;
+
+                if (string.IsNullOrWhiteSpace(userName)) continue;
+
+                using var cmd = new SqlCommand(@"
+                    IF EXISTS (SELECT 1 FROM dbo.WalletAccounts WHERE PhoneNumber = @u OR UserName = @u)
+                    BEGIN
+                        UPDATE dbo.WalletAccounts
+                        SET FullName = @fn, UserName = @u, ProfileImage = @img, DOB = @dob, PointsBalance = @pts, LastUpdated = GETDATE()
+                        WHERE PhoneNumber = @u OR UserName = @u;
+                    END
+                    ELSE
+                    BEGIN
+                        INSERT INTO dbo.WalletAccounts (PhoneNumber, FullName, UserName, ProfileImage, DOB, PointsBalance, LastUpdated)
+                        VALUES (@u, @fn, @u, @img, @dob, @pts, GETDATE());
+                    END
+                ", connection);
+                cmd.Parameters.AddWithValue("@u", userName);
+                cmd.Parameters.AddWithValue("@fn", fullName);
+                cmd.Parameters.AddWithValue("@img", profileImage);
+                cmd.Parameters.AddWithValue("@dob", dob);
+                cmd.Parameters.AddWithValue("@pts", points);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        catch { }
+    }
 
     private static DataTable Get(string sql)
     {

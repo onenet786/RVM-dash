@@ -13,8 +13,11 @@ export const registerUser = async (userData) => {
   try {
     const requestData = {
       username: userData.username,
+      fullName: userData.fullName || userData.username,
       mobile: userData.mobile,
       age: userData.age,
+      dob: userData.dob,
+      profileImage: userData.profileImage,
       nic: userData.nic,
       email: userData.email,
       password: userData.password,

@@ -574,6 +574,10 @@ public partial class MainWindow : Window
                 _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
+                _ = CentralSyncService.SyncLeaderboardFromCentralAsync(msg => {
+                    LogTelemetry(msg);
+                    Dispatcher.Invoke(RefreshLeaderboard);
+                });
 
                 // Sync & update remote multi-video advertisement rotation playlist from Central Dashboard
                 _ = Task.Run(async () =>

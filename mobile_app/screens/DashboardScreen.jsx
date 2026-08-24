@@ -11,7 +11,10 @@ import {
   Text, 
   TouchableOpacity, 
   View,
-  ToastAndroid 
+  ToastAndroid,
+  Modal,
+  TextInput,
+  ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -22,6 +25,15 @@ import ShopImage from '../assets/images/shop.png';
 import SpendImage from '../assets/images/spend.png';
 import StatsImage from '../assets/images/stats.png';
 
+const PRESET_AVATARS = [
+  { id: 'male', label: 'Male', icon: 'account', color: '#0284C7' },
+  { id: 'female', label: 'Female', icon: 'account-heart', color: '#EC4899' },
+  { id: 'leaf', label: 'Eco Champion', icon: 'leaf', color: '#10B981' },
+  { id: 'earth', label: 'Earth Guardian', icon: 'earth', color: '#0EA5E9' },
+  { id: 'recycle', label: 'Super Recycler', icon: 'recycle-variant', color: '#059669' },
+  { id: 'star', label: 'Eco Star', icon: 'star-shooting', color: '#EAB308' },
+];
+
 const DashboardScreen = ({ route }) => {
   const [localUser, setLocalUser] = useState(null);
   const [localHistory, setLocalHistory] = useState(null);
@@ -31,6 +43,14 @@ const DashboardScreen = ({ route }) => {
   const [lastBackup, setLastBackup] = useState(null);
   const [backupLoading, setBackupLoading] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState('all');
+
+  // Edit Profile Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editDob, setEditDob] = useState('');
+  const [editAvatar, setEditAvatar] = useState('male');
+  const [editEmail, setEditEmail] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   
   const navigation = useNavigation();
   const rotateValue = useRef(new Animated.Value(0)).current;
@@ -324,6 +344,51 @@ const DashboardScreen = ({ route }) => {
     );
   };
 
+  const handleSaveProfile = async () => {
+    if (!editFullName.trim()) {
+      ToastAndroid.show("Please enter your full name", ToastAndroid.SHORT);
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: localUser?.id || localUser?.username,
+          fullName: editFullName.trim(),
+          dob: editDob.trim(),
+          profileImage: editAvatar,
+          email: editEmail.trim()
+        })
+      });
+      const data = await response.json();
+      if (data.success && data.user) {
+        const mergedUser = { ...localUser, ...data.user };
+        await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+        setLocalUser(mergedUser);
+        setShowEditModal(false);
+        ToastAndroid.show("Profile updated successfully! 🎉", ToastAndroid.SHORT);
+      } else {
+        ToastAndroid.show(data.message || "Failed to update profile", ToastAndroid.SHORT);
+      }
+    } catch (err) {
+      console.error('Update profile error:', err);
+      ToastAndroid.show("Network error while updating profile", ToastAndroid.SHORT);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const isBirthday = localUser?.isBirthday || (() => {
+    if (!localUser?.dob) return false;
+    try {
+      const d = new Date(localUser.dob);
+      const t = new Date();
+      return d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+    } catch(e) { return false; }
+  })();
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -359,6 +424,17 @@ const DashboardScreen = ({ route }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         
+        {/* Birthday Celebratory Banner */}
+        {isBirthday && (
+          <View style={styles.birthdayCard}>
+            <MaterialCommunityIcons name="cake-variant" size={32} color="#D97706" style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.birthdayTitle}>🎂 Happy Birthday, {localUser?.fullName || localUser?.username}! 🎉</Text>
+              <Text style={styles.birthdaySubtitle}>Wishing you a glorious birthday filled with joy and eco-blessings!</Text>
+            </View>
+          </View>
+        )}
+
         {/* Main Header / Statistics Card */}
         <View style={styles.card}>
           <TouchableOpacity 
@@ -374,15 +450,45 @@ const DashboardScreen = ({ route }) => {
           
           <Text style={styles.cardTitle}>Eco Dashboard</Text>
           
-          {/* User Information Section */}
+          {/* User Information Section with Avatar and Edit Option */}
           <View style={styles.userInfoContainer}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={styles.userNameContainer}>
-                <MaterialCommunityIcons name="account-circle" size={24} color="#0284C7" style={{ marginRight: 6 }} />
-                <Text style={styles.userName}>
-                  {localUser?.username || "Welcome User"}
-                </Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.userNameContainer}
+                onPress={() => {
+                  setEditFullName(localUser?.fullName || localUser?.username || '');
+                  setEditDob(localUser?.dob || '');
+                  setEditAvatar(localUser?.profileImage || 'male');
+                  setEditEmail(localUser?.email || '');
+                  setShowEditModal(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.avatarCircle}>
+                  <MaterialCommunityIcons 
+                    name={
+                      localUser?.profileImage === 'female' ? 'account-heart' :
+                      localUser?.profileImage === 'leaf' ? 'leaf' :
+                      localUser?.profileImage === 'earth' ? 'earth' :
+                      localUser?.profileImage === 'recycle' ? 'recycle-variant' :
+                      localUser?.profileImage === 'star' ? 'star-shooting' :
+                      'account-circle'
+                    } 
+                    size={26} 
+                    color="#0284C7" 
+                  />
+                </View>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.userName}>
+                      {localUser?.fullName || localUser?.username || "Welcome User"}
+                    </Text>
+                    <MaterialCommunityIcons name="pencil-circle" size={16} color="#0284C7" style={{ marginLeft: 4 }} />
+                  </View>
+                  <Text style={styles.userHandle}>@{localUser?.username || 'user'}{localUser?.dob ? ` • DOB: ${localUser.dob}` : ''}</Text>
+                </View>
+              </TouchableOpacity>
+
               <TouchableOpacity 
                 onPress={handleRefresh}
                 accessibilityLabel="Refresh points"
@@ -724,6 +830,115 @@ const DashboardScreen = ({ route }) => {
         )}
 
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal
+        visible={showEditModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Eco Profile</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)} style={{ padding: 4 }}>
+                <MaterialCommunityIcons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Avatar Chooser */}
+              <Text style={styles.modalLabel}>Select Profile Avatar</Text>
+              <View style={styles.modalAvatarGrid}>
+                {PRESET_AVATARS.map((av) => (
+                  <TouchableOpacity
+                    key={av.id}
+                    style={[
+                      styles.modalAvatarItem,
+                      editAvatar === av.id && styles.modalAvatarItemSelected
+                    ]}
+                    onPress={() => setEditAvatar(av.id)}
+                  >
+                    <MaterialCommunityIcons 
+                      name={
+                        av.id === 'female' ? 'account-heart' :
+                        av.id === 'leaf' ? 'leaf' :
+                        av.id === 'earth' ? 'earth' :
+                        av.id === 'recycle' ? 'recycle-variant' :
+                        av.id === 'star' ? 'star-shooting' :
+                        'account-circle'
+                      } 
+                      size={24} 
+                      color={editAvatar === av.id ? '#0284C7' : '#64748B'} 
+                    />
+                    <Text style={[styles.modalAvatarText, editAvatar === av.id && { color: '#0284C7', fontWeight: 'bold' }]}>
+                      {av.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Full Name */}
+              <Text style={styles.modalLabel}>Full Name</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter Full Name"
+                placeholderTextColor="#94A3B8"
+                value={editFullName}
+                onChangeText={setEditFullName}
+              />
+
+              {/* Date of Birth */}
+              <Text style={styles.modalLabel}>Date of Birth (YYYY-MM-DD)</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="e.g. 1998-08-24"
+                placeholderTextColor="#94A3B8"
+                value={editDob}
+                onChangeText={setEditDob}
+                maxLength={10}
+              />
+
+              {/* Email */}
+              <Text style={styles.modalLabel}>Email Address</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Enter Email"
+                placeholderTextColor="#94A3B8"
+                value={editEmail}
+                onChangeText={setEditEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              {/* Action Buttons */}
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => setShowEditModal(false)}
+                  disabled={savingProfile}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleSaveProfile}
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.modalSaveText}>Save Profile</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -732,6 +947,155 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  birthdayCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  birthdayTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  birthdaySubtitle: {
+    fontSize: 12,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  userHandle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0F172A',
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+    marginTop: 10,
+    textTransform: 'uppercase',
+  },
+  modalAvatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  modalAvatarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  modalAvatarItemSelected: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#0284C7',
+    borderWidth: 1.5,
+  },
+  modalAvatarText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  modalInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  modalCancelText: {
+    color: '#64748B',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  modalSaveBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#0284C7',
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,

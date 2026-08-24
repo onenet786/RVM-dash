@@ -432,4 +432,26 @@ public static class CentralSyncService
         }
         return playlist;
     }
+
+    /// <summary>
+    /// Syncs the latest top leaderboard users, names, profile images, and birthdays from Central Master API into the local kiosk database.
+    /// </summary>
+    public static async Task SyncLeaderboardFromCentralAsync(Action<string>? logCallback = null)
+    {
+        try
+        {
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/usernames";
+            string json = await _httpClient.GetStringAsync(url);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("users", out var usersArr))
+            {
+                DatabaseManager.UpdateLeaderboardUsers(usersArr);
+                logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {usersArr.GetArrayLength()} top recyclers with profile images from central master.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logCallback?.Invoke($"[LEADERBOARD SYNC ⚠️] {ex.Message}");
+        }
+    }
 }
