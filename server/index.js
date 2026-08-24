@@ -3248,6 +3248,9 @@ async function handleUpdateProfile(req, res) {
 app.post('/api/user/profile', handleUpdateProfile);
 app.put('/api/user/profile', handleUpdateProfile);
 app.post('/api/update-profile', handleUpdateProfile);
+app.post('/user/profile', handleUpdateProfile);
+app.put('/user/profile', handleUpdateProfile);
+app.post('/update-profile', handleUpdateProfile);
 
 // 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {

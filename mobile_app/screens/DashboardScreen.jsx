@@ -355,7 +355,9 @@ const DashboardScreen = ({ route }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: localUser?.id || localUser?.username,
+          userId: localUser?.id || localUser?.userId || localUser?.username,
+          username: localUser?.username,
+          mobile: localUser?.mobile,
           fullName: editFullName.trim(),
           dob: editDob.trim(),
           profileImage: editAvatar,
