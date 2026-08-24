@@ -2938,6 +2938,7 @@ async function handleMobileLogin(req, res) {
             AND user_id NOT IN ('anonymous', '', 'null');
         `, [validUserIds]);
 
+        let earnedPoints = 0;
         if (statsRes.rows.length > 0) {
           bottles = parseInt(statsRes.rows[0].total_bottles || 0);
           cups = parseInt(statsRes.rows[0].total_cups || 0);
@@ -2947,10 +2948,13 @@ async function handleMobileLogin(req, res) {
           totalCo2Kg = parseFloat(statsRes.rows[0].total_co2 || 0);
           totalSessions = parseInt(statsRes.rows[0].session_count || 0);
           latestRecycle = statsRes.rows[0].last_recycled_at;
-          if (points === 0) {
-            points = parseInt(statsRes.rows[0].total_earned_points || 0);
+          earnedPoints = parseInt(statsRes.rows[0].total_earned_points || 0);
+          if (points === 0 && earnedPoints > 0) {
+            points = earnedPoints;
           }
         }
+
+        const redeemedPoints = Math.max(0, earnedPoints - points);
 
         const recentRes = await pool.query(`
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -2962,84 +2966,63 @@ async function handleMobileLogin(req, res) {
           LIMIT 10;
         `, [validUserIds]);
         recentSessions = recentRes.rows || [];
-      }
-    } else if (db) {
-      const sessions = await db.collection('recyclingsessions').find({
-        $and: [
-          { $or: [{ userId: { $in: validUserIds } }, { mobile: { $in: validUserIds } }, { user_id: { $in: validUserIds } }] },
-          { user_id: { $nin: ['anonymous', '', null] } },
-          { userId: { $nin: ['anonymous', '', null] } }
-        ]
-      }).sort({ recycledAt: -1 }).limit(20).toArray();
 
-      sessions.forEach(s => {
-        bottles += parseInt(s.bottles || s.plasticCount || 0);
-        cups += parseInt(s.cups || s.canCount || s.aluminiumCount || 0);
-        glass += parseInt(s.glassCount || s.glass || 0);
-        paper += parseInt(s.paperCount || s.paper || 0);
-        totalWeightKg += parseFloat(s.totalWeightKg || s.weight || 0);
-        totalCo2Kg += parseFloat(s.co2AvoidedKg || s.co2 || 0);
-        if (!latestRecycle || new Date(s.recycledAt || s.timestamp) > new Date(latestRecycle)) {
-          latestRecycle = s.recycledAt || s.timestamp;
+        let token = '';
+        try {
+          token = jwt.sign(
+            { userId: user.user_id, username: user.username, mobile: user.mobile },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+          );
+        } catch (tokenErr) {
+          console.warn('[JWT Sign Warning]', tokenErr.message);
+          token = `token_${user.user_id || user.username}_${Date.now()}`;
         }
-      });
-      totalSessions = sessions.length;
-      recentSessions = sessions.slice(0, 10);
-    }
 
-    let token = '';
-    try {
-      token = jwt.sign(
-        { userId: user.user_id, username: user.username, mobile: user.mobile },
-        JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-    } catch (tokenErr) {
-      console.warn('[JWT Sign Warning]', tokenErr.message);
-      token = `token_${user.user_id || user.username}_${Date.now()}`;
-    }
+        const totalRecovered = bottles + cups + glass + paper;
 
-    const totalRecovered = bottles + cups + glass + paper;
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      user: {
-        id: user.user_id,
-        username: user.username,
-        fullName: user.full_name || user.username,
-        email: user.email,
-        mobile: user.mobile || identifier,
-        age: user.age || 20,
-        nic: user.nic || '',
-        gender: user.gender || 'male',
-        points
-      },
-      hasRecycleHistory: {
-        points,
-        earnedPoints: points,
-        redeemedPoints: 0,
-        bottles,
-        plasticCount: bottles,
-        cups,
-        aluminiumCount: cups,
-        glassCount: glass,
-        paperCount: paper,
-        totalItems: totalRecovered,
-        totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
-        co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
-        totalSessions,
-        variants: {
-          petPlastic: bottles,
-          aluminiumCans: cups,
-          glassBottles: glass,
-          paperCartons: paper
-        },
-        recentSessions,
-        recycledAt: latestRecycle || new Date().toISOString()
-      }
-    });
+        return res.json({
+          success: true,
+          message: 'Login successful',
+          token,
+          user: {
+            id: user.user_id,
+            username: user.username,
+            fullName: user.full_name || user.username,
+            email: user.email,
+            mobile: user.mobile || identifier,
+            age: user.age || 20,
+            nic: user.nic || '',
+            gender: user.gender || 'male',
+            points
+          },
+          hasRecycleHistory: {
+            points,
+            currentBalance: points,
+            earnedPoints,
+            totalEarnedPoints: earnedPoints,
+            redeemedPoints,
+            totalRedeemedPoints: redeemedPoints,
+            bottles,
+            plasticCount: bottles,
+            cups,
+            aluminiumCount: cups,
+            glassCount: glass,
+            paperCount: paper,
+            totalItems: totalRecovered,
+            totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
+            co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
+            totalSessions,
+            variants: {
+              petPlastic: bottles,
+              aluminiumCans: cups,
+              glassBottles: glass,
+              paperCartons: paper
+            },
+            recentSessions,
+            recycledAt: latestRecycle || new Date().toISOString()
+          }
+        });
   } catch (err) {
     console.error('[Mobile Login Error]', err);
     res.status(500).json({ success: false, message: err.message });

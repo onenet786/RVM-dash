@@ -258,6 +258,11 @@ const DashboardScreen = ({ route }) => {
 
     await storeData("recycleHistory", data);
     setLocalHistory(data);
+    if (data.points !== undefined) {
+      const updatedUser = { ...(user || {}), points: data.points };
+      await storeData("user", updatedUser);
+      setLocalUser(updatedUser);
+    }
     return true;
   }, []);
 
