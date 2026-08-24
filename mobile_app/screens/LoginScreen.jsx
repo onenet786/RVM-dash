@@ -56,6 +56,8 @@ export default function LoginScreen({ navigation }) {
       });
 
       if (response.data.success) {
+        const recycleData = response.data.hasRecycleHistory || response.data.recycleDetails || null;
+        
         // Store login state and user data in AsyncStorage
         await AsyncStorage.multiSet([
           ['isLoggedIn', 'true'],
@@ -63,12 +65,18 @@ export default function LoginScreen({ navigation }) {
           ['token', response.data.token || '']
         ]);
 
+        if (recycleData) {
+          await AsyncStorage.setItem('recycleHistory', JSON.stringify(recycleData));
+        } else {
+          await AsyncStorage.removeItem('recycleHistory');
+        }
+
         // Navigate to Dashboard with user data
         navigation.navigate('Dashboard', {
           screen: 'Dashboard',
           params: {
             user: response.data.user,
-            hasRecycleHistory: response.data.recycleDetails 
+            hasRecycleHistory: recycleData
           }
         });
       } else {

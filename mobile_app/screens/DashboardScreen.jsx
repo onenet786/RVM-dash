@@ -299,7 +299,9 @@ const DashboardScreen = ({ route }) => {
           text: 'Yes',
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove(['isLoggedIn', 'user', 'recycleHistory']);
+              await AsyncStorage.multiRemove(['isLoggedIn', 'user', 'recycleHistory', 'token', 'lastBackupDate', 'lastBackupData']);
+              setLocalUser(null);
+              setLocalHistory(null);
               navigation.dispatch(
                 CommonActions.reset({
                   index: 0,

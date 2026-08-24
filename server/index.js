@@ -2907,6 +2907,17 @@ async function handleMobileLogin(req, res) {
     let points = user.points_balance || user.pointsBalance || user.points || 0;
     let latestRecycle = null;
     let recentSessions = [];
+    // Helper: Build strict, isolated identifier list for logged-in user
+    const validUserIds = Array.from(new Set([
+      user.user_id,
+      user.username,
+      user.mobile,
+      identifier,
+      user.mobile ? user.mobile.replace(/[^0-9]/g, '') : null,
+      identifier ? identifier.replace(/[^0-9]/g, '') : null,
+      user.mobile && user.mobile.startsWith('0') ? user.mobile.substring(1) : null,
+      identifier && identifier.startsWith('0') ? identifier.substring(1) : null
+    ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
 
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
@@ -2923,8 +2934,9 @@ async function handleMobileLogin(req, res) {
             COUNT(session_id) AS session_count,
             MAX(created_at) AS last_recycled_at
           FROM recycling_sessions
-          WHERE user_id = $1 OR user_id = $2 OR user_id = $3;
-        `, [user.user_id, user.mobile || identifier, user.username]);
+          WHERE user_id = ANY($1::text[])
+            AND user_id NOT IN ('anonymous', '', 'null');
+        `, [validUserIds]);
 
         if (statsRes.rows.length > 0) {
           bottles = parseInt(statsRes.rows[0].total_bottles || 0);
@@ -2944,15 +2956,20 @@ async function handleMobileLogin(req, res) {
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
                  item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
           FROM recycling_sessions
-          WHERE user_id = $1 OR user_id = $2 OR user_id = $3
+          WHERE user_id = ANY($1::text[])
+            AND user_id NOT IN ('anonymous', '', 'null')
           ORDER BY created_at DESC
           LIMIT 10;
-        `, [user.user_id, user.mobile || identifier, user.username]);
+        `, [validUserIds]);
         recentSessions = recentRes.rows || [];
       }
     } else if (db) {
       const sessions = await db.collection('recyclingsessions').find({
-        $or: [{ userId: user.user_id }, { mobile: user.mobile || identifier }, { username: user.username }]
+        $and: [
+          { $or: [{ userId: { $in: validUserIds } }, { mobile: { $in: validUserIds } }, { user_id: { $in: validUserIds } }] },
+          { user_id: { $nin: ['anonymous', '', null] } },
+          { userId: { $nin: ['anonymous', '', null] } }
+        ]
       }).sort({ recycledAt: -1 }).limit(20).toArray();
 
       sessions.forEach(s => {
@@ -2999,7 +3016,7 @@ async function handleMobileLogin(req, res) {
         gender: user.gender || 'male',
         points
       },
-      recycleDetails: {
+      hasRecycleHistory: {
         points,
         earnedPoints: points,
         redeemedPoints: 0,
@@ -3025,7 +3042,7 @@ async function handleMobileLogin(req, res) {
     });
   } catch (err) {
     console.error('[Mobile Login Error]', err);
-    res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 }
 app.post('/api/login', handleMobileLogin);
@@ -3106,13 +3123,12 @@ async function handleMobileRegister(req, res) {
 app.post('/api/register', handleMobileRegister);
 app.post('/register', handleMobileRegister);
 
-// 3. Mobile Get Points
+// 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {
   try {
-    const { phoneNumber, mobile, userId } = req.body;
-    const phone = (phoneNumber || mobile || userId || '').trim();
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    const phone = (req.body.phoneNumber || req.body.phone || req.body.userId || '').trim();
+    if (!phone || phone === 'anonymous') {
+      return res.status(400).json({ success: false, message: 'Valid user phoneNumber or userId is required' });
     }
 
     let points = 0;
@@ -3136,10 +3152,20 @@ async function handleMobileGetPoints(req, res) {
           LIMIT 1;
         `, [phone]);
 
-        let targetUserId = phone;
+        let validUserIds = [phone];
         if (uRes.rows.length > 0) {
           points = uRes.rows[0].points_balance || 0;
-          targetUserId = uRes.rows[0].user_id;
+          const u = uRes.rows[0];
+          validUserIds = Array.from(new Set([
+            u.user_id,
+            u.username,
+            u.mobile,
+            phone,
+            u.mobile ? u.mobile.replace(/[^0-9]/g, '') : null,
+            phone ? phone.replace(/[^0-9]/g, '') : null,
+            u.mobile && u.mobile.startsWith('0') ? u.mobile.substring(1) : null,
+            phone && phone.startsWith('0') ? phone.substring(1) : null
+          ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
         }
 
         const sRes = await pool.query(`
@@ -3154,8 +3180,9 @@ async function handleMobileGetPoints(req, res) {
             COUNT(session_id) AS session_count,
             MAX(created_at) AS last_recycled_at
           FROM recycling_sessions
-          WHERE user_id = $1 OR user_id = $2;
-        `, [targetUserId, phone]);
+          WHERE user_id = ANY($1::text[])
+            AND user_id NOT IN ('anonymous', '', 'null');
+        `, [validUserIds]);
 
         if (sRes.rows.length > 0) {
           bottles = parseInt(sRes.rows[0].total_bottles || 0);
@@ -3175,21 +3202,32 @@ async function handleMobileGetPoints(req, res) {
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
                  item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
           FROM recycling_sessions
-          WHERE user_id = $1 OR user_id = $2
+          WHERE user_id = ANY($1::text[])
+            AND user_id NOT IN ('anonymous', '', 'null')
           ORDER BY created_at DESC
           LIMIT 10;
-        `, [targetUserId, phone]);
+        `, [validUserIds]);
         recentSessions = recentRes.rows || [];
       }
     } else if (db) {
       const user = await db.collection('users').findOne({
         $or: [{ mobile: phone }, { phoneNumber: phone }, { email: phone }, { username: phone }]
       });
+      const validUserIds = [phone];
       if (user) {
         points = user.points || user.pointsBalance || 0;
+        if (user.user_id) validUserIds.push(user.user_id);
+        if (user.username) validUserIds.push(user.username);
+        if (user.mobile) validUserIds.push(user.mobile);
       }
+      const cleanIds = validUserIds.filter(id => id && id !== 'anonymous');
+
       const sessions = await db.collection('recyclingsessions').find({
-        $or: [{ userId: phone }, { mobile: phone }, { user_id: phone }]
+        $and: [
+          { $or: [{ userId: { $in: cleanIds } }, { mobile: { $in: cleanIds } }, { user_id: { $in: cleanIds } }] },
+          { user_id: { $nin: ['anonymous', '', null] } },
+          { userId: { $nin: ['anonymous', '', null] } }
+        ]
       }).sort({ recycledAt: -1 }).limit(20).toArray();
 
       sessions.forEach(s => {
@@ -3245,27 +3283,43 @@ app.post('/get-points', handleMobileGetPoints);
 async function handleMobileGetRecycle(req, res) {
   try {
     const { userId } = req.params;
-    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
+    if (!userId || userId === 'anonymous') return res.status(400).json({ success: false, error: 'Valid userId is required' });
 
     let history = [];
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
+        const uRes = await pool.query(`
+          SELECT user_id, username, mobile FROM users
+          WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
+          LIMIT 1;
+        `, [userId]);
+
+        let validUserIds = [userId];
+        if (uRes.rows.length > 0) {
+          const u = uRes.rows[0];
+          validUserIds = Array.from(new Set([u.user_id, u.username, u.mobile, userId])).filter(Boolean);
+        }
+
         const sRes = await pool.query(`
           SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
                  item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
           FROM recycling_sessions
-          WHERE user_id = $1 OR user_id = (SELECT user_id FROM users WHERE mobile = $1 OR email = $1 OR username = $1 LIMIT 1)
+          WHERE user_id = ANY($1::text[])
+            AND user_id NOT IN ('anonymous', '', 'null')
           ORDER BY created_at DESC
           LIMIT 100;
-        `, [userId]);
+        `, [validUserIds]);
         history = sRes.rows;
       }
     } else if (db) {
       history = await db.collection('recyclingsessions').find({
-        $or: [{ userId }, { user_id: userId }, { mobile: userId }]
+        $and: [
+          { $or: [{ userId }, { user_id: userId }, { mobile: userId }] },
+          { user_id: { $nin: ['anonymous', '', null] } }
+        ]
       }).sort({ recycledAt: -1 }).limit(100).toArray();
-    }
+    } 
 
     res.json({
       success: true,
