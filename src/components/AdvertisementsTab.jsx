@@ -219,17 +219,22 @@ export default function AdvertisementsTab() {
     }
   };
 
-  const handleDeleteAd = async (id, title) => {
+  const handleDeleteAd = async (id, title, fileName) => {
     if (!window.confirm(`Are you sure you want to delete the advertisement "${title}"?`)) return;
     try {
-      const res = await fetch(`/api/machine/ads/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setAds(prev => prev.filter(a => a.id !== id));
-        setSuccessMsg(`Advertisement "${title}" removed.`);
+      const url = `/api/machine/ads/${encodeURIComponent(id)}?fileName=${encodeURIComponent(fileName || '')}&title=${encodeURIComponent(title || '')}`;
+      const res = await fetch(url, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success !== false) {
+        setAds(prev => prev.filter(a => a.id !== id && (fileName ? a.fileName !== fileName : true)));
+        setSuccessMsg(`Advertisement "${title}" removed successfully!`);
         setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        setErrorMsg(data.error || 'Failed to delete advertisement.');
       }
     } catch (err) {
       console.error(err);
+      setErrorMsg(err.message || 'Error deleting advertisement.');
     }
   };
 
@@ -573,7 +578,7 @@ export default function AdvertisementsTab() {
                     </button>
 
                     <button
-                      onClick={() => handleDeleteAd(ad.id, ad.title)}
+                      onClick={() => handleDeleteAd(ad.id, ad.title, ad.fileName)}
                       className="p-2 rounded-xl text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
                       title="Delete Video"
                     >

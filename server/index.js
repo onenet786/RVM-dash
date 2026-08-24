@@ -4627,6 +4627,7 @@ app.post('/api/machine/ads/upload', (req, res) => {
 });
 
 // Fetch active advertisement video playlist for RVM fleet / specific machine
+// Fetch active advertisement video playlist for RVM fleet / specific machine
 app.get('/api/machine/ads', async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
@@ -4648,19 +4649,28 @@ app.get('/api/machine/ads', async (req, res) => {
 
         queryText += ` ORDER BY display_order ASC, created_at DESC;`;
         const result = await pool.query(queryText, queryParams);
-        adsList = result.rows.map(r => ({
-          id: r.id,
-          machineId: r.machine_id,
-          title: r.title,
-          videoUrl: r.video_url,
-          fileName: r.file_name,
-          fileSize: Number(r.file_size || 0),
-          durationSeconds: r.duration_seconds || 0,
-          isActive: r.is_active,
-          displayOrder: r.display_order || 1,
-          createdAt: r.created_at,
-          updatedAt: r.updated_at
-        }));
+        
+        // Deduplicate rows by file_name or video_url to prevent duplicate UI items
+        const seenKeys = new Set();
+        for (const r of result.rows) {
+          const dedupeKey = (r.file_name || r.video_url || String(r.id)).toLowerCase();
+          if (!seenKeys.has(dedupeKey)) {
+            seenKeys.add(dedupeKey);
+            adsList.push({
+              id: r.id,
+              machineId: r.machine_id,
+              title: r.title,
+              videoUrl: r.video_url,
+              fileName: r.file_name,
+              fileSize: Number(r.file_size || 0),
+              durationSeconds: r.duration_seconds || 0,
+              isActive: r.is_active,
+              displayOrder: r.display_order || 1,
+              createdAt: r.created_at,
+              updatedAt: r.updated_at
+            });
+          }
+        }
       } catch (pgErr) {
         console.error('[GET /api/machine/ads] PostgreSQL error:', pgErr.message);
       }
@@ -4674,7 +4684,7 @@ app.get('/api/machine/ads', async (req, res) => {
           adsList = localFiles
             .filter(f => /\.(mp4|webm|avi|mov|mkv|m4v)$/i.test(f))
             .map((f, i) => ({
-              id: i + 1,
+              id: `disk_${i + 1}`,
               machineId: '*',
               title: f.replace(/_/g, ' ').replace(/\.[^.]+$/, ''),
               videoUrl: `/uploads/advertisements/${f}`,
@@ -4759,13 +4769,26 @@ app.post('/api/machine/ads', async (req, res) => {
       await pool.query(deactQuery, deactParams);
       displayOrder = 1;
     } else if (!id) {
-      // Auto-assign next display order if not specified
-      const maxOrderRes = await pool.query(`SELECT COALESCE(MAX(display_order), 0) AS max_order FROM machine_advertisements WHERE is_active = true`);
-      displayOrder = (maxOrderRes.rows[0]?.max_order || 0) + 1;
+      // Check if this same file/URL is already in DB to avoid duplicates
+      if (fileName || videoUrl) {
+        const dupCheck = await pool.query(
+          `SELECT id FROM machine_advertisements WHERE (file_name IS NOT NULL AND file_name = $1) OR video_url = $2 LIMIT 1`,
+          [fileName || '', videoUrl]
+        );
+        if (dupCheck.rows.length > 0) {
+          id = dupCheck.rows[0].id;
+        }
+      }
+
+      if (!id) {
+        // Auto-assign next display order if not specified
+        const maxOrderRes = await pool.query(`SELECT COALESCE(MAX(display_order), 0) AS max_order FROM machine_advertisements WHERE is_active = true`);
+        displayOrder = (maxOrderRes.rows[0]?.max_order || 0) + 1;
+      }
     }
 
     let savedAd;
-    if (id) {
+    if (id && !String(id).startsWith('disk_')) {
       // Update existing ad
       const updateRes = await pool.query(`
         UPDATE machine_advertisements
@@ -4773,7 +4796,7 @@ app.post('/api/machine/ads', async (req, res) => {
             duration_seconds = $6, is_active = $7, display_order = $8, updated_at = NOW()
         WHERE id = $9
         RETURNING *;
-      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder, id]);
+      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder, parseInt(id)]);
       savedAd = updateRes.rows[0];
     } else {
       // Create new ad
@@ -4802,55 +4825,94 @@ app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
     const pool = getPgPool();
     if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
 
-    const result = await pool.query(`
-      UPDATE machine_advertisements
-      SET is_active = NOT is_active, updated_at = NOW()
-      WHERE id = $1
-      RETURNING *;
-    `, [id]);
+    if (/^\d+$/.test(id)) {
+      const result = await pool.query(`
+        UPDATE machine_advertisements
+        SET is_active = NOT is_active, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
+      `, [parseInt(id)]);
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, error: 'Advertisement not found' });
+      if (result.rowCount > 0) {
+        return res.json({
+          success: true,
+          ad: result.rows[0],
+          message: `Advertisement status changed to ${result.rows[0].is_active ? 'ACTIVE' : 'PAUSED'}`
+        });
+      }
     }
 
-    res.json({
-      success: true,
-      ad: result.rows[0],
-      message: `Advertisement status changed to ${result.rows[0].is_active ? 'ACTIVE' : 'PAUSED'}`
-    });
+    res.json({ success: true, message: 'Status updated' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Delete Advertisement Video
+// Delete Advertisement Video (Handles DB record & Local file removal)
 app.delete('/api/machine/ads/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    const rawId = req.params.id;
+    const { fileName, title } = req.query;
     const pool = getPgPool();
-    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+    let deletedCount = 0;
+    let deletedTitle = title || rawId;
 
-    const selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE id = $1`, [id]);
-    if (selRes.rowCount === 0) {
-      return res.status(404).json({ success: false, error: 'Advertisement not found' });
+    if (pool && activeDbType === 'postgres') {
+      try {
+        let selRes;
+        if (/^\d+$/.test(rawId)) {
+          selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE id = $1`, [parseInt(rawId)]);
+        } else {
+          selRes = await pool.query(`
+            SELECT * FROM machine_advertisements 
+            WHERE file_name = $1 
+               OR video_url LIKE $2 
+               OR title ILIKE $3
+          `, [rawId, `%${rawId}%`, `%${rawId}%`]);
+        }
+
+        if (selRes && selRes.rows.length > 0) {
+          for (const ad of selRes.rows) {
+            deletedTitle = ad.title || deletedTitle;
+            await pool.query(`DELETE FROM machine_advertisements WHERE id = $1`, [ad.id]);
+            deletedCount++;
+
+            // Clean up matching file on disk
+            if (ad.file_name) {
+              const localFilePath = path.join(ADS_UPLOAD_DIR, ad.file_name);
+              if (fs.existsSync(localFilePath)) {
+                try { fs.unlinkSync(localFilePath); } catch (e) {}
+              }
+            }
+          }
+        }
+      } catch (dbErr) {
+        console.warn('[DELETE Ad DB Warning]', dbErr.message);
+      }
     }
 
-    const ad = selRes.rows[0];
-    await pool.query(`DELETE FROM machine_advertisements WHERE id = $1`, [id]);
-
-    // Clean up local uploaded file if it exists
-    if (ad.file_name) {
-      const localFilePath = path.join(ADS_UPLOAD_DIR, ad.file_name);
-      if (fs.existsSync(localFilePath)) {
-        try {
-          fs.unlinkSync(localFilePath);
-        } catch (e) {}
-      }
+    // Also scan ADS_UPLOAD_DIR to remove any file matching rawId or query fileName
+    if (fs.existsSync(ADS_UPLOAD_DIR)) {
+      try {
+        const files = fs.readdirSync(ADS_UPLOAD_DIR);
+        for (const f of files) {
+          const shouldDelete = f === rawId || 
+                               (fileName && f === fileName) ||
+                               (rawId && rawId.length > 5 && f.includes(rawId)) ||
+                               (deletedTitle && deletedTitle.length > 5 && f.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
+          if (shouldDelete) {
+            try {
+              fs.unlinkSync(path.join(ADS_UPLOAD_DIR, f));
+              deletedCount++;
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
     }
 
     res.json({
       success: true,
-      message: `Advertisement '${ad.title}' deleted successfully`
+      message: `Advertisement '${deletedTitle}' deleted successfully (${deletedCount} record(s)/file(s) removed)`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
