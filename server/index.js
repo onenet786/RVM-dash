@@ -3159,12 +3159,25 @@ async function handleUpdateProfile(req, res) {
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
       if (pool) {
+        // Ensure profile columns exist
+        await pool.query(`
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS dob VARCHAR(50);
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT;
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
+          ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP;
+        `).catch(() => {});
+
         const uRes = await pool.query(`
           SELECT user_id, username, full_name, email, mobile, age, nic, gender, dob, profile_image, points_balance
           FROM users
-          WHERE user_id = $1 OR username = $1 OR mobile = $1 OR email = $1
+          WHERE user_id = $1 
+             OR username = $1 
+             OR mobile = $1 
+             OR email = $1
+             OR ($2::text IS NOT NULL AND (username = $2 OR mobile = $2 OR user_id = $2))
+             OR ($3::text IS NOT NULL AND (mobile = $3 OR username = $3 OR user_id = $3))
           LIMIT 1;
-        `, [identifier]);
+        `, [identifier, username || null, mobile || null]);
 
         if (uRes.rows.length === 0) {
           return res.status(404).json({ success: false, message: 'User not found' });
