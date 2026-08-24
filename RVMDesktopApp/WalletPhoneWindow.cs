@@ -10,9 +10,11 @@ namespace RVMDesktopApp;
 
 public sealed class WalletPhoneWindow : Window
 {
-    private static readonly Regex PhonePattern = new(@"^\+?[0-9]{7,15}$", RegexOptions.Compiled);
+    private static readonly Regex DigitOnlyRegex = new(@"^[0-9]+$", RegexOptions.Compiled);
+    private static readonly Regex ValidPakPhoneRegex = new(@"^03[0-9]{9}$", RegexOptions.Compiled);
     private readonly TextBox phoneTextBox = new();
     private readonly TextBlock validationText = new();
+    private readonly Border inputBorder = new();
 
     public string PhoneNumber { get; private set; } = string.Empty;
 
@@ -133,7 +135,7 @@ public sealed class WalletPhoneWindow : Window
         var labelStack = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
         labelStack.Children.Add(new TextBlock
         {
-            Text = "📱 MOBILE / ACCOUNT NUMBER",
+            Text = "📱 MOBILE NUMBER (03xxxxxxxxx)",
             FontSize = 11,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(203, 213, 225))
@@ -141,31 +143,34 @@ public sealed class WalletPhoneWindow : Window
         bodyStack.Children.Add(labelStack);
 
         // Input Box Container
-        var inputBorder = new Border
-        {
-            Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
-            BorderThickness = new Thickness(1.5),
-            CornerRadius = new CornerRadius(10),
-            Padding = new Thickness(8, 2, 8, 2)
-        };
+        inputBorder.Background = new SolidColorBrush(Color.FromRgb(30, 41, 59));
+        inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105));
+        inputBorder.BorderThickness = new Thickness(1.5);
+        inputBorder.CornerRadius = new CornerRadius(10);
+        inputBorder.Padding = new Thickness(8, 2, 8, 2);
 
-        phoneTextBox.FontSize = 17;
+        phoneTextBox.FontSize = 18;
         phoneTextBox.FontWeight = FontWeights.SemiBold;
-        phoneTextBox.MaxLength = 16;
+        phoneTextBox.MaxLength = 11; // 03xxxxxxxxx max 11 digits
         phoneTextBox.Background = Brushes.Transparent;
         phoneTextBox.Foreground = Brushes.White;
         phoneTextBox.CaretBrush = Brushes.White;
         phoneTextBox.BorderThickness = new Thickness(0);
         phoneTextBox.Padding = new Thickness(4, 6, 4, 6);
+        
+        // Restrict to only numbers
+        phoneTextBox.PreviewTextInput += PhoneTextBox_PreviewTextInput;
+        DataObject.AddPastingHandler(phoneTextBox, PhoneTextBox_Pasting);
+        phoneTextBox.TextChanged += PhoneTextBox_TextChanged;
         phoneTextBox.KeyDown += PhoneTextBox_KeyDown;
+
         inputBorder.Child = phoneTextBox;
         bodyStack.Children.Add(inputBorder);
 
         // Subtitle / Helper
         bodyStack.Children.Add(new TextBlock
         {
-            Text = "Enter the registered mobile number associated with your eco wallet.",
+            Text = "Must start with 03 and contain exactly 11 digits (e.g. 03001234567).",
             FontSize = 11,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
             Margin = new Thickness(2, 4, 0, 4)
@@ -234,6 +239,62 @@ public sealed class WalletPhoneWindow : Window
         Loaded += (_, _) => phoneTextBox.Focus();
     }
 
+    private void PhoneTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        // Strictly allow only digit characters 0-9
+        e.Handled = !DigitOnlyRegex.IsMatch(e.Text);
+    }
+
+    private void PhoneTextBox_Pasting(object sender, DataObjectPastingEventArgs e)
+    {
+        if (e.DataObject.GetDataPresent(typeof(string)))
+        {
+            string text = (string)e.DataObject.GetData(typeof(string));
+            if (!DigitOnlyRegex.IsMatch(text))
+            {
+                e.CancelCommand();
+            }
+        }
+        else
+        {
+            e.CancelCommand();
+        }
+    }
+
+    private void PhoneTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        string value = phoneTextBox.Text.Trim();
+        if (string.IsNullOrEmpty(value))
+        {
+            validationText.Text = string.Empty;
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105));
+            return;
+        }
+
+        if (value.Length >= 1 && !value.StartsWith("0"))
+        {
+            validationText.Text = "⚠ Invalid number: Must start with 03 (e.g. 03xxxxxxxxx).";
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+        }
+        else if (value.Length >= 2 && !value.StartsWith("03"))
+        {
+            validationText.Text = "⚠ Invalid number: Must start with 03 (e.g. 03xxxxxxxxx).";
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+        }
+        else if (value.Length > 0 && value.Length < 11)
+        {
+            validationText.Text = $"Entering number: {value.Length}/11 digits";
+            validationText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber info
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+        }
+        else if (value.Length == 11 && ValidPakPhoneRegex.IsMatch(value))
+        {
+            validationText.Text = "✓ Valid mobile number";
+            validationText.Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129)); // Emerald success
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+        }
+    }
+
     private void PhoneTextBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -247,10 +308,31 @@ public sealed class WalletPhoneWindow : Window
 
     private void Submit()
     {
-        string value = phoneTextBox.Text.Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
-        if (!PhonePattern.IsMatch(value))
+        string value = phoneTextBox.Text.Trim();
+        if (string.IsNullOrEmpty(value))
         {
-            validationText.Text = "Enter a valid phone number (7-15 digits).";
+            validationText.Foreground = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            validationText.Text = "⚠ Please enter a mobile number.";
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            phoneTextBox.Focus();
+            return;
+        }
+
+        if (!value.StartsWith("03"))
+        {
+            validationText.Foreground = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            validationText.Text = "⚠ Invalid number: Must start with 03 (e.g. 03xxxxxxxxx).";
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            phoneTextBox.Focus();
+            return;
+        }
+
+        if (value.Length != 11 || !ValidPakPhoneRegex.IsMatch(value))
+        {
+            validationText.Foreground = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            validationText.Text = "⚠ Invalid number length: Must be exactly 11 digits (03xxxxxxxxx).";
+            inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(244, 63, 94));
+            phoneTextBox.Focus();
             return;
         }
 
