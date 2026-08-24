@@ -2909,6 +2909,9 @@ async function handleMobileLogin(req, res) {
     let points = user.points_balance || user.pointsBalance || user.points || 0;
     let latestRecycle = null;
     let recentSessions = [];
+    let earnedPoints = 0;
+    let redeemedPoints = 0;
+
     // Helper: Build strict, isolated identifier list for logged-in user
     const validUserIds = Array.from(new Set([
       user.user_id,
@@ -2940,7 +2943,6 @@ async function handleMobileLogin(req, res) {
             AND user_id NOT IN ('anonymous', '', 'null');
         `, [validUserIds]);
 
-        let earnedPoints = 0;
         if (statsRes.rows.length > 0) {
           bottles = parseInt(statsRes.rows[0].total_bottles || 0);
           cups = parseInt(statsRes.rows[0].total_cups || 0);
@@ -2956,7 +2958,7 @@ async function handleMobileLogin(req, res) {
           }
         }
 
-        const redeemedPoints = Math.max(0, earnedPoints - points);
+        redeemedPoints = Math.max(0, earnedPoints - points);
 
         const recentRes = await pool.query(`
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -2968,8 +2970,10 @@ async function handleMobileLogin(req, res) {
           LIMIT 10;
         `, [validUserIds]);
         recentSessions = recentRes.rows || [];
+      }
+    }
 
-        let token = '';
+    let token = '';
         try {
           token = jwt.sign(
             { userId: user.user_id, username: user.username, mobile: user.mobile },
@@ -3263,6 +3267,8 @@ async function handleMobileGetPoints(req, res) {
     let totalSessions = 0;
     let lastRecycled = null;
     let recentSessions = [];
+    let earnedPoints = 0;
+    let redeemedPoints = 0;
 
     if (activeDbType === 'postgres') {
       const pool = getPgPool();
@@ -3306,7 +3312,6 @@ async function handleMobileGetPoints(req, res) {
             AND user_id NOT IN ('anonymous', '', 'null');
         `, [validUserIds]);
 
-        let earnedPoints = 0;
         if (sRes.rows.length > 0) {
           bottles = parseInt(sRes.rows[0].total_bottles || 0);
           cups = parseInt(sRes.rows[0].total_cups || 0);
@@ -3322,7 +3327,7 @@ async function handleMobileGetPoints(req, res) {
           }
         }
 
-        const redeemedPoints = Math.max(0, earnedPoints - points);
+        redeemedPoints = Math.max(0, earnedPoints - points);
 
         const recentRes = await pool.query(`
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -3334,36 +3339,25 @@ async function handleMobileGetPoints(req, res) {
           LIMIT 10;
         `, [validUserIds]);
         recentSessions = recentRes.rows || [];
+      }
+    }
 
-        const totalRecovered = bottles + cups + glass + paper;
+    const totalRecovered = bottles + cups + glass + paper;
 
-        return res.json({
-          success: true,
-          points,
-          currentBalance: points,
-          earnedPoints,
-          totalEarnedPoints: earnedPoints,
-          redeemedPoints,
-          totalRedeemedPoints: redeemedPoints,
-          bottles,
-          plasticCount: bottles,
-          cups,
-          aluminiumCount: cups,
-          glassCount: glass,
-          paperCount: paper,
-          totalItems: totalRecovered,
-          totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
-          co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
-          totalSessions,
-          variants: {
-            petPlastic: bottles,
-            aluminiumCans: cups,
-            glassBottles: glass,
-            paperCartons: paper
-          },
-          recentSessions,
-          recycledAt: lastRecycled || new Date().toISOString()
-        });
+    return res.json({
+      success: true,
+      points,
+      currentBalance: points,
+      earnedPoints,
+      totalEarnedPoints: earnedPoints,
+      redeemedPoints,
+      totalRedeemedPoints: redeemedPoints,
+      bottles,
+      plasticCount: bottles,
+      cups,
+      aluminiumCount: cups,
+      glassCount: glass,
+      paperCount: paper,
       totalItems: totalRecovered,
       totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
       co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
