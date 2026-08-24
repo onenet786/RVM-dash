@@ -3184,6 +3184,7 @@ async function handleMobileGetPoints(req, res) {
             AND user_id NOT IN ('anonymous', '', 'null');
         `, [validUserIds]);
 
+        let earnedPoints = 0;
         if (sRes.rows.length > 0) {
           bottles = parseInt(sRes.rows[0].total_bottles || 0);
           cups = parseInt(sRes.rows[0].total_cups || 0);
@@ -3193,10 +3194,13 @@ async function handleMobileGetPoints(req, res) {
           totalCo2Kg = parseFloat(sRes.rows[0].total_co2 || 0);
           totalSessions = parseInt(sRes.rows[0].session_count || 0);
           lastRecycled = sRes.rows[0].last_recycled_at;
-          if (points === 0 && parseInt(sRes.rows[0].total_earned_points || 0) > 0) {
-            points = parseInt(sRes.rows[0].total_earned_points);
+          earnedPoints = parseInt(sRes.rows[0].total_earned_points || 0);
+          if (points === 0 && earnedPoints > 0) {
+            points = earnedPoints;
           }
         }
+
+        const redeemedPoints = Math.max(0, earnedPoints - points);
 
         const recentRes = await pool.query(`
           SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -3208,56 +3212,36 @@ async function handleMobileGetPoints(req, res) {
           LIMIT 10;
         `, [validUserIds]);
         recentSessions = recentRes.rows || [];
-      }
-    } else if (db) {
-      const user = await db.collection('users').findOne({
-        $or: [{ mobile: phone }, { phoneNumber: phone }, { email: phone }, { username: phone }]
-      });
-      const validUserIds = [phone];
-      if (user) {
-        points = user.points || user.pointsBalance || 0;
-        if (user.user_id) validUserIds.push(user.user_id);
-        if (user.username) validUserIds.push(user.username);
-        if (user.mobile) validUserIds.push(user.mobile);
-      }
-      const cleanIds = validUserIds.filter(id => id && id !== 'anonymous');
 
-      const sessions = await db.collection('recyclingsessions').find({
-        $and: [
-          { $or: [{ userId: { $in: cleanIds } }, { mobile: { $in: cleanIds } }, { user_id: { $in: cleanIds } }] },
-          { user_id: { $nin: ['anonymous', '', null] } },
-          { userId: { $nin: ['anonymous', '', null] } }
-        ]
-      }).sort({ recycledAt: -1 }).limit(20).toArray();
+        const totalRecovered = bottles + cups + glass + paper;
 
-      sessions.forEach(s => {
-        bottles += parseInt(s.bottles || s.plasticCount || 0);
-        cups += parseInt(s.cups || s.canCount || s.aluminiumCount || 0);
-        glass += parseInt(s.glassCount || s.glass || 0);
-        paper += parseInt(s.paperCount || s.paper || 0);
-        totalWeightKg += parseFloat(s.totalWeightKg || s.weight || 0);
-        totalCo2Kg += parseFloat(s.co2AvoidedKg || s.co2 || 0);
-        if (!lastRecycled || new Date(s.recycledAt || s.timestamp) > new Date(lastRecycled)) {
-          lastRecycled = s.recycledAt || s.timestamp;
-        }
-      });
-      totalSessions = sessions.length;
-      recentSessions = sessions.slice(0, 10);
-    }
-
-    const totalRecovered = bottles + cups + glass + paper;
-
-    res.json({
-      success: true,
-      points,
-      earnedPoints: points,
-      redeemedPoints: 0,
-      bottles,
-      plasticCount: bottles,
-      cups,
-      aluminiumCount: cups,
-      glassCount: glass,
-      paperCount: paper,
+        return res.json({
+          success: true,
+          points,
+          currentBalance: points,
+          earnedPoints,
+          totalEarnedPoints: earnedPoints,
+          redeemedPoints,
+          totalRedeemedPoints: redeemedPoints,
+          bottles,
+          plasticCount: bottles,
+          cups,
+          aluminiumCount: cups,
+          glassCount: glass,
+          paperCount: paper,
+          totalItems: totalRecovered,
+          totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
+          co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
+          totalSessions,
+          variants: {
+            petPlastic: bottles,
+            aluminiumCans: cups,
+            glassBottles: glass,
+            paperCartons: paper
+          },
+          recentSessions,
+          recycledAt: lastRecycled || new Date().toISOString()
+        });
       totalItems: totalRecovered,
       totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
       co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),

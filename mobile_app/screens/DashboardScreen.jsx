@@ -330,6 +330,10 @@ const DashboardScreen = ({ route }) => {
   }
 
   // Calculated recovery and variant stats
+  const currentBalance = parseInt(localHistory?.currentBalance ?? localHistory?.points ?? localUser?.points ?? 0);
+  const totalEarned = parseInt(localHistory?.totalEarnedPoints ?? localHistory?.earnedPoints ?? currentBalance);
+  const totalRedeemed = parseInt(localHistory?.totalRedeemedPoints ?? localHistory?.redeemedPoints ?? Math.max(0, totalEarned - currentBalance));
+
   const plasticCount = parseInt(localHistory?.plasticCount || localHistory?.bottles || 0);
   const aluminiumCount = parseInt(localHistory?.aluminiumCount || localHistory?.cups || 0);
   const glassCount = parseInt(localHistory?.glassCount || 0);
@@ -367,34 +371,68 @@ const DashboardScreen = ({ route }) => {
           
           {/* User Information Section */}
           <View style={styles.userInfoContainer}>
-            <View style={styles.userNameContainer}>
-              <MaterialCommunityIcons name="account-circle" size={24} color="#0284C7" style={{ marginRight: 6 }} />
-              <Text style={styles.userName}>
-                {localUser?.username || "Welcome User"}
-              </Text>
-            </View>
-
-            <View style={styles.refreshButton}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <MaterialCommunityIcons name="star-circle" size={20} color="#EAB308" style={{ marginRight: 6 }} />
-                <Text style={styles.userPoints}>
-                  Points: {localHistory?.points || 0} / {rewardPoints}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={styles.userNameContainer}>
+                <MaterialCommunityIcons name="account-circle" size={24} color="#0284C7" style={{ marginRight: 6 }} />
+                <Text style={styles.userName}>
+                  {localUser?.username || "Welcome User"}
                 </Text>
               </View>
               <TouchableOpacity 
                 onPress={handleRefresh}
                 accessibilityLabel="Refresh points"
                 disabled={refreshing}
-                style={{ padding: 4 }}
+                style={styles.refreshIconBtn}
               >
                 <Animated.View style={{ transform: [{ rotate }] }}>
                   <MaterialCommunityIcons 
                     name="refresh" 
-                    size={22} 
+                    size={20} 
                     color={refreshing ? "#94A3B8" : "#0284C7"} 
                   />
                 </Animated.View>
               </TouchableOpacity>
+            </View>
+
+            {/* Synchronized 3-Column Points Breakdown Panel */}
+            <View style={styles.pointsBreakdownPanel}>
+              {/* 1. Current Balance */}
+              <View style={[styles.pointsStatBox, styles.pointsStatBoxPrimary]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                  <MaterialCommunityIcons name="wallet" size={15} color="#0284C7" style={{ marginRight: 3 }} />
+                  <Text style={styles.pointsStatLabel}>Balance</Text>
+                </View>
+                <Text style={[styles.pointsStatNumber, { color: '#0284C7' }]}>{currentBalance.toLocaleString()}</Text>
+                <Text style={styles.pointsStatUnit}>Available pts</Text>
+              </View>
+
+              {/* 2. Total Lifetime Earned */}
+              <View style={[styles.pointsStatBox, styles.pointsStatBoxSuccess]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                  <MaterialCommunityIcons name="star-circle" size={15} color="#059669" style={{ marginRight: 3 }} />
+                  <Text style={styles.pointsStatLabel}>Earned</Text>
+                </View>
+                <Text style={[styles.pointsStatNumber, { color: '#059669' }]}>{totalEarned.toLocaleString()}</Text>
+                <Text style={styles.pointsStatUnit}>Lifetime pts</Text>
+              </View>
+
+              {/* 3. Total Redeemed */}
+              <View style={[styles.pointsStatBox, styles.pointsStatBoxWarning]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                  <MaterialCommunityIcons name="ticket-percent" size={15} color="#D97706" style={{ marginRight: 3 }} />
+                  <Text style={styles.pointsStatLabel}>Redeemed</Text>
+                </View>
+                <Text style={[styles.pointsStatNumber, { color: '#D97706' }]}>{totalRedeemed.toLocaleString()}</Text>
+                <Text style={styles.pointsStatUnit}>Used pts</Text>
+              </View>
+            </View>
+
+            {/* Milestone Goal Tracker */}
+            <View style={styles.milestoneGoalRow}>
+              <MaterialCommunityIcons name="trophy-outline" size={15} color="#CA8A04" style={{ marginRight: 6 }} />
+              <Text style={styles.milestoneGoalText}>
+                Next Reward Tier Goal: <Text style={{ fontWeight: '700', color: '#854D0E' }}>{currentBalance} / {rewardPoints} pts</Text>
+              </Text>
             </View>
           </View>
 
@@ -740,20 +778,68 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
   },
-  refreshButton: {
+  refreshIconBtn: {
+    padding: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+  },
+  pointsBreakdownPanel: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  pointsStatBox: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  pointsStatBoxPrimary: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+  },
+  pointsStatBoxSuccess: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  pointsStatBoxWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  pointsStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+  },
+  pointsStatNumber: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  pointsStatUnit: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 1,
+  },
+  milestoneGoalRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FEF08A',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     marginTop: 10,
   },
-  userPoints: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#047857',
+  milestoneGoalText: {
+    fontSize: 11,
+    color: '#854D0E',
+    fontWeight: '500',
   },
   impactMetricsGrid: {
     flexDirection: 'row',
