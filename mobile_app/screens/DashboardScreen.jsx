@@ -498,23 +498,23 @@ const DashboardScreen = ({ route }) => {
               </View>
             </View>
 
-            {/* 4. Cartons & Paper */}
+            {/* 4. Cups & Cartons */}
             <View style={[styles.variantCard, styles.paperCard]}>
               <View style={styles.variantTopRow}>
                 <View style={[styles.variantIconCircle, { backgroundColor: '#EEF2FF' }]}>
-                  <MaterialCommunityIcons name="package-variant-closed" size={24} color="#4F46E5" />
+                  <MaterialCommunityIcons name="coffee" size={24} color="#4F46E5" />
                 </View>
                 <Text style={styles.variantCountNumber}>{paperCount}</Text>
               </View>
-              <Text style={styles.variantTitle}>Tetra & Cartons</Text>
-              <Text style={styles.variantSpecs}>Milk & Juice Cartons</Text>
+              <Text style={styles.variantTitle}>Cups & Cartons</Text>
+              <Text style={styles.variantSpecs}>Cups & Juice Cartons</Text>
               
               <View style={styles.variantSubtagsContainer}>
                 <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Tetra Pak</Text>
+                  <Text style={styles.variantTagText}>Cups</Text>
                 </View>
                 <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Paper Board</Text>
+                  <Text style={styles.variantTagText}>Tetra Pak</Text>
                 </View>
               </View>
             </View>
@@ -553,7 +553,7 @@ const DashboardScreen = ({ route }) => {
                 <View key={session.session_id || idx} style={styles.activityItem}>
                   <View style={styles.activityIconCircle}>
                     <MaterialCommunityIcons 
-                      name={pCount > 0 ? "bottle-soda-classic" : aCount > 0 ? "cup-water" : "recycle"} 
+                      name={pCount > 0 ? "bottle-soda-classic" : aCount > 0 ? "cup-water" : cardCount > 0 ? "coffee" : "recycle"} 
                       size={20} 
                       color="#0284C7" 
                     />
@@ -563,7 +563,7 @@ const DashboardScreen = ({ route }) => {
                       {pCount > 0 && `${pCount}x PET `}
                       {aCount > 0 && `${aCount}x Can `}
                       {gCount > 0 && `${gCount}x Glass `}
-                      {cardCount > 0 && `${cardCount}x Carton `}
+                      {cardCount > 0 && `${cardCount}x Cup/Carton `}
                       {session.item_variant ? `(${session.item_variant})` : ''}
                     </Text>
                     <Text style={styles.activitySubtext}>
@@ -633,40 +633,50 @@ const DashboardScreen = ({ route }) => {
           </View>
         </View>
 
-        {/* Data Backup & Cloud Sync Card */}
-        <View style={[styles.card, styles.backupCard]}>
-          <View style={styles.backupHeader}>
-            <MaterialCommunityIcons name="cloud-upload" size={24} color="#0284C7" />
-            <Text style={styles.cardTitle}>Data Backup & Cloud Sync</Text>
-          </View>
-          
-          <Text style={styles.backupSubtext}>
-            {lastBackup ? `Last Backup: ${lastBackup}` : 'Back up your profile, recovery variants, and points balance.'}
-          </Text>
+        {/* Data Backup & Cloud Sync Card (VISIBLE ONLY FOR SUPER ADMIN) */}
+        {(localUser?.role === 'super_admin' || 
+          localUser?.role === 'admin' || 
+          localUser?.role_id === 'super_admin' || 
+          localUser?.role_id === 'admin' || 
+          localUser?.isSuperAdmin === true ||
+          localUser?.username?.toLowerCase() === 'superadmin' ||
+          localUser?.username?.toLowerCase() === 'admin' ||
+          localUser?.username?.toLowerCase() === 'onenet') && (
+          <View style={[styles.card, styles.backupCard]}>
+            <View style={styles.backupHeader}>
+              <MaterialCommunityIcons name="shield-crown" size={24} color="#0284C7" />
+              <Text style={styles.cardTitle}>Admin Backup & Cloud Sync</Text>
+            </View>
+            
+            <Text style={styles.backupSubtext}>
+              {lastBackup ? `Last Backup: ${lastBackup}` : 'Super Admin data persistence & backup tools.'}
+            </Text>
 
-          <View style={styles.backupActionsRow}>
-            <TouchableOpacity
-              style={[styles.backupButton, styles.backupButtonPrimary]}
-              onPress={handleBackup}
-              disabled={backupLoading}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="sync" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.backupButtonText}>
-                {backupLoading ? 'Backing Up...' : 'Backup Now'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.backupActionsRow}>
+              <TouchableOpacity
+                style={[styles.backupButton, styles.backupButtonPrimary]}
+                onPress={handleBackup}
+                disabled={backupLoading}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="sync" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.backupButtonText}>
+                  {backupLoading ? 'Backing Up...' : 'Backup Now'}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.backupButton, styles.exportButton]}
-              onPress={handleExportJson}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="file-download-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-              <Text style={styles.backupButtonText}>Export JSON</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.backupButton, styles.exportButton]}
+                onPress={handleExportJson}
+                disabled={backupLoading}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="file-download-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.backupButtonText}>Export JSON</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
