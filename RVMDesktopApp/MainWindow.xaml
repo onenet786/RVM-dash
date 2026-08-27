@@ -623,21 +623,7 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Progress Indicator -->
-                    <Border Grid.Row="1" VerticalAlignment="Bottom" Background="#80000000" Padding="10,4" Margin="10,0,10,4" CornerRadius="4">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="0:05 / 0:20" FontSize="9" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <ProgressBar Grid.Column="1" Value="25" Height="3" Foreground="#22C55E" Background="#475569" BorderThickness="0" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
-                                <TextBlock Text="🔊  ⚙  ⛶" FontSize="10" Foreground="#CBD5E1" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+
 
                     <!-- Bottom Eco Footer Bar -->
                     <Border Grid.Row="2" Background="#073B28" Padding="10,6" BorderBrush="#15803D" BorderThickness="0,2,0,0">
