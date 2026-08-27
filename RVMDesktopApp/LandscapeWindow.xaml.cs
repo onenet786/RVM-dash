@@ -58,13 +58,21 @@ public partial class LandscapeWindow : Window
         scanTimer.Interval = ScanTimeout;
         scanTimer.Tick += ScanTimer_Tick;
 
+        clockTimer.Interval = TimeSpan.FromSeconds(1);
+        clockTimer.Tick += (s, args) => UpdateClockDisplay();
+
         TelemetryList.ItemsSource = telemetryLog;
     }
 
+    private readonly DispatcherTimer clockTimer = new();
     private DispatcherTimer? apiCheckTimer;
 
     private void LandscapeWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        UpdateClockDisplay();
+        clockTimer.Start();
+        UpdateImpactMetrics();
+
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
         UpdateRvmNameDisplay(settings.MachineId);
 
@@ -287,11 +295,45 @@ public partial class LandscapeWindow : Window
         }
     }
 
+    private void UpdateClockDisplay()
+    {
+        var now = DateTime.Now;
+        if (LiveDateText != null) LiveDateText.Text = now.ToString("dd MMM yyyy");
+        if (LiveTimeText != null) LiveTimeText.Text = now.ToString("hh:mm tt");
+    }
+
+    private void UpdateImpactMetrics()
+    {
+        if (Co2SavedText != null) Co2SavedText.Text = (totalItems * 0.15).ToString("0.00");
+        if (WaterSavedText != null) WaterSavedText.Text = (totalItems * 0.75).ToString("0.00");
+    }
+
     private void StartButton_Click(object sender, RoutedEventArgs e) => StartMachine();
 
     private void StopButton_Click(object sender, RoutedEventArgs e) => StopMachine();
 
     private void AdminButton_Click(object sender, RoutedEventArgs e) => OpenAdmin();
+
+    private void ViewRewardsButton_Click(object sender, RoutedEventArgs e) => CompleteSessionToWallet();
+
+    private void SignInNav_Click(object sender, RoutedEventArgs e) => CompleteSessionToWallet();
+
+    private void RewardsNav_Click(object sender, RoutedEventArgs e) => CompleteSessionToWallet();
+
+    private void TransactionNav_Click(object sender, RoutedEventArgs e)
+    {
+        RvmMessageDialog.ShowInfo("Session Summary", $"Current Session Stats:\n\n• Items Recycled: {totalItems}\n• Points Earned: {totalPoints}\n• CO₂ Saved: {(totalItems * 0.15):0.00} kg\n• Water Saved: {(totalItems * 0.75):0.00} L");
+    }
+
+    private void InstructionsNav_Click(object sender, RoutedEventArgs e)
+    {
+        RvmMessageDialog.ShowInfo("How To Use RVM", "1. INSERT: Place your empty bottle, can, or cup in the chamber.\n2. DETECT: Sensors will scan and identify the material.\n3. REWARD: Collect points and send directly to your wallet.\n4. SAVE ENVIRONMENT: Every container keeps our planet cleaner!");
+    }
+
+    private void AnnouncementsNav_Click(object sender, RoutedEventArgs e)
+    {
+        RvmMessageDialog.ShowInfo("Announcements", "🌿 Special Recycling Campaign Active!\nEarn bonus points for plastic bottles, aluminum cans, and beverage cups today!");
+    }
 
     private void BrowseVideo()
     {
@@ -992,6 +1034,7 @@ public partial class LandscapeWindow : Window
             : $"{result.Size} {itemDescription} - {points} points";
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
+        UpdateImpactMetrics();
 
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
@@ -1206,6 +1249,7 @@ public partial class LandscapeWindow : Window
             CanSmallCountText.Text = CanMediumCountText.Text = CanLargeCountText.Text =
             TetraPakSmallCountText.Text = TetraPakMediumCountText.Text = TetraPakLargeCountText.Text = RejectedCountText.Text = "0";
         TotalPointsText.Text = "0";
+        UpdateImpactMetrics();
     }
 
     private void IncrementMaterialSizeCounter(string material, string size)
