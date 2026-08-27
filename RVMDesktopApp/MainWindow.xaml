@@ -83,7 +83,7 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- TOP 60%: Interactive Kiosk Dashboard (Bigger Typography & Visible Instruction Video Player) -->
+            <!-- TOP 60%: Interactive Kiosk Dashboard (With Instruction Video In Insert Bottle Section) -->
             <RowDefinition Height="60*"/>
             <!-- BOTTOM 40%: Cinematic Digital Signage Video Screen & Eco Bar -->
             <RowDefinition Height="40*"/>
@@ -104,7 +104,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Row 0: Top Header -->
                         <RowDefinition Height="Auto"/> <!-- Row 1: Separate Cards Bar (Hardware Status Card & Session Details Card) -->
-                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Insert Circle + Bilingual How-To with Instruction Video & Top 5 Leaderboard) -->
+                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Insert Bottle / Instruction Video on Left + How-To & Leaderboard on Right) -->
                         <RowDefinition Height="Auto"/> <!-- Row 3: Double Height "Your Impact" & "Your Balance" Cards -->
                         <RowDefinition Height="Auto"/> <!-- Row 4: Bottom 5 Navigation Actions -->
                     </Grid.RowDefinitions>
@@ -277,55 +277,66 @@
                         </Border>
                     </Grid>
 
-                    <!-- ROW 2: CENTER SECTION (INSERT CIRCLE ON LEFT, HOW TO USE + INSTRUCTION VIDEO + TOP 5 LEADERBOARD ON RIGHT) -->
+                    <!-- ROW 2: CENTER SECTION (INSERT BOTTLE / LIVE INSTRUCTION VIDEO ON LEFT, HOW TO USE & TOP 5 LEADERBOARD ON RIGHT) -->
                     <Grid Grid.Row="2" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.1*"/> <!-- Circular Touch Button -->
+                            <ColumnDefinition Width="1.1*"/> <!-- Insert Bottle / Live Instruction Video Area -->
                             <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="*"/>    <!-- How To Use + Instruction Video + Top 5 Leaderboard -->
+                            <ColumnDefinition Width="*"/>    <!-- Bilingual How-To Guide (Top) + Top 5 Leaderboard (Bottom) -->
                         </Grid.ColumnDefinitions>
 
-                        <!-- LEFT: THE INSERT BOTTLE / CAN CIRCULAR BUTTON -->
+                        <!-- LEFT: INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER -->
                         <Grid Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
-                                <Grid Width="215" Height="215">
-                                    <!-- Outer Faint Dotted Ring -->
-                                    <Ellipse Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
-                                    <!-- Middle Natural Light Cream Ring -->
-                                    <Ellipse Width="200" Height="200" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.5"/>
-                                    <!-- Inner White Card Circle -->
-                                    <Ellipse Width="180" Height="180" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.2" Effect="{StaticResource CircleShadow}"/>
+                            <!-- Container with Rounded Border & Natural Drop Shadow -->
+                            <Border Width="220" Height="220" CornerRadius="110" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                <Grid>
+                                    <!-- 1. The Video Player (Visible when Instructinal.mp4 is available in Ads\Instructions) -->
+                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded"/>
+                                    
+                                    <!-- 2. The Insert Bottle Circle Placeholder (Visible when no video is playing) -->
+                                    <Grid x:Name="InstructionPlaceholder">
+                                        <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
+                                            <Grid Width="220" Height="220">
+                                                <!-- Outer Faint Dotted Ring -->
+                                                <Ellipse Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
+                                                <!-- Middle Natural Light Cream Ring -->
+                                                <Ellipse Width="204" Height="204" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.5"/>
+                                                <!-- Inner White Card Circle -->
+                                                <Ellipse Width="184" Height="184" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.2"/>
 
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Canvas Width="68" Height="42" Margin="0,0,0,3">
-                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="9" Height="2.5" Stroke="#073B28" StrokeThickness="1.2" Fill="#073B28"/>
-                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="14" Height="4" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
-                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                        </Canvas>
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Canvas Width="68" Height="42" Margin="0,0,0,3">
+                                                        <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
+                                                        <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="9" Height="2.5" Stroke="#073B28" StrokeThickness="1.2" Fill="#073B28"/>
+                                                        <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
+                                                        <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="14" Height="4" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
+                                                        <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
+                                                    </Canvas>
 
-                                        <TextBlock Text="INSERT  •  داخل کریں" FontSize="18" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="BOTTLE / CAN / CUP" FontSize="10.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,5"/>
-                                        
-                                        <Border Background="#073B28" CornerRadius="12" Padding="16,5" HorizontalAlignment="Center">
-                                            <TextBlock Text="TO START • شروع کریں" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
-                                        </Border>
-                                    </StackPanel>
+                                                    <TextBlock Text="INSERT  •  داخل کریں" FontSize="18" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="BOTTLE / CAN / CUP" FontSize="10.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,5"/>
+                                                    
+                                                    <Border Background="#073B28" CornerRadius="12" Padding="16,5" HorizontalAlignment="Center">
+                                                        <TextBlock Text="TO START • شروع کریں" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Button>
+                                    </Grid>
                                 </Grid>
-                            </Button>
+                            </Border>
                         </Grid>
 
-                        <!-- RIGHT: BILINGUAL HOW TO USE RVM WITH VISIBLE INSTRUCTION VIDEO PLAYER + TOP 5 LEADERBOARD -->
+                        <!-- RIGHT: BILINGUAL HOW TO USE RVM (TOP) + TOP 5 LEADERBOARD (BOTTOM) -->
                         <Grid Grid.Column="2">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="1.35*"/> <!-- Bilingual How To Use RVM + Instruction Video -->
+                                <RowDefinition Height="1.35*"/> <!-- Bilingual How To Use RVM -->
                                 <RowDefinition Height="6"/>
                                 <RowDefinition Height="*"/>     <!-- Top 5 Leaderboard with Larger Fonts -->
                             </Grid.RowDefinitions>
 
-                            <!-- BILINGUAL HOW TO USE RVM & LIVE INSTRUCTION VIDEO PLAYER -->
-                            <Border Grid.Row="0" Background="#073F26" CornerRadius="12" Padding="14,8" Effect="{StaticResource CardShadow}">
+                            <!-- BILINGUAL HOW TO USE RVM (FULL WIDTH 4 STEPS) -->
+                            <Border Grid.Row="0" Background="#073F26" CornerRadius="12" Padding="16,10" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -334,63 +345,40 @@
 
                                     <TextBlock Grid.Row="0" Text="HOW TO USE RVM • مشین استعمال کرنے کا طریقہ" FontSize="13" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,6"/>
 
-                                    <Grid Grid.Row="1">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="1.3*"/> <!-- 4 Steps Column -->
-                                            <ColumnDefinition Width="8"/>
-                                            <ColumnDefinition Width="*"/>    <!-- Live Instruction Video Player Column -->
-                                        </Grid.ColumnDefinitions>
-
-                                        <!-- 4 Steps -->
-                                        <UniformGrid Grid.Column="0" Columns="1" Rows="4">
-                                            <!-- Step 1 -->
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1.5">
-                                                <Border Width="24" Height="24" CornerRadius="12" Background="#115338" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="🍾" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Insert empty bottle, can or cup" FontSize="8.5" Foreground="#CBD5E1"/>
-                                                </StackPanel>
+                                    <UniformGrid Grid.Row="1" Columns="1" Rows="4">
+                                        <!-- Step 1 -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🍾" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Insert empty bottle, can or cup • خالی بوتل اندر داخل کریں" FontSize="9.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
-                                            <!-- Step 2 -->
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1.5">
-                                                <Border Width="24" Height="24" CornerRadius="12" Background="#115338" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="🔍" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Sensors scan &amp; identify" FontSize="8.5" Foreground="#CBD5E1"/>
-                                                </StackPanel>
+                                        </StackPanel>
+                                        <!-- Step 2 -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🔍" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontSize="9.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
-                                            <!-- Step 3 -->
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1.5">
-                                                <Border Width="24" Height="24" CornerRadius="12" Background="#115338" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="🎁" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Earn points / cash reward" FontSize="8.5" Foreground="#CBD5E1"/>
-                                                </StackPanel>
+                                        </StackPanel>
+                                        <!-- Step 3 -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🎁" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Earn points / cash reward • انعام یا پوائنٹس پائیں" FontSize="9.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
-                                            <!-- Step 4 -->
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1.5">
-                                                <Border Width="24" Height="24" CornerRadius="12" Background="#115338" Margin="0,0,8,0" VerticalAlignment="Center"><TextBlock Text="🌱" FontSize="11.5" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="You make planet greener" FontSize="8.5" Foreground="#CBD5E1"/>
-                                                </StackPanel>
+                                        </StackPanel>
+                                        <!-- Step 4 -->
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🌱" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="You make the planet greener • اپنے ماحول کو سرسبز بنائیں" FontSize="9.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
-                                        </UniformGrid>
-
-                                        <!-- Live Instruction Video Player Card -->
-                                        <Border Grid.Column="2" Background="#042317" BorderBrush="#145A3E" BorderThickness="1.5" CornerRadius="8" ClipToBounds="True">
-                                            <Grid>
-                                                <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" MediaEnded="InstructionPlayer_MediaEnded"/>
-                                                <Grid x:Name="InstructionPlaceholder" Background="#073B28">
-                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <TextBlock Text="♻" FontSize="26" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="VIDEO GUIDE" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="ہدایات کی ویڈیو" FontSize="8" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Grid>
-                                        </Border>
-                                    </Grid>
+                                        </StackPanel>
+                                    </UniformGrid>
                                 </Grid>
                             </Border>
 
