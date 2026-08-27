@@ -6,44 +6,96 @@
         Background="#F7F9F5" PreviewKeyDown="Window_KeyDown">
     
     <Window.Resources>
-        <!-- Natural Organic Eco Palette Matching Image -->
+        <!-- Natural Organic Eco Palette -->
         <SolidColorBrush x:Key="ForestDark" Color="#073B28"/>
-        <SolidColorBrush x:Key="ForestGuide" Color="#083E28"/>
-        <SolidColorBrush x:Key="EcoGreen" Color="#15803D"/>
+        <SolidColorBrush x:Key="ForestMedium" Color="#0D5C3A"/>
+        <SolidColorBrush x:Key="BrandGreen" Color="#16A34A"/>
         <SolidColorBrush x:Key="BrightLeaf" Color="#22C55E"/>
-        <SolidColorBrush x:Key="NaturalCardBg" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="NaturalSoftBg" Color="#F2F6EF"/>
-        <SolidColorBrush x:Key="TextMain" Color="#0F241A"/>
-        <SolidColorBrush x:Key="TextSub" Color="#475569"/>
-        <SolidColorBrush x:Key="BorderLight" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="InkText" Color="#0F172A"/>
+        <SolidColorBrush x:Key="InkMuted" Color="#64748B"/>
+        <SolidColorBrush x:Key="LightBorder" Color="#E2E8F0"/>
         
-        <!-- Soft Natural Shadows -->
-        <DropShadowEffect x:Key="CardShadow" BlurRadius="14" ShadowDepth="2" Opacity="0.06" Color="#073B28"/>
-        <DropShadowEffect x:Key="CircleShadow" BlurRadius="20" ShadowDepth="3" Opacity="0.10" Color="#073B28"/>
+        <!-- Shadows -->
+        <DropShadowEffect x:Key="CardShadow" BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#073B28"/>
+        <DropShadowEffect x:Key="SoftShadow" BlurRadius="8" ShadowDepth="1" Opacity="0.05" Color="#000000"/>
 
-        <!-- Interactive Circle Button Template -->
-        <Style x:Key="ExactInsertCircleButton" TargetType="Button">
+        <!-- Text and Card Styles -->
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource InkMuted}"/>
+        </Style>
+
+        <Style x:Key="NaturalCard" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="{StaticResource LightBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <Style x:Key="KioskChip" TargetType="Border">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#1E293B"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="7,3"/>
+        </Style>
+
+        <Style x:Key="ChipText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+        </Style>
+
+        <Style x:Key="PrimaryGreenButton" TargetType="Button">
+            <Setter Property="Background" Value="#073B28"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bdr" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bdr" Property="Background" Value="#0D5C3A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GhostLightButton" TargetType="Button">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="{StaticResource InkText}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style x:Key="CircularStartButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bdr" Background="{TemplateBinding Background}" CornerRadius="200">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="200">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bdr" Property="RenderTransform">
+                                <Setter TargetName="border" Property="RenderTransform">
                                     <Setter.Value>
-                                        <ScaleTransform ScaleX="1.02" ScaleY="1.02" CenterX="110" CenterY="110"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bdr" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98" CenterX="110" CenterY="110"/>
+                                        <ScaleTransform ScaleX="1.02" ScaleY="1.02" CenterX="65" CenterY="65"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -53,7 +105,6 @@
             </Setter>
         </Style>
 
-        <!-- Bottom 5 Navigation Card Buttons -->
         <Style x:Key="BottomNavCardButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -61,7 +112,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bdr" Background="{TemplateBinding Background}" CornerRadius="10" Padding="4,6">
+                        <Border x:Name="bdr" Background="{TemplateBinding Background}" CornerRadius="8" Padding="2,3">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -77,425 +128,475 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- TOP 55%: Interactive Natural Kiosk UI -->
-            <RowDefinition Height="55*"/>
-            <!-- BOTTOM 45%: Cinematic Digital Signage Video Screen -->
-            <RowDefinition Height="45*"/>
+            <!-- TOP 60%: Complete Interactive Kiosk Dashboard, Session Details & Leaderboard -->
+            <RowDefinition Height="60*"/>
+            <!-- BOTTOM 40%: Digital Signage Video Player & Eco Bar -->
+            <RowDefinition Height="40*"/>
         </Grid.RowDefinitions>
 
         <!-- ========================================================================= -->
-        <!-- TOP SCREEN: INTERACTIVE NATURAL KIOSK INTERFACE                           -->
+        <!-- TOP SCREEN: KIOSK DASHBOARD, SESSION TELEMETRY & LEADERBOARD              -->
         <!-- ========================================================================= -->
-        <Border Grid.Row="0" Background="#F7F9F5" Padding="28,14,28,10" BorderBrush="#E2E8F0" BorderThickness="0,0,0,2">
-            <!-- Background Decorative Natural Foliage Leaves -->
+        <Border Grid.Row="0" Background="#F7F9F5" Padding="18,10,18,8" BorderBrush="#E2E8F0" BorderThickness="0,0,0,2">
             <Grid>
-                <!-- Decorative Top Right Leaf Art -->
-                <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" Width="100" Height="80" IsHitTestVisible="False" Opacity="0.35">
-                    <Path Data="M 70 0 C 90 20 100 50 80 70 C 60 90 30 70 40 40 C 50 10 70 0 70 0 Z" Fill="#86EFAC"/>
-                    <Path Data="M 20 10 C 40 30 50 60 30 80 C 10 90 0 70 10 40 C 20 20 20 10 20 10 Z" Fill="#4ADE80"/>
-                </Canvas>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- 0: Header -->
+                    <RowDefinition Height="*"/>    <!-- 1: Three Column Core Layout (Utility | Command Center | Leaderboard) -->
+                    <RowDefinition Height="Auto"/> <!-- 2: Bottom 5 Navigation Quick Cards -->
+                </Grid.RowDefinitions>
 
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- 0: Header -->
-                        <RowDefinition Height="Auto"/> <!-- 1: Welcome -->
-                        <RowDefinition Height="*"/>    <!-- 2: Insert Circle + How to Use -->
-                        <RowDefinition Height="Auto"/> <!-- 3: Your Impact & Your Balance -->
-                        <RowDefinition Height="Auto"/> <!-- 4: 5 Navigation Action Cards -->
-                    </Grid.RowDefinitions>
+                <!-- ROW 0: TOP HEADER BAR -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                    <!-- ROW 0: TOP HEADER BAR -->
-                    <Grid Grid.Row="0" Margin="0,0,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Left: RVM Logo and Tagline -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <!-- Circular Bottle-Leaf Logo Graphic -->
-                            <Grid Width="50" Height="50" Margin="0,0,12,0">
-                                <Ellipse Stroke="#073B28" StrokeThickness="2.5" Fill="Transparent"/>
-                                <!-- Bottle Silhouette inside -->
-                                <Path Data="M 22 14 L 22 9 L 28 9 L 28 14 L 33 19 L 33 40 L 17 40 L 17 19 Z" Fill="#073B28"/>
-                                <!-- Curved Leaf wrapping bottle -->
-                                <Path Data="M 32 25 C 44 26 44 42 30 42 C 34 36 34 29 32 25 Z" Fill="#22C55E"/>
-                            </Grid>
-                            <StackPanel VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="RVM" FontSize="26" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
-                                    <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="6" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
-                                    </Border>
-                                    <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="6" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="9" FontWeight="Bold" Foreground="#0369A1"/>
-                                    </Border>
-                                </StackPanel>
-                                <TextBlock Text="REVERSE VENDING MACHINE" FontSize="9" FontWeight="Bold" Foreground="#073B28" Margin="1,-3,0,0"/>
-                                <TextBlock Text="Reduce • Reuse • Recycle" FontSize="9" FontWeight="SemiBold" Foreground="#64748B" Margin="1,1,0,0"/>
+                    <!-- Header Left: RVM Logo and Tagline -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Grid Width="44" Height="44" Margin="0,0,10,0">
+                            <Ellipse Stroke="#073B28" StrokeThickness="2.5" Fill="Transparent"/>
+                            <Path Data="M 19 12 L 19 7 L 25 7 L 25 12 L 30 17 L 30 36 L 14 36 L 14 17 Z" Fill="#073B28"/>
+                            <Path Data="M 29 23 C 40 24 40 38 27 38 C 31 32 31 26 29 23 Z" Fill="#22C55E"/>
+                        </Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="RVM" FontSize="22" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
+                                <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="5" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                                </Border>
+                                <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="5" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="9" FontWeight="Bold" Foreground="#0369A1"/>
+                                </Border>
                             </StackPanel>
+                            <TextBlock Text="REVERSE VENDING MACHINE" FontSize="8.5" FontWeight="Bold" Foreground="#073B28" Margin="1,-2,0,0"/>
+                            <TextBlock Text="Reduce • Reuse • Recycle" FontSize="8.5" FontWeight="SemiBold" Foreground="#64748B" Margin="1,1,0,0"/>
                         </StackPanel>
+                    </StackPanel>
 
-                        <!-- Hidden compatibility fields -->
-                        <TextBlock x:Name="HeaderDotText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="CommandCenterRvmNameText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="AdHeaderRvmNameText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="MachineStateText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="ConnectionText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="DbStatusText" Visibility="Collapsed"/>
-                        <TextBlock x:Name="ApiStatusText" Visibility="Collapsed"/>
-                        <Ellipse x:Name="StatusDot" Visibility="Collapsed"/>
-                        <Ellipse x:Name="DbDot" Visibility="Collapsed"/>
-                        <Ellipse x:Name="ApiDot" Visibility="Collapsed"/>
+                    <!-- Hidden Compatibility Bindings -->
+                    <TextBlock x:Name="HeaderDotText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="CommandCenterRvmNameText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="AdHeaderRvmNameText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="MachineStateText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ConnectionText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="DbStatusText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ApiStatusText" Visibility="Collapsed"/>
+                    <Ellipse x:Name="StatusDot" Visibility="Collapsed"/>
+                    <Ellipse x:Name="DbDot" Visibility="Collapsed"/>
+                    <Ellipse x:Name="ApiDot" Visibility="Collapsed"/>
 
-                        <!-- Right: Date/Time Box & Environmental Solutions Pvt. Ltd. -->
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                            <!-- Rounded Date & Time Box -->
-                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="12,5" HorizontalAlignment="Right" Margin="0,0,0,4" Effect="{StaticResource CardShadow}">
-                                <StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,1">
-                                        <TextBlock Text="📅 " FontSize="10"/>
-                                        <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="11" FontWeight="SemiBold" Foreground="#334155"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🕒 " FontSize="10"/>
-                                        <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="12" FontWeight="Bold" Foreground="#073B28"/>
-                                    </StackPanel>
+                    <!-- Header Right: Date, Time & Company Branding Card -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Date & Time Box -->
+                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,10,0" Effect="{StaticResource CardShadow}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,1">
+                                    <TextBlock Text="📅 " FontSize="10"/>
+                                    <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="11" FontWeight="SemiBold" Foreground="#334155"/>
                                 </StackPanel>
-                            </Border>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🕒 " FontSize="10"/>
+                                    <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="12" FontWeight="Bold" Foreground="#073B28"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
 
-                            <!-- Company Name Logo -->
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <!-- Stylized geometric S logo -->
-                                <Border Width="16" Height="16" CornerRadius="3" BorderBrush="#F59E0B" BorderThickness="1.5" Margin="0,0,6,0" VerticalAlignment="Center">
+                        <!-- Environmental Solutions Badge -->
+                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="8,4" Effect="{StaticResource CardShadow}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="3" BorderBrush="#F59E0B" BorderThickness="1.5" Margin="0,0,6,0" VerticalAlignment="Center">
                                     <TextBlock Text="S" FontSize="10" FontWeight="Bold" Foreground="#F59E0B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Border>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="Environmental" FontSize="10" FontWeight="Bold" Foreground="#073B28"/>
-                                    <TextBlock Text="Solutions Pvt. Ltd." FontSize="8" FontWeight="SemiBold" Foreground="#64748B"/>
+                                    <TextBlock Text="Environmental Solutions" FontSize="9.5" FontWeight="Bold" Foreground="#073B28"/>
+                                    <TextBlock Text="Pvt. Ltd." FontSize="8" FontWeight="SemiBold" Foreground="#64748B"/>
                                 </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- ROW 1: WELCOME HEADLINE -->
-                    <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,2,0,8">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="🍃 " FontSize="16" Foreground="#15803D"/>
-                            <TextBlock Text="WELCOME" FontSize="19" FontWeight="Black" Foreground="#073B28"/>
-                            <TextBlock Text=" 🍃" FontSize="16" Foreground="#15803D"/>
-                        </StackPanel>
-                        <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="11" FontWeight="Medium" Foreground="#475569" HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                        </Border>
                     </StackPanel>
+                </Grid>
 
-                    <!-- ROW 2: CENTER SECTION (INSERT CIRCLE ON LEFT, COMPACT HOW TO USE ON RIGHT) -->
-                    <Grid Grid.Row="2" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="24"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <!-- ROW 1: 3-COLUMN CORE KIOSK LAYOUT -->
+                <!-- [ Left: Insert Circle & How To Use ] | [ Center: Full Session Telemetry & Counts ] | [ Right: Leaderboard & Balance ] -->
+                <Grid Grid.Row="1" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28*"/> <!-- Left: Insert Target & Guide -->
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="46*"/> <!-- Center: Session Material Breakdown -->
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="26*"/> <!-- Right: Leaderboard & Rewards -->
+                    </Grid.ColumnDefinitions>
 
-                        <!-- LEFT: THE INSERT BOTTLE / CAN CIRCULAR BUTTON -->
-                        <Grid Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
-                                <Grid Width="220" Height="220">
-                                    <!-- Outer Faint Dotted Ring -->
-                                    <Ellipse Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="3 3"/>
-                                    <!-- Middle Natural Light Cream Ring -->
-                                    <Ellipse Width="204" Height="204" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="2"/>
-                                    <!-- Inner White Card Circle -->
-                                    <Ellipse Width="184" Height="184" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.5" Effect="{StaticResource CircleShadow}"/>
+                    <!-- ========================================================================= -->
+                    <!-- LEFT COLUMN: WELCOME + INSERT CIRCLE + HOW TO USE GUIDE                   -->
+                    <!-- ========================================================================= -->
+                    <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="12" Padding="10,8" Effect="{StaticResource CardShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Welcome Header -->
+                                <RowDefinition Height="*"/>    <!-- Insert Circle -->
+                                <RowDefinition Height="Auto"/> <!-- How to Use Mini Steps -->
+                                <RowDefinition Height="Auto"/> <!-- Start/Stop Buttons -->
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                <TextBlock Text="🍃 WELCOME 🍃" FontSize="12" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="8.5" FontWeight="Medium" Foreground="#64748B" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Circular Insert Button -->
+                            <Button Grid.Row="1" Style="{StaticResource CircularStartButton}" Click="StartButton_Click" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid Width="130" Height="130">
+                                    <Ellipse Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
+                                    <Ellipse Width="118" Height="118" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.5"/>
+                                    <Ellipse Width="104" Height="104" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.2" Effect="{StaticResource CardShadow}"/>
 
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <!-- Container Line-Art Graphic (Bottle + Can + Carton) -->
-                                        <Canvas Width="70" Height="44" Margin="0,0,0,4">
-                                            <!-- Bottle -->
-                                            <Path Data="M 12 12 L 12 6 L 18 6 L 18 12 L 24 18 L 24 44 L 6 44 L 6 18 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                            <Rectangle Canvas.Left="10" Canvas.Top="3" Width="10" Height="3" Stroke="#073B28" StrokeThickness="1.5" Fill="#073B28"/>
-                                            <!-- Can -->
-                                            <Path Data="M 29 22 L 44 22 L 44 44 L 29 44 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                            <Ellipse Canvas.Left="29" Canvas.Top="20" Width="15" Height="4.5" Stroke="#073B28" StrokeThickness="1.5" Fill="Transparent"/>
-                                            <!-- Carton -->
-                                            <Path Data="M 50 16 L 65 16 L 62 44 L 52 44 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                            <Path Data="M 55 10 L 61 10 L 64 16 L 51 16 Z" Stroke="#073B28" StrokeThickness="1.5" Fill="Transparent"/>
+                                        <Canvas Width="48" Height="28" Margin="0,0,0,2">
+                                            <Path Data="M 7 7 L 7 3 L 11 3 L 11 7 L 15 11 L 15 28 L 3 28 L 3 11 Z" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
+                                            <Path Data="M 19 13 L 29 13 L 29 28 L 19 28 Z" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
+                                            <Path Data="M 33 10 L 43 10 L 41 28 L 35 28 Z" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
                                         </Canvas>
-
-                                        <!-- Text Details -->
-                                        <TextBlock Text="INSERT" FontSize="20" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                        <TextBlock Text="BOTTLE / CAN" FontSize="11" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,6"/>
-                                        
-                                        <!-- Pill Button: TO START -->
-                                        <Border Background="#073B28" CornerRadius="12" Padding="16,5" HorizontalAlignment="Center">
-                                            <TextBlock Text="TO START" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="INSERT" FontSize="13" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="BOTTLE / CAN" FontSize="7.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,2"/>
+                                        <Border Background="#073B28" CornerRadius="8" Padding="10,2" HorizontalAlignment="Center">
+                                            <TextBlock Text="TO START" FontSize="8.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                         </Border>
                                     </StackPanel>
                                 </Grid>
                             </Button>
+
+                            <!-- How to Use RVM Mini Guide -->
+                            <Border Grid.Row="2" Background="#083E28" CornerRadius="8" Padding="8,6" Margin="0,4,0,4">
+                                <StackPanel>
+                                    <TextBlock Text="HOW TO USE RVM" FontSize="9.5" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                                    <TextBlock Text="1. INSERT  ·  2. DETECT  ·  3. REWARD" FontSize="8" FontWeight="Bold" Foreground="#FFFFFF" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Controls -->
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="STOP (S)" Style="{StaticResource GhostLightButton}" Click="StopButton_Click"/>
+                                <Button Grid.Column="2" Content="ADMIN (A)" Style="{StaticResource GhostLightButton}" Click="AdminButton_Click"/>
+                            </Grid>
                         </Grid>
+                    </Border>
 
-                        <!-- RIGHT: HOW TO USE RVM (Dark Forest Green Panel Matching Mockup) -->
-                        <Border Grid.Column="2" Background="#083E28" Width="260" CornerRadius="12" Padding="14,12" Effect="{StaticResource CardShadow}">
-                            <Grid>
+                    <!-- ========================================================================= -->
+                    <!-- CENTER COLUMN: COMPLETE PREVIOUS SESSION DATA STRUCTURE (PLASTIC/CAN/TP)  -->
+                    <!-- ========================================================================= -->
+                    <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="12" Padding="12,8" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Title: Command Center -->
+                                <RowDefinition Height="Auto"/> <!-- Machine Status & Last Scan Cards -->
+                                <RowDefinition Height="*"/>    <!-- Complete S/M/L Matrix for Plastic, Can, TetraPak, Reject -->
+                                <RowDefinition Height="Auto"/> <!-- Your Impact Stats (Bottles, CO2, Water) -->
+                            </Grid.RowDefinitions>
+
+                            <!-- Command Center Title -->
+                            <Grid Grid.Row="0" Margin="0,0,0,6">
+                                <TextBlock Text="SESSION TELEMETRY &amp; COUNTERS" FontSize="12" FontWeight="Black" Foreground="{StaticResource InkText}"/>
+                                <TextBlock Text="LIVE SENSORS 🟢" HorizontalAlignment="Right" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                            </Grid>
+
+                            <!-- Status & Scan Banner -->
+                            <Grid Grid.Row="1" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.5*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Style="{StaticResource NaturalCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="MACHINE STATUS" Style="{StaticResource StatLabel}"/>
+                                        <TextBlock x:Name="StatusText" Text="Press 0 to Start" FontSize="13" FontWeight="Bold" Foreground="#16A34A" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2" Style="{StaticResource NaturalCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="LAST SCAN" Style="{StaticResource StatLabel}"/>
+                                        <TextBlock x:Name="BottleInfoText" Text="Insert plastic bottle or metal can" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource InkText}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="4" Style="{StaticResource NaturalCard}">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <TextBlock Text="ITEMS" Style="{StaticResource StatLabel}" TextAlignment="Center"/>
+                                        <Viewbox Grid.Row="1" Stretch="Uniform">
+                                            <TextBlock x:Name="TotalItemsText" Text="0" FontSize="26" FontWeight="ExtraBold" Foreground="#0891B2" TextAlignment="Center"/>
+                                        </Viewbox>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Column="6" Style="{StaticResource NaturalCard}">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <TextBlock Text="POINTS" Style="{StaticResource StatLabel}" TextAlignment="Center"/>
+                                        <Viewbox Grid.Row="1" Stretch="Uniform">
+                                            <TextBlock x:Name="TotalPointsText" Text="0" FontSize="26" FontWeight="ExtraBold" Foreground="#D97706" TextAlignment="Center"/>
+                                        </Viewbox>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+
+                            <!-- Complete S / M / L Data Grid for Plastic, Can, Tetra Pak, Rejected -->
+                            <Grid Grid.Row="2" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="3"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="3"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="HOW TO USE RVM" FontSize="12" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <!-- REJECTED CARD (Spans All 3 Rows) -->
+                                <Border Grid.RowSpan="5" Grid.Column="7" Style="{StaticResource NaturalCard}" Padding="6,4">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <TextBlock Text="REJECTED" Style="{StaticResource StatLabel}" TextAlignment="Center" Foreground="#DC2626"/>
+                                        <Viewbox Grid.Row="1" Stretch="Uniform">
+                                            <TextBlock x:Name="RejectedCountText" Text="0" FontSize="28" FontWeight="ExtraBold" Foreground="#DC2626" TextAlignment="Center"/>
+                                        </Viewbox>
+                                    </Grid>
+                                </Border>
 
-                                <UniformGrid Grid.Row="1" Columns="1" Rows="4">
-                                    <!-- Step 1 -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
-                                        <Border Width="26" Height="26" CornerRadius="13" Background="#115338" BorderBrush="#1F7552" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center">
-                                            <TextBlock Text="🍾" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="1. INSERT" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                            <TextBlock Text="Insert your empty bottle / can" FontSize="8.5" Foreground="#CBD5E1"/>
-                                        </StackPanel>
-                                    </StackPanel>
+                                <!-- ROW 0: PLASTIC -->
+                                <Border Grid.Row="0" Grid.Column="0" Background="#D1FAE5" CornerRadius="8,0,0,8" BorderBrush="#10B981" BorderThickness="1,1,0,1" Padding="4">
+                                    <Viewbox Stretch="Uniform"><TextBlock Text="PLASTIC" FontSize="20" FontWeight="ExtraBold" Foreground="#047857" TextAlignment="Center"/></Viewbox>
+                                </Border>
+                                <Border Grid.Row="0" Grid.Column="1" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="SMALL" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="PlasticSmallCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#047857" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="0" Grid.Column="3" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="MEDIUM" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="PlasticMediumCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#047857" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="0" Grid.Column="5" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="LARGE" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="PlasticLargeCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#047857" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
 
-                                    <!-- Step 2 -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
-                                        <Border Width="26" Height="26" CornerRadius="13" Background="#115338" BorderBrush="#1F7552" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center">
-                                            <TextBlock Text="🔍" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="2. DETECT" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                            <TextBlock Text="We will scan and identify it" FontSize="8.5" Foreground="#CBD5E1"/>
-                                        </StackPanel>
-                                    </StackPanel>
+                                <!-- ROW 2: CAN -->
+                                <Border Grid.Row="2" Grid.Column="0" Background="#DBEAFE" CornerRadius="8,0,0,8" BorderBrush="#0EA5E9" BorderThickness="1,1,0,1" Padding="4">
+                                    <Viewbox Stretch="Uniform"><TextBlock Text="CAN" FontSize="20" FontWeight="ExtraBold" Foreground="#0369A1" TextAlignment="Center"/></Viewbox>
+                                </Border>
+                                <Border Grid.Row="2" Grid.Column="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="SMALL" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="CanSmallCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#0369A1" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="2" Grid.Column="3" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="MEDIUM" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="CanMediumCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#0369A1" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="2" Grid.Column="5" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="LARGE" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="CanLargeCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#0369A1" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
 
-                                    <!-- Step 3 -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
-                                        <Border Width="26" Height="26" CornerRadius="13" Background="#115338" BorderBrush="#1F7552" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center">
-                                            <TextBlock Text="🎁" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="3. REWARD" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                            <TextBlock Text="Earn points / cash reward" FontSize="8.5" Foreground="#CBD5E1"/>
-                                        </StackPanel>
-                                    </StackPanel>
-
-                                    <!-- Step 4 -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
-                                        <Border Width="26" Height="26" CornerRadius="13" Background="#115338" BorderBrush="#1F7552" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center">
-                                            <TextBlock Text="🌱" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="4. SAVE ENVIRONMENT" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                            <TextBlock Text="You make the planet cleaner" FontSize="8.5" Foreground="#CBD5E1"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </UniformGrid>
+                                <!-- ROW 4: TETRA PAK / CUP -->
+                                <Border Grid.Row="4" Grid.Column="0" Background="#FEF3C7" CornerRadius="8,0,0,8" BorderBrush="#F59E0B" BorderThickness="1,1,0,1" Padding="4">
+                                    <Viewbox Stretch="Uniform"><TextBlock Text="TETRA/CUP" FontSize="15" FontWeight="ExtraBold" Foreground="#B45309" TextAlignment="Center"/></Viewbox>
+                                </Border>
+                                <Border Grid.Row="4" Grid.Column="1" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="SMALL" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="TetraPakSmallCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#B45309" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="4" Grid.Column="3" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="MEDIUM" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="TetraPakMediumCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#B45309" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
+                                <Border Grid.Row="4" Grid.Column="5" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" Padding="4,2">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><TextBlock Text="LARGE" Style="{StaticResource StatLabel}" TextAlignment="Center"/><Viewbox Grid.Row="1" Stretch="Uniform"><TextBlock x:Name="TetraPakLargeCountText" Text="0" FontSize="22" FontWeight="ExtraBold" Foreground="#B45309" TextAlignment="Center"/></Viewbox></Grid>
+                                </Border>
                             </Grid>
-                        </Border>
-                    </Grid>
 
-                    <!-- ROW 3: YOUR IMPACT & YOUR BALANCE (Exact Mockup Layout) -->
-                    <Grid Grid.Row="3" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- LEFT CARD: YOUR IMPACT 🍃 -->
-                        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="12" Padding="14,10" Effect="{StaticResource CardShadow}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Grid.Row="0" Text="YOUR IMPACT 🍃" FontSize="11" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,6"/>
-
-                                <UniformGrid Grid.Row="1" Columns="1" Rows="3">
-                                    <!-- Row 1: Bottles Recycled -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="22" Height="22" CornerRadius="11" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" Margin="0,0,8,0">
-                                            <TextBlock Text="🍾" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Text="Bottles Recycled" FontSize="11" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="125" FontSize="15" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Row 2: CO2 Saved -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="22" Height="22" CornerRadius="11" Background="#ECFDF5" BorderBrush="#99F6E4" BorderThickness="1" Margin="0,0,8,0">
-                                            <TextBlock Text="☁️" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Text="CO₂ Saved (kg)" FontSize="11" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="18.75" FontSize="15" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Row 3: Water Saved -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="22" Height="22" CornerRadius="11" Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" Margin="0,0,8,0">
-                                            <TextBlock Text="💧" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Text="Water Saved (L)" FontSize="11" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="93.40" FontSize="15" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </UniformGrid>
-                            </Grid>
-                        </Border>
-
-                        <!-- RIGHT CARD: YOUR BALANCE (Matching Mockup with Soft Leaf Watermark) -->
-                        <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="12" Padding="14,10" Effect="{StaticResource CardShadow}">
-                            <Grid>
-                                <!-- Leaf Watermark in Background -->
-                                <Canvas HorizontalAlignment="Right" VerticalAlignment="Center" Width="60" Height="60" IsHitTestVisible="False" Opacity="0.45">
-                                    <Path Data="M 30 10 C 50 15 60 40 40 55 C 20 60 10 40 20 20 C 25 12 30 10 30 10 Z" Fill="#86EFAC"/>
-                                    <Path Data="M 10 25 C 25 30 30 50 15 58 C 5 60 0 45 5 35 Z" Fill="#4ADE80"/>
-                                </Canvas>
-
+                            <!-- YOUR IMPACT (CO2 and Water Saved) -->
+                            <Border Grid.Row="3" Background="#FFFFFF" CornerRadius="8" Padding="10,4" BorderBrush="#E2E8F0" BorderThickness="1">
                                 <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Top Row: YOUR BALANCE + Gift Icon -->
-                                    <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                        <TextBlock Text="YOUR BALANCE" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
-                                        <TextBlock Text=" 🎁" FontSize="11" Margin="4,0,0,0"/>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="YOUR IMPACT 🍃" FontSize="10" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="☁️ CO₂ Saved: " FontSize="10" FontWeight="SemiBold" Foreground="#64748B"/>
+                                        <TextBlock x:Name="Co2SavedText" Text="0.00" FontSize="11" FontWeight="Black" Foreground="#0D9488"/>
+                                        <TextBlock Text=" kg" FontSize="10" FontWeight="Bold" Foreground="#0D9488"/>
                                     </StackPanel>
-
-                                    <!-- Big Balance Number + POINTS -->
-                                    <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,2,0,4">
-                                        <TextBlock x:Name="TotalPointsText" Text="120" FontSize="36" FontWeight="Black" Foreground="#073B28" LineHeight="36"/>
-                                        <TextBlock Text="POINTS" FontSize="10" FontWeight="Bold" Foreground="#15803D" Margin="2,-4,0,0"/>
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="💧 Water Saved: " FontSize="10" FontWeight="SemiBold" Foreground="#64748B"/>
+                                        <TextBlock x:Name="WaterSavedText" Text="0.00" FontSize="11" FontWeight="Black" Foreground="#2563EB"/>
+                                        <TextBlock Text=" L" FontSize="10" FontWeight="Bold" Foreground="#2563EB"/>
                                     </StackPanel>
-
-                                    <!-- Button: VIEW REWARDS -->
-                                    <Button Grid.Row="2" Content="VIEW REWARDS" HorizontalAlignment="Left" Background="#073B28" Foreground="White" FontSize="11" FontWeight="Bold" Padding="14,6" Cursor="Hand" Click="ViewRewardsButton_Click">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
                                 </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ========================================================================= -->
+                    <!-- RIGHT COLUMN: LEADERBOARD + YOUR BALANCE (Complete Previous Leaderboard)  -->
+                    <!-- ========================================================================= -->
+                    <Grid Grid.Column="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>    <!-- Leaderboard -->
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/> <!-- Your Balance Card -->
+                        </Grid.RowDefinitions>
+
+                        <!-- LEADERBOARD CARD -->
+                        <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="12" Padding="10,8" BorderBrush="#E2E8F0" BorderThickness="1" Effect="{StaticResource CardShadow}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="LEADERBOARD 🏆" FontSize="11" FontWeight="Black" Foreground="{StaticResource InkText}" Margin="0,0,0,6"/>
+                                <Border Grid.Row="1" Background="#F1F5F9" BorderBrush="#CBD5E1" BorderThickness="0,0,0,1" Padding="4,3">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="48"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Rank" FontSize="9" FontWeight="Bold" Foreground="{StaticResource InkMuted}" TextAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Name" FontSize="9" FontWeight="Bold" Foreground="{StaticResource InkMuted}"/>
+                                        <TextBlock Grid.Column="2" Text="Total" FontSize="9" FontWeight="Bold" Foreground="{StaticResource InkMuted}" TextAlignment="Right"/>
+                                    </Grid>
+                                </Border>
+                                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl x:Name="LeaderboardList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="2,3">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="24"/>
+                                                            <ColumnDefinition Width="18"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="48"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Rank}" FontSize="10" FontWeight="Bold" Foreground="#16A34A" TextAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" Width="14" Height="14" CornerRadius="7" Background="#E0F2FE" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock Text="👤" FontSize="8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource InkText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="3,0,0,0"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding PointsBalance, StringFormat={}{0} pts}" FontSize="10" FontWeight="Bold" Foreground="#D97706" TextAlignment="Right" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- YOUR BALANCE CARD -->
+                        <Border Grid.Row="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="10" Padding="10,6" Effect="{StaticResource CardShadow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="YOUR BALANCE 🎁" FontSize="9.5" FontWeight="Bold" Foreground="#64748B"/>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Text, ElementName=TotalPointsText}" FontSize="18" FontWeight="Black" Foreground="#073B28"/>
+                                        <TextBlock Text=" PTS" FontSize="9.5" FontWeight="Bold" Foreground="#16A34A" VerticalAlignment="Bottom" Margin="3,0,0,2"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="REWARDS" Style="{StaticResource PrimaryGreenButton}" FontSize="10" Padding="8,4" VerticalAlignment="Center" Click="ViewRewardsButton_Click"/>
                             </Grid>
                         </Border>
                     </Grid>
-
-                    <!-- ROW 4: BOTTOM 5 QUICK NAVIGATION CARDS (Exact Circular Icon Badges) -->
-                    <Grid Grid.Row="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- 1. SIGN IN / SIGN UP -->
-                        <Button Grid.Column="0" Style="{StaticResource BottomNavCardButton}" Click="SignInNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="#16A34A" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                    <TextBlock Text="👤" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="SIGN IN / SIGN UP" FontSize="9" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Manage your account" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                                <TextBlock Text=">" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 2. REWARDS -->
-                        <Button Grid.Column="1" Style="{StaticResource BottomNavCardButton}" Click="RewardsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="#F59E0B" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                    <TextBlock Text="🎁" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="REWARDS" FontSize="9" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="View &amp; Redeem" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                                <TextBlock Text=">" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 3. TRANSACTION -->
-                        <Button Grid.Column="2" Style="{StaticResource BottomNavCardButton}" Click="TransactionNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="#0284C7" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                    <TextBlock Text="🕒" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="TRANSACTION" FontSize="9" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="View History" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                                <TextBlock Text=">" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 4. INSTRUCTIONS -->
-                        <Button Grid.Column="3" Style="{StaticResource BottomNavCardButton}" Click="InstructionsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="#7C3AED" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                    <TextBlock Text="ℹ️" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="INSTRUCTIONS" FontSize="9" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Learn how to use" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                                <TextBlock Text=">" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 5. ANNOUNCEMENTS -->
-                        <Button Grid.Column="4" Style="{StaticResource BottomNavCardButton}" Click="AnnouncementsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="34" Height="34" CornerRadius="17" Background="#0D9488" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                    <TextBlock Text="📢" FontSize="15" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="ANNOUNCEMENTS" FontSize="9" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Latest updates &amp; news" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                                <TextBlock Text=">" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-
-                    <!-- Hidden Hardware & Session Material fields for background services -->
-                    <StackPanel Visibility="Collapsed">
-                        <TextBlock x:Name="StatusText"/>
-                        <TextBlock x:Name="BottleInfoText"/>
-                        <TextBlock x:Name="PlasticSmallCountText"/>
-                        <TextBlock x:Name="PlasticMediumCountText"/>
-                        <TextBlock x:Name="PlasticLargeCountText"/>
-                        <TextBlock x:Name="CanSmallCountText"/>
-                        <TextBlock x:Name="CanMediumCountText"/>
-                        <TextBlock x:Name="CanLargeCountText"/>
-                        <TextBlock x:Name="TetraPakSmallCountText"/>
-                        <TextBlock x:Name="TetraPakMediumCountText"/>
-                        <TextBlock x:Name="TetraPakLargeCountText"/>
-                        <TextBlock x:Name="RejectedCountText"/>
-                        <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaEnded="InstructionPlayer_MediaEnded"/>
-                        <Grid x:Name="InstructionPlaceholder"/>
-                        <ItemsControl x:Name="LeaderboardList"/>
-                    </StackPanel>
                 </Grid>
+
+                <!-- ROW 2: 5 QUICK ACTION CARDS (Bottom Navigation) -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" Style="{StaticResource BottomNavCardButton}" Click="SignInNav_Click">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="24" Height="24" CornerRadius="12" Background="#16A34A" Margin="0,0,0,1">
+                                <TextBlock Text="👤" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="SIGN IN" FontSize="8" FontWeight="Bold" Foreground="#073B28"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Column="1" Style="{StaticResource BottomNavCardButton}" Click="RewardsNav_Click">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="24" Height="24" CornerRadius="12" Background="#F59E0B" Margin="0,0,0,1">
+                                <TextBlock Text="🎁" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="REWARDS" FontSize="8" FontWeight="Bold" Foreground="#073B28"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Column="2" Style="{StaticResource BottomNavCardButton}" Click="TransactionNav_Click">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="24" Height="24" CornerRadius="12" Background="#0284C7" Margin="0,0,0,1">
+                                <TextBlock Text="🕒" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="HISTORY" FontSize="8" FontWeight="Bold" Foreground="#073B28"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Column="3" Style="{StaticResource BottomNavCardButton}" Click="InstructionsNav_Click">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="24" Height="24" CornerRadius="12" Background="#7C3AED" Margin="0,0,0,1">
+                                <TextBlock Text="ℹ️" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="GUIDE" FontSize="8" FontWeight="Bold" Foreground="#073B28"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Grid.Column="4" Style="{StaticResource BottomNavCardButton}" Click="AnnouncementsNav_Click">
+                        <StackPanel HorizontalAlignment="Center">
+                            <Border Width="24" Height="24" CornerRadius="12" Background="#0D9488" Margin="0,0,0,1">
+                                <TextBlock Text="📢" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="NEWS" FontSize="8" FontWeight="Bold" Foreground="#073B28"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <StackPanel Visibility="Collapsed">
+                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" MediaEnded="InstructionPlayer_MediaEnded"/>
+                    <Grid x:Name="InstructionPlaceholder"/>
+                </StackPanel>
             </Grid>
         </Border>
 
         <!-- ========================================================================= -->
-        <!-- BOTTOM SCREEN: DIGITAL SIGNAGE VIDEO PLAYER & ECO SUSTAINABILITY FOOTER   -->
+        <!-- BOTTOM SCREEN: DIGITAL SIGNAGE VIDEO PLAYER & ECO SUSTAINABILITY BAR      -->
         <!-- ========================================================================= -->
         <Grid x:Name="BottomGrid" Grid.Row="1" Background="#05120B">
             <Grid.ColumnDefinitions>
@@ -507,64 +608,48 @@
             <Border x:Name="AdPanel" Grid.Column="0" ClipToBounds="True">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- Hero text overlay -->
-                        <RowDefinition Height="*"/>    <!-- Video canvas -->
-                        <RowDefinition Height="Auto"/> <!-- Bottom eco footer -->
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Full HD Media Element Player -->
                     <MediaElement x:Name="AdvertisementPlayer" Grid.RowSpan="3" LoadedBehavior="Manual" Stretch="Fill" MediaEnded="AdvertisementPlayer_MediaEnded"/>
 
-                    <!-- Top Signage Overlay Headline -->
-                    <Border Grid.Row="0" Background="#CC073B28" Padding="20,10">
+                    <!-- Top Semi-Transparent Marquee Banner -->
+                    <Border Grid.Row="0" Background="#CC073B28" Padding="14,6">
                         <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="SMALL ACTIONS BIG IMPACT" FontSize="19" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                            <TextBlock Text="RECYCLE TODAY FOR A BETTER TOMORROW" FontSize="11.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                            <TextBlock Text="SMALL ACTIONS BIG IMPACT" FontSize="16" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                            <TextBlock Text="RECYCLE TODAY FOR A BETTER TOMORROW" FontSize="10" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Video Progress Indicator Overlay (0:05 / 0:20) -->
-                    <Border Grid.Row="1" VerticalAlignment="Bottom" Background="#90000000" Padding="14,6" Margin="14,0,14,6" CornerRadius="6">
+                    <!-- Progress Indicator -->
+                    <Border Grid.Row="1" VerticalAlignment="Bottom" Background="#80000000" Padding="10,4" Margin="10,0,10,4" CornerRadius="4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="0:05 / 0:20" FontSize="11" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                            <ProgressBar Grid.Column="1" Value="25" Height="4" Foreground="#22C55E" Background="#475569" BorderThickness="0" VerticalAlignment="Center"/>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
-                                <TextBlock Text="🔊  ⚙  ⛶" FontSize="12" Foreground="#CBD5E1" VerticalAlignment="Center"/>
+                            <TextBlock Text="0:05 / 0:20" FontSize="9" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ProgressBar Grid.Column="1" Value="25" Height="3" Foreground="#22C55E" Background="#475569" BorderThickness="0" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="6,0,0,0">
+                                <TextBlock Text="🔊  ⚙  ⛶" FontSize="10" Foreground="#CBD5E1" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
                     </Border>
 
-                    <!-- Bottom Dark Green Eco-Sustainability Footer Bar -->
-                    <Border Grid.Row="2" Background="#073B28" Padding="14,10" BorderBrush="#15803D" BorderThickness="0,2,0,0">
+                    <!-- Bottom Eco Footer Bar -->
+                    <Border Grid.Row="2" Background="#073B28" Padding="10,6" BorderBrush="#15803D" BorderThickness="0,2,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                                <TextBlock Text="♻" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                                <TextBlock Text="REDUCE" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Waste" FontSize="10" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                                <TextBlock Text="🍃" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                                <TextBlock Text="REUSE" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Resources" FontSize="10" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                                <TextBlock Text="♻" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                                <TextBlock Text="RECYCLE" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="For a Greener Future" FontSize="10" Foreground="#86EFAC" HorizontalAlignment="Center"/>
-                            </StackPanel>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center"><TextBlock Text="♻" FontSize="15" Foreground="#86EFAC" HorizontalAlignment="Center"/><TextBlock Text="REDUCE" FontSize="10" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/><TextBlock Text="Waste" FontSize="8" Foreground="#86EFAC" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center"><TextBlock Text="🍃" FontSize="15" Foreground="#86EFAC" HorizontalAlignment="Center"/><TextBlock Text="REUSE" FontSize="10" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/><TextBlock Text="Resources" FontSize="8" Foreground="#86EFAC" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center"><TextBlock Text="♻" FontSize="15" Foreground="#86EFAC" HorizontalAlignment="Center"/><TextBlock Text="RECYCLE" FontSize="10" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/><TextBlock Text="For a Greener Future" FontSize="8" Foreground="#86EFAC" HorizontalAlignment="Center"/></StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
