@@ -771,10 +771,10 @@
                                         <TextBlock Text="آپ کا موجودہ بیلنس اور پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="11" Foreground="#64748B"/>
                                     </StackPanel>
 
-                                    <!-- ONLY POINTS: Center-Aligned Both Vertically and Horizontally -->
-                                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,4,0,4">
-                                        <TextBlock x:Name="TotalPointsText" Text="0" FontSize="48" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" TextAlignment="Center"/>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,-2,0,0">
+                                    <!-- ONLY POINTS: Right-Aligned Horizontally, Center-Aligned Vertically -->
+                                    <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,2,14,2">
+                                        <TextBlock x:Name="TotalPointsText" Text="0" FontSize="50" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
                                             <TextBlock Text="RECYCLE POINTS  •  " FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
                                             <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Bold" Foreground="#15803D"/>
                                         </StackPanel>
