@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -15,14 +16,39 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-        Window startupWindow = IsPortraitDisplay(
-            SystemParameters.PrimaryScreenWidth,
-            SystemParameters.PrimaryScreenHeight)
+        bool usePortrait = DetermineIsPortrait(e.Args);
+
+        Window startupWindow = usePortrait
             ? new MainWindow()
             : new LandscapeWindow();
 
         MainWindow = startupWindow;
         startupWindow.Show();
+    }
+
+    private static bool DetermineIsPortrait(string[] args)
+    {
+        // 1. Check explicit command-line flags
+        if (args.Any(a => a.Equals("--portrait", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("-p", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("/portrait", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("--mode=portrait", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        if (args.Any(a => a.Equals("--landscape", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("-l", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("/landscape", StringComparison.OrdinalIgnoreCase) ||
+                          a.Equals("--mode=landscape", StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        // 2. Fallback: check primary screen bounds
+        return IsPortraitDisplay(
+            SystemParameters.PrimaryScreenWidth,
+            SystemParameters.PrimaryScreenHeight);
     }
 
     protected override void OnExit(ExitEventArgs e)

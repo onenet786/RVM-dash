@@ -1,13 +1,16 @@
 <#
 .SYNOPSIS
-    Launches the RVMDesktopApp kiosk on a specified display monitor (e.g., secondary display).
+    Launches the RVMDesktopApp kiosk on a specified display monitor (e.g., secondary display in Portrait mode).
 
 .DESCRIPTION
-    Automatically detects connected monitors, launches RVMDesktopApp, obtains the window handle,
-    and moves the full-screen kiosk window to the target display.
+    Automatically detects connected monitors, selects Portrait or Landscape mode based on target screen orientation,
+    launches RVMDesktopApp, obtains the window handle, and snaps the full-screen kiosk window to the target display.
 
 .PARAMETER ScreenIndex
     The index of the target monitor (0 = Primary Display, 1 = Secondary Display). Default is 1 (or 0 if only 1 screen exists).
+
+.PARAMETER Mode
+    Window layout mode: "Auto" (default, detects from screen aspect ratio), "Portrait", or "Landscape".
 
 .PARAMETER ExePath
     Optional explicit path to RVMDesktopApp.exe. If omitted, finds the latest build automatically.
@@ -15,6 +18,8 @@
 
 param(
     [int]$ScreenIndex = 1,
+    [ValidateSet("Auto", "Portrait", "Landscape")]
+    [string]$Mode = "Auto",
     [string]$ExePath = ""
 )
 
@@ -91,7 +96,8 @@ Write-Host "`n[DISPLAYS DETECTED: $($screens.Count)]" -ForegroundColor Magenta
 for ($i = 0; $i -lt $screens.Count; $i++) {
     $s = $screens[$i]
     $tag = if ($s.Primary) { "[PRIMARY]" } else { "[SECONDARY]" }
-    Write-Host "  Screen $i $tag - Device: $($s.DeviceName) | Bounds: X=$($s.Bounds.X), Y=$($s.Bounds.Y), W=$($s.Bounds.Width), H=$($s.Bounds.Height)" -ForegroundColor Gray
+    $orient = if ($s.Bounds.Height -gt $s.Bounds.Width) { "PORTRAIT" } else { "LANDSCAPE" }
+    Write-Host "  Screen $i $tag - Device: $($s.DeviceName) ($orient) | Bounds: X=$($s.Bounds.X), Y=$($s.Bounds.Y), W=$($s.Bounds.Width), H=$($s.Bounds.Height)" -ForegroundColor Gray
 }
 
 # Select target screen
@@ -106,11 +112,22 @@ $targetY = $targetScreen.Bounds.Y
 $targetWidth = $targetScreen.Bounds.Width
 $targetHeight = $targetScreen.Bounds.Height
 
-Write-Host "`n[TARGET] Selected Screen $ScreenIndex -> (X=$targetX, Y=$targetY, Width=$targetWidth, Height=$targetHeight)" -ForegroundColor Green
+# Determine portrait / landscape mode flag to pass to application
+$isTargetPortrait = ($targetHeight -gt $targetWidth)
+if ($Mode -eq "Portrait") {
+    $isTargetPortrait = $true
+} elseif ($Mode -eq "Landscape") {
+    $isTargetPortrait = $false
+}
 
-# 5. Launch RVMDesktopApp process
-Write-Host "[LAUNCH] Starting RVMDesktopApp..." -ForegroundColor Cyan
-$process = Start-Process -FilePath $ExePath -PassThru
+$modeArg = if ($isTargetPortrait) { "--portrait" } else { "--landscape" }
+$modeLabel = if ($isTargetPortrait) { "PORTRAIT MODE" } else { "LANDSCAPE MODE" }
+
+Write-Host "`n[TARGET] Selected Screen $ScreenIndex ($modeLabel) -> (X=$targetX, Y=$targetY, Width=$targetWidth, Height=$targetHeight)" -ForegroundColor Green
+
+# 5. Launch RVMDesktopApp process with orientation argument
+Write-Host "[LAUNCH] Starting RVMDesktopApp in $modeLabel with arg: $modeArg..." -ForegroundColor Cyan
+$process = Start-Process -FilePath $ExePath -ArgumentList $modeArg -PassThru
 
 # 6. Wait for MainWindowHandle to be created
 $hwnd = [IntPtr]::Zero
@@ -156,5 +173,5 @@ Start-Sleep -Milliseconds 200
 [Win32Kiosk]::ShowWindow($hwnd, $SW_MAXIMIZE) | Out-Null
 [Win32Kiosk]::SetForegroundWindow($hwnd) | Out-Null
 
-Write-Host "`n[SUCCESS] RVMDesktopApp is running full-screen on Screen $ScreenIndex!" -ForegroundColor Green
+Write-Host "`n[SUCCESS] RVMDesktopApp is running full-screen in $modeLabel on Screen $ScreenIndex!" -ForegroundColor Green
 Write-Host "=================================================" -ForegroundColor Green
