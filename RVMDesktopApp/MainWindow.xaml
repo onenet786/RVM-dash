@@ -14,6 +14,9 @@
         <SolidColorBrush x:Key="TextDark" Color="#0F172A"/>
         <SolidColorBrush x:Key="TextMuted" Color="#64748B"/>
         <SolidColorBrush x:Key="BorderSoft" Color="#E2EAE0"/>
+
+        <!-- Authentic Urdu Nastaliq Font Stack -->
+        <FontFamily x:Key="UrduFont">Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Gulzar, Pak Nastaleeq, Nafees Nastaleeq, Segoe UI, Arial</FontFamily>
         
         <!-- Soft Natural Drop Shadows -->
         <DropShadowEffect x:Key="CardShadow" BlurRadius="14" ShadowDepth="2" Opacity="0.06" Color="#073B28"/>
@@ -129,18 +132,25 @@
                                     </Border>
                                 </StackPanel>
                                 <TextBlock Text="REVERSE VENDING MACHINE" FontSize="8.5" FontWeight="Bold" Foreground="#073B28" Margin="1,-2,0,0"/>
-                                <TextBlock Text="Reduce • Reuse • Recycle • ری سائیکلنگ مشین" FontSize="8.5" FontWeight="SemiBold" Foreground="#64748B" Margin="1,1,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="1,1,0,0">
+                                    <TextBlock Text="Reduce • Reuse • Recycle • " FontSize="8.5" FontWeight="SemiBold" Foreground="#64748B"/>
+                                    <TextBlock Text="ری سائیکلنگ مشین" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B"/>
+                                </StackPanel>
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Header Center: Welcome Headline -->
+                        <!-- Header Center: Welcome Headline with Urdu Nastaliq -->
                         <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="🍃 " FontSize="16" Foreground="#15803D"/>
-                                <TextBlock Text="WELCOME  •  خوش آمدید" FontSize="18" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text="WELCOME  •  " FontSize="18" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="19" FontWeight="Black" Foreground="#073B28"/>
                                 <TextBlock Text=" 🍃" FontSize="16" Foreground="#15803D"/>
                             </StackPanel>
-                            <TextBlock Text="Recycle Today for a Better Tomorrow • سرسبز اور صاف پاکستان" FontSize="10.5" FontWeight="Medium" Foreground="#475569" HorizontalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="10.5" FontWeight="Medium" Foreground="#475569"/>
+                                <TextBlock Text="سرسبز اور صاف پاکستان" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Medium" Foreground="#475569"/>
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Header Right: Date, Time & Company Branding Card -->
@@ -210,8 +220,9 @@
                                     <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" Background="#FEE2E2" Margin="0,0,6,0" VerticalAlignment="Center">
                                         <TextBlock Text="⚠️" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port or cable connection • ہارڈویئر منسلک نہیں ہے" FontSize="9" FontWeight="Bold" Foreground="#DC2626" TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port • " FontSize="9" FontWeight="Bold" Foreground="#DC2626"/>
+                                        <TextBlock Text="ہارڈویئر منسلک نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#DC2626"/>
                                     </StackPanel>
                                     <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="6,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
                                         <Button.Template>
@@ -235,7 +246,7 @@
                             <ColumnDefinition Width="*"/>    <!-- Right: Bilingual How-To Guide + Top 5 Leaderboard -->
                         </Grid.ColumnDefinitions>
 
-                        <!-- LEFT COLUMN: INSERT BOTTLE CIRCLE + LIVE SESSION CONTAINER BREAKDOWN (Directly above Your Impact) -->
+                        <!-- LEFT COLUMN: INSERT BOTTLE CIRCLE + LIVE SESSION CONTAINER BREAKDOWN -->
                         <Grid Grid.Column="0">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>    <!-- Insert Bottle / Live Instruction Video Area -->
@@ -267,11 +278,17 @@
                                                             <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
                                                         </Canvas>
 
-                                                        <TextBlock Text="INSERT  •  داخل کریں" FontSize="17" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock Text="INSERT  •  " FontSize="16" FontWeight="Black" Foreground="#073B28"/>
+                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#073B28"/>
+                                                        </StackPanel>
                                                         <TextBlock Text="BOTTLE / CAN / CUP" FontSize="10" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,4"/>
                                                         
                                                         <Border Background="#073B28" CornerRadius="12" Padding="14,4.5" HorizontalAlignment="Center">
-                                                            <TextBlock Text="TO START • شروع کریں" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="TO START • " FontSize="10" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            </StackPanel>
                                                         </Border>
                                                     </StackPanel>
                                                 </Grid>
@@ -293,7 +310,8 @@
                                     <Grid Grid.Row="0" Margin="0,0,0,4">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="📊 " FontSize="12"/>
-                                            <TextBlock Text="LIVE SESSION CONTAINER BREAKDOWN • سیشن تفصیل" FontSize="10.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="LIVE SESSION CONTAINER BREAKDOWN • " FontSize="10" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="سیشن تفصیل" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                                             <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="5,1.5" Margin="0,0,4,0">
@@ -418,7 +436,8 @@
                                         <!-- Header Title -->
                                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
                                             <TextBlock Text="✦ " FontSize="12" Foreground="#FACC15"/>
-                                            <TextBlock Text="HOW TO USE RVM • طریقہ کار" FontSize="14" FontWeight="Black" Foreground="#99F6E4"/>
+                                            <TextBlock Text="HOW TO USE RVM • " FontSize="13" FontWeight="Black" Foreground="#99F6E4"/>
+                                            <TextBlock Text="طریقہ کار" FontFamily="{StaticResource UrduFont}" FontSize="14" FontWeight="Black" Foreground="#99F6E4"/>
                                             <TextBlock Text=" ✦" FontSize="12" Foreground="#FACC15"/>
                                         </StackPanel>
 
@@ -429,8 +448,11 @@
                                                     <TextBlock Text="🍾" FontSize="13" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Insert empty bottle, can or cup • خالی بوتل اندر داخل کریں" FontSize="9.5" Foreground="#CCFBF1"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="1. INSERT • " FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="بوتل یا کین ڈالیں" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="Insert empty container • خالی بوتل اندر داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <!-- Step 2: DETECT -->
@@ -439,8 +461,11 @@
                                                     <TextBlock Text="🔍" FontSize="13" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontSize="9.5" Foreground="#CCFBF1"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="2. DETECT • " FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="شناخت اور اسکین" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <!-- Step 3: REWARD -->
@@ -449,8 +474,11 @@
                                                     <TextBlock Text="🎁" FontSize="13" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="Earn points / cash reward • انعام یا پوائنٹس پائیں" FontSize="9.5" Foreground="#CCFBF1"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="3. REWARD • " FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="پوائنٹس حاصل کریں" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="Earn points reward • انعام یا پوائنٹس پائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
                                             <!-- Step 4: SAVE -->
@@ -459,8 +487,11 @@
                                                     <TextBlock Text="🌱" FontSize="13" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="You make the planet greener • اپنے ماحول کو سرسبز بنائیں" FontSize="9.5" Foreground="#CCFBF1"/>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="4. SAVE • " FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="ماحول کو صاف بنائیں" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="Make planet greener • اپنے ماحول کو سرسبز بنائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </UniformGrid>
@@ -479,9 +510,10 @@
 
                                     <!-- Leaderboard Header with Trophy & Subtitle -->
                                     <Grid Grid.Row="0" Margin="0,0,0,4">
-                                        <StackPanel Orientation="Horizontal">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="🏆 " FontSize="13"/>
-                                            <TextBlock Text="TOP 5 RECYCLERS • بہترین ری سائیکلرز" FontSize="12" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="TOP 5 RECYCLERS • " FontSize="11.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="بہترین ری سائیکلرز" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                         </StackPanel>
                                         <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="6,1.5" HorizontalAlignment="Right">
                                             <TextBlock Text="LIVE RANKING" FontSize="8.5" FontWeight="Bold" Foreground="#166534"/>
@@ -518,7 +550,7 @@
                                                             <!-- User Display Name & Badge -->
                                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                                 <TextBlock Text="{Binding DisplayName}" FontSize="11.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                                <TextBlock Text="Eco Champion • ری سائیکلر" FontSize="8" FontWeight="SemiBold" Foreground="#64748B"/>
+                                                                <TextBlock Text="Eco Champion • ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="SemiBold" Foreground="#64748B"/>
                                                             </StackPanel>
 
                                                             <!-- Points Badge / Chip -->
@@ -587,7 +619,7 @@
                                                     <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="11" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="8" FontWeight="SemiBold" Foreground="#64748B" Margin="3,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontSize="7.5" FontWeight="SemiBold" Foreground="#047857"/>
+                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#047857"/>
                                             </StackPanel>
 
                                             <!-- Points Chip -->
@@ -617,7 +649,10 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="YOUR ENVIRONMENTAL IMPACT 🍃 ماحولیاتی فوائد" FontSize="13" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,6"/>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="YOUR ENVIRONMENTAL IMPACT 🍃 " FontSize="12.5" FontWeight="Black" Foreground="#073B28"/>
+                                    <TextBlock Text="ماحولیاتی فوائد" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Black" Foreground="#073B28"/>
+                                </StackPanel>
 
                                 <UniformGrid Grid.Row="1" Columns="1" Rows="3">
                                     <!-- Row 1: Bottles Recycled -->
@@ -632,7 +667,7 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="Bottles &amp; Containers Recycled" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="کل ری سائیکل شدہ بوتلیں اور کین" FontSize="9.5" Foreground="#64748B"/>
+                                            <TextBlock Text="کل ری سائیکل شدہ بوتلیں اور کین" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#64748B"/>
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="24" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                     </Grid>
@@ -649,7 +684,7 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="Carbon Dioxide (CO₂) Saved (kg)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="کاربن کا اخراج کم کیا گیا" FontSize="9.5" Foreground="#64748B"/>
+                                            <TextBlock Text="کاربن کا اخراج کم کیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#64748B"/>
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/>
                                     </Grid>
@@ -666,7 +701,7 @@
                                         </Border>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                             <TextBlock Text="Fresh Water Saved (Liters)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="صاف پانی کی بچت کی گئی" FontSize="9.5" Foreground="#64748B"/>
+                                            <TextBlock Text="صاف پانی کی بچت کی گئی" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#64748B"/>
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/>
                                     </Grid>
@@ -689,23 +724,26 @@
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Top Row: YOUR BALANCE + Urdu subtitle -->
+                                    <!-- Top Row: YOUR BALANCE + Urdu Nastaliq subtitle -->
                                     <StackPanel Grid.Row="0">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="YOUR REWARD BALANCE" FontSize="13" FontWeight="Bold" Foreground="#475569"/>
                                             <TextBlock Text=" 🎁" FontSize="14" Margin="4,0,0,0"/>
                                         </StackPanel>
-                                        <TextBlock Text="آپ کا موجودہ بیلنس اور پوائنٹس" FontSize="9.5" Foreground="#64748B"/>
+                                        <TextBlock Text="آپ کا موجودہ بیلنس اور پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#64748B"/>
                                     </StackPanel>
 
                                     <!-- Big Balance Number + POINTS -->
                                     <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,3,0,5">
                                         <TextBlock x:Name="TotalPointsText" Text="0" FontSize="44" FontWeight="Black" Foreground="#073B28" LineHeight="44"/>
-                                        <TextBlock Text="RECYCLE POINTS  •  پوائنٹس" FontSize="12" FontWeight="Bold" Foreground="#15803D" Margin="2,-4,0,0"/>
+                                        <StackPanel Orientation="Horizontal" Margin="2,-4,0,0">
+                                            <TextBlock Text="RECYCLE POINTS  •  " FontSize="12" FontWeight="Bold" Foreground="#15803D"/>
+                                            <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <!-- Button: VIEW REWARDS -->
-                                    <Button Grid.Row="2" Content="VIEW &amp; REDEEM REWARDS • انعام پائیں" HorizontalAlignment="Left" Background="#073B28" Foreground="White" FontSize="12" FontWeight="Bold" Padding="16,6" Cursor="Hand" Click="ViewRewardsButton_Click">
+                                    <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="16,6" Cursor="Hand" Click="ViewRewardsButton_Click">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
@@ -713,6 +751,10 @@
                                                 </Border>
                                             </ControlTemplate>
                                         </Button.Template>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="VIEW &amp; REDEEM REWARDS • " FontSize="12" FontWeight="Bold" Foreground="White"/>
+                                            <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="White"/>
+                                        </StackPanel>
                                     </Button>
                                 </Grid>
                             </Grid>
@@ -836,19 +878,28 @@
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center">
                                 <TextBlock Text="♻" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
                                 <TextBlock Text="REDUCE" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Waste • کچرا کم کریں" FontSize="9.5" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="Waste • " FontSize="9.5" Foreground="#86EFAC"/>
+                                    <TextBlock Text="کچرا کم کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#86EFAC"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" HorizontalAlignment="Center">
                                 <TextBlock Text="🍃" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
                                 <TextBlock Text="REUSE" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Resources • دوبارہ استعمال" FontSize="9.5" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="Resources • " FontSize="9.5" Foreground="#86EFAC"/>
+                                    <TextBlock Text="دوبارہ استعمال" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#86EFAC"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                 <TextBlock Text="♻" FontSize="20" Foreground="#86EFAC" HorizontalAlignment="Center"/>
                                 <TextBlock Text="RECYCLE" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                                <TextBlock Text="For a Greener Future • سرسبز مستقبل" FontSize="9.5" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="For a Greener Future • " FontSize="9.5" Foreground="#86EFAC"/>
+                                    <TextBlock Text="سرسبز مستقبل" FontFamily="{StaticResource UrduFont}" FontSize="10.5" Foreground="#86EFAC"/>
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </Border>
