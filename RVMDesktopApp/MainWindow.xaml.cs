@@ -683,6 +683,12 @@ public partial class MainWindow : Window
         try
         {
             LeaderboardList.ItemsSource = DatabaseManager.GetLeaderboard().DefaultView;
+
+            var last = DatabaseManager.GetLastRecyclerInfo();
+            if (LastRecyclerNameText != null) LastRecyclerNameText.Text = last.DisplayName;
+            if (LastRecyclerPointsText != null) LastRecyclerPointsText.Text = $"+{last.PointsAwarded} pts";
+            if (LastRecyclerTimeText != null) LastRecyclerTimeText.Text = $" • {last.TimeAgo}";
+            if (LastRecyclerActivityText != null) LastRecyclerActivityText.Text = $"Recycled {last.Material} • آخری ری سائیکلر";
         }
         catch (Exception ex)
         {

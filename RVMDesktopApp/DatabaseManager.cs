@@ -573,6 +573,53 @@ public static class DatabaseManager
             ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC;
             """);
 
+    public static (string DisplayName, int PointsAwarded, string Material, string TimeAgo) GetLastRecyclerInfo()
+    {
+        try
+        {
+            var dt = Get(
+                """
+                SELECT TOP 1
+                    COALESCE(wallet.FullName, wallet.UserName,
+                        CASE
+                            WHEN LEN(bt.MobileNumber) > 7
+                                THEN LEFT(bt.MobileNumber, 3) + REPLICATE('*', LEN(bt.MobileNumber) - 6) + RIGHT(bt.MobileNumber, 3)
+                            WHEN bt.MobileNumber IS NOT NULL AND bt.MobileNumber <> '' THEN bt.MobileNumber
+                            ELSE 'Eco Hero'
+                        END
+                    ) AS DisplayName,
+                    COALESCE(bt.PointsAwarded, 10) AS PointsAwarded,
+                    COALESCE(bt.MaterialType, 'Bottle') AS MaterialType,
+                    bt.TransactionDate
+                FROM dbo.BottleTransactions AS bt
+                LEFT JOIN dbo.WalletAccounts AS wallet ON wallet.PhoneNumber = bt.MobileNumber
+                WHERE bt.IsAccepted = 1 OR bt.IsAccepted IS NULL
+                ORDER BY bt.TransactionID DESC;
+                """);
+
+            if (dt.Rows.Count > 0)
+            {
+                var row = dt.Rows[0];
+                string name = row["DisplayName"]?.ToString() ?? "Eco Hero";
+                int pts = row["PointsAwarded"] != DBNull.Value ? Convert.ToInt32(row["PointsAwarded"]) : 10;
+                string mat = row["MaterialType"]?.ToString() ?? "Bottle";
+                string timeStr = "Recently";
+                if (row["TransactionDate"] != DBNull.Value && DateTime.TryParse(row["TransactionDate"].ToString(), out var dtTime))
+                {
+                    var span = DateTime.Now - dtTime;
+                    if (span.TotalMinutes < 1) timeStr = "Just now";
+                    else if (span.TotalMinutes < 60) timeStr = $"{(int)span.TotalMinutes}m ago";
+                    else if (span.TotalHours < 24) timeStr = $"{(int)span.TotalHours}h ago";
+                    else timeStr = dtTime.ToString("dd MMM, hh:mm tt");
+                }
+                return (name, pts, mat, timeStr);
+            }
+        }
+        catch { }
+
+        return ("Eco Champion", 10, "Bottle", "Just now");
+    }
+
     public static void UpdateLeaderboardUsers(System.Text.Json.JsonElement usersArr)
     {
         try
