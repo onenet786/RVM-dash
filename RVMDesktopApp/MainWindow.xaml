@@ -103,7 +103,6 @@
                         <RowDefinition Height="Auto"/> <!-- Row 1: Hardware Status Card Bar -->
                         <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers) -->
                         <RowDefinition Height="Auto"/> <!-- Row 3: Bottom Cards (Side-by-Side: Your Environmental Impact & Your Reward Balance - Same Height!) -->
-                        <RowDefinition Height="Auto"/> <!-- Row 4: Bottom 5 Navigation Actions -->
                     </Grid.RowDefinitions>
 
                     <!-- ROW 0: TOP HEADER BAR -->
@@ -798,72 +797,6 @@
                                 </Grid>
                             </Grid>
                         </Border>
-                    </Grid>
-
-                    <!-- ROW 4: BOTTOM 5 QUICK NAVIGATION CARDS (Exact Circular Icon Badges) -->
-                    <Grid Grid.Row="4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- 1. SIGN IN / SIGN UP -->
-                        <Button Grid.Column="0" Style="{StaticResource BottomNavCardButton}" Click="SignInNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="#16A34A" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="👤" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="SIGN IN / UP" FontSize="9.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Manage account" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 2. REWARDS -->
-                        <Button Grid.Column="1" Style="{StaticResource BottomNavCardButton}" Click="RewardsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="#F59E0B" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="🎁" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="REWARDS" FontSize="9.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="View &amp; Redeem" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 3. TRANSACTION -->
-                        <Button Grid.Column="2" Style="{StaticResource BottomNavCardButton}" Click="TransactionNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="#0284C7" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="🕒" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="TRANSACTION" FontSize="9.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="View History" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 4. INSTRUCTIONS -->
-                        <Button Grid.Column="3" Style="{StaticResource BottomNavCardButton}" Click="InstructionsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="#7C3AED" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="ℹ️" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="INSTRUCTIONS" FontSize="9.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Video Guide" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- 5. ANNOUNCEMENTS -->
-                        <Button Grid.Column="4" Style="{StaticResource BottomNavCardButton}" Click="AnnouncementsNav_Click">
-                            <StackPanel HorizontalAlignment="Center">
-                                <Border Width="32" Height="32" CornerRadius="16" Background="#0D9488" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                    <TextBlock Text="📢" FontSize="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                                <TextBlock Text="ANNOUNCEMENTS" FontSize="9.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
-                                <TextBlock Text="Latest news" FontSize="8" Foreground="#64748B" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
                     </Grid>
 
                     <!-- Hidden Elements for Background Subsystems -->
