@@ -83,10 +83,10 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <!-- TOP 60%: Interactive Kiosk Dashboard (With Instruction Video In Insert Bottle Section) -->
-            <RowDefinition Height="60*"/>
-            <!-- BOTTOM 40%: Cinematic Digital Signage Video Screen & Eco Bar -->
-            <RowDefinition Height="40*"/>
+            <!-- TOP 62%: Interactive Kiosk Dashboard (With Double Size How-To Card Typography) -->
+            <RowDefinition Height="62*"/>
+            <!-- BOTTOM 38%: Cinematic Digital Signage Video Screen & Eco Bar -->
+            <RowDefinition Height="38*"/>
         </Grid.RowDefinitions>
 
         <!-- ========================================================================= -->
@@ -104,7 +104,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Row 0: Top Header -->
                         <RowDefinition Height="Auto"/> <!-- Row 1: Separate Cards Bar (Hardware Status Card & Session Details Card) -->
-                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Insert Bottle / Instruction Video on Left + How-To & Leaderboard on Right) -->
+                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Insert Bottle / Instruction Video on Left + Double Size How-To & Leaderboard on Right) -->
                         <RowDefinition Height="Auto"/> <!-- Row 3: Double Height "Your Impact" & "Your Balance" Cards -->
                         <RowDefinition Height="Auto"/> <!-- Row 4: Bottom 5 Navigation Actions -->
                     </Grid.RowDefinitions>
@@ -327,62 +327,70 @@
                             </Border>
                         </Grid>
 
-                        <!-- RIGHT: BILINGUAL HOW TO USE RVM (TOP) + TOP 5 LEADERBOARD (BOTTOM) -->
+                        <!-- RIGHT: BILINGUAL HOW TO USE RVM (DOUBLE FONT SIZE) + TOP 5 LEADERBOARD (BOTTOM) -->
                         <Grid Grid.Column="2">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="1.35*"/> <!-- Bilingual How To Use RVM -->
+                                <RowDefinition Height="1.6*"/> <!-- Double Size How To Use RVM -->
                                 <RowDefinition Height="6"/>
-                                <RowDefinition Height="*"/>     <!-- Top 5 Leaderboard with Larger Fonts -->
+                                <RowDefinition Height="*"/>    <!-- Top 5 Leaderboard -->
                             </Grid.RowDefinitions>
 
-                            <!-- BILINGUAL HOW TO USE RVM (FULL WIDTH 4 STEPS) -->
-                            <Border Grid.Row="0" Background="#073F26" CornerRadius="12" Padding="16,10" Effect="{StaticResource CardShadow}">
+                            <!-- BILINGUAL HOW TO USE RVM (DOUBLED FONT SIZE & PROMINENT ICONS) -->
+                            <Border Grid.Row="0" Background="#073F26" CornerRadius="12" Padding="18,12" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Text="HOW TO USE RVM • مشین استعمال کرنے کا طریقہ" FontSize="13" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                    <TextBlock Grid.Row="0" Text="HOW TO USE RVM • مشین استعمال کرنے کا طریقہ" FontSize="20" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,10"/>
 
                                     <UniformGrid Grid.Row="1" Columns="1" Rows="4">
                                         <!-- Step 1 -->
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🍾" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
+                                            <Border Width="38" Height="38" CornerRadius="19" Background="#115338" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="🍾" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                <TextBlock Text="Insert empty bottle, can or cup • خالی بوتل اندر داخل کریں" FontSize="9.5" Foreground="#CBD5E1"/>
+                                                <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="18" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Insert empty bottle, can or cup • خالی بوتل اندر داخل کریں" FontSize="13.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
                                         </StackPanel>
                                         <!-- Step 2 -->
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🔍" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
+                                            <Border Width="38" Height="38" CornerRadius="19" Background="#115338" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="🔍" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontSize="9.5" Foreground="#CBD5E1"/>
+                                                <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="18" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontSize="13.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
                                         </StackPanel>
                                         <!-- Step 3 -->
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🎁" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
+                                            <Border Width="38" Height="38" CornerRadius="19" Background="#115338" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="🎁" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                <TextBlock Text="Earn points / cash reward • انعام یا پوائنٹس پائیں" FontSize="9.5" Foreground="#CBD5E1"/>
+                                                <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="18" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="Earn points / cash reward • انعام یا پوائنٹس پائیں" FontSize="13.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
                                         </StackPanel>
                                         <!-- Step 4 -->
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#115338" Margin="0,0,10,0" VerticalAlignment="Center"><TextBlock Text="🌱" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,3">
+                                            <Border Width="38" Height="38" CornerRadius="19" Background="#115338" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="🌱" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
                                             <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                <TextBlock Text="You make the planet greener • اپنے ماحول کو سرسبز بنائیں" FontSize="9.5" Foreground="#CBD5E1"/>
+                                                <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="18" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                <TextBlock Text="You make the planet greener • اپنے ماحول کو سرسبز بنائیں" FontSize="13.5" Foreground="#CBD5E1"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </UniformGrid>
                                 </Grid>
                             </Border>
 
-                            <!-- TOP 5 LEADERBOARD (LARGER FONT SIZE & PROMINENT ICONS) -->
+                            <!-- TOP 5 LEADERBOARD -->
                             <Border Grid.Row="2" Background="#FFFFFF" CornerRadius="10" Padding="12,5" BorderBrush="#E5EAE1" BorderThickness="1" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
