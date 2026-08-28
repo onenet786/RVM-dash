@@ -328,7 +328,7 @@
                             </Border>
                         </Grid>
 
-                        <!-- RIGHT: TEAL GLASSMORPHISM HOW TO USE RVM + TOP 5 LEADERBOARD (BOTTOM) -->
+                        <!-- RIGHT: TEAL GLASSMORPHISM HOW TO USE RVM (WITH YELLOW ICONS & ACCENTS) + TOP 5 LEADERBOARD (BOTTOM) -->
                         <Grid Grid.Column="2">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="1.2*"/> <!-- Reduced height (-25%) for How To Use RVM -->
@@ -336,7 +336,7 @@
                                 <RowDefinition Height="*"/>    <!-- Top 5 Leaderboard -->
                             </Grid.RowDefinitions>
 
-                            <!-- TEAL GLASSMORPHISM HOW TO USE RVM CARD -->
+                            <!-- TEAL GLASSMORPHISM HOW TO USE RVM CARD (GOLDEN YELLOW ICONS) -->
                             <Border Grid.Row="0" CornerRadius="14" Padding="14,8" BorderThickness="1.5" Effect="{StaticResource TealGlassShadow}">
                                 <Border.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -365,46 +365,46 @@
 
                                         <!-- Header Title with Glowing Mint Accent -->
                                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                                            <TextBlock Text="✦ " FontSize="14" Foreground="#5EEAD4"/>
+                                            <TextBlock Text="✦ " FontSize="14" Foreground="#FACC15"/>
                                             <TextBlock Text="HOW TO USE RVM • طریقہ کار" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
-                                            <TextBlock Text=" ✦" FontSize="14" Foreground="#5EEAD4"/>
+                                            <TextBlock Text=" ✦" FontSize="14" Foreground="#FACC15"/>
                                         </StackPanel>
 
                                         <UniformGrid Grid.Row="1" Columns="1" Rows="4">
-                                            <!-- Step 1: INSERT -->
+                                            <!-- Step 1: INSERT (Yellow Icon & Badge) -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1">
-                                                <Border Width="34" Height="34" CornerRadius="17" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1.2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🍾" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="34" Height="34" CornerRadius="17" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🍾" FontSize="17" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="1. INSERT • بوتل یا کین ڈالیں" FontSize="23" FontWeight="Black" Foreground="#FFFFFF"/>
                                                     <TextBlock Text="Insert empty bottle, can or cup • خالی بوتل اندر داخل کریں" FontSize="11" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <!-- Step 2: DETECT -->
+                                            <!-- Step 2: DETECT (Yellow Icon & Badge) -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1">
-                                                <Border Width="34" Height="34" CornerRadius="17" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1.2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🔍" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="34" Height="34" CornerRadius="17" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🔍" FontSize="17" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="2. DETECT • شناخت اور اسکین" FontSize="23" FontWeight="Black" Foreground="#FFFFFF"/>
                                                     <TextBlock Text="Sensors scan &amp; identify • مشین خودکار اسکین کرے گی" FontSize="11" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <!-- Step 3: REWARD -->
+                                            <!-- Step 3: REWARD (Yellow Icon & Badge) -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1">
-                                                <Border Width="34" Height="34" CornerRadius="17" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1.2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🎁" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="34" Height="34" CornerRadius="17" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🎁" FontSize="17" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="23" FontWeight="Black" Foreground="#FFFFFF"/>
                                                     <TextBlock Text="Earn points / cash reward • انعام یا پوائنٹس پائیں" FontSize="11" Foreground="#CCFBF1"/>
                                                 </StackPanel>
                                             </StackPanel>
-                                            <!-- Step 4: SAVE -->
+                                            <!-- Step 4: SAVE (Yellow Icon & Badge) -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,1">
-                                                <Border Width="34" Height="34" CornerRadius="17" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1.2" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🌱" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="34" Height="34" CornerRadius="17" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🌱" FontSize="17" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="4. SAVE • ماحول کو صاف بنائیں" FontSize="23" FontWeight="Black" Foreground="#FFFFFF"/>
