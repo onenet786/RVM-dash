@@ -503,37 +503,29 @@
                     <!-- RIGHT: YOUR BALANCE CARD (50% TALLER & RIGHT-ALIGNED POINTS) -->
                     <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="8" Padding="12,8" Effect="{StaticResource CardShadow}">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <Grid Grid.Column="0" VerticalAlignment="Center">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="8"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0">
-                                    <TextBlock Text="REWARD BALANCE 🎁" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
-                                    <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
-                                </StackPanel>
-                                <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="10,4" Cursor="Hand" Click="ViewRewardsButton_Click">
-                                    <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="REDEEM • " FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                        <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="White"/>
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0,0,0">
-                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="36" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right" LineHeight="36"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,-2,0,0">
-                                    <TextBlock Text="POINTS • " FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
-                                    <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#15803D"/>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0" HorizontalAlignment="Left">
+                                <TextBlock Text="REWARD BALANCE 🎁" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,2,0,2">
+                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="30" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" TextAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,-2,0,0">
+                                    <TextBlock Text="POINTS • " FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                                    <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
                                 </StackPanel>
                             </StackPanel>
+                            <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="10,3.5" Cursor="Hand" Click="ViewRewardsButton_Click">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="REDEEM • " FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="White"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
                     </Border>
                 </Grid>
