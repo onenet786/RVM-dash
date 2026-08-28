@@ -201,27 +201,27 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Insert Bottle (MAX FEASIBLE SIZE) -->
+                        <!-- Insert Bottle (MAX ENLARGED 260x260) -->
                         <Grid Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2">
-                            <Border Width="210" Height="210" CornerRadius="105" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                            <Border Width="260" Height="260" CornerRadius="130" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                 <Grid>
                                     <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                     <Grid x:Name="InstructionPlaceholder">
                                         <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
-                                            <Grid Width="210" Height="210">
-                                                <Ellipse Width="208" Height="208" Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
-                                                <Ellipse Width="192" Height="192" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.5"/>
-                                                <Ellipse Width="174" Height="174" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.2"/>
+                                            <Grid Width="260" Height="260">
+                                                <Ellipse Width="258" Height="258" Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="3 3"/>
+                                                <Ellipse Width="240" Height="240" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.8"/>
+                                                <Ellipse Width="218" Height="218" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.5"/>
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                        <TextBlock Text="INSERT • " FontSize="15" FontWeight="Black" Foreground="#073B28"/>
-                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="INSERT • " FontSize="18" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="18.5" FontWeight="Black" Foreground="#073B28"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="9" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,5"/>
-                                                    <Border Background="#073B28" CornerRadius="10" Padding="14,4" HorizontalAlignment="Center">
+                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="11" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,7"/>
+                                                    <Border Background="#073B28" CornerRadius="12" Padding="16,5" HorizontalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="START • " FontSize="10" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="START • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
