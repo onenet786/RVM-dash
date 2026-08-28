@@ -280,13 +280,13 @@
                                             </StackPanel>
                                         </Grid>
                                     </Border>
-                                    <!-- Tetra -->
+                                    <!-- UBC -->
                                     <Border Grid.Column="4" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="62">
                                         <Grid>
                                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
                                                 <TextBlock Text="🧃" FontSize="11" Margin="0,0,2,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="TETRA" FontSize="8.5" FontWeight="Black" Foreground="#B45309" VerticalAlignment="Center"/>
+                                                <TextBlock Text="UBC" FontSize="8.5" FontWeight="Black" Foreground="#B45309" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <Border Background="#FEF3C7" CornerRadius="3" Padding="3,1" Margin="0,0,2,0"><StackPanel Orientation="Horizontal"><TextBlock Text="S:" FontSize="7" Foreground="#D97706"/><TextBlock x:Name="TetraPakSmallCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#B45309" Margin="1,0,0,0"/></StackPanel></Border>

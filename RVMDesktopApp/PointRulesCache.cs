@@ -101,7 +101,7 @@ public static class PointRulesCache
                 _ => GlassMedium
             };
         }
-        if (mat.Contains("PAPER") || mat.Contains("TETRAPAK") || mat.Contains("CARTON"))
+        if (mat.Contains("UBC") || mat.Contains("PAPER") || mat.Contains("TETRA") || mat.Contains("CARTON"))
         {
             return PaperPerKg > 0 ? PaperPerKg : 15;
         }

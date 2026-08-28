@@ -1292,7 +1292,7 @@ public partial class LandscapeWindow : Window
             else if (size == "MEDIUM") CanMediumCountText.Text = (++canMediumCount).ToString();
             else if (size == "LARGE") CanLargeCountText.Text = (++canLargeCount).ToString();
         }
-        else if (material.Contains("TETRAPAK", StringComparison.OrdinalIgnoreCase) || material.Contains("CARTON", StringComparison.OrdinalIgnoreCase) || material.Contains("PAPER", StringComparison.OrdinalIgnoreCase))
+        else if (material.Contains("UBC", StringComparison.OrdinalIgnoreCase) || material.Contains("TETRA", StringComparison.OrdinalIgnoreCase) || material.Contains("CARTON", StringComparison.OrdinalIgnoreCase) || material.Contains("PAPER", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") TetraPakSmallCountText.Text = (++tetraPakSmallCount).ToString();
             else if (size == "MEDIUM") TetraPakMediumCountText.Text = (++tetraPakMediumCount).ToString();

@@ -388,13 +388,13 @@
                                             </Grid>
                                         </Border>
 
-                                        <!-- 3. Tetra / Cup Card -->
+                                        <!-- 3. UBC (Used Beverage Carton / Can) Card -->
                                         <Border Grid.Column="4" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1.2" CornerRadius="8" Padding="6,8" MinHeight="88">
                                             <Grid>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                                                 <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
                                                     <TextBlock Text="🧃" FontSize="16" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="TETRA" FontSize="12" FontWeight="Black" Foreground="#B45309" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="UBC" FontSize="12" FontWeight="Black" Foreground="#B45309" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <Border Background="#FEF3C7" CornerRadius="4" Padding="5,2" Margin="0,0,3,0">
