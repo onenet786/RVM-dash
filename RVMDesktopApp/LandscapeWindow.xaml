@@ -202,9 +202,9 @@
                         </Grid.RowDefinitions>
 
                         <!-- Insert Bottle (MATCHING BREAKDOWN WIDTH) -->
-                        <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="8" ClipToBounds="True" Background="#073B28" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                        <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="8" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                             <Grid>
-                                <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
+                                <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                 <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                         <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">

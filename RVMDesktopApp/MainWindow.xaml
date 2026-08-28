@@ -254,10 +254,10 @@
                             </Grid.RowDefinitions>
 
                             <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (SAME WIDTH AS BREAKDOWN CARD) -->
-                            <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="12" ClipToBounds="True" Background="#073B28" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                            <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="12" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                 <Grid>
-                                    <!-- Video Player: Stretches to Exact Width of Container Breakdown Card -->
-                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
+                                    <!-- Video Player: Fits Completely Within Container (Zero Cropping) -->
+                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                     
                                     <!-- Placeholder (When video is stopped or loading) -->
                                     <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
