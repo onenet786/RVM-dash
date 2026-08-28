@@ -105,9 +105,9 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Row 0: Top Header -->
-                        <RowDefinition Height="Auto"/> <!-- Row 1: Separate Cards Bar (Hardware Status Card & Session Details Card) -->
+                        <RowDefinition Height="Auto"/> <!-- Row 1: Hardware Status Card Bar -->
                         <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Insert Bottle on Left + Teal How-To & Top 5 Leaderboard on Right) -->
-                        <RowDefinition Height="Auto"/> <!-- Row 3: Double Height "Your Impact" & "Your Balance" Cards -->
+                        <RowDefinition Height="Auto"/> <!-- Row 3: Left (Live Session Breakdown + Your Impact) & Right (Your Balance) -->
                         <RowDefinition Height="Auto"/> <!-- Row 4: Bottom 5 Navigation Actions -->
                     </Grid.RowDefinitions>
 
@@ -174,110 +174,39 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- ROW 1: TWO SEPARATE COMPONENT TILES (HARDWARE STATUS WIDGET & SESSION DETAILS TILE) -->
-                    <Grid Grid.Row="1" Margin="0,0,0,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/> <!-- Tile 1: Hardware Status Widget -->
-                            <ColumnDefinition Width="10"/>
-                            <ColumnDefinition Width="1.25*"/> <!-- Tile 2: Live Session Breakdown Tile -->
-                        </Grid.ColumnDefinitions>
-
-                        <!-- TILE 1: SEPARATE HARDWARE STATUS WIDGET -->
-                        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Effect="{StaticResource CardShadow}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid Grid.Row="0" Margin="0,0,0,3">
-                                    <TextBlock Text="HARDWARE &amp; MACHINE DIAGNOSTICS 🔌" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
-                                    <TextBlock x:Name="MachineStateText" Text="MACHINE: IDLE" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right"/>
-                                </Grid>
-                                <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="ConnectionText" Text="SERIAL: CONNECTED" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse x:Name="DbDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="DbStatusText" Text="DB: OK" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse x:Name="ApiDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="ApiStatusText" Text="API: ONLINE" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
+                    <!-- ROW 1: HARDWARE & MACHINE DIAGNOSTICS WIDGET -->
+                    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Margin="0,0,0,6" Effect="{StaticResource CardShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="0,0,0,3">
+                                <TextBlock Text="HARDWARE &amp; MACHINE DIAGNOSTICS 🔌" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock x:Name="MachineStateText" Text="MACHINE: IDLE" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right"/>
                             </Grid>
-                        </Border>
-
-                        <!-- TILE 2: SEPARATE LIVE SESSION DETAILS TILE -->
-                        <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Effect="{StaticResource CardShadow}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid Grid.Row="0" Margin="0,0,0,3">
-                                    <TextBlock Text="LIVE SESSION CONTAINER BREAKDOWN 📊" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <TextBlock x:Name="StatusText" Text="Ready" FontSize="9.5" FontWeight="Bold" Foreground="#16A34A" Margin="0,0,4,0"/>
-                                        <TextBlock x:Name="BottleInfoText" Text="• Insert container" FontSize="9" Foreground="#64748B"/>
+                            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="ConnectionText" Text="SERIAL: CONNECTED" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                </Grid>
-                                <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                    <!-- Plastic -->
-                                    <Border Style="{StaticResource MaterialChip}" Background="#F0FDFA" BorderBrush="#99F6E4">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🧴 Plastic: " FontSize="9" FontWeight="Bold" Foreground="#047857"/>
-                                            <TextBlock x:Name="PlasticSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
-                                            <TextBlock Text="s " FontSize="7.5" Foreground="#047857"/>
-                                            <TextBlock x:Name="PlasticMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
-                                            <TextBlock Text="m " FontSize="7.5" Foreground="#047857"/>
-                                            <TextBlock x:Name="PlasticLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
-                                            <TextBlock Text="l" FontSize="7.5" Foreground="#047857"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <!-- Can -->
-                                    <Border Style="{StaticResource MaterialChip}" Background="#F0F9FF" BorderBrush="#BAE6FD">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🥫 Can: " FontSize="9" FontWeight="Bold" Foreground="#0369A1"/>
-                                            <TextBlock x:Name="CanSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
-                                            <TextBlock Text="s " FontSize="7.5" Foreground="#0369A1"/>
-                                            <TextBlock x:Name="CanMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
-                                            <TextBlock Text="m " FontSize="7.5" Foreground="#0369A1"/>
-                                            <TextBlock x:Name="CanLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
-                                            <TextBlock Text="l" FontSize="7.5" Foreground="#0369A1"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <!-- Tetra/Cup -->
-                                    <Border Style="{StaticResource MaterialChip}" Background="#FFFBEB" BorderBrush="#FDE68A">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🧃 Tetra/Cup: " FontSize="9" FontWeight="Bold" Foreground="#B45309"/>
-                                            <TextBlock x:Name="TetraPakSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
-                                            <TextBlock Text="s " FontSize="7.5" Foreground="#B45309"/>
-                                            <TextBlock x:Name="TetraPakMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
-                                            <TextBlock Text="m " FontSize="7.5" Foreground="#B45309"/>
-                                            <TextBlock x:Name="TetraPakLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
-                                            <TextBlock Text="l" FontSize="7.5" Foreground="#B45309"/>
-                                        </StackPanel>
-                                    </Border>
-                                    <!-- Reject -->
-                                    <Border Style="{StaticResource MaterialChip}" Background="#FEF2F2" BorderBrush="#FECACA" Margin="0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🚫 Rej: " FontSize="9" FontWeight="Bold" Foreground="#DC2626"/>
-                                            <TextBlock x:Name="RejectedCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#DC2626"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </Grid>
+                                </Border>
+                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="DbDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="DbStatusText" Text="DB: OK" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="ApiDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="ApiStatusText" Text="API: ONLINE" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
                     <!-- ROW 2: CENTER SECTION (INSERT BOTTLE ON LEFT, TEAL HOW-TO & TOP 5 LEADERBOARD WITH FLASHING LAST RECYCLER ON RIGHT) -->
                     <Grid Grid.Row="2" Margin="0,0,0,8">
@@ -550,80 +479,151 @@
                         </Grid>
                     </Grid>
 
-                    <!-- ROW 3: DOUBLE-HEIGHT "YOUR IMPACT" AND "YOUR BALANCE" CARDS WITH MUCH LARGER FONTS & VIBRANT NATURE ICONS -->
-                    <Grid Grid.Row="3" Margin="0,0,0,8" MinHeight="116">
+                    <!-- ROW 3: LEFT (LIVE SESSION BREAKDOWN TILE + YOUR IMPACT CARD) & RIGHT (YOUR BALANCE CARD) -->
+                    <Grid Grid.Row="3" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.15*"/> <!-- Double Height Your Impact Card -->
+                            <ColumnDefinition Width="1.15*"/> <!-- Left: Live Session Breakdown + Your Impact -->
                             <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/>     <!-- Double Height Your Balance Card -->
+                            <ColumnDefinition Width="*"/>     <!-- Right: Your Balance Card -->
                         </Grid.ColumnDefinitions>
 
-                        <!-- LEFT: DOUBLE HEIGHT "YOUR IMPACT 🍃" CARD (LARGER FONTS & BIGGER ICONS) -->
-                        <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="12" Padding="16,10" Effect="{StaticResource CardShadow}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
+                        <!-- LEFT COLUMN: LIVE SESSION BREAKDOWN TILE PLACED DIRECTLY ABOVE YOUR ENVIRONMENTAL IMPACT -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Live Session Breakdown Tile -->
+                                <RowDefinition Height="6"/>
+                                <RowDefinition Height="*"/>    <!-- Your Environmental Impact Card -->
+                            </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Text="YOUR ENVIRONMENTAL IMPACT 🍃 ماحولیاتی فوائد" FontSize="13" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,6"/>
-
-                                <UniformGrid Grid.Row="1" Columns="1" Rows="3">
-                                    <!-- Row 1: Bottles Recycled -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="32" Height="32" CornerRadius="16" Background="#F0FDF4" BorderBrush="#86EFAC" BorderThickness="1.5" Margin="0,0,12,0">
-                                            <TextBlock Text="🌱" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Bottles &amp; Containers Recycled" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="کل ری سائیکل شدہ بوتلیں اور کین" FontSize="9.5" Foreground="#64748B"/>
+                            <!-- 1. LIVE SESSION CONTAINER BREAKDOWN TILE -->
+                            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Effect="{StaticResource CardShadow}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0" Margin="0,0,0,3">
+                                        <TextBlock Text="LIVE SESSION CONTAINER BREAKDOWN 📊" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <TextBlock x:Name="StatusText" Text="Ready" FontSize="9.5" FontWeight="Bold" Foreground="#16A34A" Margin="0,0,4,0"/>
+                                            <TextBlock x:Name="BottleInfoText" Text="• Insert container" FontSize="9" Foreground="#64748B"/>
                                         </StackPanel>
-                                        <TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="24" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                     </Grid>
-
-                                    <!-- Row 2: CO2 Saved -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="32" Height="32" CornerRadius="16" Background="#ECFDF5" BorderBrush="#5EEAD4" BorderThickness="1.5" Margin="0,0,12,0">
-                                            <TextBlock Text="🌳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                        <!-- Plastic -->
+                                        <Border Style="{StaticResource MaterialChip}" Background="#F0FDFA" BorderBrush="#99F6E4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="🧴 Plastic: " FontSize="9" FontWeight="Bold" Foreground="#047857"/>
+                                                <TextBlock x:Name="PlasticSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
+                                                <TextBlock Text="s " FontSize="7.5" Foreground="#047857"/>
+                                                <TextBlock x:Name="PlasticMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
+                                                <TextBlock Text="m " FontSize="7.5" Foreground="#047857"/>
+                                                <TextBlock x:Name="PlasticLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#047857"/>
+                                                <TextBlock Text="l" FontSize="7.5" Foreground="#047857"/>
+                                            </StackPanel>
                                         </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Carbon Dioxide (CO₂) Saved (kg)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="کاربن کا اخراج کم کیا گیا" FontSize="9.5" Foreground="#64748B"/>
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Row 3: Water Saved -->
-                                    <Grid Margin="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="32" Height="32" CornerRadius="16" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1.5" Margin="0,0,12,0">
-                                            <TextBlock Text="💧" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <!-- Can -->
+                                        <Border Style="{StaticResource MaterialChip}" Background="#F0F9FF" BorderBrush="#BAE6FD">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="🥫 Can: " FontSize="9" FontWeight="Bold" Foreground="#0369A1"/>
+                                                <TextBlock x:Name="CanSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
+                                                <TextBlock Text="s " FontSize="7.5" Foreground="#0369A1"/>
+                                                <TextBlock x:Name="CanMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
+                                                <TextBlock Text="m " FontSize="7.5" Foreground="#0369A1"/>
+                                                <TextBlock x:Name="CanLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#0369A1"/>
+                                                <TextBlock Text="l" FontSize="7.5" Foreground="#0369A1"/>
+                                            </StackPanel>
                                         </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="Fresh Water Saved (Liters)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
-                                            <TextBlock Text="صاف پانی کی بچت کی گئی" FontSize="9.5" Foreground="#64748B"/>
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </UniformGrid>
-                            </Grid>
-                        </Border>
+                                        <!-- Tetra/Cup -->
+                                        <Border Style="{StaticResource MaterialChip}" Background="#FFFBEB" BorderBrush="#FDE68A">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="🧃 Tetra/Cup: " FontSize="9" FontWeight="Bold" Foreground="#B45309"/>
+                                                <TextBlock x:Name="TetraPakSmallCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
+                                                <TextBlock Text="s " FontSize="7.5" Foreground="#B45309"/>
+                                                <TextBlock x:Name="TetraPakMediumCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
+                                                <TextBlock Text="m " FontSize="7.5" Foreground="#B45309"/>
+                                                <TextBlock x:Name="TetraPakLargeCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#B45309"/>
+                                                <TextBlock Text="l" FontSize="7.5" Foreground="#B45309"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <!-- Reject -->
+                                        <Border Style="{StaticResource MaterialChip}" Background="#FEF2F2" BorderBrush="#FECACA" Margin="0">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="🚫 Rej: " FontSize="9" FontWeight="Bold" Foreground="#DC2626"/>
+                                                <TextBlock x:Name="RejectedCountText" Text="0" FontSize="10" FontWeight="Black" Foreground="#DC2626"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
 
-                        <!-- RIGHT: DOUBLE HEIGHT "YOUR BALANCE 🎁" CARD (LARGER FONTS & BIGGER BUTTON) -->
+                            <!-- 2. YOUR ENVIRONMENTAL IMPACT CARD -->
+                            <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="12" Padding="16,10" Effect="{StaticResource CardShadow}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Text="YOUR ENVIRONMENTAL IMPACT 🍃 ماحولیاتی فوائد" FontSize="13" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,6"/>
+
+                                    <UniformGrid Grid.Row="1" Columns="1" Rows="3">
+                                        <!-- Row 1: Bottles Recycled -->
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="32" Height="32" CornerRadius="16" Background="#F0FDF4" BorderBrush="#86EFAC" BorderThickness="1.5" Margin="0,0,12,0">
+                                                <TextBlock Text="🌱" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="Bottles &amp; Containers Recycled" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                                <TextBlock Text="کل ری سائیکل شدہ بوتلیں اور کین" FontSize="9.5" Foreground="#64748B"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="24" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Row 2: CO2 Saved -->
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="32" Height="32" CornerRadius="16" Background="#ECFDF5" BorderBrush="#5EEAD4" BorderThickness="1.5" Margin="0,0,12,0">
+                                                <TextBlock Text="🌳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="Carbon Dioxide (CO₂) Saved (kg)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                                <TextBlock Text="کاربن کا اخراج کم کیا گیا" FontSize="9.5" Foreground="#64748B"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Row 3: Water Saved -->
+                                        <Grid Margin="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="32" Height="32" CornerRadius="16" Background="#EFF6FF" BorderBrush="#93C5FD" BorderThickness="1.5" Margin="0,0,12,0">
+                                                <TextBlock Text="💧" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="Fresh Water Saved (Liters)" FontSize="12.5" FontWeight="Bold" Foreground="#1E293B"/>
+                                                <TextBlock Text="صاف پانی کی بچت کی گئی" FontSize="9.5" Foreground="#64748B"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="24" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </UniformGrid>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- RIGHT COLUMN: YOUR BALANCE CARD -->
                         <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="12" Padding="16,10" Effect="{StaticResource CardShadow}">
                             <Grid>
                                 <!-- Leaf Watermark in Background -->
