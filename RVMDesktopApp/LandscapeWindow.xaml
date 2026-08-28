@@ -410,8 +410,8 @@
                                         </ItemsControl>
                                     </ScrollViewer>
 
-                                    <!-- FLASHING LAST RECYCLER FOOTER CARD (50% TALLER: MinHeight=46) -->
-                                    <Border Grid.Row="2" Margin="0,3,0,0" CornerRadius="6" Padding="8,4.5" MinHeight="46" BorderThickness="1">
+                                    <!-- FLASHING LAST RECYCLER FOOTER CARD (35% TALLER: MinHeight=62) -->
+                                    <Border Grid.Row="2" Margin="0,3,0,0" CornerRadius="7" Padding="9,5.5" MinHeight="62" BorderThickness="1.2">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                                 <GradientStop Color="#FEFCE8" Offset="0.0"/>
@@ -435,7 +435,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- Flashing Pulse Badge -->
-                                            <Border Grid.Column="0" Background="#FEF08A" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="4" Padding="5,2" VerticalAlignment="Center" Margin="0,0,6,0">
+                                            <Border Grid.Column="0" Background="#FEF08A" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="5" Padding="6,2.5" VerticalAlignment="Center" Margin="0,0,7,0">
                                                 <Border.Triggers>
                                                     <EventTrigger RoutedEvent="Loaded">
                                                         <BeginStoryboard>
@@ -446,28 +446,28 @@
                                                     </EventTrigger>
                                                 </Border.Triggers>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="5" Height="5" Fill="#CA8A04" Margin="0,0,2.5,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="⚡ RECENT" FontSize="7.5" FontWeight="Black" Foreground="#854D0E"/>
+                                                    <Ellipse Width="5.5" Height="5.5" Fill="#CA8A04" Margin="0,0,3,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="⚡ RECENT" FontSize="8" FontWeight="Black" Foreground="#854D0E"/>
                                                 </StackPanel>
                                             </Border>
 
                                             <!-- Avatar -->
-                                            <Border Grid.Column="1" Width="24" Height="24" CornerRadius="12" Background="#FEF9C3" BorderBrush="#FACC15" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,6,0">
-                                                <TextBlock Text="♻️" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="1" Width="30" Height="30" CornerRadius="15" Background="#FEF9C3" BorderBrush="#FACC15" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,7,0">
+                                                <TextBlock Text="♻️" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
 
                                             <!-- Info -->
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="10.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="7.5" Foreground="#64748B" Margin="2,0,0,0" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="11.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="8" Foreground="#64748B" Margin="2,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="8" Foreground="#047857"/>
+                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="8.5" Foreground="#047857"/>
                                             </StackPanel>
 
                                             <!-- Points -->
-                                            <Border Grid.Column="3" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="5" Padding="6,2" VerticalAlignment="Center">
-                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="10" FontWeight="Black" Foreground="#15803D"/>
+                                            <Border Grid.Column="3" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="5" Padding="7,2.5" VerticalAlignment="Center">
+                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="11" FontWeight="Black" Foreground="#15803D"/>
                                             </Border>
                                         </Grid>
                                     </Border>

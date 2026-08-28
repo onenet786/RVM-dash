@@ -605,8 +605,8 @@
                                         </ItemsControl>
                                     </ScrollViewer>
 
-                                    <!-- FLASHING LAST RECYCLER FOOTER CARD (50% TALLER: MinHeight=54) -->
-                                    <Border Grid.Row="2" Margin="0,4,0,0" CornerRadius="8" Padding="10,6" MinHeight="54" BorderThickness="1.2">
+                                    <!-- FLASHING LAST RECYCLER FOOTER CARD (35% TALLER: MinHeight=74) -->
+                                    <Border Grid.Row="2" Margin="0,4,0,0" CornerRadius="9" Padding="12,8" MinHeight="74" BorderThickness="1.2">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                                 <GradientStop Color="#FEFCE8" Offset="0.0"/>
@@ -630,7 +630,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- Flashing Pulse Badge -->
-                                            <Border Grid.Column="0" x:Name="FlashingLiveBadge" Background="#FEF08A" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="5" Padding="7,3" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <Border Grid.Column="0" x:Name="FlashingLiveBadge" Background="#FEF08A" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" Margin="0,0,10,0">
                                                 <Border.Triggers>
                                                     <EventTrigger RoutedEvent="Loaded">
                                                         <BeginStoryboard>
@@ -641,28 +641,28 @@
                                                     </EventTrigger>
                                                 </Border.Triggers>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="6" Height="6" Fill="#CA8A04" Margin="0,0,3,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="⚡ RECENT" FontSize="8.5" FontWeight="Black" Foreground="#854D0E"/>
+                                                    <Ellipse Width="6.5" Height="6.5" Fill="#CA8A04" Margin="0,0,3.5,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="⚡ RECENT" FontSize="9" FontWeight="Black" Foreground="#854D0E"/>
                                                 </StackPanel>
                                             </Border>
 
                                             <!-- Avatar Icon -->
-                                            <Border Grid.Column="1" Width="30" Height="30" CornerRadius="15" Background="#FEF9C3" BorderBrush="#FACC15" BorderThickness="1.2" VerticalAlignment="Center" Margin="0,0,8,0">
-                                                <TextBlock Text="♻️" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="1" Width="38" Height="38" CornerRadius="19" Background="#FEF9C3" BorderBrush="#FACC15" BorderThickness="1.2" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="♻️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
 
                                             <!-- User Info -->
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="12.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="9" FontWeight="SemiBold" Foreground="#64748B" Margin="3,0,0,0" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="13.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B" Margin="3,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="SemiBold" Foreground="#047857"/>
+                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="SemiBold" Foreground="#047857"/>
                                             </StackPanel>
 
                                             <!-- Points Chip -->
-                                            <Border Grid.Column="3" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="6" Padding="8,3.5" VerticalAlignment="Center">
-                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="12" FontWeight="Black" Foreground="#15803D"/>
+                                            <Border Grid.Column="3" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="7" Padding="10,4.5" VerticalAlignment="Center">
+                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="13.5" FontWeight="Black" Foreground="#15803D"/>
                                             </Border>
                                         </Grid>
                                     </Border>
