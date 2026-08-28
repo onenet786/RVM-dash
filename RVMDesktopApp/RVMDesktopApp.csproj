@@ -20,6 +20,8 @@
     <Resource Include="Assets\RvmIcon.ico" />
     <Resource Include="Assets\RvmIconSource.png" />
     <Resource Include="Assets\RvmLogo.png" />
+    <Resource Include="Assets\ispp.jpg" />
+    <Resource Include="Assets\ISPP.jpeg" />
     <Content Include="Assets\DancingCan.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingPlastic.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingTetra.mp4" CopyToOutputDirectory="Always" />
