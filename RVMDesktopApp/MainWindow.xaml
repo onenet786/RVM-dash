@@ -671,12 +671,12 @@
                         </Grid>
                     </Grid>
 
-                    <!-- ROW 3: BOTTOM IMPACT & REWARD BALANCE CARDS (50% INCREASED HEIGHT: 260px) -->
+                    <!-- ROW 3: BOTTOM IMPACT & REWARD BALANCE CARDS (EXACT SAME WIDTH & ALIGNMENT AS ROW 2) -->
                     <Grid Grid.Row="3" Margin="0,0,0,8" Height="260">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.15*"/> <!-- Left: Your Environmental Impact Card -->
+                            <ColumnDefinition Width="*"/> <!-- Left: Your Environmental Impact Card (Exact Same Width as Live Breakdown Above) -->
                             <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/>     <!-- Right: Your Reward Balance Card (Same Height!) -->
+                            <ColumnDefinition Width="*"/> <!-- Right: Your Reward Balance Card (Exact Same Width as How-To Above) -->
                         </Grid.ColumnDefinitions>
 
                         <!-- LEFT: YOUR ENVIRONMENTAL IMPACT CARD (260px) -->

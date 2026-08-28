@@ -476,10 +476,10 @@
                     </Grid>
                 </Grid>
 
-                <!-- ROW 3: BOTTOM CARDS (SIDE-BY-SIDE: 50% TALLER: 195px) -->
+                <!-- ROW 3: BOTTOM CARDS (EXACT SAME WIDTH & ALIGNMENT AS ROW 2) -->
                 <Grid Grid.Row="3" Margin="0,0,0,5" Height="195">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.15*"/>
+                        <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="10"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
