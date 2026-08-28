@@ -90,7 +90,44 @@ To avoid false positives from electrical noise or vibrating containers, the firm
 
 ---
 
-## 3. WPF Desktop Software Processing
+## 3. How Paper, Foam, and Plastic Beverage Cups are Detected
+
+Disposable beverage cups (hot paper coffee cups, expanded polystyrene foam cups, and cold clear plastic drink cups) are classified using a **dual-stage filter: Inductive Material Rejection + Acoustic & Optical Height Profiling**:
+
+### Firmware Implementation (`RVM_Arduino.ino: lines 595–606`)
+```cpp
+// Non-metallic items: Distinguish Beverage Cups (Plastic, Paper, Foam) from PET Bottles
+// All disposable cups share a distinct short height profile (<= 14 cm) and do not reach middle/top IR beams
+if (!middleIsCurrentlyBlocked && !topIsCurrentlyBlocked && 
+    maxDistanceChangeCM <= 14 && maxDistanceChangeCM >= 4)
+{
+    materialType = "CUP";
+    bottleSize = "SMALL";
+}
+else
+{
+    materialType = "PLASTIC"; // Standard PET bottle
+}
+```
+
+### Detection Workflow:
+
+| Step | Test Condition | Technical Rationale |
+| :--- | :--- | :--- |
+| **1. Metal Inductive Check** | `metalSensorActive == false`<br>`tetraPakSensorActive == false` | All cup types (paper, foam, plastic) are non-conductive, which immediately excludes aluminum cans and foil-lined cartons. |
+| **2. Multi-Beam Height Check** | `!middleIsCurrentlyBlocked`<br>`!topIsCurrentlyBlocked`<br>`bottomBlocked == true` | Standard PET bottles (500ml–1.5L) stand 20cm–32cm tall, triggering Middle (`D7`) or Top (`D8`) IR beams. Disposable cups (8oz–16oz) stand 7cm–13cm and never reach the middle beam. |
+| **3. Ultrasonic Contour Window** | `4 cm <= maxDistanceChangeCM <= 14 cm` | The top-mounted HC-SR04 measures displacement down to the top rim. Objects under 4cm are rejected as flat debris/caps; objects between 4cm and 14cm match standard cup geometries. |
+
+### Output Telemetry
+When a cup satisfies these criteria, Arduino transmits:
+```text
+SIZE:SMALL;MATERIAL:CUP;METAL_SENSOR:0;TETRAPAK_SENSOR:0;METAL_COUNT:0;TETRAPAK_COUNT:0;SETTLED:1;DURATION:600;DISTANCE:28;CHANGE:8;EMPTY:36
+```
+The desktop app registers the item as `SMALL`, awards **5 points** (or the configured small unit rate), increments the counter, and syncs the transaction to the central server.
+
+---
+
+## 4. WPF Desktop Software Processing
 
 When `SerialManager` receives the telemetry line, `MainWindow.xaml.cs` (and `LandscapeWindow.xaml.cs`) handles the data:
 
@@ -105,7 +142,7 @@ When `SerialManager` receives the telemetry line, `MainWindow.xaml.cs` (and `Lan
 
 ---
 
-## 4. Reward Rules & Points Engine
+## 5. Reward Rules & Points Engine
 
 The reward engine uses a **3-tier cascading fallback system**:
 
@@ -124,6 +161,7 @@ flowchart LR
 | Material Type | Aliases Recognized | Size: SMALL | Size: MEDIUM | Size: LARGE | Unit Mode |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **🧴 PLASTIC** | `PLASTIC`, `PET`, `BOTTLE` | **5 pts** | **10 pts** | **15 pts** | `per_piece` |
+| **☕ CUP** | `CUP`, `CUP_PAPER`, `CUP_FOAM`, `CUP_PLASTIC` | **5 pts** | **—** | **—** | `per_piece` |
 | **🥫 CAN** | `CAN`, `METAL`, `ALUMINIUM`, `ALU` | **10 pts** | **15 pts** | **20 pts** | `per_piece` |
 | **🧃 UBC** | `UBC`, `TETRA`, `TETRAPAK`, `CARTON`, `PAPER` | **5 pts** | **10 pts** *(or 15/kg)* | **15 pts** | `per_piece` / `per_kg` |
 | **🍾 GLASS** | `GLASS` | **10 pts** | **15 pts** | **20 pts** | `per_piece` |
