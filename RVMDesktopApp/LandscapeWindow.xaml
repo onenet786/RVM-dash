@@ -208,9 +208,9 @@
 
                     <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="1.15*"/> <!-- How To Use -->
+                            <RowDefinition Height="1.15*"/> <!-- Reduced height (-25%) for How To Use -->
                             <RowDefinition Height="4"/>
-                            <RowDefinition Height="*"/>    <!-- Top 5 Leaderboard (2 Cards per Row) -->
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
                         <!-- Bilingual How To Use RVM with Teal Glassmorphism & Yellow Icons -->
@@ -246,7 +246,7 @@
                             </Grid>
                         </Border>
 
-                        <!-- Top 5 Leaderboard Cards (2 Cards in a Row) -->
+                        <!-- Top 5 Leaderboard Cards -->
                         <Border Grid.Row="2" Background="#FFFFFF" CornerRadius="10" Padding="8,4" BorderBrush="#E5EAE1" BorderThickness="1" Effect="{StaticResource CardShadow}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -258,14 +258,9 @@
                                 </Grid>
                                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                                     <ItemsControl x:Name="LeaderboardList">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="2"/>
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="4,2.5" Margin="1,1,1,1" Effect="{StaticResource SubtleItemShadow}">
+                                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="6,3" Margin="0,1,0,2" Effect="{StaticResource SubtleItemShadow}">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
@@ -273,23 +268,23 @@
                                                             <ColumnDefinition Width="*"/>
                                                             <ColumnDefinition Width="Auto"/>
                                                         </Grid.ColumnDefinitions>
-                                                        <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                        <Border Grid.Column="0" Width="20" Height="20" CornerRadius="4" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,5,0">
                                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                <TextBlock Text="#" FontSize="6.5" FontWeight="Bold" Foreground="#D97706"/>
-                                                                <TextBlock Text="{Binding Rank}" FontSize="8.5" FontWeight="Black" Foreground="#B45309"/>
+                                                                <TextBlock Text="#" FontSize="7" FontWeight="Bold" Foreground="#D97706"/>
+                                                                <TextBlock Text="{Binding Rank}" FontSize="9.5" FontWeight="Black" Foreground="#B45309"/>
                                                             </StackPanel>
                                                         </Border>
-                                                        <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,4,0">
-                                                            <TextBlock Text="👤" FontSize="8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" Width="20" Height="20" CornerRadius="10" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,5,0">
+                                                            <TextBlock Text="👤" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding DisplayName}" FontSize="8.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="Eco Champion" FontSize="6" Foreground="#64748B"/>
+                                                            <TextBlock Text="{Binding DisplayName}" FontSize="9.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="Eco Champion" FontSize="6.5" Foreground="#64748B"/>
                                                         </StackPanel>
-                                                        <Border Grid.Column="3" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="4,1" VerticalAlignment="Center">
+                                                        <Border Grid.Column="3" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="5,1.5" VerticalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding PointsBalance}" FontSize="8.5" FontWeight="Black" Foreground="#047857"/>
-                                                                <TextBlock Text=" pts" FontSize="6.5" FontWeight="Bold" Foreground="#15803D" Margin="1,0,0,0" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="{Binding PointsBalance}" FontSize="9.5" FontWeight="Black" Foreground="#047857"/>
+                                                                <TextBlock Text=" pts" FontSize="7" FontWeight="Bold" Foreground="#15803D" Margin="1,0,0,0" VerticalAlignment="Center"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Grid>
