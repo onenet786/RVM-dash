@@ -604,9 +604,9 @@ public partial class LandscapeWindow : Window
             ConnectionText.Text = "HARDWARE: OFFLINE";
             ConnectionText.Foreground = Brushes.OrangeRed;
             StatusDot.Fill = Brushes.OrangeRed;
-            StatusText.Text = "Hardware Offline";
-            StatusText.Foreground = Brushes.OrangeRed;
-            BottleInfoText.Text = $"Check {settings.ArduinoPort} connection or update config.txt";
+            StatusText.Text = "Ready";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "• Insert item";
             MachineStateText.Text = "MACHINE: ERROR";
             if (HardwareErrorBanner != null)
             {
@@ -724,9 +724,8 @@ public partial class LandscapeWindow : Window
 
         if (!serial.IsConnected)
         {
-            StatusText.Text = "Hardware not connected";
-            StatusText.Foreground = Brushes.OrangeRed;
             MachineStateText.Text = "MACHINE: ERROR";
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Visible;
             return;
         }
 
@@ -737,6 +736,7 @@ public partial class LandscapeWindow : Window
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = "Insert a plastic bottle or metal can";
         MachineStateText.Text = "MACHINE: RUNNING";
+        if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
         LogTelemetry("[CMD] START");
     }
 
@@ -749,9 +749,9 @@ public partial class LandscapeWindow : Window
 
         machineStarted = false;
         scanTimer.Stop();
-        StatusText.Text = "Machine Stopped";
-        StatusText.Foreground = Brushes.OrangeRed;
-        BottleInfoText.Text = "Press 0 to Start";
+        StatusText.Text = "Ready";
+        StatusText.Foreground = Brushes.LimeGreen;
+        BottleInfoText.Text = "• Insert item";
         MachineStateText.Text = "MACHINE: IDLE";
         LogTelemetry("[CMD] STOP");
     }
@@ -779,9 +779,6 @@ public partial class LandscapeWindow : Window
             ConnectionText.Text = "HARDWARE: ERROR";
             ConnectionText.Foreground = Brushes.OrangeRed;
             StatusDot.Fill = Brushes.OrangeRed;
-            StatusText.Text = "Hardware connection error";
-            StatusText.Foreground = Brushes.OrangeRed;
-            BottleInfoText.Text = "Reconnect the hardware and press 0 to start";
             if (HardwareErrorBanner != null)
             {
                 HardwareErrorBanner.Visibility = Visibility.Visible;
