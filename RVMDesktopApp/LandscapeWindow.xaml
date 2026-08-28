@@ -81,7 +81,6 @@
                     <RowDefinition Height="Auto"/> <!-- 1: Hardware Diagnostics Bar -->
                     <RowDefinition Height="*"/>    <!-- 2: Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers -->
                     <RowDefinition Height="Auto"/> <!-- 3: Bottom Cards: Side-by-Side Your Environmental Impact & Your Reward Balance (Same Height!) -->
-                    <RowDefinition Height="Auto"/> <!-- 4: 5 Nav Actions -->
                 </Grid.RowDefinitions>
 
                 <!-- ROW 0: TOP HEADER BAR -->
@@ -477,8 +476,8 @@
                     </Grid>
                 </Grid>
 
-                <!-- ROW 3: BOTTOM CARDS (SIDE-BY-SIDE: YOUR IMPACT & YOUR REWARD BALANCE - EXACT SAME HEIGHT!) -->
-                <Grid Grid.Row="3" Margin="0,0,0,5">
+                <!-- ROW 3: BOTTOM CARDS (SIDE-BY-SIDE: 50% TALLER & RIGHT-ALIGNED POINTS) -->
+                <Grid Grid.Row="3" Margin="0,0,0,5" Height="130">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.15*"/>
                         <ColumnDefinition Width="10"/>
@@ -486,49 +485,45 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- LEFT: YOUR IMPACT CARD -->
-                    <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="8" Padding="10,6" Effect="{StaticResource CardShadow}">
+                    <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="8" Padding="12,8" Effect="{StaticResource CardShadow}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,2">
-                                <TextBlock Text="YOUR IMPACT 🍃 " FontSize="10" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text="ماحولیاتی فوائد" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Black" Foreground="#073B28"/>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="YOUR IMPACT 🍃 " FontSize="10.5" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text="ماحولیاتی فوائد" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Black" Foreground="#073B28"/>
                             </StackPanel>
                             <UniformGrid Grid.Row="1" Columns="1" Rows="3">
-                                <Grid Margin="0,1"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌱 " FontSize="12" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Bottles Recycled (بوتلیں)" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="16" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/></Grid>
-                                <Grid Margin="0,1"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌳 " FontSize="12" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="CO₂ Saved kg (کاربن بچت)" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="16" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/></Grid>
-                                <Grid Margin="0,1"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="💧 " FontSize="12" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Water Saved L (پانی کی بچت)" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="16" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/></Grid>
+                                <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌱 " FontSize="14" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Bottles Recycled (بوتلیں)" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="18" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/></Grid>
+                                <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌳 " FontSize="14" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="CO₂ Saved kg (کاربن بچت)" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="18" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/></Grid>
+                                <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="💧 " FontSize="14" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Water Saved L (پانی کی بچت)" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="18" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/></Grid>
                             </UniformGrid>
                         </Grid>
                     </Border>
 
-                    <!-- RIGHT: YOUR BALANCE CARD (SAME HEIGHT!) -->
-                    <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="8" Padding="10,6" Effect="{StaticResource CardShadow}">
+                    <!-- RIGHT: YOUR BALANCE CARD (50% TALLER & RIGHT-ALIGNED POINTS) -->
+                    <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="8" Padding="12,8" Effect="{StaticResource CardShadow}">
                         <Grid>
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                <TextBlock Text="REWARD BALANCE 🎁 " FontSize="9.5" FontWeight="Bold" Foreground="#64748B"/>
-                                <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Text="REWARD BALANCE 🎁 " FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
+                                <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
                             </StackPanel>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,2,0,2"><TextBlock x:Name="TotalPointsText" Text="0" FontSize="26" FontWeight="Black" Foreground="#073B28"/><StackPanel Orientation="Horizontal" Margin="2,-2,0,0"><TextBlock Text="POINTS • " FontSize="8" FontWeight="Bold" Foreground="#15803D"/><TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="8.5" FontWeight="Bold" Foreground="#15803D"/></StackPanel></StackPanel>
-                            <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="10,3.5" Cursor="Hand" Click="ViewRewardsButton_Click">
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,2,0,2">
+                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="32" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,-2,0,0">
+                                    <TextBlock Text="POINTS • " FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                                    <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="12,4" Cursor="Hand" Click="ViewRewardsButton_Click">
                                 <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="REDEEM • " FontSize="9" FontWeight="Bold" Foreground="White"/>
-                                    <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="REDEEM • " FontSize="9.5" FontWeight="Bold" Foreground="White"/>
+                                    <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                 </StackPanel>
                             </Button>
                         </Grid>
                     </Border>
-                </Grid>
-
-                <!-- ROW 4: 5 QUICK ACTION CARDS -->
-                <Grid Grid.Row="4">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" Style="{StaticResource BottomNavCardButton}" Click="SignInNav_Click"><StackPanel HorizontalAlignment="Center"><Border Width="24" Height="24" CornerRadius="12" Background="#16A34A" Margin="0,0,0,1"><TextBlock Text="👤" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="SIGN IN" FontSize="7.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/></StackPanel></Button>
-                    <Button Grid.Column="1" Style="{StaticResource BottomNavCardButton}" Click="RewardsNav_Click"><StackPanel HorizontalAlignment="Center"><Border Width="24" Height="24" CornerRadius="12" Background="#F59E0B" Margin="0,0,0,1"><TextBlock Text="🎁" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="REWARDS" FontSize="7.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/></StackPanel></Button>
-                    <Button Grid.Column="2" Style="{StaticResource BottomNavCardButton}" Click="TransactionNav_Click"><StackPanel HorizontalAlignment="Center"><Border Width="24" Height="24" CornerRadius="12" Background="#0284C7" Margin="0,0,0,1"><TextBlock Text="🕒" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="HISTORY" FontSize="7.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/></StackPanel></Button>
-                    <Button Grid.Column="3" Style="{StaticResource BottomNavCardButton}" Click="InstructionsNav_Click"><StackPanel HorizontalAlignment="Center"><Border Width="24" Height="24" CornerRadius="12" Background="#7C3AED" Margin="0,0,0,1"><TextBlock Text="ℹ️" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="GUIDE" FontSize="7.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/></StackPanel></Button>
-                    <Button Grid.Column="4" Style="{StaticResource BottomNavCardButton}" Click="AnnouncementsNav_Click"><StackPanel HorizontalAlignment="Center"><Border Width="24" Height="24" CornerRadius="12" Background="#0D9488" Margin="0,0,0,1"><TextBlock Text="📢" FontSize="11" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="NEWS" FontSize="7.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/></StackPanel></Button>
                 </Grid>
             </Grid>
         </Border>
