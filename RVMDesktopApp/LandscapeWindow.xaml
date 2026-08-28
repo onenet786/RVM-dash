@@ -320,13 +320,13 @@
 
                     <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="1.15*"/> <!-- How To Use -->
+                            <RowDefinition Height="Auto"/> <!-- How To Use (Exact Same Height 220 as Video Player) -->
                             <RowDefinition Height="4"/>
                             <RowDefinition Height="*"/>    <!-- Top 5 Leaderboard + Flashing Last Recycler -->
                         </Grid.RowDefinitions>
 
-                        <!-- Bilingual How To Use RVM with Teal Glassmorphism & Yellow Icons -->
-                        <Border Grid.Row="0" CornerRadius="10" Padding="10,5" BorderThickness="1.2" Effect="{StaticResource TealGlassShadow}">
+                        <!-- Bilingual How To Use RVM with Teal Glassmorphism & Yellow Icons (EXACT SAME SIZE AS VIDEO PLAYER) -->
+                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="220" CornerRadius="10" Padding="10,5" BorderThickness="1.2" Effect="{StaticResource TealGlassShadow}">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="#EB0F766E" Offset="0.0"/>

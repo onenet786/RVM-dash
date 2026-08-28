@@ -239,9 +239,9 @@
                     <!-- ROW 2: CENTER SECTION (LEFT: INSERT BOTTLE + LIVE BREAKDOWN; RIGHT: HOW-TO + TOP 5 RECYCLERS) -->
                     <Grid Grid.Row="2" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1.1*"/> <!-- Left: Insert Bottle + Live Container Breakdown -->
+                            <ColumnDefinition Width="*"/> <!-- Left: Insert Bottle + Live Container Breakdown -->
                             <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/>    <!-- Right: Bilingual How-To Guide + Top 5 Leaderboard -->
+                            <ColumnDefinition Width="*"/> <!-- Right: Bilingual How-To Guide + Top 5 Leaderboard -->
                         </Grid.ColumnDefinitions>
 
                         <!-- LEFT COLUMN: INSERT BOTTLE CIRCLE + LIVE SESSION CONTAINER BREAKDOWN -->
@@ -441,13 +441,13 @@
                         <!-- RIGHT COLUMN: TEAL HOW-TO + TOP 5 RECYCLERS -->
                         <Grid Grid.Column="2">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="1.2*"/> <!-- How To Use RVM -->
+                                <RowDefinition Height="Auto"/> <!-- How To Use RVM (Exact Same Height 308 as Video Player) -->
                                 <RowDefinition Height="6"/>
-                                <RowDefinition Height="1.1*"/>  <!-- Top 5 Leaderboard + Flashing Last Recycler -->
+                                <RowDefinition Height="*"/>     <!-- Top 5 Leaderboard + Flashing Last Recycler -->
                             </Grid.RowDefinitions>
 
-                            <!-- TEAL GLASSMORPHISM HOW TO USE RVM CARD -->
-                            <Border Grid.Row="0" CornerRadius="12" Padding="12,6" BorderThickness="1.5" Effect="{StaticResource TealGlassShadow}">
+                            <!-- TEAL GLASSMORPHISM HOW TO USE RVM CARD (EXACT SAME SIZE AS VIDEO PLAYER) -->
+                            <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="308" CornerRadius="12" Padding="14,8" BorderThickness="1.5" Effect="{StaticResource TealGlassShadow}">
                                 <Border.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                         <GradientStop Color="#EB0F766E" Offset="0.0"/>
