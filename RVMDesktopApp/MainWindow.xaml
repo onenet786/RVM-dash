@@ -172,6 +172,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid Grid.Row="0" Margin="0,0,0,3">
                                 <TextBlock Text="HARDWARE &amp; MACHINE DIAGNOSTICS 🔌" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
@@ -197,6 +198,32 @@
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
+
+                            <!-- HARDWARE CONNECTION ERROR BANNER (DYNAMIC ALERT) -->
+                            <Border x:Name="HardwareErrorBanner" Grid.Row="2" Margin="0,4,0,0" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1.2" CornerRadius="6" Padding="8,4" Visibility="Collapsed">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" Background="#FEE2E2" Margin="0,0,6,0" VerticalAlignment="Center">
+                                        <TextBlock Text="⚠️" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port or cable connection • ہارڈویئر منسلک نہیں ہے" FontSize="9" FontWeight="Bold" Foreground="#DC2626" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="6,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </Grid>
+                            </Border>
                         </Grid>
                     </Border>
 

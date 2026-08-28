@@ -709,6 +709,7 @@ public partial class MainWindow : Window
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {settings.ArduinoPort} at {settings.ArduinoBaud} baud");
             LogTelemetry("[CMD] CALIBRATE");
             serial.SendCommand("CALIBRATE");
@@ -722,8 +723,21 @@ public partial class MainWindow : Window
             StatusText.Foreground = Brushes.OrangeRed;
             BottleInfoText.Text = $"Check {settings.ArduinoPort} connection or update config.txt";
             MachineStateText.Text = "MACHINE: ERROR";
+            if (HardwareErrorBanner != null)
+            {
+                HardwareErrorBanner.Visibility = Visibility.Visible;
+                if (HardwareErrorText != null)
+                {
+                    HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: Check {settings.ArduinoPort} connection or update config.txt • ہارڈویئر منسلک نہیں ہے";
+                }
+            }
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
         }
+    }
+
+    private void RetryHardwareConnection_Click(object sender, RoutedEventArgs e)
+    {
+        ConnectArduino();
     }
 
     private void StartMachine()
@@ -738,6 +752,7 @@ public partial class MainWindow : Window
             StatusText.Text = "Hardware not connected";
             StatusText.Foreground = Brushes.OrangeRed;
             MachineStateText.Text = "MACHINE: ERROR";
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Visible;
             return;
         }
 
@@ -748,6 +763,7 @@ public partial class MainWindow : Window
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = "Insert a plastic bottle or metal can";
         MachineStateText.Text = "MACHINE: RUNNING";
+        if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
         LogTelemetry("[CMD] START");
     }
 
@@ -793,6 +809,14 @@ public partial class MainWindow : Window
             StatusText.Text = "Hardware connection error";
             StatusText.Foreground = Brushes.OrangeRed;
             BottleInfoText.Text = "Reconnect the hardware and press 0 to start";
+            if (HardwareErrorBanner != null)
+            {
+                HardwareErrorBanner.Visibility = Visibility.Visible;
+                if (HardwareErrorText != null)
+                {
+                    HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: {error.Message} • ہارڈویئر کا رابطہ منقطع ہے";
+                }
+            }
             LogTelemetry($"[HARDWARE] Serial error: {error.Message}");
         });
     }
@@ -806,6 +830,7 @@ public partial class MainWindow : Window
             ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             return;
         }
 

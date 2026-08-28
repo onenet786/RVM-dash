@@ -594,6 +594,7 @@ public partial class LandscapeWindow : Window
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {settings.ArduinoPort} at {settings.ArduinoBaud} baud");
             LogTelemetry("[CMD] CALIBRATE");
             serial.SendCommand("CALIBRATE");
@@ -607,8 +608,21 @@ public partial class LandscapeWindow : Window
             StatusText.Foreground = Brushes.OrangeRed;
             BottleInfoText.Text = $"Check {settings.ArduinoPort} connection or update config.txt";
             MachineStateText.Text = "MACHINE: ERROR";
+            if (HardwareErrorBanner != null)
+            {
+                HardwareErrorBanner.Visibility = Visibility.Visible;
+                if (HardwareErrorText != null)
+                {
+                    HardwareErrorText.Text = $"HARDWARE OFFLINE: Check {settings.ArduinoPort} • ہارڈویئر منسلک نہیں ہے";
+                }
+            }
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
         }
+    }
+
+    private void RetryHardwareConnection_Click(object sender, RoutedEventArgs e)
+    {
+        ConnectArduino();
     }
 
     private async Task CheckCentralApiConnectionAsync()
@@ -768,6 +782,14 @@ public partial class LandscapeWindow : Window
             StatusText.Text = "Hardware connection error";
             StatusText.Foreground = Brushes.OrangeRed;
             BottleInfoText.Text = "Reconnect the hardware and press 0 to start";
+            if (HardwareErrorBanner != null)
+            {
+                HardwareErrorBanner.Visibility = Visibility.Visible;
+                if (HardwareErrorText != null)
+                {
+                    HardwareErrorText.Text = $"HARDWARE ERROR: {error.Message} • ہارڈویئر منسلک نہیں ہے";
+                }
+            }
             LogTelemetry($"[HARDWARE] Serial error: {error.Message}");
         });
     }
@@ -781,6 +803,7 @@ public partial class LandscapeWindow : Window
             ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             return;
         }
 

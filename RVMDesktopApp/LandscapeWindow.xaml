@@ -131,7 +131,11 @@
                 <!-- ROW 1: HARDWARE DIAGNOSTICS BAR -->
                 <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,0,0,5" Effect="{StaticResource CardShadow}">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <TextBlock Text="HARDWARE DIAGNOSTICS 🔌" FontSize="8.5" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,2"/>
                         <StackPanel Grid.Row="1" Orientation="Horizontal">
                             <Border Background="#F0FDF4" CornerRadius="4" Padding="4,1" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#16A34A" Margin="0,0,3,0" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionText" Text="SERIAL: OK" FontSize="8" FontWeight="Bold" Foreground="#166534"/></StackPanel></Border>
@@ -139,6 +143,28 @@
                             <Border Background="#F0FDF4" CornerRadius="4" Padding="4,1"><StackPanel Orientation="Horizontal"><Ellipse x:Name="ApiDot" Width="6" Height="6" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/><TextBlock x:Name="ApiStatusText" Text="API: OK" FontSize="8" FontWeight="Bold" Foreground="#166534"/></StackPanel></Border>
                             <TextBlock x:Name="MachineStateText" Text="IDLE" FontSize="8" FontWeight="Bold" Foreground="#0369A1" Margin="4,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
+
+                        <!-- HARDWARE ERROR BANNER -->
+                        <Border x:Name="HardwareErrorBanner" Grid.Row="2" Margin="0,3,0,0" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="4" Padding="6,2" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⚠️ " FontSize="8" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR • ہارڈویئر منسلک نہیں ہے" FontSize="7.5" FontWeight="Bold" Foreground="#DC2626" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="7.5" FontWeight="Bold" Padding="4,1" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Border>
 
