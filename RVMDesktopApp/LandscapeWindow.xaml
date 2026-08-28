@@ -512,9 +512,9 @@
                                 <TextBlock Text="REWARD BALANCE 🎁" FontSize="10" FontWeight="Bold" Foreground="#64748B"/>
                                 <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#64748B"/>
                             </StackPanel>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,2,10,2">
-                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="30" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
+                            <StackPanel Grid.Row="1" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,-4,10,0">
+                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="28" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,1,0,0">
                                     <TextBlock Text="POINTS • " FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
                                     <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
                                 </StackPanel>
