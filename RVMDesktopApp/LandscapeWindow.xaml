@@ -123,6 +123,8 @@
                     <TextBlock x:Name="HeaderDotText" Visibility="Collapsed"/>
                     <TextBlock x:Name="CommandCenterRvmNameText" Visibility="Collapsed"/>
                     <TextBlock x:Name="AdHeaderRvmNameText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="StatusText" Visibility="Collapsed"/>
+                    <TextBlock x:Name="BottleInfoText" Visibility="Collapsed"/>
 
                     <!-- Header Right: Date, Time & ISPP Logo Card -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
@@ -239,12 +241,6 @@
                                         <TextBlock Text="📊 " FontSize="10" VerticalAlignment="Center"/>
                                         <TextBlock Text="SESSION DETAILS • " FontSize="9" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                         <TextBlock Text="سیشن تفصیل" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="5,1.5" Margin="0,0,4,0">
-                                            <TextBlock x:Name="StatusText" Text="Ready" FontSize="8.5" FontWeight="Bold" Foreground="#16A34A"/>
-                                        </Border>
-                                        <TextBlock x:Name="BottleInfoText" Text="• Insert item" FontSize="8" Foreground="#64748B" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Grid>
                                 <Grid Grid.Row="1">
