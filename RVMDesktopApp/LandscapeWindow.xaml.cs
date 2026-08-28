@@ -1050,7 +1050,7 @@ public partial class LandscapeWindow : Window
         }
 
         rejectedCount++;
-        RejectedCountText.Text = rejectedCount.ToString();
+        RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
 
         StatusText.Text = "Rejected";
         StatusText.Foreground = Brushes.OrangeRed;
@@ -1080,7 +1080,7 @@ public partial class LandscapeWindow : Window
         if (!accepted)
         {
             rejectedCount++;
-            RejectedCountText.Text = rejectedCount.ToString();
+            RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
 
             StatusText.Text = "Rejected";
             StatusText.Foreground = Brushes.OrangeRed;
@@ -1339,7 +1339,8 @@ public partial class LandscapeWindow : Window
             canSmallCount = canMediumCount = canLargeCount = tetraPakSmallCount = tetraPakMediumCount = tetraPakLargeCount = rejectedCount = 0;
         TotalItemsText.Text = PlasticSmallCountText.Text = PlasticMediumCountText.Text = PlasticLargeCountText.Text =
             CanSmallCountText.Text = CanMediumCountText.Text = CanLargeCountText.Text =
-            TetraPakSmallCountText.Text = TetraPakMediumCountText.Text = TetraPakLargeCountText.Text = RejectedCountText.Text = "0";
+            TetraPakSmallCountText.Text = TetraPakMediumCountText.Text = TetraPakLargeCountText.Text = RejectedCountText.Text =
+            PlasticTotalCountText.Text = CanTotalCountText.Text = TetraPakTotalCountText.Text = RejectedTotalCountText.Text = "0";
         TotalPointsText.Text = "0";
         UpdateImpactMetrics();
     }
@@ -1351,18 +1352,21 @@ public partial class LandscapeWindow : Window
             if (size == "SMALL") PlasticSmallCountText.Text = (++plasticSmallCount).ToString();
             else if (size == "MEDIUM") PlasticMediumCountText.Text = (++plasticMediumCount).ToString();
             else if (size == "LARGE") PlasticLargeCountText.Text = (++plasticLargeCount).ToString();
+            PlasticTotalCountText.Text = (plasticSmallCount + plasticMediumCount + plasticLargeCount).ToString();
         }
         else if (material.Contains("CAN", StringComparison.OrdinalIgnoreCase) || material.Contains("METAL", StringComparison.OrdinalIgnoreCase) || material.Contains("ALUMINIUM", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") CanSmallCountText.Text = (++canSmallCount).ToString();
             else if (size == "MEDIUM") CanMediumCountText.Text = (++canMediumCount).ToString();
             else if (size == "LARGE") CanLargeCountText.Text = (++canLargeCount).ToString();
+            CanTotalCountText.Text = (canSmallCount + canMediumCount + canLargeCount).ToString();
         }
         else if (material.Contains("UBC", StringComparison.OrdinalIgnoreCase) || material.Contains("TETRA", StringComparison.OrdinalIgnoreCase) || material.Contains("CARTON", StringComparison.OrdinalIgnoreCase) || material.Contains("PAPER", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") TetraPakSmallCountText.Text = (++tetraPakSmallCount).ToString();
             else if (size == "MEDIUM") TetraPakMediumCountText.Text = (++tetraPakMediumCount).ToString();
             else if (size == "LARGE") TetraPakLargeCountText.Text = (++tetraPakLargeCount).ToString();
+            TetraPakTotalCountText.Text = (tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount).ToString();
         }
     }
 

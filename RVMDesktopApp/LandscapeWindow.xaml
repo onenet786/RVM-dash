@@ -251,12 +251,16 @@
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
-                                        <ColumnDefinition Width="0.85*"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <!-- Plastic -->
-                                    <Border Grid.Column="0" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="62">
+                                    <Border Grid.Column="0" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="74">
                                         <Grid>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
                                                 <TextBlock Text="🧴" FontSize="11" Margin="0,0,2,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="PLASTIC" FontSize="8.5" FontWeight="Black" Foreground="#047857" VerticalAlignment="Center"/>
@@ -266,12 +270,23 @@
                                                 <Border Background="#CCFBF1" CornerRadius="3" Padding="3,1" Margin="0,0,2,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="7" Foreground="#0F766E"/><TextBlock x:Name="PlasticMediumCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#047857" Margin="1,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#CCFBF1" CornerRadius="3" Padding="3,1"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="7" Foreground="#0F766E"/><TextBlock x:Name="PlasticLargeCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#047857" Margin="1,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
+                                            <Border Grid.Row="2" Background="#CCFBF1" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="3" Padding="5,1.5" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="TOTAL: " FontSize="7" FontWeight="Black" Foreground="#0F766E"/>
+                                                    <TextBlock x:Name="PlasticTotalCountText" Text="0" FontSize="9.5" FontWeight="Black" Foreground="#047857"/>
+                                                    <TextBlock Text=" pcs" FontSize="6.5" FontWeight="Bold" Foreground="#0F766E" Margin="1,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                     <!-- Can -->
-                                    <Border Grid.Column="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="62">
+                                    <Border Grid.Column="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="74">
                                         <Grid>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
                                                 <TextBlock Text="🥫" FontSize="11" Margin="0,0,2,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="CAN" FontSize="8.5" FontWeight="Black" Foreground="#0369A1" VerticalAlignment="Center"/>
@@ -281,12 +296,23 @@
                                                 <Border Background="#E0F2FE" CornerRadius="3" Padding="3,1" Margin="0,0,2,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="7" Foreground="#0284C7"/><TextBlock x:Name="CanMediumCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#0369A1" Margin="1,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#E0F2FE" CornerRadius="3" Padding="3,1"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="7" Foreground="#0284C7"/><TextBlock x:Name="CanLargeCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#0369A1" Margin="1,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
+                                            <Border Grid.Row="2" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="3" Padding="5,1.5" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="TOTAL: " FontSize="7" FontWeight="Black" Foreground="#0284C7"/>
+                                                    <TextBlock x:Name="CanTotalCountText" Text="0" FontSize="9.5" FontWeight="Black" Foreground="#0369A1"/>
+                                                    <TextBlock Text=" pcs" FontSize="6.5" FontWeight="Bold" Foreground="#0284C7" Margin="1,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                     <!-- UBC -->
-                                    <Border Grid.Column="4" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="62">
+                                    <Border Grid.Column="4" Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="74">
                                         <Grid>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
                                                 <TextBlock Text="🧃" FontSize="11" Margin="0,0,2,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="UBC" FontSize="8.5" FontWeight="Black" Foreground="#B45309" VerticalAlignment="Center"/>
@@ -296,20 +322,38 @@
                                                 <Border Background="#FEF3C7" CornerRadius="3" Padding="3,1" Margin="0,0,2,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="7" Foreground="#D97706"/><TextBlock x:Name="TetraPakMediumCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#B45309" Margin="1,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#FEF3C7" CornerRadius="3" Padding="3,1"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="7" Foreground="#D97706"/><TextBlock x:Name="TetraPakLargeCountText" Text="0" FontSize="11" FontWeight="Black" Foreground="#B45309" Margin="1,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
+                                            <Border Grid.Row="2" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="3" Padding="5,1.5" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="TOTAL: " FontSize="7" FontWeight="Black" Foreground="#D97706"/>
+                                                    <TextBlock x:Name="TetraPakTotalCountText" Text="0" FontSize="9.5" FontWeight="Black" Foreground="#B45309"/>
+                                                    <TextBlock Text=" pcs" FontSize="6.5" FontWeight="Bold" Foreground="#D97706" Margin="1,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                     <!-- Reject -->
-                                    <Border Grid.Column="6" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="62">
+                                    <Border Grid.Column="6" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="6" Padding="4,5" MinHeight="74">
                                         <Grid>
-                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
                                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
                                                 <TextBlock Text="🚫" FontSize="11" Margin="0,0,2,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="REJ" FontSize="8.5" FontWeight="Black" Foreground="#DC2626" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock x:Name="RejectedCountText" Text="0" FontSize="18" FontWeight="Black" Foreground="#DC2626" HorizontalAlignment="Center"/>
-                                                <TextBlock Text=" pcs" FontSize="7.5" FontWeight="Bold" Foreground="#EF4444" Margin="1,4,0,0" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="RejectedCountText" Text="0" FontSize="16" FontWeight="Black" Foreground="#DC2626" HorizontalAlignment="Center"/>
+                                                <TextBlock Text=" pcs" FontSize="7.5" FontWeight="Bold" Foreground="#EF4444" Margin="1,2,0,0" VerticalAlignment="Center"/>
                                             </StackPanel>
+                                            <Border Grid.Row="2" Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="3" Padding="5,1.5" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="TOTAL: " FontSize="7" FontWeight="Black" Foreground="#B91C1C"/>
+                                                    <TextBlock x:Name="RejectedTotalCountText" Text="0" FontSize="9.5" FontWeight="Black" Foreground="#DC2626"/>
+                                                    <TextBlock Text=" pcs" FontSize="6.5" FontWeight="Bold" Foreground="#B91C1C" Margin="1,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </Grid>
