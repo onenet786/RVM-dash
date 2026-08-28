@@ -301,8 +301,9 @@
                             <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1.5" CornerRadius="12" Padding="14,12" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/> <!-- Header Title & Status -->
-                                        <RowDefinition Height="Auto"/> <!-- 4 Tall Spacious Material Cards -->
+                                        <RowDefinition Height="Auto"/> <!-- Header Title -->
+                                        <RowDefinition Height="*"/>    <!-- Flexible Space -->
+                                        <RowDefinition Height="Auto"/> <!-- 4 Material Cards Anchored at Bottom in Container -->
                                     </Grid.RowDefinitions>
 
                                     <!-- Header -->
@@ -314,8 +315,8 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <!-- 4 Doubled Material Breakdown Cards -->
-                                    <Grid Grid.Row="1">
+                                    <!-- 4 Doubled Material Breakdown Cards (Anchored At Bottom in Container) -->
+                                    <Grid Grid.Row="2" VerticalAlignment="Bottom">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="6"/>

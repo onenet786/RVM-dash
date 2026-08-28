@@ -235,7 +235,11 @@
                         <!-- Live Session Breakdown (Directly above Impact - DOUBLED SIZE) -->
                         <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1.2" CornerRadius="8" Padding="10,8" Effect="{StaticResource CardShadow}">
                             <Grid>
-                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 <Grid Grid.Row="0" Margin="0,0,0,5">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="📊 " FontSize="10" VerticalAlignment="Center"/>
@@ -243,7 +247,7 @@
                                         <TextBlock Text="سیشن کی تفصیل" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Grid>
-                                <Grid Grid.Row="1">
+                                <Grid Grid.Row="2" VerticalAlignment="Bottom">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
