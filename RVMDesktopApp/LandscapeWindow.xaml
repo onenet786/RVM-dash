@@ -205,7 +205,7 @@
                         <Grid Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Border Width="160" Height="160" CornerRadius="80" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                 <Grid>
-                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded"/>
+                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                     <Grid x:Name="InstructionPlaceholder">
                                         <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
                                             <Grid Width="160" Height="160">

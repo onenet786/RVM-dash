@@ -384,9 +384,27 @@ public partial class LandscapeWindow : Window
         try
         {
             string? path = FindVideoFiles(settings.InstructionVideoFolder).FirstOrDefault();
-            if (path == null)
+            if (string.IsNullOrEmpty(path))
+            {
+                // Fallback check in multiple well-known folders
+                string[] fallbackFolders = [
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Ads", "Instructions"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Ads", "Instructions"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "RVMDesktopApp", "Ads", "Instructions"),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Ads", "Advertisements")
+                ];
+                foreach (var folder in fallbackFolders)
+                {
+                    path = FindVideoFiles(folder).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase));
+                    if (!string.IsNullOrEmpty(path)) break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(path))
             {
                 LogTelemetry($"[VIDEO] No instruction video found in: {settings.InstructionVideoFolder}");
+                InstructionPlaceholder.Visibility = Visibility.Visible;
+                InstructionPlayer.Visibility = Visibility.Collapsed;
                 return;
             }
 
@@ -399,6 +417,8 @@ public partial class LandscapeWindow : Window
         catch (Exception ex)
         {
             LogTelemetry($"[VIDEO Error] Could not load instruction video: {ex.Message}");
+            InstructionPlaceholder.Visibility = Visibility.Visible;
+            InstructionPlayer.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -406,6 +426,13 @@ public partial class LandscapeWindow : Window
     {
         InstructionPlayer.Position = TimeSpan.Zero;
         InstructionPlayer.Play();
+    }
+
+    private void InstructionPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
+    {
+        LogTelemetry($"[INSTRUCTION VIDEO FAILED] {e.ErrorException?.Message}");
+        InstructionPlaceholder.Visibility = Visibility.Visible;
+        InstructionPlayer.Visibility = Visibility.Collapsed;
     }
 
     private void AdvertisementPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
@@ -518,13 +545,52 @@ public partial class LandscapeWindow : Window
 
     private static string[] FindVideoFiles(string directory)
     {
-        if (!Directory.Exists(directory))
+        if (string.IsNullOrWhiteSpace(directory)) return [];
+
+        string targetDir = directory;
+        if (!Directory.Exists(targetDir))
+        {
+            // 1. Try relative to AppDomain base directory
+            string fromBase = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            if (Directory.Exists(fromBase))
+            {
+                targetDir = fromBase;
+            }
+            else
+            {
+                // 2. Try relative to CWD / RVMDesktopApp
+                string fromCwdRvm = Path.Combine(Directory.GetCurrentDirectory(), "RVMDesktopApp", directory);
+                if (Directory.Exists(fromCwdRvm))
+                {
+                    targetDir = fromCwdRvm;
+                }
+                else
+                {
+                    // 3. Try project root from debug
+                    string fromDebugProject = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", directory));
+                    if (Directory.Exists(fromDebugProject))
+                    {
+                        targetDir = fromDebugProject;
+                    }
+                    else
+                    {
+                        string fromDebugRvm = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "RVMDesktopApp", directory));
+                        if (Directory.Exists(fromDebugRvm))
+                        {
+                            targetDir = fromDebugRvm;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!Directory.Exists(targetDir))
         {
             return [];
         }
 
-        return [.. Directory.EnumerateFiles(directory)
-            .Where(path => VideoExtensions.Contains(Path.GetExtension(path)))
+        return [.. Directory.EnumerateFiles(targetDir)
+            .Where(path => VideoExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)];
     }
 

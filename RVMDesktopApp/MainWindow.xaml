@@ -258,7 +258,7 @@
                                 <Border Width="200" Height="200" CornerRadius="100" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                     <Grid>
                                         <!-- Video Player -->
-                                        <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded"/>
+                                        <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                         
                                         <!-- Placeholder -->
                                         <Grid x:Name="InstructionPlaceholder">

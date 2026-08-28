@@ -127,7 +127,7 @@ Write-Host "`n[TARGET] Selected Screen $ScreenIndex ($modeLabel) -> (X=$targetX,
 
 # 5. Launch RVMDesktopApp process with orientation argument
 Write-Host "[LAUNCH] Starting RVMDesktopApp in $modeLabel with arg: $modeArg..." -ForegroundColor Cyan
-$process = Start-Process -FilePath $ExePath -ArgumentList $modeArg -PassThru
+$process = Start-Process -FilePath $ExePath -ArgumentList $modeArg -WorkingDirectory (Split-Path $ExePath) -PassThru
 
 # 6. Wait for MainWindowHandle to be created
 $hwnd = [IntPtr]::Zero
