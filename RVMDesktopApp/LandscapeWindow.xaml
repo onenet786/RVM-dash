@@ -270,11 +270,11 @@
                                                 <Border Background="#CCFBF1" CornerRadius="4" Padding="5,3" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="9" Foreground="#0F766E"/><TextBlock x:Name="PlasticMediumCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#047857" Margin="1.5,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#CCFBF1" CornerRadius="4" Padding="5,3"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="9" Foreground="#0F766E"/><TextBlock x:Name="PlasticLargeCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#047857" Margin="1.5,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
-                                            <Border Grid.Row="2" Background="#CCFBF1" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="4" Padding="9,2.5" HorizontalAlignment="Center">
+                                            <Border Grid.Row="2" Background="#CCFBF1" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="4" Padding="8,2.5" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="TOTAL: " FontSize="10.5" FontWeight="Black" Foreground="#0F766E"/>
-                                                    <TextBlock x:Name="PlasticTotalCountText" Text="0" FontSize="18" FontWeight="Black" Foreground="#047857"/>
-                                                    <TextBlock Text=" pcs" FontSize="9.5" FontWeight="Bold" Foreground="#0F766E" Margin="1,1,0,0"/>
+                                                    <TextBlock Text="TOTAL: " FontSize="8.5" FontWeight="Black" Foreground="#0F766E"/>
+                                                    <TextBlock x:Name="PlasticTotalCountText" Text="0" FontSize="13" FontWeight="Black" Foreground="#047857"/>
+                                                    <TextBlock Text=" pcs" FontSize="8" FontWeight="Bold" Foreground="#0F766E" Margin="1,0,0,0"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -296,11 +296,11 @@
                                                 <Border Background="#E0F2FE" CornerRadius="4" Padding="5,3" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="9" Foreground="#0284C7"/><TextBlock x:Name="CanMediumCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#0369A1" Margin="1.5,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#E0F2FE" CornerRadius="4" Padding="5,3"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="9" Foreground="#0284C7"/><TextBlock x:Name="CanLargeCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#0369A1" Margin="1.5,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
-                                            <Border Grid.Row="2" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="9,2.5" HorizontalAlignment="Center">
+                                            <Border Grid.Row="2" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="4" Padding="8,2.5" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="TOTAL: " FontSize="10.5" FontWeight="Black" Foreground="#0284C7"/>
-                                                    <TextBlock x:Name="CanTotalCountText" Text="0" FontSize="18" FontWeight="Black" Foreground="#0369A1"/>
-                                                    <TextBlock Text=" pcs" FontSize="9.5" FontWeight="Bold" Foreground="#0284C7" Margin="1,1,0,0"/>
+                                                    <TextBlock Text="TOTAL: " FontSize="8.5" FontWeight="Black" Foreground="#0284C7"/>
+                                                    <TextBlock x:Name="CanTotalCountText" Text="0" FontSize="13" FontWeight="Black" Foreground="#0369A1"/>
+                                                    <TextBlock Text=" pcs" FontSize="8" FontWeight="Bold" Foreground="#0284C7" Margin="1,0,0,0"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -322,11 +322,11 @@
                                                 <Border Background="#FEF3C7" CornerRadius="4" Padding="5,3" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><TextBlock Text="M:" FontSize="9" Foreground="#D97706"/><TextBlock x:Name="TetraPakMediumCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#B45309" Margin="1.5,0,0,0"/></StackPanel></Border>
                                                 <Border Background="#FEF3C7" CornerRadius="4" Padding="5,3"><StackPanel Orientation="Horizontal"><TextBlock Text="L:" FontSize="9" Foreground="#D97706"/><TextBlock x:Name="TetraPakLargeCountText" Text="0" FontSize="15" FontWeight="Black" Foreground="#B45309" Margin="1.5,0,0,0"/></StackPanel></Border>
                                             </StackPanel>
-                                            <Border Grid.Row="2" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="4" Padding="9,2.5" HorizontalAlignment="Center">
+                                            <Border Grid.Row="2" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="4" Padding="8,2.5" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="TOTAL: " FontSize="10.5" FontWeight="Black" Foreground="#D97706"/>
-                                                    <TextBlock x:Name="TetraPakTotalCountText" Text="0" FontSize="18" FontWeight="Black" Foreground="#B45309"/>
-                                                    <TextBlock Text=" pcs" FontSize="9.5" FontWeight="Bold" Foreground="#D97706" Margin="1,1,0,0"/>
+                                                    <TextBlock Text="TOTAL: " FontSize="8.5" FontWeight="Black" Foreground="#D97706"/>
+                                                    <TextBlock x:Name="TetraPakTotalCountText" Text="0" FontSize="13" FontWeight="Black" Foreground="#B45309"/>
+                                                    <TextBlock Text=" pcs" FontSize="8" FontWeight="Bold" Foreground="#D97706" Margin="1,0,0,0"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -347,11 +347,11 @@
                                                 <TextBlock x:Name="RejectedCountText" Text="0" FontSize="26" FontWeight="Black" Foreground="#DC2626" HorizontalAlignment="Center"/>
                                                 <TextBlock Text=" pcs" FontSize="10" FontWeight="Bold" Foreground="#EF4444" Margin="2,3,0,0" VerticalAlignment="Center"/>
                                             </StackPanel>
-                                            <Border Grid.Row="2" Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="4" Padding="9,2.5" HorizontalAlignment="Center">
+                                            <Border Grid.Row="2" Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="4" Padding="8,2.5" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="TOTAL: " FontSize="10.5" FontWeight="Black" Foreground="#B91C1C"/>
-                                                    <TextBlock x:Name="RejectedTotalCountText" Text="0" FontSize="18" FontWeight="Black" Foreground="#DC2626"/>
-                                                    <TextBlock Text=" pcs" FontSize="9.5" FontWeight="Bold" Foreground="#B91C1C" Margin="1,1,0,0"/>
+                                                    <TextBlock Text="TOTAL: " FontSize="8.5" FontWeight="Black" Foreground="#B91C1C"/>
+                                                    <TextBlock x:Name="RejectedTotalCountText" Text="0" FontSize="13" FontWeight="Black" Foreground="#DC2626"/>
+                                                    <TextBlock Text=" pcs" FontSize="8" FontWeight="Bold" Foreground="#B91C1C" Margin="1,0,0,0"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
