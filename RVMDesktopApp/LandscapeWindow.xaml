@@ -16,6 +16,7 @@
         
         <DropShadowEffect x:Key="CardShadow" BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#073B28"/>
         <DropShadowEffect x:Key="CircleShadow" BlurRadius="16" ShadowDepth="3" Opacity="0.08" Color="#073B28"/>
+        <DropShadowEffect x:Key="TealGlassShadow" BlurRadius="18" ShadowDepth="3" Opacity="0.20" Color="#0D9488"/>
 
         <Style x:Key="ExactInsertCircleButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -81,7 +82,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/> <!-- 0: Header -->
                     <RowDefinition Height="Auto"/> <!-- 1: Separate Hardware & Session Tiles -->
-                    <RowDefinition Height="*"/>    <!-- 2: Insert Circle / Instruction Video on Left + How-To & Leaderboard on Right -->
+                    <RowDefinition Height="*"/>    <!-- 2: Insert Circle / Instruction Video on Left + Teal Glass How-To & Leaderboard on Right -->
                     <RowDefinition Height="Auto"/> <!-- 3: Double Height Impact & Balance Cards -->
                     <RowDefinition Height="Auto"/> <!-- 4: 5 Nav Actions -->
                 </Grid.RowDefinitions>
@@ -211,16 +212,35 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Bilingual How To Use RVM -->
-                        <Border Grid.Row="0" Background="#073F26" CornerRadius="8" Padding="10,5" Effect="{StaticResource CardShadow}">
+                        <!-- Bilingual How To Use RVM with Teal Glassmorphism -->
+                        <Border Grid.Row="0" CornerRadius="10" Padding="10,5" BorderThickness="1.2" Effect="{StaticResource TealGlassShadow}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#EB0F766E" Offset="0.0"/>
+                                    <GradientStop Color="#E0115E59" Offset="0.5"/>
+                                    <GradientStop Color="#F0042E2B" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#995EEAD4" Offset="0.0"/>
+                                    <GradientStop Color="#4D2DD4BF" Offset="0.5"/>
+                                    <GradientStop Color="#8014B8A6" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="HOW TO USE RVM • طریقہ کار" FontSize="11" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="✦ " FontSize="10" Foreground="#5EEAD4"/>
+                                    <TextBlock Text="HOW TO USE RVM • طریقہ کار" FontSize="11" FontWeight="Black" Foreground="#99F6E4"/>
+                                    <TextBlock Text=" ✦" FontSize="10" Foreground="#5EEAD4"/>
+                                </StackPanel>
                                 <UniformGrid Grid.Row="1" Columns="1" Rows="4">
-                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#115338" Margin="0,0,6,0"><TextBlock Text="1" FontSize="9.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="1. INSERT • خالی بوتل یا کین ڈالیں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#115338" Margin="0,0,6,0"><TextBlock Text="2" FontSize="9.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="2. DETECT • شناخت اور خودکار اسکین" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#115338" Margin="0,0,6,0"><TextBlock Text="3" FontSize="9.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#115338" Margin="0,0,6,0"><TextBlock Text="4" FontSize="9.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="4. SAVE • ماحول کو صاف اور سرسبز بنائیں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1" Margin="0,0,6,0"><TextBlock Text="1" FontSize="9.5" FontWeight="Bold" Foreground="#99F6E4" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="1. INSERT • خالی بوتل یا کین ڈالیں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1" Margin="0,0,6,0"><TextBlock Text="2" FontSize="9.5" FontWeight="Bold" Foreground="#99F6E4" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="2. DETECT • شناخت اور خودکار اسکین" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1" Margin="0,0,6,0"><TextBlock Text="3" FontSize="9.5" FontWeight="Bold" Foreground="#99F6E4" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="3. REWARD • پوائنٹس حاصل کریں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,1"><Border Width="20" Height="20" CornerRadius="10" Background="#3314B8A6" BorderBrush="#805EEAD4" BorderThickness="1" Margin="0,0,6,0"><TextBlock Text="4" FontSize="9.5" FontWeight="Bold" Foreground="#99F6E4" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="4. SAVE • ماحول کو صاف اور سرسبز بنائیں" FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/></StackPanel>
                                 </UniformGrid>
                             </Grid>
                         </Border>
