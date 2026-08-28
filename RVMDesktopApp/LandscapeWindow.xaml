@@ -196,13 +196,13 @@
                     <!-- LEFT: INSERT BOTTLE / LIVE INSTRUCTION VIDEO + LIVE SESSION CONTAINER BREAKDOWN -->
                     <Grid Grid.Column="0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                            <RowDefinition Height="4"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Insert Bottle (MATCHING BREAKDOWN WIDTH) -->
-                        <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="8" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                        <!-- Insert Bottle (EXACT 16:9 BEST FIT) -->
+                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="220" CornerRadius="8" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                             <Grid>
                                 <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                 <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">

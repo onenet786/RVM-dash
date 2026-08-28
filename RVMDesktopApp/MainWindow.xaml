@@ -248,13 +248,13 @@
                         <!-- LEFT COLUMN: INSERT BOTTLE CIRCLE + LIVE SESSION CONTAINER BREAKDOWN -->
                         <Grid Grid.Column="0">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>    <!-- Insert Bottle / Live Instruction Video Area -->
+                                <RowDefinition Height="Auto"/> <!-- 1. Insert Bottle / Live Instruction Video Area (16:9 Best Fit) -->
                                 <RowDefinition Height="6"/>
-                                <RowDefinition Height="Auto"/> <!-- Live Session Container Breakdown Dashboard (Above Impact) -->
+                                <RowDefinition Height="*"/>    <!-- 2. Live Session Container Breakdown Dashboard (Above Impact) -->
                             </Grid.RowDefinitions>
 
-                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (SAME WIDTH AS BREAKDOWN CARD) -->
-                            <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="12" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (EXACT 16:9 BEST FIT) -->
+                            <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="308" CornerRadius="12" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                 <Grid>
                                     <!-- Video Player: Fits Completely Within Container (Zero Cropping) -->
                                     <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
