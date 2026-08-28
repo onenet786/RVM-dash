@@ -253,9 +253,9 @@
                                 <RowDefinition Height="Auto"/> <!-- Live Session Container Breakdown Dashboard (Above Impact) -->
                             </Grid.RowDefinitions>
 
-                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER -->
-                            <Grid Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Border Width="200" Height="200" CornerRadius="100" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (MAX FEASIBLE SIZE) -->
+                            <Grid Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4">
+                                <Border Width="310" Height="310" CornerRadius="155" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                                     <Grid>
                                         <!-- Video Player -->
                                         <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
@@ -263,30 +263,30 @@
                                         <!-- Placeholder -->
                                         <Grid x:Name="InstructionPlaceholder">
                                             <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
-                                                <Grid Width="200" Height="200">
-                                                    <Ellipse Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
-                                                    <Ellipse Width="186" Height="186" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.5"/>
-                                                    <Ellipse Width="168" Height="168" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.2"/>
+                                                <Grid Width="310" Height="310">
+                                                    <Ellipse Width="308" Height="308" Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="4 4"/>
+                                                    <Ellipse Width="290" Height="290" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="1.8"/>
+                                                    <Ellipse Width="268" Height="268" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.5"/>
 
                                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Canvas Width="64" Height="38" Margin="0,0,0,3">
-                                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="9" Height="2.5" Stroke="#073B28" StrokeThickness="1.2" Fill="#073B28"/>
-                                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
-                                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="14" Height="4" Stroke="#073B28" StrokeThickness="1.2" Fill="Transparent"/>
-                                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2" Fill="Transparent"/>
+                                                        <Canvas Width="76" Height="44" Margin="0,0,0,6">
+                                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2.4" Fill="Transparent"/>
+                                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="10" Height="3" Stroke="#073B28" StrokeThickness="1.5" Fill="#073B28"/>
+                                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2.4" Fill="Transparent"/>
+                                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="14" Height="4.5" Stroke="#073B28" StrokeThickness="1.5" Fill="Transparent"/>
+                                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2.4" Fill="Transparent"/>
                                                         </Canvas>
 
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                            <TextBlock Text="INSERT  •  " FontSize="16" FontWeight="Black" Foreground="#073B28"/>
-                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#073B28"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                                            <TextBlock Text="INSERT  •  " FontSize="20" FontWeight="Black" Foreground="#073B28"/>
+                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="21" FontWeight="Black" Foreground="#073B28"/>
                                                         </StackPanel>
-                                                        <TextBlock Text="BOTTLE / CAN / CUP" FontSize="10" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,4"/>
+                                                        <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="11.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,8"/>
                                                         
-                                                        <Border Background="#073B28" CornerRadius="12" Padding="14,4.5" HorizontalAlignment="Center">
+                                                        <Border Background="#073B28" CornerRadius="16" Padding="18,6" HorizontalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="TO START • " FontSize="10" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="TO START • " FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </StackPanel>
