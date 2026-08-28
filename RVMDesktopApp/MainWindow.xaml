@@ -253,49 +253,49 @@
                                 <RowDefinition Height="Auto"/> <!-- Live Session Container Breakdown Dashboard (Above Impact) -->
                             </Grid.RowDefinitions>
 
-                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (MAX ENLARGED 400x400) -->
-                            <Grid Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2">
-                                <Border Width="400" Height="400" CornerRadius="200" ClipToBounds="True" Background="#073B28" Effect="{StaticResource CircleShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
-                                    <Grid>
-                                        <!-- Video Player -->
-                                        <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
-                                        
-                                        <!-- Placeholder -->
-                                        <Grid x:Name="InstructionPlaceholder">
-                                            <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click">
-                                                <Grid Width="400" Height="400">
-                                                    <Ellipse Width="398" Height="398" Stroke="#CBD5E1" StrokeThickness="1.8" StrokeDashArray="5 5"/>
-                                                    <Ellipse Width="376" Height="376" Fill="#FBFDF9" Stroke="#E2ECE0" StrokeThickness="2"/>
-                                                    <Ellipse Width="348" Height="348" Fill="#FFFFFF" Stroke="#CBE0CB" StrokeThickness="1.8"/>
+                            <!-- 1. INSERT BOTTLE SECTION WITH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (SAME WIDTH AS BREAKDOWN CARD) -->
+                            <Border Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="12" ClipToBounds="True" Background="#073B28" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                <Grid>
+                                    <!-- Video Player: Stretches to Exact Width of Container Breakdown Card -->
+                                    <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
+                                    
+                                    <!-- Placeholder (When video is stopped or loading) -->
+                                    <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                        <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                            <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Ellipse Width="310" Height="310" Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="4 4"/>
+                                                    <Ellipse Width="292" Height="292" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.8"/>
+                                                    <Ellipse Width="270" Height="270" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.5"/>
 
                                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Canvas Width="96" Height="56" Margin="0,0,0,8">
-                                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2.8" Fill="Transparent"/>
-                                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="12" Height="3.5" Stroke="#073B28" StrokeThickness="1.8" Fill="#073B28"/>
-                                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2.8" Fill="Transparent"/>
-                                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="16" Height="5" Stroke="#073B28" StrokeThickness="1.8" Fill="Transparent"/>
-                                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2.8" Fill="Transparent"/>
+                                                        <Canvas Width="80" Height="46" Margin="0,0,0,6">
+                                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
+                                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="11" Height="3" Stroke="#073B28" StrokeThickness="1.6" Fill="#073B28"/>
+                                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
+                                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="15" Height="4.8" Stroke="#073B28" StrokeThickness="1.6" Fill="Transparent"/>
+                                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
                                                         </Canvas>
 
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,3">
-                                                            <TextBlock Text="INSERT  •  " FontSize="25" FontWeight="Black" Foreground="#073B28"/>
-                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="27" FontWeight="Black" Foreground="#073B28"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                                            <TextBlock Text="INSERT  •  " FontSize="21" FontWeight="Black" Foreground="#073B28"/>
+                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="22.5" FontWeight="Black" Foreground="#073B28"/>
                                                         </StackPanel>
-                                                        <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="14" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,12"/>
+                                                        <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,8"/>
                                                         
-                                                        <Border Background="#073B28" CornerRadius="20" Padding="24,8" HorizontalAlignment="Center">
+                                                        <Border Background="#073B28" CornerRadius="16" Padding="20,6" HorizontalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="TO START • " FontSize="14.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="TO START • " FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </StackPanel>
                                                 </Grid>
-                                            </Button>
-                                        </Grid>
+                                            </Border>
+                                        </Button>
                                     </Grid>
-                                </Border>
-                            </Grid>
+                                </Grid>
+                            </Border>
 
                             <!-- 2. LIVE SESSION CONTAINER BREAKDOWN (Directly above Your Environmental Impact - DOUBLED SIZE) -->
                             <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1.5" CornerRadius="12" Padding="14,12" Effect="{StaticResource CardShadow}">
