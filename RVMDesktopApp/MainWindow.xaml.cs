@@ -388,7 +388,7 @@ public partial class MainWindow : Window
 
     private void InstructionsNav_Click(object sender, RoutedEventArgs e)
     {
-        RvmMessageDialog.ShowInfo("How To Use RVM", "1. INSERT: Place your empty bottle, can, or cup in the chamber.\n2. DETECT: Sensors will scan and identify the material.\n3. REWARD: Collect points and send directly to your wallet.\n4. SAVE ENVIRONMENT: Every container keeps our planet cleaner!");
+        RvmMessageDialog.ShowInfo("How To Use RVM", "1. Press 0 to Start\n2. Insert Bottle/Can/UBC/Cup\n3. Detect\n4. Press Enter\n5. Enter Mobile Number / Scan QR Code\n6. Press Enter and Get Points\n7. Save");
     }
 
     private void AnnouncementsNav_Click(object sender, RoutedEventArgs e)
