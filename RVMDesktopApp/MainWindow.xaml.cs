@@ -205,6 +205,8 @@ public partial class MainWindow : Window
 
     private int digit1PressCount = 0;
     private DateTime lastDigit1PressTime = DateTime.MinValue;
+    private int digit8PressCount = 0;
+    private DateTime lastDigit8PressTime = DateTime.MinValue;
     private DateTime lastDigit3PressTime = DateTime.MinValue;
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -240,9 +242,31 @@ public partial class MainWindow : Window
 
         if (e.Key == Key.D8 || e.Key == Key.NumPad8)
         {
-            ToggleTelemetry();
-            e.Handled = true;
-            return;
+            DateTime now = DateTime.Now;
+            if ((now - lastDigit8PressTime).TotalMilliseconds <= 1500)
+            {
+                digit8PressCount++;
+            }
+            else
+            {
+                digit8PressCount = 1;
+            }
+
+            lastDigit8PressTime = now;
+
+            if (digit8PressCount >= 3)
+            {
+                digit8PressCount = 0;
+                lastDigit8PressTime = DateTime.MinValue;
+                LogTelemetry("[HOTKEY] Telemetry toggled via hotkey 888");
+                ToggleTelemetry();
+                e.Handled = true;
+                return;
+            }
+        }
+        else
+        {
+            digit8PressCount = 0;
         }
 
         if (e.Key == Key.D3 || e.Key == Key.NumPad3)
