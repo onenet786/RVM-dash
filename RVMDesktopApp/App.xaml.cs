@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -9,8 +11,38 @@ namespace RVMDesktopApp;
 
 public partial class App : Application
 {
+    private static Mutex? singleInstanceMutex;
+    private const string MutexId = @"Local\RVMDesktopApp_SingleInstance_Mutex";
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    private const int SW_RESTORE = 9;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        bool createdNew;
+        try
+        {
+            singleInstanceMutex = new Mutex(true, MutexId, out createdNew);
+        }
+        catch
+        {
+            createdNew = true;
+        }
+
+        if (!createdNew)
+        {
+            // Another instance is already running
+            BringExistingInstanceToForeground();
+            Shutdown(0);
+            return;
+        }
+
         base.OnStartup(e);
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
@@ -24,6 +56,24 @@ public partial class App : Application
 
         MainWindow = startupWindow;
         startupWindow.Show();
+    }
+
+    private static void BringExistingInstanceToForeground()
+    {
+        try
+        {
+            Process current = Process.GetCurrentProcess();
+            foreach (Process process in Process.GetProcessesByName(current.ProcessName))
+            {
+                if (process.Id != current.Id && process.MainWindowHandle != IntPtr.Zero)
+                {
+                    ShowWindow(process.MainWindowHandle, SW_RESTORE);
+                    SetForegroundWindow(process.MainWindowHandle);
+                    break;
+                }
+            }
+        }
+        catch { }
     }
 
     private static bool DetermineIsPortrait(string[] args)
@@ -65,6 +115,15 @@ public partial class App : Application
             }
         }
         catch { }
+
+        try
+        {
+            singleInstanceMutex?.ReleaseMutex();
+            singleInstanceMutex?.Dispose();
+            singleInstanceMutex = null;
+        }
+        catch { }
+
         base.OnExit(e);
     }
 

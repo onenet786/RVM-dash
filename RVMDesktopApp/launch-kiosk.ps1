@@ -125,6 +125,14 @@ $modeLabel = if ($isTargetPortrait) { "PORTRAIT MODE" } else { "LANDSCAPE MODE" 
 
 Write-Host "`n[TARGET] Selected Screen $ScreenIndex ($modeLabel) -> (X=$targetX, Y=$targetY, Width=$targetWidth, Height=$targetHeight)" -ForegroundColor Green
 
+# 4.5. Close any existing instance to ensure single instance
+$existingProcs = Get-Process -Name "RVMDesktopApp" -ErrorAction SilentlyContinue
+if ($existingProcs) {
+    Write-Host "[INSTANCE] Closing $($existingProcs.Count) existing RVMDesktopApp process(es) to ensure single instance..." -ForegroundColor Yellow
+    $existingProcs | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 400
+}
+
 # 5. Launch RVMDesktopApp process with orientation argument
 Write-Host "[LAUNCH] Starting RVMDesktopApp in $modeLabel with arg: $modeArg..." -ForegroundColor Cyan
 $process = Start-Process -FilePath $ExePath -ArgumentList $modeArg -WorkingDirectory (Split-Path $ExePath) -PassThru
