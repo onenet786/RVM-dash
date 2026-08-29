@@ -527,7 +527,7 @@
                                             <!-- Step 1: Press 0 to Start -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="1" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="▶️" FontSize="10" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
@@ -540,7 +540,7 @@
                                             <!-- Step 2: Insert Bottle/Can/UBC/Cup -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="2" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="🍾" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
@@ -553,7 +553,7 @@
                                             <!-- Step 3: Detect -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="3" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="🔍" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
@@ -566,7 +566,7 @@
                                             <!-- Step 4: Press Enter -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="4" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="⏎" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
@@ -579,11 +579,11 @@
                                             <!-- Step 5: Enter Mobile Number / Scan QR Code -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="5" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="📱" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="5. Enter Mobile Number / Scan QR Code • " FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="5. Enter Mobile Number / Scan QR Code • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         <TextBlock Text="نمبر یا QR درج کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
@@ -592,7 +592,7 @@
                                             <!-- Step 6: Press Enter and Get Points -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="6" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="🎁" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
@@ -605,7 +605,7 @@
                                             <!-- Step 7: Save -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
                                                 <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="7" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="🌱" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
