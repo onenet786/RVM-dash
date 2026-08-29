@@ -526,91 +526,91 @@
                                         <UniformGrid Grid.Row="1" Columns="1" Rows="7">
                                             <!-- Step 1: Press 0 to Start -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="▶️" FontSize="10" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="▶️" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="1. Press 0 to Start • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="شروع کرنے کیلئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="1. Press 0 to Start • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="شروع کرنے کیلئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 2: Insert Bottle/Can/UBC/Cup -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🍾" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🍾" FontSize="12" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="2. Insert Bottle/Can/UBC/Cup • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="بوتل، کین یا کپ ڈالیں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="2. Insert Bottle/Can/UBC/Cup • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="بوتل، کین یا کپ ڈالیں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 3: Detect -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🔍" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🔍" FontSize="12" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="3. Detect • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="خودکار اسکین اور شناخت" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="3. Detect • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="خودکار اسکین اور شناخت" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 4: Press Enter -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="⏎" FontSize="11" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="⏎" FontSize="12" FontWeight="Black" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="4. Press Enter • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="آگے بڑھنے کیلئے Enter دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="4. Press Enter • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="آگے بڑھنے کیلئے Enter دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 5: Enter Mobile Number / Scan QR Code -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="📱" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="📱" FontSize="12" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="5. Enter Mobile Number / Scan QR Code • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="نمبر یا QR درج کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="5. Enter Mobile Number / Scan QR Code • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="نمبر یا QR درج کریں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 6: Press Enter and Get Points -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🎁" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🎁" FontSize="12" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="6. Press Enter and Get Points • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="پوائنٹس حاصل کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="6. Press Enter and Get Points • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="پوائنٹس حاصل کریں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
                                             <!-- Step 7: Save -->
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0.5">
-                                                <Border Width="22" Height="22" CornerRadius="11" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="🌱" FontSize="11" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Border Width="24" Height="24" CornerRadius="12" Background="#33FBBF24" BorderBrush="#EAB308" BorderThickness="1.2" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="🌱" FontSize="12" Foreground="#FACC15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="7. Save • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                        <TextBlock Text="اپنے ماحول کو سرسبز بنائیں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#99F6E4"/>
+                                                        <TextBlock Text="7. Save • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        <TextBlock Text="اپنے ماحول کو سرسبز بنائیں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#99F6E4"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
