@@ -37,9 +37,17 @@ public partial class App : Application
 
         if (!createdNew)
         {
-            // Another instance is already running
-            BringExistingInstanceToForeground();
-            Shutdown(0);
+            // Another instance is already running – show temporary info window then exit
+            var msgWindow = new AutoCloseMessageWindow();
+            msgWindow.Show();
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                msgWindow.Close();
+                Shutdown(0);
+            };
+            timer.Start();
             return;
         }
 
