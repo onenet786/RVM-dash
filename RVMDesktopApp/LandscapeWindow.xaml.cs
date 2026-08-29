@@ -197,10 +197,41 @@ public partial class LandscapeWindow : Window
             serial.SendCommand("RESET");
     }
 
+    private int digit1PressCount = 0;
+    private DateTime lastDigit1PressTime = DateTime.MinValue;
     private DateTime lastDigit3PressTime = DateTime.MinValue;
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.D1 || e.Key == Key.NumPad1)
+        {
+            DateTime now = DateTime.Now;
+            if ((now - lastDigit1PressTime).TotalMilliseconds <= 1500)
+            {
+                digit1PressCount++;
+            }
+            else
+            {
+                digit1PressCount = 1;
+            }
+
+            lastDigit1PressTime = now;
+
+            if (digit1PressCount >= 3)
+            {
+                digit1PressCount = 0;
+                lastDigit1PressTime = DateTime.MinValue;
+                LogTelemetry("[HOTKEY] Admin panel login opened via hotkey 111");
+                OpenAdmin();
+                e.Handled = true;
+                return;
+            }
+        }
+        else
+        {
+            digit1PressCount = 0;
+        }
+
         if (e.Key == Key.D8 || e.Key == Key.NumPad8)
         {
             ToggleTelemetry();
