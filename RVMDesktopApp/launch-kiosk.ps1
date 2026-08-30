@@ -49,9 +49,9 @@ if (-not ([System.Management.Automation.PSTypeName]'Win32Kiosk').Type) {
     Add-Type -TypeDefinition $Win32Signature
 }
 
-Write-Host "=================================================" -ForegroundColor Green
-Write-Host "  RVM KIOSK DISPLAY LAUNCHER                     " -ForegroundColor Green
-Write-Host "=================================================" -ForegroundColor Green
+# Write-Host "=================================================" -ForegroundColor Green
+# Write-Host "  RVM KIOSK DISPLAY LAUNCHER                     " -ForegroundColor Green
+# Write-Host "=================================================" -ForegroundColor Green
 
 # 3. Locate RVMDesktopApp executable
 if ([string]::IsNullOrWhiteSpace($ExePath)) {
@@ -125,12 +125,25 @@ $modeLabel = if ($isTargetPortrait) { "PORTRAIT MODE" } else { "LANDSCAPE MODE" 
 
 Write-Host "`n[TARGET] Selected Screen $ScreenIndex ($modeLabel) -> (X=$targetX, Y=$targetY, Width=$targetWidth, Height=$targetHeight)" -ForegroundColor Green
 
-# 4.5. Close any existing instance to ensure single instance
+# 4.5 Ensure single instance - if already running, show temporary message box
 $existingProcs = Get-Process -Name "RVMDesktopApp" -ErrorAction SilentlyContinue
 if ($existingProcs) {
-    Write-Host "[INSTANCE] Closing $($existingProcs.Count) existing RVMDesktopApp process(es) to ensure single instance..." -ForegroundColor Yellow
-    $existingProcs | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Milliseconds 400
+    Add-Type -AssemblyName System.Windows.Forms
+    $msgForm = New-Object System.Windows.Forms.Form
+    $msgForm.StartPosition = "CenterScreen"
+    $msgForm.Size = New-Object System.Drawing.Size(350,120)
+    $msgForm.FormBorderStyle = "FixedDialog"
+    $msgForm.Text = "Info"
+    $msgForm.TopMost = $true
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = "RVMDesktopApp is already running."
+    $label.AutoSize = $true
+    $label.Location = New-Object System.Drawing.Point(30,30)
+    $msgForm.Controls.Add($label)
+    $msgForm.Show()
+    Start-Sleep -Milliseconds 2000
+    $msgForm.Close()
+    exit 0
 }
 
 # 5. Launch RVMDesktopApp process with orientation argument
