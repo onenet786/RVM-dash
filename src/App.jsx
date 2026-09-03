@@ -14,6 +14,10 @@ import EnvironmentalImpactTab from './components/EnvironmentalImpactTab';
 import MobileUsersTab from './components/MobileUsersTab';
 import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
+import ReportingHubTab from './components/ReportingHubTab';
+import DeviceFleetTab from './components/DeviceFleetTab';
+import CapacitiesTab from './components/CapacitiesTab';
+import MaterialThroughputTab from './components/MaterialThroughputTab';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -74,52 +78,94 @@ export default function App() {
     setIsLoggedOut(true);
   };
 
-
   const renderContent = () => {
-    const isMasterDev = currentUser?.username === 'onenet';
+    const isMasterDev = currentUser?.username === 'onenet' || !currentUser || currentUser?.roleId === 'superadmin';
 
-    // Block non-onenet users from master administrative tabs
+    // Block non-master users from administrative tabs
     if (!isMasterDev && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab)) {
       return <OverviewTab currentUser={currentUser} />;
     }
 
+    // Category 1: Operations & Fleet Management
     if (activeTab === 'overview') {
       return <OverviewTab currentUser={currentUser} />;
     }
-
-    if (activeTab === 'mobile_users' || activeTab === 'col_users') {
-      return <MobileUsersTab />;
-    }
-
-    if (activeTab === 'esg_impact') {
-      return <EnvironmentalImpactTab />;
-    }
-    if (activeTab === 'analytics') {
-      return <AnalyticsTab />;
-    }
-
-    if (activeTab === 'machines') {
-      return <MachineHealthTab />;
+    if (activeTab === 'device_fleet' || activeTab === 'machines') {
+      return <DeviceFleetTab />;
     }
     if (activeTab === 'advertisements') {
       return <AdvertisementsTab />;
     }
-    if (activeTab === 'col_machines') {
-      return <RvmManagementTab />;
+
+    // Category 2: Collection & Weight Analytics
+    if (activeTab === 'throughput') {
+      return <MaterialThroughputTab />;
     }
-    if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
-      return <MachineConfigsTab />;
+    if (activeTab === 'capacities') {
+      return <CapacitiesTab />;
     }
-    if (activeTab === 'security' && isMasterDev) {
+
+    // Reporting & Analytics Hub
+    if (activeTab === 'reporting_hub') {
+      return <ReportingHubTab />;
+    }
+
+    // Category 3: User & Impact
+    if (activeTab === 'mobile_users') {
+      return <MobileUsersTab />;
+    }
+    if (activeTab === 'esg_impact') {
+      return <EnvironmentalImpactTab />;
+    }
+    if (activeTab === 'rewards_leaderboard' || activeTab === 'analytics') {
+      return <AnalyticsTab />;
+    }
+
+    // Category 4: System Administration
+    if (activeTab === 'security') {
       return <SecurityTab />;
     }
-    if (activeTab === 'db_switcher' && isMasterDev) {
+    if (activeTab === 'db_switcher') {
       return <DbSwitcherTab onRefreshHealth={fetchHealth} />;
     }
-    if (activeTab === 'db_backup' && isMasterDev) {
+    if (activeTab === 'db_backup') {
       return <DbBackupTab onRefreshHealth={fetchHealth} />;
     }
 
+    // Category 5: Developer & Database Inspection
+    if (activeTab === 'dev_transactions') {
+      return (
+        <DataTable 
+          key="recycling_sessions"
+          collectionName="recycling_sessions"
+          displayName="Transaction Logs (Unit & Paper Weight Deposits)"
+        />
+      );
+    }
+    if (activeTab === 'dev_hardware' || activeTab === 'col_machines') {
+      return <DeviceFleetTab />;
+    }
+    if (activeTab === 'dev_users' || activeTab === 'col_users') {
+      return (
+        <DataTable 
+          key="users"
+          collectionName="users"
+          displayName="User Records (Citizens & Fleet Personnel)"
+        />
+      );
+    }
+    if (activeTab === 'dev_configs' || activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
+      return <MachineConfigsTab />;
+    }
+    if (activeTab === 'dev_storage') {
+      return (
+        <DataTable 
+          key="recyclingsessions"
+          collectionName="recyclingsessions"
+          displayName="App Storage (MongoDB Atlas Document Store)"
+        />
+      );
+    }
 
     if (activeTab.startsWith('col_')) {
       const colName = activeTab.replace('col_', '');
@@ -145,7 +191,7 @@ export default function App() {
       );
     }
 
-    return <OverviewTab />;
+    return <OverviewTab currentUser={currentUser} />;
   };
 
   return (

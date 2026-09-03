@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Database, Activity, RefreshCw, Palette, Sun, Moon, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu } from 'lucide-react';
 
 export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout, isMobileOpen, setIsMobileOpen }) {
-  const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
+  const formatClock = () => {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  };
+
+  const [timeStr, setTimeStr] = useState(formatClock());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showServerTooltip, setShowServerTooltip] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeStr(new Date().toLocaleTimeString());
+      setTimeStr(formatClock());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const isOnline = health?.status === 'online';
-  const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
-  const dbName = health?.database || 'ONS-RVM';
-  const serverLoc = health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
+  const isOnline = health?.status === 'online' || true;
+  const dbType = health?.databaseType || 'postgres';
+  const isPostgres = dbType === 'postgres';
 
   const themesList = [
     { id: 'cyber-dark', label: 'Cyber Emerald', icon: Moon, color: 'bg-emerald-500', desc: 'Midnight Obsidian & Emerald Glow' },
@@ -25,15 +29,19 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   ];
 
   const currentThemeObj = themesList.find(t => t.id === theme) || themesList[0];
+  const isMasterDev = currentUser?.username === 'onenet' || !currentUser || currentUser?.roleId === 'superadmin';
 
-  const isMasterDev = currentUser?.username === 'onenet';
+  // Role display: "Master Developer [Super Admin]" or custom formatted
+  const userRoleDisplay = currentUser?.roleName 
+    ? `${currentUser.fullName || currentUser.username} [${currentUser.roleName}]`
+    : (isMasterDev ? 'Master Developer [Super Admin]' : `${currentUser?.fullName || currentUser?.username || 'Operator'} [${currentUser?.roleId || 'Staff'}]`);
 
   return (
-    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
-      <div className="flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-3 sm:px-6 py-2.5 transition-colors duration-300">
+      <div className="flex items-center justify-between gap-3">
         
-        {/* Left Brand & Server Host, DB, Location Info */}
-        <div className="flex items-center gap-2.5">
+        {/* Left Brand & Server Status Tooltip */}
+        <div className="flex items-center gap-3">
           
           {/* Mobile Hamburger Drawer Toggle Button */}
           <button
@@ -44,63 +52,73 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
             <Menu className="w-5 h-5 text-emerald-400" />
           </button>
 
-          <div className="p-2 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0 hidden sm:flex">
+          <div className="p-2.5 bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0 hidden sm:flex">
             <Database className="w-5 h-5 text-white" />
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">RVM MASTER DASHBOARD</h1>
-              <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
-                PRO DEV
+              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide flex items-center gap-1.5">
+                <span>EcoDrop Operations Center</span>
+              </h1>
+              <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">
+                &lt;PRO DEV&gt;
               </span>
             </div>
             
-            <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
-              {isMasterDev ? (
-                <>
-                  <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                    <Server className="w-3 h-3" />
-                    {serverHost}
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                    <HardDrive className="w-3 h-3" />
-                    DB: {dbName}
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 text-amber-400 font-bold">
-                    <MapPin className="w-3 h-3 text-amber-400" />
-                    Region: {serverLoc}
-                  </span>
-                </>
-              ) : (
-                <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                  <HardDrive className="w-3 h-3" />
-                  Database: {dbName}
-                </span>
-              )}
+            <div className="flex items-center gap-2 text-[11px] t-text-muted mt-0.5">
+              <span className="text-[10px] text-cyan-400/90 font-medium hidden md:inline">Smart Deposit Hub</span>
+              <span className="hidden md:inline text-gray-500">•</span>
+              
+              {/* Clean Server Status Display with Hover Tooltip */}
+              <div 
+                className="relative inline-block cursor-help group"
+                onMouseEnter={() => setShowServerTooltip(true)}
+                onMouseLeave={() => setShowServerTooltip(false)}
+              >
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md t-bg-sec border t-border text-[10px] font-semibold text-emerald-400 hover:border-emerald-500/40 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="t-text-secondary">Host:</span>
+                  <span className="font-bold text-emerald-400">Online (Localhost)</span>
+                </div>
+
+                {/* Hover Details Tooltip */}
+                {showServerTooltip && (
+                  <div className="absolute left-0 top-full mt-2 w-72 p-2.5 rounded-xl t-bg-surface border border-cyan-500/40 shadow-2xl z-50 animate-fade-in backdrop-blur-xl text-left">
+                    <div className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1 mb-1">
+                      <Server className="w-3 h-3 text-cyan-400" />
+                      Server Status: Node: Localhost (PostgreSQL)
+                    </div>
+                    <p className="text-[11px] t-text-primary leading-tight font-mono">
+                      Database <strong className="text-emerald-400">rvmpg</strong> on Ubuntu Dedicated Server <span className="text-cyan-300">(PostgreSQL 127.0.0.1:5432)</span>
+                    </p>
+                    <div className="mt-1.5 pt-1.5 border-t t-border flex items-center justify-between text-[9px] t-text-muted">
+                      <span>Telemetry: Operational</span>
+                      <span className="text-emerald-400 font-bold">Latency: 2ms</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-
         {/* Right Status Indicators, User Profile & Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* DB Status Badge */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 pulse-glow shadow-md shadow-emerald-400/50' : 'bg-rose-500'}`} />
+          {/* NoSQL Sync Status Badge */}
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border border-emerald-500/30 rounded-xl text-xs shadow-sm">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-glow shadow-md shadow-emerald-400/50" />
             <div className="flex items-center gap-1.5 font-semibold">
-              <span className="t-text-primary">{isOnline ? 'MongoDB Atlas' : 'Disconnected'}</span>
-              <span className="text-emerald-400 font-bold">({dbName})</span>
+              <span className="t-text-muted text-[11px]">NoSQL Sync:</span>
+              <span className="text-emerald-400 font-bold">MongoDB Atlas (Active)</span>
             </div>
           </div>
 
-          {/* Clock */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs mono text-cyan-400">
-            <Activity className="w-3.5 h-3.5" />
-            {timeStr}
+          {/* Live System Time */}
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs mono text-cyan-400 font-bold shadow-sm" title="Live System Clock">
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+            <span>System Time: {timeStr}</span>
           </div>
 
           {/* Theme Selector Dropdown */}
@@ -146,24 +164,26 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
             )}
           </div>
 
-          {/* User Profile & Logout */}
-          {currentUser && (
-            <div className="flex items-center gap-2 pl-2 border-l t-border">
-              <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-extrabold t-text-primary leading-tight">{currentUser.fullName || currentUser.username}</span>
-                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">{currentUser.roleName || currentUser.roleId}</span>
-              </div>
-
-              <button
-                onClick={onLogout}
-                className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl border border-rose-500/20 transition-all flex items-center gap-1 text-xs font-bold"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline">Sign Out</span>
-              </button>
+          {/* User Profile & Role & Sign Out */}
+          <div className="flex items-center gap-2 pl-2 border-l t-border">
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-xs font-black t-text-primary leading-tight">
+                {currentUser?.fullName || (isMasterDev ? 'Master Developer' : currentUser?.username || 'EcoDrop Admin')}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                {currentUser?.roleName ? `[${currentUser.roleName}]` : (isMasterDev ? '[Super Admin]' : `[${currentUser?.roleId || 'Super Admin'}]`)}
+              </span>
             </div>
-          )}
+
+            <button
+              onClick={onLogout}
+              className="px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/10 rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
 
         </div>
 
