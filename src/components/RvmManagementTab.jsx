@@ -186,7 +186,7 @@ export default function RvmManagementTab({ currentUser }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {isSuperAdmin ? (
+          {isSuperAdmin && (
             <button
               onClick={handleOpenAddModal}
               className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-cyan-500/20"
@@ -194,14 +194,6 @@ export default function RvmManagementTab({ currentUser }) {
               <Plus className="w-4 h-4" />
               <span>+ Register New RVM Machine</span>
             </button>
-          ) : (
-            <div 
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 text-xs font-semibold select-none cursor-not-allowed"
-              title="Role Restriction: Only Super Admin accounts can register new RVM machines"
-            >
-              <Lock className="w-3.5 h-3.5 text-amber-400" />
-              <span>Create RVM (Super Admin Only)</span>
-            </div>
           )}
 
           <button
