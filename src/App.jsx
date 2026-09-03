@@ -78,9 +78,17 @@ export default function App() {
 
   const renderContent = () => {
     const isMasterDev = currentUser?.username === 'onenet';
+    const isSuperAdmin = isMasterDev || currentUser?.roleId === 'super_admin';
+    const userModules = currentUser?.modules || [];
+    const isAllowedTab = (tab) => {
+      if (isSuperAdmin) return true;
+      if (userModules.includes('*') || userModules.includes('all')) return true;
+      const clean = tab.replace('col_', '');
+      return userModules.includes(tab) || userModules.includes(clean) || userModules.includes(`col_${clean}`);
+    };
 
-    // Block non-onenet users from master administrative tabs
-    if (!isMasterDev && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab)) {
+    // Block unauthorized users from master administrative tabs
+    if (!isSuperAdmin && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab) && !isAllowedTab(activeTab)) {
       return <OverviewTab currentUser={currentUser} />;
     }
 
@@ -115,13 +123,13 @@ export default function App() {
     if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
       return <MachineConfigsTab />;
     }
-    if (activeTab === 'security' && isMasterDev) {
+    if (activeTab === 'security' && (isSuperAdmin || isAllowedTab('security'))) {
       return <SecurityTab />;
     }
-    if (activeTab === 'db_switcher' && isMasterDev) {
+    if (activeTab === 'db_switcher' && (isSuperAdmin || isAllowedTab('db_switcher'))) {
       return <DbSwitcherTab onRefreshHealth={fetchHealth} />;
     }
-    if (activeTab === 'db_backup' && isMasterDev) {
+    if (activeTab === 'db_backup' && (isSuperAdmin || isAllowedTab('db_backup'))) {
       return <DbBackupTab onRefreshHealth={fetchHealth} />;
     }
 

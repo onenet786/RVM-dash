@@ -2318,7 +2318,7 @@ async function saveDocToEngine(colName, doc) {
         synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    const idStr = doc._id ? doc._id.toString() : (doc.id ? doc.id.toString() : new ObjectId().toString());
+    const idStr = doc._id ? doc._id.toString() : (doc.roleId ? doc.roleId : (doc.id ? doc.id.toString() : new ObjectId().toString()));
     const docToSave = { ...doc, _id: idStr };
     delete docToSave.id; // Single primary _id field
     const docJson = JSON.stringify(docToSave);
@@ -2641,7 +2641,22 @@ app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
     const roleDoc = { roleId, name, color: color || 'cyan', description, modules: modules || [], permissions: permissions || {} };
     await saveDocToEngine('roles', roleDoc);
 
-    res.json({ success: true, message: `Role "${name}" updated successfully.` });
+    res.json({ success: true, message: `Role "${name}" updated successfully.`, role: roleDoc });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Security: Delete custom role (protect built-in default roles)
+app.delete('/api/security/roles/:roleId', enforceReadOnlyProtection, async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    if (['super_admin', 'fleet_operator'].includes(roleId)) {
+      return res.status(400).json({ error: `Cannot delete built-in system role "${roleId}".` });
+    }
+
+    await deleteDocFromEngine('roles', 'roleId', roleId);
+    res.json({ success: true, message: `Role "${roleId}" removed successfully.` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -25,6 +25,17 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     return col ? col.count : 0;
   };
 
+  const isSuperAdmin = isMasterDev || currentUser?.roleId === 'super_admin';
+  const userModules = currentUser?.modules;
+
+  const isModuleAllowed = (moduleId) => {
+    if (isSuperAdmin) return true;
+    if (!userModules || !Array.isArray(userModules) || userModules.length === 0) return true;
+    if (userModules.includes('*') || userModules.includes('all')) return true;
+    const cleanId = moduleId.replace('col_', '');
+    return userModules.includes(moduleId) || userModules.includes(cleanId) || userModules.includes(`col_${cleanId}`);
+  };
+
   const navItems = [
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
     { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText },
@@ -33,9 +44,13 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
     { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
-    ...(isMasterDev ? [
+    ...((isMasterDev || isModuleAllowed('security')) ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
+    ] : []),
+    ...((isMasterDev || isModuleAllowed('db_switcher')) ? [
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
+    ] : []),
+    ...((isMasterDev || isModuleAllowed('db_backup')) ? [
       { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
     ] : [])
   ];
@@ -95,7 +110,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </div>
 
           <nav className="space-y-1">
-            {navItems.map(item => {
+            {navItems.filter(item => isModuleAllowed(item.id)).map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
@@ -128,12 +143,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 PostgreSQL Relational Tables
               </span>
               <span className="text-cyan-300 mono bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                {postgresTables.length} Tables
+                {postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length} Tables
               </span>
             </div>
 
             <nav className="space-y-1">
-              {postgresTables.map(item => {
+              {postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 const count = getCollectionCount(item.name);
@@ -178,7 +193,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             </span>
             <div className="flex items-center gap-1.5">
               <span className="text-emerald-400 mono text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                {mongoCollectionItems.length}
+                {mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
             </div>
@@ -196,7 +211,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
           {!isMongoCollapsed && (
             <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto mt-1 animate-fade-in">
-              {mongoCollectionItems.map(item => {
+              {mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 const count = getCollectionCount(item.name);
