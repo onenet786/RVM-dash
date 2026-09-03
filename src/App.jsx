@@ -14,6 +14,7 @@ import EnvironmentalImpactTab from './components/EnvironmentalImpactTab';
 import MobileUsersTab from './components/MobileUsersTab';
 import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
+import ReportingHubTab from './components/ReportingHubTab';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -85,6 +86,10 @@ export default function App() {
 
     if (activeTab === 'overview') {
       return <OverviewTab currentUser={currentUser} />;
+    }
+
+    if (activeTab === 'reporting_hub') {
+      return <ReportingHubTab />;
     }
 
     if (activeTab === 'mobile_users' || activeTab === 'col_users') {
