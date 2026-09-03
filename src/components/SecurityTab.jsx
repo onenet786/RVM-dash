@@ -385,7 +385,7 @@ export default function SecurityTab() {
 
     const finalRoleId = roleForm.isNew
       ? (roleForm.roleId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') || roleForm.name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'))
-      : roleForm.roleId;
+      : (editingRole?.roleId || roleForm.roleId);
 
     if (!finalRoleId) {
       setMessage({ type: 'error', text: 'Valid Role ID is required.' });
@@ -397,10 +397,12 @@ export default function SecurityTab() {
       setMessage(null);
 
       const payload = {
+        _id: editingRole?._id,
+        originalRoleId: editingRole?.isNew ? null : editingRole?.roleId,
         roleId: finalRoleId,
         name: roleForm.name.trim(),
         color: roleForm.color || 'cyan',
-        description: roleForm.description.trim(),
+        description: roleForm.description ? roleForm.description.trim() : '',
         modules: roleForm.modules,
         permissions: roleForm.permissions
       };
@@ -845,7 +847,8 @@ export default function SecurityTab() {
                     value={roleForm.roleId}
                     onChange={(e) => setRoleForm({ ...roleForm, roleId: e.target.value })}
                     placeholder="e.g. field_engineer"
-                    disabled={!roleForm.isNew && ['super_admin', 'fleet_operator'].includes(roleForm.roleId)}
+                    disabled={!roleForm.isNew}
+                    title={!roleForm.isNew ? "Role Identifier is locked for existing roles" : ""}
                     className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary font-mono focus:border-cyan-500 focus:outline-none disabled:opacity-50"
                     required
                   />

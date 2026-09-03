@@ -2669,7 +2669,22 @@ async function seedSecurityDefaults(targetDb) {
 app.get('/api/security/roles', async (req, res) => {
   try {
     await seedSecurityDefaults(db);
-    const roles = await fetchCollectionDocs('roles');
+    const rawRoles = await fetchCollectionDocs('roles');
+    // Deduplicate by roleId to ensure no duplicate cards appear
+    const seen = new Map();
+    (rawRoles || []).forEach(r => {
+      const k = r.roleId || r._id;
+      if (!seen.has(k)) {
+        seen.set(k, r);
+      } else {
+        const prev = seen.get(k);
+        // Prefer version with custom modules or newest assigned rights
+        if ((r.modules?.length || 0) >= (prev.modules?.length || 0)) {
+          seen.set(k, { ...prev, ...r });
+        }
+      }
+    });
+    const roles = Array.from(seen.values());
     res.json(roles.length > 0 ? roles : DEFAULT_RBAC_ROLES);
   } catch (err) {
     res.json(DEFAULT_RBAC_ROLES);
@@ -2679,13 +2694,76 @@ app.get('/api/security/roles', async (req, res) => {
 // Security: Create/Update custom role
 app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
   try {
-    const { roleId, name, color, description, modules, permissions } = req.body;
+    const { _id, originalRoleId, roleId, name, color, description, modules, permissions } = req.body;
     if (!name || !roleId) {
       return res.status(400).json({ error: 'Role name and roleId are required' });
     }
 
-    const roleDoc = { roleId, name, color: color || 'cyan', description, modules: modules || [], permissions: permissions || {} };
-    await saveDocToEngine('roles', roleDoc);
+    const cleanRoleId = roleId.trim();
+    const targetLookup = (originalRoleId && originalRoleId.trim()) || cleanRoleId;
+    const roleDoc = { 
+      roleId: cleanRoleId, 
+      name: name.trim(), 
+      color: color || 'cyan', 
+      description: description ? description.trim() : '', 
+      modules: Array.isArray(modules) ? modules : [], 
+      permissions: permissions || {} 
+    };
+
+    if (activeDbType === 'postgres' && activePgConfig) {
+      const pool = getPgPool();
+      if (pool) {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS roles (
+            id VARCHAR(255) PRIMARY KEY,
+            data JSONB NOT NULL,
+            synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        // Check if role already exists under originalRoleId, cleanRoleId, or _id
+        const existingRes = await pool.query(
+          `SELECT id FROM roles WHERE id = $1 OR id = $2 OR data->>'roleId' = $1 OR data->>'roleId' = $2`,
+          [targetLookup, cleanRoleId]
+        );
+
+        const docToSave = { ...roleDoc, _id: cleanRoleId };
+        const docJson = JSON.stringify(docToSave);
+
+        if (existingRes.rows && existingRes.rows.length > 0) {
+          const matchingIds = existingRes.rows.map(r => r.id);
+          // In-place update of existing role row
+          await pool.query(
+            `UPDATE roles SET id = $1, data = $2, synced_at = NOW() WHERE id = $3`,
+            [cleanRoleId, docJson, matchingIds[0]]
+          );
+
+          // Clean up any historical duplicate entries for this role
+          const extraIds = matchingIds.slice(1);
+          if (extraIds.length > 0) {
+            await pool.query(`DELETE FROM roles WHERE id = ANY($1)`, [extraIds]);
+          }
+        } else {
+          // Insert new role entry
+          await pool.query(`
+            INSERT INTO roles (id, data, synced_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+          `, [cleanRoleId, docJson]);
+        }
+
+        return res.json({ success: true, message: `Role "${name}" updated successfully.`, role: roleDoc });
+      }
+    }
+
+    // MongoDB Update in place
+    if (!db) await connectDB();
+    const query = targetLookup ? { roleId: targetLookup } : (_id ? { _id: ObjectId.isValid(_id) ? new ObjectId(_id) : _id } : { roleId: cleanRoleId });
+    await db.collection('roles').updateOne(
+      query,
+      { $set: roleDoc },
+      { upsert: true }
+    );
 
     res.json({ success: true, message: `Role "${name}" updated successfully.`, role: roleDoc });
   } catch (err) {
