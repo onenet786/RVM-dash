@@ -41,8 +41,8 @@ export default function RvmManagementTab({ currentUser }) {
     try {
       setLoading(true);
       const assigned = getAssignedList();
-      const queryParam = assigned && assigned.length > 0 
-        ? `?assignedMachines=${encodeURIComponent(assigned.join(','))}` 
+      const queryParam = assigned && assigned.length > 0
+        ? `?assignedMachines=${encodeURIComponent(assigned.join(','))}`
         : '';
       const res = await fetch(`/api/analytics/machines${queryParam}`);
       if (res.ok) {
@@ -113,7 +113,7 @@ export default function RvmManagementTab({ currentUser }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      
+
       {/* Banner */}
       {message && (
         <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center justify-between text-xs font-bold animate-fade-in">
@@ -174,8 +174,8 @@ export default function RvmManagementTab({ currentUser }) {
       {/* Registered RVM Cards with Edit Action */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {machines.map(m => (
-          <div 
-            key={m.machineId} 
+          <div
+            key={m.machineId}
             className="glass-panel p-5 rounded-2xl space-y-4 border border-slate-800 hover:border-cyan-500/40 transition-all"
           >
             <div className="flex items-center justify-between">
@@ -232,9 +232,8 @@ export default function RvmManagementTab({ currentUser }) {
                 <MapPin className="w-3.5 h-3.5 text-cyan-400" />
                 {m.location || 'Location Not Set'}
               </span>
-              <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full ${
-                m.status === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-              }`}>
+              <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.status === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                }`}>
                 {m.status || 'ONLINE'}
               </span>
             </div>
@@ -253,7 +252,7 @@ export default function RvmManagementTab({ currentUser }) {
                   {editingMachine ? `Edit RVM Machine (${machineId})` : 'Register New RVM Machine'}
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="p-1 t-text-muted hover:t-text-primary rounded-lg"
               >
@@ -266,8 +265,8 @@ export default function RvmManagementTab({ currentUser }) {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Machine ID Code
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={machineId}
                   disabled={!!editingMachine}
                   onChange={e => setMachineId(e.target.value)}
@@ -281,8 +280,8 @@ export default function RvmManagementTab({ currentUser }) {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Machine Display Name
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. ISP Main Entrance Unit #1"
@@ -295,8 +294,8 @@ export default function RvmManagementTab({ currentUser }) {
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
                   Installation Location / Address
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={location}
                   onChange={e => setLocation(e.target.value)}
                   placeholder="e.g. Sector H-8/4, Islamabad Campus"

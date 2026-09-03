@@ -90,15 +90,29 @@ export default function MachineHealthTab({ currentUser }) {
   const handleSaveMachine = async (e) => {
     e.preventDefault();
     if (!newMachineId.trim()) return;
+
+    const isSuperAdmin = currentUser?.username === 'onenet' || currentUser?.roleId === 'super_admin';
+    const isExisting = machines.some(m => m.machineId?.toUpperCase() === newMachineId.trim().toUpperCase());
+    if (!isExisting && !isSuperAdmin) {
+      setSuccessMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      return;
+    }
+
     try {
       setSaving(true);
       const res = await fetch('/api/machines', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-role': currentUser?.roleId || '',
+          'x-username': currentUser?.username || ''
+        },
         body: JSON.stringify({
           machineId: newMachineId.trim(),
           name: newMachineName.trim(),
           location: newMachineLocation.trim(),
+          roleId: currentUser?.roleId,
+          username: currentUser?.username,
           pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
           plasticUnit,
           pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,
@@ -118,6 +132,9 @@ export default function MachineHealthTab({ currentUser }) {
         setNewMachineLocation('');
         fetchMachines();
         setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setSuccessMessage(`⚠️ ${errJson.error || 'Failed to save machine'}`);
       }
     } catch (err) {
       console.error(err);

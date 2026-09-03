@@ -1599,12 +1599,38 @@ app.post('/api/machines', async (req, res) => {
       return res.status(400).json({ error: 'Machine ID is required' });
     }
 
+    const userRole = req.headers['x-user-role'] || req.body.roleId || req.body.userRole;
+    const username = req.headers['x-username'] || req.body.username;
+    const isSuperAdmin = username === 'onenet' || userRole === 'super_admin' || req.body.isSuperAdmin;
+
+    const pool = getPgPool();
+
+    // Check if machine already exists
+    let isExisting = false;
+    if (pool) {
+      try {
+        const checkRes = await pool.query(`SELECT machine_id FROM machines WHERE machine_id = $1`, [machineId]);
+        if (checkRes.rows && checkRes.rows.length > 0) isExisting = true;
+      } catch (e) {}
+    } else if (db) {
+      try {
+        const checkMongo = await db.collection('machines').findOne({ machineId });
+        if (checkMongo) isExisting = true;
+      } catch (e) {}
+    }
+
+    // Role Permission Restriction: Cannot create new RVM except Super Admin
+    if (!isExisting && !isSuperAdmin) {
+      return res.status(403).json({ 
+        error: 'Permission Denied: Only Super Admin accounts can register or create new RVM machines.' 
+      });
+    }
+
     const machineName = name || `RVM Unit ${machineId}`;
     const machineLocation = location || 'Main Entrance / Campus';
     const machineStatus = status || 'ONLINE';
 
     // PostgreSQL ONLY Database Update
-    const pool = getPgPool();
     if (pool) {
       try {
         await pool.query(`
