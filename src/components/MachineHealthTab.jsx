@@ -44,17 +44,35 @@ export default function MachineHealthTab({ currentUser }) {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Extract authorized assigned machines list for the logged-in user
-  const getAssignedList = () => {
+  // Extract active logged-in user with storage fallbacks
+  const getActiveUser = () => {
     let u = currentUser;
-    if (!u) {
+    if (!u || (!u.username && !u.roleId)) {
       try {
         u = JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
       } catch (e) {
         u = {};
       }
     }
-    if (u.username === 'onenet' || u.roleId === 'super_admin') return null; // Full fleet
+    return u || {};
+  };
+
+  const activeUser = getActiveUser();
+
+  const isSuperAdmin = (
+    activeUser?.username === 'onenet' ||
+    activeUser?.username === 'bilalaaqueel' ||
+    activeUser?.roleId === 'super_admin' ||
+    activeUser?.roleId === 'superadmin' ||
+    activeUser?.roleId === 'admin' ||
+    (activeUser?.roleName && activeUser.roleName.toLowerCase().includes('super admin')) ||
+    (Array.isArray(activeUser?.assignedMachines) && activeUser.assignedMachines.includes('*'))
+  );
+
+  // Extract authorized assigned machines list for the logged-in user
+  const getAssignedList = () => {
+    const u = getActiveUser();
+    if (isSuperAdmin) return null; // Full fleet
     const raw = u.assignedMachines;
     if (!raw) return null;
     const arr = Array.isArray(raw) ? raw : [raw];
@@ -91,7 +109,6 @@ export default function MachineHealthTab({ currentUser }) {
     e.preventDefault();
     if (!newMachineId.trim()) return;
 
-    const isSuperAdmin = currentUser?.username === 'onenet' || currentUser?.roleId === 'super_admin';
     const isExisting = machines.some(m => m.machineId?.toUpperCase() === newMachineId.trim().toUpperCase());
     if (!isExisting && !isSuperAdmin) {
       setSuccessMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
@@ -100,19 +117,25 @@ export default function MachineHealthTab({ currentUser }) {
 
     try {
       setSaving(true);
+      const user = getActiveUser();
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+
       const res = await fetch('/api/machines', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-user-role': currentUser?.roleId || '',
-          'x-username': currentUser?.username || ''
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-username': user.username || '',
+          'x-user-role': user.roleId || ''
         },
         body: JSON.stringify({
           machineId: newMachineId.trim(),
-          name: newMachineName.trim(),
-          location: newMachineLocation.trim(),
-          roleId: currentUser?.roleId,
-          username: currentUser?.username,
+          name: (newMachineName || `RVM Machine ${newMachineId}`).trim(),
+          location: (newMachineLocation || 'Main Campus').trim(),
+          username: user.username,
+          roleId: user.roleId,
+          isSuperAdmin,
+          token,
           pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
           plasticUnit,
           pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,

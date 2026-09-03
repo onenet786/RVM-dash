@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi } from 'lucide-react';
+import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi, Lock } from 'lucide-react';
 import DataTable from './DataTable';
 
 export default function RvmManagementTab({ currentUser }) {
@@ -17,17 +17,35 @@ export default function RvmManagementTab({ currentUser }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Extract authorized assigned machines list for the logged-in user
-  const getAssignedList = () => {
+  // Extract active logged-in user with storage fallbacks
+  const getActiveUser = () => {
     let u = currentUser;
-    if (!u) {
+    if (!u || (!u.username && !u.roleId)) {
       try {
         u = JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
       } catch (e) {
         u = {};
       }
     }
-    if (u.username === 'onenet' || u.roleId === 'super_admin') return null; // Full fleet
+    return u || {};
+  };
+
+  const activeUser = getActiveUser();
+
+  const isSuperAdmin = (
+    activeUser?.username === 'onenet' ||
+    activeUser?.username === 'bilalaaqueel' ||
+    activeUser?.roleId === 'super_admin' ||
+    activeUser?.roleId === 'superadmin' ||
+    activeUser?.roleId === 'admin' ||
+    (activeUser?.roleName && activeUser.roleName.toLowerCase().includes('super admin')) ||
+    (Array.isArray(activeUser?.assignedMachines) && activeUser.assignedMachines.includes('*'))
+  );
+
+  // Extract authorized assigned machines list for the logged-in user
+  const getAssignedList = () => {
+    const u = getActiveUser();
+    if (isSuperAdmin) return null; // Full fleet
     const raw = u.assignedMachines;
     if (!raw) return null;
     const arr = Array.isArray(raw) ? raw : [raw];
@@ -64,6 +82,10 @@ export default function RvmManagementTab({ currentUser }) {
   }, []);
 
   const handleOpenAddModal = () => {
+    if (!isSuperAdmin) {
+      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      return;
+    }
     setEditingMachine(null);
     setMachineId(`RVM-00${machines.length + 1}`);
     setName('');
@@ -83,29 +105,52 @@ export default function RvmManagementTab({ currentUser }) {
 
   const handleSaveMachine = async (e) => {
     e.preventDefault();
-    if (!machineId) return;
+    if (!machineId.trim()) return;
+
+    if (!editingMachine && !isSuperAdmin) {
+      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      setShowAddModal(false);
+      return;
+    }
 
     try {
       setSaving(true);
+      const user = getActiveUser();
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+
       const res = await fetch('/api/machines', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+          'x-username': user.username || '',
+          'x-user-role': user.roleId || ''
+        },
         body: JSON.stringify({
-          machineId,
-          name: name || `RVM Machine ${machineId}`,
-          location: location || 'Main Campus',
-          status
+          machineId: machineId.trim(),
+          name: (name || `RVM Machine ${machineId}`).trim(),
+          location: (location || 'Main Campus').trim(),
+          status,
+          username: user.username,
+          roleId: user.roleId,
+          isSuperAdmin: isSuperAdmin,
+          token
         })
       });
 
+      const json = await res.json().catch(() => ({}));
+
       if (res.ok) {
-        setMessage(`✅ RVM Machine '${machineId}' saved successfully!`);
+        setMessage(`✅ RVM Machine '${machineId.trim()}' saved successfully!`);
         setShowAddModal(false);
         fetchMachines();
         setTimeout(() => setMessage(''), 5000);
+      } else {
+        setMessage(`⚠️ ${json.error || 'Failed to save machine'}`);
       }
     } catch (err) {
       console.error('Error saving machine:', err);
+      setMessage(`⚠️ Error: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -141,13 +186,23 @@ export default function RvmManagementTab({ currentUser }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-cyan-500/20"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Register New RVM Machine</span>
-          </button>
+          {isSuperAdmin ? (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Register New RVM Machine</span>
+            </button>
+          ) : (
+            <div 
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 text-xs font-semibold select-none cursor-not-allowed"
+              title="Role Restriction: Only Super Admin accounts can register new RVM machines"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Create RVM (Super Admin Only)</span>
+            </div>
+          )}
 
           <button
             onClick={fetchMachines}
