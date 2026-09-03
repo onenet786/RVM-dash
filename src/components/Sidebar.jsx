@@ -1,215 +1,249 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, 
-  HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone,
-  Scale, Gauge, FileText, Activity, Sliders, Server, ClipboardList
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
-  const isMasterDev = currentUser?.username === 'onenet' || !currentUser || currentUser?.roleId === 'superadmin';
+  const isMasterDev = currentUser?.username === 'onenet';
   const isPostgres = health?.databaseType === 'postgres';
 
-  // Category collapse states - open all operational by default
-  const [collapsedCategories, setCollapsedCategories] = useState({
-    fleet: false,
-    analytics: false,
-    userImpact: false,
-    reporting: false,
-    admin: false,
-    developer: true, // Collapsed by default to keep clean
-  });
+  // Collapse MongoDB tables by default when connected to PostgreSQL
+  const [isMongoCollapsed, setIsMongoCollapsed] = useState(isPostgres);
 
-  const toggleCategory = (key) => {
-    setCollapsedCategories(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  useEffect(() => {
+    if (isPostgres) {
+      setIsMongoCollapsed(true);
+    } else {
+      setIsMongoCollapsed(false);
+    }
+  }, [isPostgres]);
+
+  const getCollectionCount = (colName) => {
+    if (!health?.collections) return null;
+    const col = health.collections.find(c => c.name === colName);
+    return col ? col.count : 0;
   };
+
+  const navItems = [
+    { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
+    { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
+    { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
+    { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
+    { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
+    ...(isMasterDev ? [
+      { id: 'security', label: 'User & Security RBAC', icon: Lock },
+      { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
+      { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
+    ] : [])
+  ];
+
+  // Primary PostgreSQL Relational Tables
+  const postgresTables = [
+    { id: 'col_recycling_sessions', name: 'recycling_sessions', label: 'recycling_sessions', icon: Recycle },
+    { id: 'col_machines', name: 'machines', label: 'RVMs', icon: Cpu },
+    { id: 'col_users', name: 'users', label: 'users', icon: Users },
+    { id: 'col_machine_configs', name: 'machine_configs', label: 'RVM Configurations', icon: Settings },
+  ];
+
+  // MongoDB Legacy / rvmapp Collections
+  const defaultMongoCollections = [
+    { id: 'col_recyclingsessions', name: 'recyclingsessions', label: 'recyclingsessions (JSONB)', icon: Recycle },
+    { id: 'col_userprofile', name: 'userprofile', label: 'userprofile', icon: Users },
+    { id: 'col_feedbacks', name: 'feedbacks', label: 'feedbacks', icon: MessageSquare },
+    { id: 'col_binfullnotifications', name: 'binfullnotifications', label: 'binfullnotifications', icon: AlertTriangle },
+    { id: 'col_redemptions', name: 'redemptions', label: 'redemptions', icon: Trophy },
+    ...(isMasterDev ? [
+      { id: 'col_adminaccounts', name: 'adminaccounts', label: 'adminaccounts', icon: Shield }
+    ] : [])
+  ];
+
+  const pgTableNames = new Set(postgresTables.map(t => t.name));
+  const mongoNamesInDefault = new Set(defaultMongoCollections.map(c => c.name));
+
+  const dynamicCollections = (health?.collections || [])
+    .filter(c => !pgTableNames.has(c.name) && !mongoNamesInDefault.has(c.name))
+    .map(c => ({
+      id: `col_${c.name}`,
+      name: c.name,
+      label: c.name,
+      icon: Database
+    }));
+
+  const mongoCollectionItems = [...defaultMongoCollections, ...dynamicCollections];
 
   const handleTabClick = (id) => {
     setActiveTab(id);
     if (setIsMobileOpen) setIsMobileOpen(false);
   };
 
-  const categories = [
-    {
-      id: 'fleet',
-      title: 'Operations & Fleet Management',
-      icon: '📊',
-      badge: 'Core',
-      items: [
-        { id: 'overview', label: 'Overview', icon: LayoutDashboard, desc: 'High-level throughput & fleet health' },
-        { id: 'device_fleet', label: 'Device Fleet', icon: Cpu, badge: 'RVM + Pico', desc: 'All Devices | RVM Fleet | PicoDrop' },
-        { id: 'advertisements', label: 'Ad Signage Manager', icon: Tv, desc: 'RVM screens & PicoDrop media bars' },
-      ]
-    },
-    {
-      id: 'analytics',
-      title: 'Collection & Weight Analytics',
-      icon: '⚖️',
-      items: [
-        { id: 'throughput', label: 'Material Throughput', icon: Recycle, desc: 'RVM unit counts + PicoDrop load scale weight' },
-        { id: 'capacities', label: 'Load & Bin Capacities', icon: Scale, desc: 'RVM bins & PicoDrop paper weight thresholds' },
-      ]
-    },
-    {
-      id: 'reporting',
-      title: 'Reporting & Analytics Hub',
-      icon: '📈',
-      badge: '4 Audits',
-      items: [
-        { id: 'reporting_hub', label: 'Executive Reporting Hub', icon: FileText, desc: 'Tare calibration, ESG, efficiency & financial audits' },
-      ]
-    },
-    {
-      id: 'userImpact',
-      title: 'User & Impact',
-      icon: '👥',
-      items: [
-        { id: 'mobile_users', label: 'App Users', icon: Smartphone, desc: 'Citizen profiles & balances' },
-        { id: 'esg_impact', label: 'ESG & Carbon Impact', icon: Leaf, desc: 'CO₂ offsets & diverted volume' },
-        { id: 'rewards_leaderboard', label: 'Rewards & Leaderboard', icon: Trophy, desc: 'Point rules, rankings & redemptions' },
-      ]
-    },
-    {
-      id: 'admin',
-      title: 'System Administration',
-      icon: '🛡️',
-      items: [
-        { id: 'security', label: 'Access Control (RBAC)', icon: Lock, desc: 'Operator, maintenance & dev roles' },
-        { id: 'db_switcher', label: 'Database Connections', icon: ArrowRightLeft, desc: 'PostgreSQL & MongoDB Atlas host routing' },
-        { id: 'db_backup', label: 'Backups & Recovery', icon: HardDrive, desc: 'Scheduled DB snapshots & restore points' },
-      ]
-    },
-    {
-      id: 'developer',
-      title: 'Developer & Database Inspection',
-      icon: '🛠️',
-      badge: 'Tables',
-      items: [
-        { id: 'dev_transactions', label: 'Transaction Logs', icon: Activity, desc: 'Raw unit deposits & paper weight events' },
-        { id: 'dev_hardware', label: 'Hardware Devices', icon: Server, desc: 'Machine UUIDs, types (rvm vs picodrop)' },
-        { id: 'dev_users', label: 'User Records', icon: Users, desc: 'Direct user records inspection' },
-        { id: 'dev_configs', label: 'Device Configurations', icon: Sliders, desc: 'Tare weights, load cell calibration & optics' },
-        { id: 'dev_storage', label: 'App Storage (NoSQL)', icon: Database, desc: 'MongoDB Atlas collections browser' },
-      ]
-    }
-  ];
-
   const renderContent = () => (
-    <div className="flex flex-col justify-between h-full space-y-4">
-      <div className="space-y-4 overflow-y-auto pr-1">
+    <div className="flex flex-col justify-between h-full space-y-6">
+      <div className="space-y-6">
         
-        {/* Brand System Header */}
-        <div className="px-3 pt-1 pb-2 border-b t-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-base">📁</span>
-              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400">
-                EcoDrop Operations Center
-              </span>
-            </div>
+        {/* Main Section */}
+        <div>
+          <div className="text-[10px] font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
+            <span>Core Dashboards</span>
+            <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase mono ${
+              isPostgres ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            }`}>
+              {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
+            </span>
           </div>
-          <p className="text-[10px] t-text-muted mt-1 leading-snug">
-            Intake Telemetry: <strong className="text-cyan-300">RVM</strong> (Count) + <strong className="text-emerald-300">PicoDrop</strong> (Count + Weight)
-          </p>
-        </div>
 
-        {/* 5 Categories Navigation */}
-        <div className="space-y-3">
-          {categories.map(cat => {
-            const isCollapsed = collapsedCategories[cat.id];
-            // Check if any child item is active
-            const hasActiveChild = cat.items.some(item => activeTab === item.id);
-
-            return (
-              <div key={cat.id} className="rounded-xl border t-border overflow-hidden bg-surface-sec/40 transition-all">
-                {/* Category Header Accordion Button */}
+          <nav className="space-y-1">
+            {navItems.map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
                 <button
-                  onClick={() => toggleCategory(cat.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide transition-colors ${
-                    hasActiveChild 
-                      ? 'bg-emerald-500/10 text-emerald-400 border-b border-emerald-500/20' 
-                      : 't-text-muted hover:t-text-primary hover:bg-white/5'
+                  key={item.id}
+                  onClick={() => handleTabClick(item.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    isActive 
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md' 
+                      : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                   }`}
                 >
-                  <div className="flex items-center gap-2 truncate">
-                    <span>{cat.icon}</span>
-                    <span className="truncate">{cat.title}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 't-text-muted'}`} />
+                    <span>{item.label}</span>
                   </div>
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {cat.badge && (
-                      <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {cat.badge}
+        {/* PostgreSQL Relational Tables (Shown when in Postgres Mode) */}
+        {isPostgres && (
+          <div>
+            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-cyan-400 mb-2 px-3">
+              <span className="flex items-center gap-1.5">
+                <Table className="w-3.5 h-3.5" />
+                PostgreSQL Relational Tables
+              </span>
+              <span className="text-cyan-300 mono bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                {postgresTables.length} Tables
+              </span>
+            </div>
+
+            <nav className="space-y-1">
+              {postgresTables.map(item => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const count = getCollectionCount(item.name);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isActive 
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md' 
+                        : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-cyan-300' : 't-text-muted'}`} />
+                      <span className="truncate mono">{item.label}</span>
+                    </div>
+                    {count !== null && (
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md mono ${
+                        isActive ? 'bg-cyan-500/40 text-white' : 't-bg-sec t-text-muted'
+                      }`}>
+                        {count}
                       </span>
                     )}
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCollapsed ? '-rotate-90 text-gray-500' : 'rotate-0 text-emerald-400'}`} />
-                  </div>
-                </button>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        )}
 
-                {/* Sub Items List */}
-                {!isCollapsed && (
-                  <nav className="p-1.5 space-y-0.5 animate-fade-in">
-                    {cat.items.map(item => {
-                      const Icon = item.icon;
-                      const isActive = activeTab === item.id;
+        {/* MongoDB rvmapp Tables Browser (Collapsible in Postgres Mode) */}
+        <div>
+          <button
+            onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
+            className="w-full flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group"
+            title={isMongoCollapsed ? "Click to expand MongoDB rvmapp collections to sync data" : "Click to collapse MongoDB collections"}
+          >
+            <span className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <span>MongoDB rvmapp Collections</span>
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-emerald-400 mono text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                {mongoCollectionItems.length}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+            </div>
+          </button>
 
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => handleTabClick(item.id)}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-bold transition-all text-left ${
-                            isActive 
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm font-black' 
-                              : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
-                          }`}
-                          title={item.desc}
-                        >
-                          <div className="flex items-center gap-2.5 truncate">
-                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-emerald-400' : 't-text-muted'}`} />
-                            <span className="truncate">{item.label}</span>
-                          </div>
+          {isPostgres && isMongoCollapsed && (
+            <div 
+              onClick={() => setIsMongoCollapsed(false)}
+              className="mx-3 p-2.5 text-[10px] font-semibold t-bg-sec border border-amber-500/30 rounded-xl text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-500/10 transition-all"
+            >
+              <span>📁 Collapsed (Connected to PostgreSQL)</span>
+              <span className="text-[9px] underline font-bold">Sync Data</span>
+            </div>
+          )}
 
-                          {isActive ? (
-                            <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          ) : (
-                            item.badge && (
-                              <span className="text-[9px] font-mono font-normal px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 shrink-0">
-                                {item.badge}
-                              </span>
-                            )
-                          )}
-                        </button>
-                      );
-                    })}
-                  </nav>
-                )}
-              </div>
-            );
-          })}
+          {!isMongoCollapsed && (
+            <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto mt-1 animate-fade-in">
+              {mongoCollectionItems.map(item => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const count = getCollectionCount(item.name);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabClick(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      isActive 
+                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md' 
+                        : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 truncate">
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-cyan-400' : 't-text-muted'}`} />
+                      <span className="truncate text-[11px]">{item.label}</span>
+                    </div>
+                    {count !== null && (
+                      <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md mono ${
+                        isActive ? 'bg-cyan-500/30 text-cyan-300' : 't-bg-sec t-text-muted'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
         </div>
 
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-1 text-center mt-auto shrink-0">
-        <div className="flex items-center justify-center gap-1.5 text-[11px] font-black t-text-primary">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>EcoDrop Unified Hub</span>
-        </div>
-        <div className="text-[9px] t-text-muted truncate font-mono">
-          RVM: Single Hopper • PicoDrop: 3 Inputs
+      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-center mt-auto">
+        <div className="text-[11px] font-bold t-text-primary">ISP RVM Master Hub</div>
+        <div className="text-[10px] t-text-muted truncate">
+          {isPostgres ? `PG Host: ${health?.serverHost || '127.0.0.1:5432'}` : (isMasterDev ? `MongoDB Atlas (${health?.serverHost || 'cluster0.ktted0m.mongodb.net'})` : `Database: ${health?.database || 'ONS-RVM'}`)}
         </div>
       </div>
     </div>
   );
 
+
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-72 t-bg-surface border-r t-border flex-col shrink-0 p-3.5 space-y-4 transition-colors duration-300">
+      <aside className="hidden lg:flex w-64 t-bg-surface border-r t-border flex-col shrink-0 p-4 space-y-6 transition-colors duration-300">
         {renderContent()}
       </aside>
 
@@ -221,9 +255,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             onClick={() => setIsMobileOpen(false)}
           ></div>
 
-          <div className="relative z-10 w-80 max-w-[85vw] t-bg-surface h-full border-r t-border p-4 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
-            <div className="flex items-center justify-between border-b t-border pb-3 mb-3">
-              <span className="font-extrabold text-sm text-emerald-400">EcoDrop Menu</span>
+          <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-5 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
+            <div className="flex items-center justify-between border-b t-border pb-3 mb-2">
+              <span className="font-extrabold text-sm text-emerald-400">RVM Navigation</span>
               <button 
                 onClick={() => setIsMobileOpen(false)}
                 className="p-1.5 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary"

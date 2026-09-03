@@ -953,9 +953,7 @@ app.get('/api/overview', async (req, res) => {
         totalPlastic,
         totalCans,
         totalPaperGrams,
-        totalPaperKg: ((totalPaperGrams || 148500) / 1000).toFixed(1),
         totalTetraPakGrams,
-        totalCardboardUnits: Math.round((totalTetraPakGrams || 37200) / 30) || 1240,
         totalGlass,
         variantBreakdown: {
           plasticSmall,
@@ -1082,9 +1080,7 @@ app.get('/api/overview', async (req, res) => {
       totalPlastic,
       totalCans,
       totalPaperGrams,
-      totalPaperKg: ((totalPaperGrams || 148500) / 1000).toFixed(1),
       totalTetraPakGrams,
-      totalCardboardUnits: Math.round((totalTetraPakGrams || 37200) / 30) || 1240,
       totalGlass,
       variantBreakdown: {
         plasticSmall,
@@ -1096,6 +1092,7 @@ app.get('/api/overview', async (req, res) => {
         paperGrams: totalPaperGrams,
         tetraPakGrams: totalTetraPakGrams
       },
+      recentSessions,
       recentSessions,
       recentAlerts
     });
