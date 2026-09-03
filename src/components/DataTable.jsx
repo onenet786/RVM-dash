@@ -29,10 +29,11 @@ export default function DataTable({ collectionName, displayName }) {
 
   const getMachinesParam = () => {
     try {
-      const u = JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
+      const u = JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
+      if (u.username === 'onenet' || u.roleId === 'super_admin') return '';
       if (!u.assignedMachines) return '';
       const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
-      if (arr.includes('*')) return '';
+      if (arr.length === 0 || arr.includes('*')) return '';
       return arr.join(',');
     } catch (e) {
       return '';

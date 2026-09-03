@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi } from 'lucide-react';
 import DataTable from './DataTable';
 
-export default function RvmManagementTab() {
+export default function RvmManagementTab({ currentUser }) {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -17,13 +17,40 @@ export default function RvmManagementTab() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Extract authorized assigned machines list for the logged-in user
+  const getAssignedList = () => {
+    let u = currentUser;
+    if (!u) {
+      try {
+        u = JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
+      } catch (e) {
+        u = {};
+      }
+    }
+    if (u.username === 'onenet' || u.roleId === 'super_admin') return null; // Full fleet
+    const raw = u.assignedMachines;
+    if (!raw) return null;
+    const arr = Array.isArray(raw) ? raw : [raw];
+    if (arr.length === 0 || arr.includes('*')) return null; // Full fleet
+    return arr.map(m => m.trim());
+  };
+
+  const assignedList = getAssignedList();
+
   const fetchMachines = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/analytics/machines');
+      const assigned = getAssignedList();
+      const queryParam = assigned && assigned.length > 0 
+        ? `?assignedMachines=${encodeURIComponent(assigned.join(','))}` 
+        : '';
+      const res = await fetch(`/api/analytics/machines${queryParam}`);
       if (res.ok) {
         const data = await res.json();
-        setMachines(data || []);
+        const filtered = assigned && assigned.length > 0
+          ? (data || []).filter(m => m.machineId && assigned.some(a => a.toUpperCase() === m.machineId.toUpperCase()))
+          : (data || []);
+        setMachines(filtered);
       }
     } catch (err) {
       console.error('Error fetching machines:', err);
@@ -130,6 +157,19 @@ export default function RvmManagementTab() {
           </button>
         </div>
       </div>
+
+      {/* Assigned RVM Fleet Scope Notification */}
+      {assignedList && assignedList.length > 0 && (
+        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center justify-between text-xs font-bold animate-fade-in shadow-md">
+          <div className="flex items-center gap-2.5">
+            <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span>Assigned RVM Fleet Scope Active: Managing ({assignedList.join(', ')}) only</span>
+          </div>
+          <span className="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-200 uppercase font-mono font-bold shrink-0 border border-cyan-500/30">
+            {assignedList.length} Machine{assignedList.length > 1 ? 's' : ''} Scoped
+          </span>
+        </div>
+      )}
 
       {/* Registered RVM Cards with Edit Action */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

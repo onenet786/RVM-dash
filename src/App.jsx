@@ -112,16 +112,16 @@ export default function App() {
     }
 
     if (activeTab === 'machines') {
-      return <MachineHealthTab />;
+      return <MachineHealthTab currentUser={currentUser} />;
     }
     if (activeTab === 'advertisements') {
       return <AdvertisementsTab />;
     }
     if (activeTab === 'col_machines') {
-      return <RvmManagementTab />;
+      return <RvmManagementTab currentUser={currentUser} />;
     }
     if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
-      return <MachineConfigsTab />;
+      return <MachineConfigsTab currentUser={currentUser} />;
     }
     if (activeTab === 'security' && (isSuperAdmin || isAllowedTab('security'))) {
       return <SecurityTab />;

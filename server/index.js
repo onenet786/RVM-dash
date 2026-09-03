@@ -845,6 +845,16 @@ function getMachineScopeQuery(req, fieldName = 'machineId') {
   return { [fieldName]: { $in: regexes } };
 }
 
+function getAssignedMachinesList(req) {
+  const param = req.query.assignedMachines || req.query.machines || req.query.machineId;
+  if (!param) return null;
+  let machines = [];
+  if (Array.isArray(param)) machines = param;
+  else if (typeof param === 'string') machines = param.split(',').map(s => s.trim()).filter(Boolean);
+  if (machines.length === 0 || machines.includes('*')) return null;
+  return machines.map(m => m.toUpperCase());
+}
+
 // High level KPIs Overview
 app.get('/api/overview', async (req, res) => {
   try {
@@ -1452,11 +1462,16 @@ app.get('/api/analytics/machines', async (req, res) => {
         alertsMap[mId].alertCount += 1;
       });
 
-      const combined = Object.values(grouped).map(m => ({
+      const filterMachines = getAssignedMachinesList(req);
+      let combined = Object.values(grouped).map(m => ({
         ...m,
         alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
         lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
       }));
+
+      if (filterMachines && filterMachines.length > 0) {
+        combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
+      }
 
       return res.json(combined);
     }
@@ -1551,11 +1566,16 @@ app.get('/api/analytics/machines', async (req, res) => {
       alertsMap[a._id] = a;
     });
 
-    const combined = Object.values(grouped).map(m => ({
+    const filterMachines = getAssignedMachinesList(req);
+    let combined = Object.values(grouped).map(m => ({
       ...m,
       alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
       lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
     }));
+
+    if (filterMachines && filterMachines.length > 0) {
+      combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
+    }
 
     res.json(combined);
   } catch (err) {
