@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RVMDesktopApp — Interactive Kiosk Walkthrough Simulation</title>
+  <style>
+    :root {
+      --bg-dark: #090D16;
+      --panel-dark: #0F172A;
+      --card-dark: #1E293B;
+      --border-dark: #334155;
+      --cyan-bright: #38BDF8;
+      --emerald-green: #10B981;
+      --emerald-light: #34D399;
+      --amber-gold: #F59E0B;
+      --rose-red: #F43F5E;
+      --text-muted: #94A3B8;
+      --text-light: #F8FAFC;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* TOP GLOBAL CONTROLLER BAR */
+    .global-toolbar {
+      background: #020617;
+      border-bottom: 1px solid #1E293B;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .toolbar-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cyan-bright);
+    }
+
+    .toolbar-title span {
+      color: var(--text-muted);
+      font-weight: 400;
+      font-size: 13px;
+    }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      color: var(--text-light);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      background: #334155;
+      border-color: var(--cyan-bright);
+      transform: translateY(-1px);
+    }
+
+    .btn-action.btn-green {
+      background: #064E3B;
+      border-color: #059669;
+      color: #A7F3D0;
+    }
+    .btn-action.btn-green:hover { background: #047857; }
+
+    .btn-action.btn-amber {
+      background: #78350F;
+      border-color: #D97706;
+      color: #FDE68A;
+    }
+    .btn-action.btn-amber:hover { background: #B45309; }
+
+    .btn-action.btn-red {
+      background: #881337;
+      border-color: #E11D48;
+      color: #FECDD3;
+    }
+    .btn-action.btn-red:hover { background: #BE123C; }
+
+    .btn-action.btn-cyan {
+      background: #0C4A6E;
+      border-color: #0284C7;
+      color: #BAE6FD;
+    }
+    .btn-action.btn-cyan:hover { background: #0369A1; }
+
+    /* MAIN CONTAINER: KIOSK + EXPLANATION SIDEBAR */
+    .main-workspace {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      gap: 20px;
+      padding: 20px;
+      flex: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1200px) {
+      .main-workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* KIOSK HARDWARE CASING */
+    .kiosk-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .kiosk-frame {
+      width: 540px;
+      background: #020617;
+      border: 8px solid #1E293B;
+      border-radius: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: width 0.3s ease;
+    }
+
+    .kiosk-frame.landscape-mode {
+      width: 840px;
+    }
+
+    /* KIOSK HEADER */
+    .kiosk-header {
+      background: #0F172A;
+      padding: 12px 18px;
+      border-bottom: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kiosk-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .kiosk-logo-box {
+      width: 34px;
+      height: 34px;
+      background: #047857;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .kiosk-title-text h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: #F8FAFC;
+      letter-spacing: 0.5px;
+    }
+
+    .kiosk-title-text p {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .kiosk-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-live {
+      background: #064E3B;
+      color: #6EE7B7;
+      border: 1px solid #059669;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge-live.offline {
+      background: #881337;
+      color: #FDA4AF;
+      border-color: #E11D48;
+    }
+
+    .dot-pulse {
+      width: 7px;
+      height: 7px;
+      background: #10B981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    .btn-admin-gear {
+      background: transparent;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: #94A3B8;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .btn-admin-gear:hover { color: var(--cyan-bright); background: #1E293B; }
+
+    /* SIGNAGE / VIDEO PLAYER AREA */
+    .signage-area {
+      background: #0B1120;
+      height: 190px;
+      position: relative;
+      border-bottom: 2px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .video-mock {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #064E3B 0%, #0F172A 50%, #0C4A6E 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .video-tag {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      color: var(--cyan-bright);
+      font-weight: 700;
+    }
+
+    .video-mock h4 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 4px;
+    }
+
+    .video-mock p {
+      font-size: 11px;
+      color: #93C5FD;
+      max-width: 320px;
+    }
+
+    /* INTAKE CHAMBER & APERTURE */
+    .chamber-area {
+      padding: 20px;
+      background: #090E17;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .aperture-outer {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: #0F172A;
+      border: 6px solid #1E293B;
+      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.9), 0 0 20px rgba(56, 189, 248, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .aperture-outer.state-ready {
+      border-color: var(--emerald-green);
+      box-shadow: inset 0 0 25px rgba(16, 185, 129, 0.3), 0 0 30px rgba(16, 185, 129, 0.4);
+    }
+
+    .aperture-outer.state-scanning {
+      border-color: var(--amber-gold);
+      box-shadow: inset 0 0 25px rgba(245, 158, 11, 0.3), 0 0 30px rgba(245, 158, 11, 0.4);
+    }
+
+    .aperture-outer.state-rejected {
+      border-color: var(--rose-red);
+      box-shadow: inset 0 0 25px rgba(244, 63, 94, 0.3), 0 0 30px rgba(244, 63, 94, 0.4);
+    }
+
+    .aperture-inner {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1E293B 20%, #020617 90%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .aperture-icon {
+      font-size: 38px;
+      transition: transform 0.3s ease;
+    }
+
+    .aperture-outer:hover .aperture-icon {
+      transform: scale(1.1);
+    }
+
+    .aperture-lbl {
+      font-size: 11px;
+      font-weight: 800;
+      color: #F8FAFC;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* GATE OVERLAY ANIMATION */
+    .gate-curtain {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: transform 0.4s ease, opacity 0.3s ease;
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .aperture-outer.gate-open .gate-curtain {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    /* STATUS DISPLAY BOARD */
+    .status-board {
+      margin-top: 14px;
+      width: 100%;
+      background: #020617;
+      border: 1px solid var(--border-dark);
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+
+    .status-indicator-text {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--emerald-green);
+      letter-spacing: 0.5px;
+    }
+
+    .status-sub-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* HARDWARE SENSORS MINI PANEL */
+    .sensors-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .sensor-item {
+      background: #0F172A;
+      border: 1px solid #1E293B;
+      padding: 6px 8px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .sensor-title {
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .sensor-val {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94A3B8;
+    }
+
+    .sensor-val.active {
+      color: var(--emerald-green);
+    }
+
+    /* COUNTERS GRID */
+    .counters-grid {
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: #0B1120;
+      border-top: 1px solid #1E293B;
+      border-bottom: 1px solid #1E293B;
+    }
+
+    .counter-card {
+      background: #0F172A;
+      border: 1px solid #1E293B;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .counter-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .counter-number {
+      font-size: 22px;
+      font-weight: 900;
+      color: #F8FAFC;
+      margin-top: 2px;
+    }
+
+    .counter-number.pts {
+      color: var(--amber-gold);
+    }
+
+    /* IMPACT FOOTER STRIP */
+    .impact-strip {
+      padding: 10px 20px;
+      background: #020617;
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 1px solid #1E293B;
+      font-size: 11px;
+    }
+
+    .impact-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #94A3B8;
+    }
+
+    .impact-item strong {
+      color: var(--cyan-bright);
+    }
+
+    /* KIOSK BOTTOM CONTROLS */
+    .kiosk-footer-actions {
+      padding: 16px 20px;
+      background: #0F172A;
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-kiosk-main {
+      flex: 1;
+      height: 48px;
+      background: linear-gradient(135deg, #10B981, #059669);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-kiosk-main:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-kiosk-secondary {
+      height: 48px;
+      padding: 0 16px;
+      background: #1E293B;
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      color: #CBD5E1;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-kiosk-secondary:hover {
+      background: #334155;
+      color: white;
+    }
+
+    /* RIGHT SIDE: SCENE-BY-SCENE EXPLANATION PANEL */
+    .explain-sidebar {
+      background: var(--panel-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 20px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+
+    .explain-header {
+      border-bottom: 1px solid var(--border-dark);
+      padding-bottom: 14px;
+    }
+
+    .explain-step-tag {
+      background: #0284C7;
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .explain-header h2 {
+      font-size: 18px;
+      color: #F8FAFC;
+    }
+
+    .explain-box {
+      background: #020617;
+      border-left: 4px solid var(--cyan-bright);
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .explain-box.box-decision {
+      border-left-color: var(--amber-gold);
+    }
+
+    .explain-box.box-voiceover {
+      border-left-color: var(--emerald-green);
+    }
+
+    .explain-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .explain-box.box-decision .explain-label {
+      color: var(--amber-gold);
+    }
+
+    .explain-box.box-voiceover .explain-label {
+      color: var(--emerald-light);
+    }
+
+    .explain-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #CBD5E1;
+    }
+
+    .explain-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn-nav-step {
+      flex: 1;
+      background: #1E293B;
+      border: 1px solid var(--border-dark);
+      color: #CBD5E1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-nav-step:hover {
+      background: var(--cyan-bright);
+      color: #020617;
+      border-color: var(--cyan-bright);
+    }
+
+    /* MODALS & OVERLAYS */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(2, 6, 23, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #0F172A;
+      border: 1px solid #334155;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      overflow: hidden;
+      animation: modalSlide 0.25s ease-out;
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      background: #1E293B;
+      padding: 14px 20px;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--cyan-bright);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: white; }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    /* PHONE KEYPAD */
+    .phone-summary-card {
+      background: #182132;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .phone-input-field {
+      width: 100%;
+      background: #1E293B;
+      border: 2px solid #475569;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .phone-input-field:focus {
+      outline: none;
+      border-color: var(--cyan-bright);
+    }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .key-btn {
+      background: #1E293B;
+      border: 1px solid #334155;
+      color: white;
+      padding: 12px 0;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .key-btn:hover { background: #334155; }
+    .key-btn:active { background: var(--cyan-bright); color: #020617; }
+
+    /* CELEBRATION MODAL */
+    .celebrate-box {
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .celebrate-icon {
+      font-size: 64px;
+      animation: bounce 0.6s infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    .celebrate-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--emerald-light);
+      margin: 12px 0 6px;
+    }
+
+    .celebrate-sub {
+      font-size: 14px;
+      color: #94A3B8;
+    }
+
+    /* ADMIN WINDOW FULL MODAL */
+    .admin-modal-box {
+      max-width: 820px;
+      width: 100%;
+    }
+
+    .admin-tabs-bar {
+      display: flex;
+      background: #1E293B;
+      border-bottom: 1px solid #334155;
+      overflow-x: auto;
+    }
+
+    .admin-tab-btn {
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+    }
+    .admin-tab-btn.active {
+      color: var(--cyan-bright);
+      border-bottom-color: var(--cyan-bright);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .admin-tab-content {
+      padding: 16px;
+      min-height: 280px;
+      max-height: 460px;
+      overflow-y: auto;
+    }
+
+    .admin-form-group {
+      margin-bottom: 12px;
+    }
+
+    .admin-form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #CBD5E1;
+      margin-bottom: 4px;
+    }
+
+    .admin-input {
+      width: 100%;
+      background: #1E293B;
+      border: 1px solid #334155;
+      padding: 8px 10px;
+      color: white;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .admin-console-box {
+      background: #020617;
+      border: 1px solid #1E293B;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      color: #38BDF8;
+      height: 160px;
+      overflow-y: auto;
+    }
+
+    /* TELEMETRY SLIDE-OUT PANEL */
+    .telemetry-slide {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      width: 380px;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      z-index: 150;
+      display: none;
+    }
+
+    .telemetry-slide.active {
+      display: block;
+    }
+
+    .telemetry-header {
+      background: #1E293B;
+      padding: 8px 12px;
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan-bright);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- GLOBAL SIMULATION CONTROLLER -->
+  <header class="global-toolbar">
+    <div class="toolbar-title">
+      🤖 RVMDesktopApp <span>Interactive Kiosk Simulator</span>
+    </div>
+
+    <div class="sim-controls">
+      <button class="btn-action btn-green" onclick="simulateInsert('PLASTIC', 'MEDIUM', 10)">+ Insert Bottle (Med 10pt)</button>
+      <button class="btn-action btn-green" onclick="simulateInsert('CAN', 'MEDIUM', 10)">+ Insert Can (10pt)</button>
+      <button class="btn-action btn-amber" onclick="simulateInsert('REJECT', 'UNKNOWN', 0)">⚠️ Insert Non-Recyclable</button>
+      <button class="btn-action btn-red" onclick="triggerJam()">🚫 Jam Chamber</button>
+      <button class="btn-action btn-red" onclick="triggerBinFull()">🗑️ Bin Full</button>
+      <button class="btn-action btn-cyan" onclick="toggleKioskOrientation()">📱 Toggle Portrait/Landscape</button>
+      <button class="btn-action" onclick="toggleTelemetry()">⚡ Telemetry (888)</button>
+      <button class="btn-action" onclick="manualClearChamber()">🔧 Clear Gate (33)</button>
+    </div>
+  </header>
+
+  <!-- MAIN DUAL-PANE VIEW -->
+  <main class="main-workspace">
+    
+    <!-- LEFT: THE RVM KIOSK DISPLAY -->
+    <div class="kiosk-wrapper">
+      <div class="kiosk-frame" id="kioskFrame">
+        
+        <!-- HEADER BAR -->
+        <div class="kiosk-header">
+          <div class="kiosk-brand">
+            <div class="kiosk-logo-box">♻️</div>
+            <div class="kiosk-title-text">
+              <h3 id="uiMachineId">RVM-RWP</h3>
+              <p id="uiDateTime">05 Sep 2026 • 12:00 AM</p>
+            </div>
+          </div>
+
+          <div class="kiosk-badges">
+            <div class="badge-live" id="uiLiveBadge">
+              <span class="dot-pulse"></span>
+              <span id="uiLiveText">LIVE 🟢</span>
+            </div>
+            <button class="btn-admin-gear" title="Admin Security (111)" onclick="openAdminLogin()">⚙️</button>
+          </div>
+        </div>
+
+        <!-- VIDEO & SIGNAGE AREA -->
+        <div class="signage-area">
+          <div class="video-mock">
+            <span class="video-tag">DIGITAL SIGNAGE</span>
+            <h4>Keep Your City Clean & Green</h4>
+            <p>Insert PET Plastic bottles & Aluminium cans one by one into the aperture below to earn reward vouchers!</p>
+          </div>
+        </div>
+
+        <!-- APERTURE & SCANNING CHAMBER -->
+        <div class="chamber-area">
+          <div class="aperture-outer" id="apertureCircle" onclick="onApertureClick()">
+            <div class="aperture-inner">
+              <div class="aperture-icon" id="apertureIcon">♻️</div>
+              <div class="aperture-lbl" id="apertureLabel">START</div>
+            </div>
+            <div class="gate-curtain" id="gateCurtain">GATE CLOSED</div>
+          </div>
+
+          <!-- STATUS BOARD -->
+          <div class="status-board">
+            <div class="status-indicator-text" id="uiStatusText">MACHINE: READY</div>
+            <div class="status-sub-text" id="uiStatusSub">Touch aperture or press 0 to start session</div>
+          </div>
+
+          <!-- MINI SENSORS STRIP -->
+          <div class="sensors-strip">
+            <div class="sensor-item">
+              <span class="sensor-title">CHAMBER IR</span>
+              <span class="sensor-val" id="valIr">IDLE</span>
+            </div>
+            <div class="sensor-item">
+              <span class="sensor-title">METAL SENSOR</span>
+              <span class="sensor-val" id="valMetal">NONE</span>
+            </div>
+            <div class="sensor-item">
+              <span class="sensor-title">ULTRASONIC</span>
+              <span class="sensor-val" id="valDist">32 cm</span>
+            </div>
+            <div class="sensor-item">
+              <span class="sensor-title">DROP GATE</span>
+              <span class="sensor-val" id="valGate">60° (Closed)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE IMPACT & POINTS COUNTERS -->
+        <div class="counters-grid">
+          <div class="counter-card">
+            <span class="counter-label">ITEMS RECYCLED</span>
+            <span class="counter-number" id="uiTotalItems">0</span>
+          </div>
+          <div class="counter-card">
+            <span class="counter-label">TOTAL POINTS</span>
+            <span class="counter-number pts" id="uiTotalPoints">0</span>
+          </div>
+        </div>
+
+        <!-- ECO METRICS STRIP -->
+        <div class="impact-strip">
+          <div class="impact-item">
+            🌱 CO2 Saved: <strong id="uiCo2">0.00</strong> kg
+          </div>
+          <div class="impact-item">
+            💧 Water Saved: <strong id="uiWater">0.00</strong> L
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="kiosk-footer-actions">
+          <button class="btn-kiosk-main" id="btnMainAction" onclick="onMainKioskAction()">
+            <span>START RECYCLING</span> ⚡
+          </button>
+          <button class="btn-kiosk-secondary" onclick="openWalletModal()">
+            <span>💳 Wallet</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: DYNAMIC WALKTHROUGH GUIDE & EXPLANATION PANEL -->
+    <aside class="explain-sidebar">
+      <div class="explain-header">
+        <span class="explain-step-tag" id="expStepTag">SCENE 1 OF 10</span>
+        <h2 id="expTitle">Welcome & Idle Kiosk Screen</h2>
+      </div>
+
+      <div class="explain-box">
+        <div class="explain-label">💡 Ye Screen Kyun Zaroori Hai?</div>
+        <div class="explain-desc" id="expWhy">
+          Yeh kiosk ka pehla visual impression hai. User ko guidance video se pata chalta hai ke machine kaise use karni hai aur live green badge se confirm hota hai ke kiosk internet aur cloud database se connected hai.
+        </div>
+      </div>
+
+      <div class="explain-box box-decision">
+        <div class="explain-label">🎯 Yahan User Kya Decision Leta Hai?</div>
+        <div class="explain-desc" id="expDecision">
+          User recycling shuru karne ka faisla karta hai aur green "START RECYCLING" button ya aperture par touch karta hai (Keyboard hotkey: 0).
+        </div>
+      </div>
+
+      <div class="explain-box box-voiceover">
+        <div class="explain-label">🎙️ Video Voiceover (Roman Urdu)</div>
+        <div class="explain-desc" id="expVoiceover">
+          "Assalam-o-Alaikum! RVMDesktopApp ke walkthrough mein khush-amdeed. Ye kiosk ka main welcome display hai jahan commercial ads aur educational videos loop hoti hain."
+        </div>
+      </div>
+
+      <div class="explain-nav">
+        <button class="btn-nav-step" onclick="prevScene()">◀ Previous Scene</button>
+        <button class="btn-nav-step" onclick="nextScene()">Next Scene ▶</button>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- MODAL 1: WALLET PHONE ENTRY (WalletPhoneWindow) -->
+  <div class="modal-overlay" id="walletModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>💳 SEND POINTS TO WALLET</h3>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="phone-summary-card">
+          <div>
+            <div style="font-size:10px; color:#94A3B8; font-weight:700;">ITEMS RECYCLED</div>
+            <div style="font-size:16px; font-weight:800;" id="phoneSummaryItems">0 Items</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:#F59E0B; font-weight:700;">POINTS TO CLAIM</div>
+            <div style="font-size:20px; font-weight:900; color:#F59E0B;" id="phoneSummaryPoints">+0 PTS</div>
+          </div>
+        </div>
+
+        <input type="text" class="phone-input-field" id="phoneInput" placeholder="03xxxxxxxxx" maxlength="11" readonly>
+
+        <!-- TOUCH KEYPAD -->
+        <div class="keypad-grid">
+          <button class="key-btn" onclick="pressKey('1')">1</button>
+          <button class="key-btn" onclick="pressKey('2')">2</button>
+          <button class="key-btn" onclick="pressKey('3')">3</button>
+          <button class="key-btn" onclick="pressKey('4')">4</button>
+          <button class="key-btn" onclick="pressKey('5')">5</button>
+          <button class="key-btn" onclick="pressKey('6')">6</button>
+          <button class="key-btn" onclick="pressKey('7')">7</button>
+          <button class="key-btn" onclick="pressKey('8')">8</button>
+          <button class="key-btn" onclick="pressKey('9')">9</button>
+          <button class="key-btn" onclick="pressKey('C')" style="color:#F43F5E;">CLR</button>
+          <button class="key-btn" onclick="pressKey('0')">0</button>
+          <button class="key-btn" onclick="pressKey('DEL')">⌫</button>
+        </div>
+
+        <button class="btn-kiosk-main" style="width:100%;" onclick="submitWalletPhone()">
+          Credit Wallet ✓
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CELEBRATORY ACCEPTED MODAL (AcceptedItemVideoWindow) -->
+  <div class="modal-overlay" id="acceptedModal">
+    <div class="modal-box" style="max-width:380px;">
+      <div class="celebrate-box">
+        <div class="celebrate-icon">🎉</div>
+        <div class="celebrate-title" id="celebTitle">ACCEPTED!</div>
+        <div class="celebrate-sub" id="celebPoints">+10 Points Credited to Session</div>
+        <div style="margin-top:16px; font-size:12px; color:#10B981; font-weight:700;">
+          Anti-Cheat Physical Drop Confirmed ✓
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: ADMIN LOGIN WINDOW (AdminLoginWindow) -->
+  <div class="modal-overlay" id="adminLoginModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🛡️ ADMIN SECURITY ACCESS</h3>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="admin-form-group">
+          <label>USERNAME</label>
+          <input type="text" class="admin-input" id="adminUser" value="RVM" readonly>
+        </div>
+        <div class="admin-form-group">
+          <label>PASSWORD (Default: Admin786)</label>
+          <input type="password" class="admin-input" id="adminPass" value="Admin786">
+        </div>
+        <button class="btn-kiosk-main" style="width:100%; margin-top:10px;" onclick="attemptAdminLogin()">
+          🔓 Login to Admin Suite
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: FULL ADMIN SUITE (AdminWindow) -->
+  <div class="modal-overlay" id="adminSuiteModal">
+    <div class="modal-box admin-modal-box">
+      <div class="modal-header">
+        <h3>⚙️ RVM MASTER CONTROL & DIAGNOSTICS SUITE</h3>
+        <button class="modal-close" onclick="closeModals()">✕</button>
+      </div>
+
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" onclick="switchAdminTab('tabPoints')">Point Settings</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('tabConfig')">Hardware Config (config.txt)</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('tabDiag')">Test Suite & Simulator</button>
+      </div>
+
+      <div class="admin-tab-content">
+        <!-- TAB 1: POINT SETTINGS -->
+        <div id="tabPoints">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+            <div class="admin-form-group">
+              <label>Plastic Small Points</label>
+              <input type="number" class="admin-input" value="5">
+            </div>
+            <div class="admin-form-group">
+              <label>Plastic Medium Points</label>
+              <input type="number" class="admin-input" value="10">
+            </div>
+            <div class="admin-form-group">
+              <label>Aluminium Can Points</label>
+              <input type="number" class="admin-input" value="10">
+            </div>
+            <div class="admin-form-group">
+              <label>TetraPak Points</label>
+              <input type="number" class="admin-input" value="5">
+            </div>
+          </div>
+          <button class="btn-action btn-green" onclick="alert('Point settings saved to local database!')">Save Point Settings</button>
+        </div>
+
+        <!-- TAB 2: CONFIG -->
+        <div id="tabConfig" style="display:none;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="admin-form-group">
+              <label>Machine ID</label>
+              <input type="text" class="admin-input" value="RVM-RWP">
+            </div>
+            <div class="admin-form-group">
+              <label>Arduino Port</label>
+              <input type="text" class="admin-input" value="COM16">
+            </div>
+            <div class="admin-form-group" style="grid-column: span 2;">
+              <label>Central API URL</label>
+              <input type="text" class="admin-input" value="https://isprvm.binishaqsoft.com">
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn-action btn-green" onclick="alert('Configuration saved to config.txt!')">Save Config</button>
+            <button class="btn-action btn-cyan" onclick="logTelemetry('[HARDWARE] Arduino re-initialized with DTR pulse')">Re-initialize Arduino</button>
+          </div>
+        </div>
+
+        <!-- TAB 3: DIAGNOSTICS & TEST SUITE -->
+        <div id="tabDiag" style="display:none;">
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button class="btn-action btn-cyan" onclick="pingCentralServer()">Send Heartbeat Ping</button>
+            <button class="btn-action btn-green" onclick="simulateInsert('PLASTIC', 'LARGE', 15)">Test Synthetic Drop</button>
+            <button class="btn-action btn-amber" onclick="manualClearChamber()">Manual Chamber Clear (33)</button>
+          </div>
+          <div class="admin-console-box" id="adminConsole">
+            [SYSTEM] RVM Diagnostics & Communication Console Initialized.<br>
+            [SERIAL] COM16 connected at 9600 baud.<br>
+            [HEARTBEAT] Autonomous daemon running every 15s.<br>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING TELEMETRY CONSOLE (Hotkey 888) -->
+  <div class="telemetry-slide" id="telemetrySlide">
+    <div class="telemetry-header">
+      <span>⚡ LIVE TELEMETRY CONSOLE (888)</span>
+      <span style="cursor:pointer;" onclick="toggleTelemetry()">✕</span>
+    </div>
+    <div class="admin-console-box" id="telemetryBox" style="border-radius:0 0 12px 12px; height:180px;">
+      [SYSTEM] Listening on COM16...<br>
+    </div>
+  </div>
+
+  <script>
+    // SIMULATED STATE MACHINE
+    let state = {
+      isStarted: false,
+      totalItems: 0,
+      totalPoints: 0,
+      co2: 0.0,
+      water: 0.0,
+      isGateOpen: false,
+      currentScene: 1
+    };
+
+    // SCENE GUIDE CONTENT
+    const scenes = [
+      {
+        step: "SCENE 1 OF 10",
+        title: "Welcome & Idle Kiosk Screen",
+        why: "Yeh kiosk ka pehla visual impression hai. User ko awareness videos se pata chalta hai ke machine operational hai aur green badge se confirm hota hai ke kiosk cloud se connected hai.",
+        decision: "User recycling shuru karne ka faisla karta hai aur green 'START RECYCLING' button ya aperture par touch karta hai (Hotkey: 0).",
+        voiceover: "Assalam-o-Alaikum! RVMDesktopApp ke walkthrough mein khush-amdeed. Ye kiosk ka main welcome display hai jahan awareness videos loop hoti hain."
+      },
+      {
+        step: "SCENE 2 OF 10",
+        title: "Session Initiation & Auto-Calibration",
+        why: "Machine internal ultrasonic sensor se drop pipe ka empty distance measure karti hai taakay kisi pehle se phansi hui bottle ka pata chal sake.",
+        decision: "User status green 'MACHINE: RUNNING' hone ka intizar karta hai aur dahanay mein item daalne ke liye ready hota hai.",
+        voiceover: "Start dabane par machine ultrasonic sensor se pipe calibrate karti hai. Status green hote hi entrance gate unlock ho jata hai."
+      },
+      {
+        step: "SCENE 3 OF 10",
+        title: "Container Intake & Multi-Sensor Scan",
+        why: "Transparency aur accuracy. IR beams unchai aur ultrasonic length measure karte hain, jabkay inductive sensor metal check karta hai.",
+        decision: "User dekhta hai ke screen par 'MEDIUM PLASTIC detected' show ho gaya hai aur points commit hone ka intizar karta hai.",
+        voiceover: "500ml plastic bottle daalte hi teeno IR sensors aur ultrasonic length scan kar ke category detect kar lete hain."
+      },
+      {
+        step: "SCENE 4 OF 10",
+        title: "Drop Gate Actuation & Anti-Cheat Confirm",
+        why: "Anti-fraud security! Jab tak bottle drop gate se pass ho kar bin mein na gire, points commit nahi hote.",
+        decision: "User confirm karta hai ke bottle accept ho chuki hai aur agla item daalne ya session khatam karne ka faisla karta hai.",
+        voiceover: "Anti-cheat mechanism: servo gate 180 degree open hota hai aur drop confirmation par celebratory window points credit karti hai."
+      },
+      {
+        step: "SCENE 5 OF 10",
+        title: "Aluminium Can & Real-Time Impact Counters",
+        why: "Multi-material capability aur user motivation. CO2 aur Water Saved live calculate hote hain.",
+        decision: "User screen par environmental contribution dekh kar satisfied hota hai.",
+        voiceover: "Ab metal can daalne par inductive sensor trigger hota hai aur CO2 aur Water Saved ke metrics foran barh jate hain."
+      },
+      {
+        step: "SCENE 6 OF 10",
+        title: "Non-Recyclable Item Rejection",
+        why: "Collection bin ki purity aur machine safety. Kachra ya patthar accept nahi hota.",
+        decision: "User rejected item ko wapis nikaal leta hai.",
+        voiceover: "Ghalat ya an-pehchana item daalne par machine reject kar deti hai, drop gate band rehta hai aur zero points milte hain."
+      },
+      {
+        step: "SCENE 7 OF 10",
+        title: "Wallet Settlement & Mobile Number Entry",
+        why: "Financial reward distribution. Points anonymous machine se nikal kar citizen ke Pakistani mobile account mein transfer hote hain.",
+        decision: "User apna 11-digit mobile number verify kar ke submit karta hai.",
+        voiceover: "Session khatam karne ke liye user 'Credit Wallet' tap karta hai aur 11-digit mobile number enter kar ke points claim karta hai."
+      },
+      {
+        step: "SCENE 8 OF 10",
+        title: "Admin Security Access Gate",
+        why: "Role-based authorization. Unauthorized logon ko pricing aur settings tabdeel karne se rokna.",
+        decision: "Technician credentials (RVM / Admin786) enter kar ke maintenance console unlock karta hai.",
+        voiceover: "Technician secret hotkey 111 se Admin Login window kholta hai aur secure credentials ke sath dashboard unlock karta hai."
+      },
+      {
+        step: "SCENE 9 OF 10",
+        title: "Hardware Diagnostics & COM Port Controls",
+        why: "Field troubleshooting. COM port badalna, Arduino ko DTR reset pulse bhejna, aur chamber clear karna.",
+        decision: "Technician sensor readings verify karta hai aur emergency clear button test karta hai.",
+        voiceover: "Admin suite mein technician COM ports configure karta hai aur hotkey 33 se kisi bhi jam item ko drop karwa sakta hai."
+      },
+      {
+        step: "SCENE 10 OF 10",
+        title: "Cloud Master Fleet Sync & Overview",
+        why: "Head office fleet monitoring. Har 15s baad machine heartbeat aur naye ad campaigns sync karti hai.",
+        decision: "Technician maintenance check complete kar ke machine live chhor deta hai.",
+        voiceover: "Aakhir mein test suite se cloud sync verify hota hai. Is tarah RVMDesktopApp ek complete ecosystem faraham karta hai. Shukriya!"
+      }
+    ];
+
+    function updateSceneView(idx) {
+      state.currentScene = idx;
+      const sc = scenes[idx - 1];
+      document.getElementById('expStepTag').innerText = sc.step;
+      document.getElementById('expTitle').innerText = sc.title;
+      document.getElementById('expWhy').innerText = sc.why;
+      document.getElementById('expDecision').innerText = sc.decision;
+      document.getElementById('expVoiceover').innerText = sc.voiceover;
+    }
+
+    function nextScene() {
+      if (state.currentScene < scenes.length) {
+        updateSceneView(state.currentScene + 1);
+      }
+    }
+
+    function prevScene() {
+      if (state.currentScene > 1) {
+        updateSceneView(state.currentScene - 1);
+      }
+    }
+
+    // KIOSK INTERACTIONS
+    function onMainKioskAction() {
+      if (!state.isStarted) {
+        startMachine();
+      } else {
+        openWalletModal();
+      }
+    }
+
+    function onApertureClick() {
+      if (!state.isStarted) {
+        startMachine();
+      } else {
+        simulateInsert('PLASTIC', 'MEDIUM', 10);
+      }
+    }
+
+    function startMachine() {
+      state.isStarted = true;
+      document.getElementById('uiStatusText').innerText = "Calibrating...";
+      document.getElementById('uiStatusText').style.color = "#F59E0B";
+      document.getElementById('uiStatusSub').innerText = "Keep pipe empty - Ultrasonic calibrating";
+      document.getElementById('apertureCircle').className = "aperture-outer state-scanning";
+      logTelemetry("[COMMAND] Machine START (0) initiated. Calibrating ultrasonic chamber...");
+
+      setTimeout(() => {
+        document.getElementById('uiStatusText').innerText = "MACHINE: RUNNING";
+        document.getElementById('uiStatusText').style.color = "#10B981";
+        document.getElementById('uiStatusSub').innerText = "Insert container into aperture";
+        document.getElementById('apertureCircle').className = "aperture-outer state-ready gate-open";
+        document.getElementById('apertureLabel').innerText = "INSERT";
+        document.getElementById('gateCurtain').innerText = "GATE OPEN";
+        document.getElementById('btnMainAction').innerHTML = "<span>FINISH & CLAIM REWARDS</span> 💳";
+        logTelemetry("[HARDWARE 🟢] Calibration complete (Empty dist: 32 cm). Aperture gate unlocked.");
+        updateSceneView(2);
+      }, 1200);
+    }
+
+    function simulateInsert(material, size, pts) {
+      if (!state.isStarted) {
+        startMachine();
+        setTimeout(() => performIntake(material, size, pts), 1400);
+      } else {
+        performIntake(material, size, pts);
+      }
+    }
+
+    function performIntake(material, size, pts) {
+      // 1. Scanning State
+      document.getElementById('apertureCircle').className = "aperture-outer state-scanning gate-open";
+      document.getElementById('uiStatusText').innerText = "Scanning Item...";
+      document.getElementById('uiStatusText').style.color = "#F59E0B";
+
+      if (material === 'REJECT') {
+        document.getElementById('valIr').innerText = "TRIPPED";
+        document.getElementById('valIr').classList.add('active');
+        document.getElementById('valDist').innerText = "4 cm (Invalid)";
+        document.getElementById('uiStatusSub').innerText = "Measuring object dimensions...";
+        logTelemetry("[SENSOR] Unknown object signature detected. Validating...");
+
+        setTimeout(() => {
+          document.getElementById('apertureCircle').className = "aperture-outer state-rejected";
+          document.getElementById('uiStatusText').innerText = "REJECTED";
+          document.getElementById('uiStatusText').style.color = "#F43F5E";
+          document.getElementById('uiStatusSub').innerText = "Invalid or non-recyclable container";
+          document.getElementById('valIr').innerText = "IDLE";
+          document.getElementById('valIr').classList.remove('active');
+          logTelemetry("[REJECT 🔴] Item classification failed. Servo gate held locked. Zero points.");
+          updateSceneView(6);
+        }, 1000);
+        return;
+      }
+
+      // Valid Intake
+      const isMetal = material === 'CAN';
+      document.getElementById('valIr').innerText = size === 'LARGE' ? "TRIPLE (D2,D7,D8)" : "DOUBLE (D2,D7)";
+      document.getElementById('valIr').classList.add('active');
+      document.getElementById('valMetal').innerText = isMetal ? "DETECTED (D5)" : "NONE (Plastic)";
+      if (isMetal) document.getElementById('valMetal').classList.add('active');
+      document.getElementById('valDist').innerText = size === 'LARGE' ? "28 cm" : "21 cm";
+
+      document.getElementById('uiStatusSub').innerText = `${size} ${material} identified (${pts} pts)`;
+      logTelemetry(`[SCAN] Size=${size} Material=${material} Points=${pts}`);
+
+      // Drop Gate Open
+      setTimeout(() => {
+        document.getElementById('valGate').innerText = "180° (Open)";
+        document.getElementById('valGate').classList.add('active');
+        logTelemetry("[SERVO] Drop gate actuated 180°. Waiting for physical fall...");
+
+        setTimeout(() => {
+          // Drop Confirmed
+          document.getElementById('valGate').innerText = "60° (Closed)";
+          document.getElementById('valGate').classList.remove('active');
+          document.getElementById('valIr').innerText = "IDLE";
+          document.getElementById('valIr').classList.remove('active');
+          document.getElementById('valMetal').classList.remove('active');
+
+          state.totalItems++;
+          state.totalPoints += pts;
+          state.co2 = (state.totalItems * 0.15).toFixed(2);
+          state.water = (state.totalItems * 0.75).toFixed(2);
+
+          document.getElementById('uiTotalItems').innerText = state.totalItems;
+          document.getElementById('uiTotalPoints').innerText = state.totalPoints;
+          document.getElementById('uiCo2').innerText = state.co2;
+          document.getElementById('uiWater').innerText = state.water;
+
+          document.getElementById('uiStatusText').innerText = "ACCEPTED";
+          document.getElementById('uiStatusText').style.color = "#10B981";
+          document.getElementById('uiStatusSub').innerText = `+${pts} Points committed | Drop confirmed`;
+
+          logTelemetry(`[COMMIT 🟢] BOTTLE:CLEARED. Total Items: ${state.totalItems}, Total Pts: ${state.totalPoints}`);
+
+          // Show Celebratory Modal
+          document.getElementById('celebTitle').innerText = `${size} ${material} ACCEPTED!`;
+          document.getElementById('celebPoints').innerText = `+${pts} Points Added to Session`;
+          document.getElementById('acceptedModal').classList.add('active');
+
+          setTimeout(() => {
+            document.getElementById('acceptedModal').classList.remove('active');
+          }, 1500);
+
+          if (isMetal) {
+            updateSceneView(5);
+          } else {
+            updateSceneView(4);
+          }
+        }, 800);
+      }, 700);
+    }
+
+    function triggerJam() {
+      document.getElementById('uiStatusText').innerText = "CHAMBER BLOCKED";
+      document.getElementById('uiStatusText').style.color = "#F43F5E";
+      document.getElementById('uiStatusSub').innerText = "Bottle stuck - Press 33 to purge gate";
+      document.getElementById('apertureCircle').className = "aperture-outer state-rejected";
+      logTelemetry("[ERROR 🔴] ERROR:CLEAR_TIMEOUT - Bottle did not clear drop sensor! Points cancelled.");
+    }
+
+    function triggerBinFull() {
+      state.isStarted = false;
+      document.getElementById('uiStatusText').innerText = "BIN FULL / STOPPED";
+      document.getElementById('uiStatusText').style.color = "#F43F5E";
+      document.getElementById('uiStatusSub').innerText = "Collection bin full on Pin D11. Machine stopped.";
+      document.getElementById('apertureCircle').className = "aperture-outer";
+      document.getElementById('gateCurtain').innerText = "LOCKED";
+      logTelemetry("[SAFETY 🔴] BIN:FULL detected on Pin D11. Emergency lockout engaged.");
+    }
+
+    function manualClearChamber() {
+      document.getElementById('uiStatusText').innerText = "Clearing Chamber (33)...";
+      document.getElementById('uiStatusText').style.color = "#F59E0B";
+      document.getElementById('valGate').innerText = "180° (Purge)";
+      logTelemetry("[COMMAND] Manual gate purge (33) issued. Servo actuated.");
+
+      setTimeout(() => {
+        document.getElementById('valGate').innerText = "60° (Closed)";
+        document.getElementById('uiStatusText').innerText = "Chamber Cleared";
+        document.getElementById('uiStatusText').style.color = "#10B981";
+        document.getElementById('uiStatusSub').innerText = "Gate closed. Ready for next item.";
+        logTelemetry("[HARDWARE 🟢] CHAMBER:CLEARED. Obstruction cleared.");
+        updateSceneView(9);
+      }, 1200);
+    }
+
+    // PHONE WALLET MODAL
+    function openWalletModal() {
+      if (state.totalItems === 0) {
+        alert("Please recycle at least 1 item before claiming rewards!");
+        return;
+      }
+      document.getElementById('phoneSummaryItems').innerText = `${state.totalItems} Items Recycled`;
+      document.getElementById('phoneSummaryPoints').innerText = `+${state.totalPoints} PTS`;
+      document.getElementById('phoneInput').value = "03";
+      document.getElementById('walletModal').classList.add('active');
+      updateSceneView(7);
+    }
+
+    function pressKey(key) {
+      const input = document.getElementById('phoneInput');
+      if (key === 'C') {
+        input.value = "03";
+      } else if (key === 'DEL') {
+        if (input.value.length > 2) input.value = input.value.slice(0, -1);
+      } else {
+        if (input.value.length < 11) input.value += key;
+      }
+    }
+
+    function submitWalletPhone() {
+      const num = document.getElementById('phoneInput').value;
+      const pakRegex = /^03[0-9]{9}$/;
+      if (!pakRegex.test(num)) {
+        alert("Please enter a valid 11-digit Pakistani mobile number starting with 03 (e.g. 03001234567)");
+        return;
+      }
+
+      logTelemetry(`[WALLET 💳] Points crediting to ${num}: ${state.totalPoints} pts...`);
+      logTelemetry(`[CLOUD REST 🟢] POST /api/machine/sync-session -> 200 OK.`);
+
+      alert(`🎉 SUCCESS!\n${state.totalPoints} Points have been successfully credited to wallet: ${num}\nLocal DB & Central Cloud Server updated.`);
+      closeModals();
+
+      // Reset Kiosk
+      state.isStarted = false;
+      state.totalItems = 0;
+      state.totalPoints = 0;
+      state.co2 = "0.00";
+      state.water = "0.00";
+      document.getElementById('uiTotalItems').innerText = "0";
+      document.getElementById('uiTotalPoints').innerText = "0";
+      document.getElementById('uiCo2').innerText = "0.00";
+      document.getElementById('uiWater').innerText = "0.00";
+      document.getElementById('uiStatusText').innerText = "MACHINE: READY";
+      document.getElementById('uiStatusSub').innerText = "Touch aperture or press 0 to start session";
+      document.getElementById('apertureCircle').className = "aperture-outer";
+      document.getElementById('apertureLabel').innerText = "START";
+      document.getElementById('gateCurtain').innerText = "GATE CLOSED";
+      document.getElementById('btnMainAction').innerHTML = "<span>START RECYCLING</span> ⚡";
+      updateSceneView(1);
+    }
+
+    // ADMIN SUITE MODAL
+    function openAdminLogin() {
+      document.getElementById('adminLoginModal').classList.add('active');
+      updateSceneView(8);
+    }
+
+    function attemptAdminLogin() {
+      const pass = document.getElementById('adminPass').value;
+      if (pass === 'Admin786') {
+        closeModals();
+        document.getElementById('adminSuiteModal').classList.add('active');
+        logTelemetry("[SECURITY 🛡️] Admin login successful (User: RVM)");
+        updateSceneView(9);
+      } else {
+        alert("Invalid Password! Default: Admin786");
+      }
+    }
+
+    function switchAdminTab(tabId) {
+      document.getElementById('tabPoints').style.display = 'none';
+      document.getElementById('tabConfig').style.display = 'none';
+      document.getElementById('tabDiag').style.display = 'none';
+      document.getElementById(tabId).style.display = 'block';
+
+      const btns = document.querySelectorAll('.admin-tab-btn');
+      btns.forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function pingCentralServer() {
+      logTelemetry("[PING] POST /api/machine/heartbeat -> HTTP 200 OK (Machine online & authorized)");
+      alert("Heartbeat Ping successful! Central Dashboard acknowledged 200 OK.");
+      updateSceneView(10);
+    }
+
+    function closeModals() {
+      document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    }
+
+    function toggleKioskOrientation() {
+      const f = document.getElementById('kioskFrame');
+      f.classList.toggle('landscape-mode');
+    }
+
+    function toggleTelemetry() {
+      const t = document.getElementById('telemetrySlide');
+      t.classList.toggle('active');
+    }
+
+    function logTelemetry(msg) {
+      const time = new Date().toLocaleTimeString();
+      const line = `[${time}] ${msg}<br>`;
+      const box = document.getElementById('telemetryBox');
+      const adminC = document.getElementById('adminConsole');
+      if (box) box.innerHTML += line;
+      if (adminC) adminC.innerHTML += line;
+      if (box) box.scrollTop = box.scrollHeight;
+      if (adminC) adminC.scrollTop = adminC.scrollHeight;
+    }
+
+    // HOTKEYS SIMULATION
+    let key1Count = 0;
+    let lastKey1Time = 0;
+
+    window.addEventListener('keydown', (e) => {
+      // 0 = Start
+      if (e.key === '0') {
+        startMachine();
+      }
+      // S = Stop
+      if (e.key === 's' || e.key === 'S') {
+        state.isStarted = false;
+        document.getElementById('uiStatusText').innerText = "MACHINE: STOPPED";
+        document.getElementById('apertureCircle').className = "aperture-outer";
+      }
+      // Enter = Wallet
+      if (e.key === 'Enter') {
+        openWalletModal();
+      }
+      // 111 = Admin
+      if (e.key === '1') {
+        const now = Date.now();
+        if (now - lastKey1Time <= 1500) {
+          key1Count++;
+        } else {
+          key1Count = 1;
+        }
+        lastKey1Time = now;
+        if (key1Count >= 3) {
+          key1Count = 0;
+          openAdminLogin();
+        }
+      }
+    });
+
+    // CLOCK UPDATE
+    setInterval(() => {
+      const d = new Date();
+      document.getElementById('uiDateTime').innerText = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) + " • " + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
+  </script>
+</body>
+</html>

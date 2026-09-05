@@ -444,7 +444,11 @@ public partial class MainWindow : Window
     {
         try
         {
-            string? path = FindVideoFiles(settings.InstructionVideoFolder).FirstOrDefault();
+            var candidateFiles = FindVideoFiles(settings.InstructionVideoFolder);
+            string? path = candidateFiles.FirstOrDefault(f => Path.GetFileName(f).Equals("Instructinal.mp4", StringComparison.OrdinalIgnoreCase))
+                          ?? candidateFiles.FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase))
+                          ?? candidateFiles.FirstOrDefault();
+
             if (string.IsNullOrEmpty(path))
             {
                 // Fallback check in multiple well-known folders
@@ -456,7 +460,8 @@ public partial class MainWindow : Window
                 ];
                 foreach (var folder in fallbackFolders)
                 {
-                    path = FindVideoFiles(folder).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase));
+                    path = FindVideoFiles(folder).FirstOrDefault(f => Path.GetFileName(f).Equals("Instructinal.mp4", StringComparison.OrdinalIgnoreCase))
+                           ?? FindVideoFiles(folder).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase));
                     if (!string.IsNullOrEmpty(path)) break;
                 }
             }
