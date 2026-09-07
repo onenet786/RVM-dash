@@ -106,7 +106,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- ROW 0: TOP HEADER BAR -->
-                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <Grid Grid.Row="0" Margin="0,0,0,10" MinHeight="75">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -115,25 +115,27 @@
 
                         <!-- Header Left: RVM Logo, Machine Name, and Tagline -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Grid Width="46" Height="46" Margin="0,0,10,0">
-                                <Ellipse Stroke="#073B28" StrokeThickness="2.2" Fill="Transparent"/>
-                                <Path Data="M 20 12 L 20 7 L 26 7 L 26 12 L 31 17 L 31 37 L 15 37 L 15 17 Z" Fill="#073B28"/>
-                                <Path Data="M 30 23 C 41 24 41 39 28 39 C 32 33 32 27 30 23 Z" Fill="#22C55E"/>
-                            </Grid>
+                            <Viewbox Width="66" Height="66" Margin="0,0,12,0">
+                                <Grid Width="46" Height="46">
+                                    <Ellipse Stroke="#073B28" StrokeThickness="2.2" Fill="Transparent"/>
+                                    <Path Data="M 20 12 L 20 7 L 26 7 L 26 12 L 31 17 L 31 37 L 15 37 L 15 17 Z" Fill="#073B28"/>
+                                    <Path Data="M 30 23 C 41 24 41 39 28 39 C 32 33 32 27 30 23 Z" Fill="#22C55E"/>
+                                </Grid>
+                            </Viewbox>
                             <StackPanel VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="RVM" FontSize="24" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
-                                    <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="5" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
+                                    <TextBlock Text="RVM" FontSize="32" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
+                                    <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="6" Padding="8,3" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="11" FontWeight="Bold" Foreground="#15803D"/>
                                     </Border>
-                                    <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="5" Padding="6,2" Margin="5,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1"/>
+                                    <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="6" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="11" FontWeight="Bold" Foreground="#0369A1"/>
                                     </Border>
                                 </StackPanel>
-                                <TextBlock Text="REVERSE VENDING MACHINE" FontSize="8.5" FontWeight="Bold" Foreground="#073B28" Margin="1,-2,0,0"/>
-                                <StackPanel Orientation="Horizontal" Margin="1,1,0,0">
-                                    <TextBlock Text="Reduce • Reuse • Recycle • " FontSize="8.5" FontWeight="SemiBold" Foreground="#64748B"/>
-                                    <TextBlock Text="ری سائیکلنگ مشین" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B"/>
+                                <TextBlock Text="REVERSE VENDING MACHINE" FontSize="11" FontWeight="Bold" Foreground="#073B28" Margin="1,-1,0,0"/>
+                                <StackPanel Orientation="Horizontal" Margin="1,2,0,0">
+                                    <TextBlock Text="Reduce • Reuse • Recycle • " FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                                    <TextBlock Text="ری سائیکلنگ مشین" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B"/>
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -141,35 +143,35 @@
                         <!-- Header Center: Welcome Headline with Urdu Nastaliq -->
                         <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="🍃 " FontSize="16" Foreground="#15803D"/>
-                                <TextBlock Text="WELCOME  •  " FontSize="18" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="19" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text=" 🍃" FontSize="16" Foreground="#15803D"/>
+                                <TextBlock Text="🍃 " FontSize="24" Foreground="#15803D"/>
+                                <TextBlock Text="WELCOME  •  " FontSize="27" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="28" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text=" 🍃" FontSize="24" Foreground="#15803D"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="10.5" FontWeight="Medium" Foreground="#475569"/>
-                                <TextBlock Text="سرسبز اور صاف پاکستان" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Medium" Foreground="#475569"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="14" FontWeight="Medium" Foreground="#475569"/>
+                                <TextBlock Text="سرسبز اور صاف پاکستان" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Medium" Foreground="#475569"/>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Header Right: Date, Time & ISPP Logo Card -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="7" Padding="12,3.5" Margin="0,0,8,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="14,5" Margin="0,0,10,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
                                 <StackPanel>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,1">
-                                        <TextBlock Text="📅 " FontSize="10"/>
-                                        <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="11" FontWeight="SemiBold" Foreground="#334155"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <TextBlock Text="📅 " FontSize="12"/>
+                                        <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="13.5" FontWeight="SemiBold" Foreground="#334155"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🕒 " FontSize="10"/>
-                                        <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="12" FontWeight="Bold" Foreground="#073B28"/>
+                                        <TextBlock Text="🕒 " FontSize="12"/>
+                                        <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="15" FontWeight="Bold" Foreground="#073B28"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
                             <!-- ISPP Logo -->
-                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="7" Padding="3" Height="46" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
-                                <Image Source="pack://application:,,,/RVMDesktopApp;component/Assets/ispp.jpg" Height="38" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="4" Height="66" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                                <Image Source="pack://application:,,,/RVMDesktopApp;component/Assets/ispp.jpg" Height="56" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
                         </StackPanel>
                     </Grid>
