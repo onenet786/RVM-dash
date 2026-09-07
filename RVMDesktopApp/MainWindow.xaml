@@ -106,7 +106,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- ROW 0: TOP HEADER BAR -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10" MinHeight="75">
+                    <Grid Grid.Row="0" Margin="0,0,0,8" MinHeight="68">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -115,7 +115,7 @@
 
                         <!-- Header Left: RVM Logo, Machine Name, and Tagline -->
                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Viewbox Width="66" Height="66" Margin="0,0,12,0">
+                            <Viewbox Width="52" Height="52" Margin="0,0,10,0">
                                 <Grid Width="46" Height="46">
                                     <Ellipse Stroke="#073B28" StrokeThickness="2.2" Fill="Transparent"/>
                                     <Path Data="M 20 12 L 20 7 L 26 7 L 26 12 L 31 17 L 31 37 L 15 37 L 15 17 Z" Fill="#073B28"/>
@@ -124,54 +124,52 @@
                             </Viewbox>
                             <StackPanel VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="RVM" FontSize="32" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
-                                    <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="6" Padding="8,3" Margin="10,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="11" FontWeight="Bold" Foreground="#15803D"/>
+                                    <TextBlock Text="RVM" FontSize="26" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
+                                    <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="5" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
                                     </Border>
-                                    <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="6" Padding="8,3" Margin="6,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="11" FontWeight="Bold" Foreground="#0369A1"/>
+                                    <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="5" Padding="6,2" Margin="4,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1"/>
                                     </Border>
                                 </StackPanel>
-                                <TextBlock Text="REVERSE VENDING MACHINE" FontSize="11" FontWeight="Bold" Foreground="#073B28" Margin="1,-1,0,0"/>
-                                <StackPanel Orientation="Horizontal" Margin="1,2,0,0">
-                                    <TextBlock Text="Reduce • Reuse • Recycle • " FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
-                                    <TextBlock Text="ری سائیکلنگ مشین" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B"/>
-                                </StackPanel>
+                                <TextBlock Text="REVERSE VENDING MACHINE" FontSize="9" FontWeight="Bold" Foreground="#073B28" Margin="1,1,0,0"/>
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Header Center: Welcome Headline with Urdu Nastaliq -->
-                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="🍃 " FontSize="24" Foreground="#15803D"/>
-                                <TextBlock Text="WELCOME  •  " FontSize="27" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="28" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text=" 🍃" FontSize="24" Foreground="#15803D"/>
+                        <!-- Header Center: Welcome Headline with Urdu Nastaliq (Viewbox prevents label overriding) -->
+                        <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" MaxHeight="70" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8,0">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="🍃 " FontSize="22" Foreground="#15803D" VerticalAlignment="Center"/>
+                                    <TextBlock Text="WELCOME  •  " FontSize="25" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                    <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="25" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" 🍃" FontSize="22" Foreground="#15803D" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                    <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="12.5" FontWeight="Medium" Foreground="#475569" VerticalAlignment="Center"/>
+                                    <TextBlock Text="سرسبز اور صاف پاکستان" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Medium" Foreground="#475569" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3,0,0">
-                                <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="14" FontWeight="Medium" Foreground="#475569"/>
-                                <TextBlock Text="سرسبز اور صاف پاکستان" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Medium" Foreground="#475569"/>
-                            </StackPanel>
-                        </StackPanel>
+                        </Viewbox>
 
                         <!-- Header Right: Date, Time & ISPP Logo Card -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="14,5" Margin="0,0,10,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="7" Padding="10,4" Margin="0,0,8,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                        <TextBlock Text="📅 " FontSize="12"/>
-                                        <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="13.5" FontWeight="SemiBold" Foreground="#334155"/>
+                                        <TextBlock Text="📅 " FontSize="11"/>
+                                        <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="11.5" FontWeight="SemiBold" Foreground="#334155"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🕒 " FontSize="12"/>
-                                        <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="15" FontWeight="Bold" Foreground="#073B28"/>
+                                        <TextBlock Text="🕒 " FontSize="11"/>
+                                        <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="13" FontWeight="Bold" Foreground="#073B28"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
 
                             <!-- ISPP Logo -->
-                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="4" Height="66" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
-                                <Image Source="pack://application:,,,/RVMDesktopApp;component/Assets/ispp.jpg" Height="56" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="7" Padding="3" Height="52" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                                <Image Source="pack://application:,,,/RVMDesktopApp;component/Assets/ispp.jpg" Height="44" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </Border>
                         </StackPanel>
                     </Grid>
@@ -213,20 +211,6 @@
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
-
-                                <!-- Demo Testing Screen Launcher Button -->
-                                <Button Grid.Column="1" Click="DemoTestingButton_Click" Cursor="Hand" ToolTip="Open Hardware Simulator &amp; Demo Testing Panel (F2)">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="#0F172A" BorderBrush="#10B981" BorderThickness="1" CornerRadius="5" Padding="8,2.5">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="🎮 " FontSize="10" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="DEMO TESTING (F2)" FontSize="9" FontWeight="Bold" Foreground="#34D399" VerticalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
                             </Grid>
 
                             <!-- HARDWARE CONNECTION ERROR BANNER (DYNAMIC ALERT) -->
@@ -236,7 +220,6 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" Background="#FEE2E2" Margin="0,0,6,0" VerticalAlignment="Center">
                                         <TextBlock Text="⚠️" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -245,16 +228,7 @@
                                         <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port • " FontSize="9" FontWeight="Bold" Foreground="#DC2626"/>
                                         <TextBlock Text="ہارڈویئر منسلک نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#DC2626"/>
                                     </StackPanel>
-                                    <Button Grid.Column="2" Content="DEMO MODE 🎮" Background="#0F172A" Foreground="#34D399" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="6,0,0,0" Cursor="Hand" Click="DemoTestingButton_Click">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border Background="{TemplateBinding Background}" BorderBrush="#059669" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                    <Button Grid.Column="3" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                                    <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">

@@ -113,13 +113,15 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="WELCOME • " FontSize="22" FontWeight="Black" Foreground="#073B28"/>
-                            <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#073B28"/>
+                    <Viewbox Grid.Column="1" Stretch="Uniform" StretchDirection="DownOnly" MaxHeight="52" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8,0">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="WELCOME • " FontSize="20" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="22" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="12" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                         </StackPanel>
-                        <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/>
-                    </StackPanel>
+                    </Viewbox>
 
                     <TextBlock x:Name="HeaderDotText" Visibility="Collapsed"/>
                     <TextBlock x:Name="CommandCenterRvmNameText" Visibility="Collapsed"/>
@@ -152,31 +154,13 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="HARDWARE DIAGNOSTICS 🔌" FontSize="8.5" FontWeight="Black" Foreground="#073B28" Margin="0,0,0,2"/>
-                        <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Grid Grid.Row="1" Margin="0,3,0,0">
+                            <StackPanel Orientation="Horizontal">
                                 <Border Background="#F0FDF4" CornerRadius="4" Padding="4,1" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="#16A34A" Margin="0,0,3,0" VerticalAlignment="Center"/><TextBlock x:Name="ConnectionText" Text="SERIAL: OK" FontSize="8" FontWeight="Bold" Foreground="#166534"/></StackPanel></Border>
                                 <Border Background="#F0FDF4" CornerRadius="4" Padding="4,1" Margin="0,0,3,0"><StackPanel Orientation="Horizontal"><Ellipse x:Name="DbDot" Width="6" Height="6" Fill="#16A34A" Margin="0,0,3,0" VerticalAlignment="Center"/><TextBlock x:Name="DbStatusText" Text="DB: OK" FontSize="8" FontWeight="Bold" Foreground="#166534"/></StackPanel></Border>
                                 <Border Background="#F0FDF4" CornerRadius="4" Padding="4,1"><StackPanel Orientation="Horizontal"><Ellipse x:Name="ApiDot" Width="6" Height="6" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/><TextBlock x:Name="ApiStatusText" Text="API: OK" FontSize="8" FontWeight="Bold" Foreground="#166534"/></StackPanel></Border>
                                 <TextBlock x:Name="MachineStateText" Text="IDLE" FontSize="8" FontWeight="Bold" Foreground="#0369A1" Margin="4,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
-
-                            <!-- Demo Testing Screen Launcher Button -->
-                            <Button Grid.Column="1" Click="DemoTestingButton_Click" Cursor="Hand" ToolTip="Open Hardware Simulator &amp; Demo Testing Panel (F2)">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="#0F172A" BorderBrush="#10B981" BorderThickness="1" CornerRadius="4" Padding="6,1.5">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="🎮 " FontSize="8" VerticalAlignment="Center"/>
-                                                <TextBlock Text="DEMO TESTING (F2)" FontSize="7.5" FontWeight="Bold" Foreground="#34D399" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
                         </Grid>
 
                         <!-- HARDWARE ERROR BANNER -->
@@ -186,23 +170,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="⚠️ " FontSize="8" VerticalAlignment="Center"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR • " FontSize="7.5" FontWeight="Bold" Foreground="#DC2626" VerticalAlignment="Center"/>
                                     <TextBlock Text="ہارڈویئر منسلک نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="8.5" FontWeight="Bold" Foreground="#DC2626" VerticalAlignment="Center"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Content="DEMO MODE 🎮" Background="#0F172A" Foreground="#34D399" FontSize="7.5" FontWeight="Bold" Padding="5,1" Margin="4,0,0,0" Cursor="Hand" Click="DemoTestingButton_Click">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border Background="{TemplateBinding Background}" BorderBrush="#059669" BorderThickness="1" CornerRadius="3" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
-                                <Button Grid.Column="3" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="7.5" FontWeight="Bold" Padding="4,1" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                                <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="7.5" FontWeight="Bold" Padding="4,1" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}">
