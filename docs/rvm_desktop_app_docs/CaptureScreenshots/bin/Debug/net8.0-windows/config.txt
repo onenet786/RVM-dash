@@ -1,0 +1,14 @@
+# Database connection settings.
+ConnectionString=Server=DESKTOP-4S9S1BF\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;
+
+# Hardware and classifier settings
+ArduinoPort=COM7
+ArduinoBaud=9600
+AdvertisementVideoFolder=Ads\Advertisements
+InstructionVideoFolder=Ads\Instructions
+CameraPort=COM31
+CameraBaud=921600
+ModelPath=Models\rvm_classifier.onnx
+CaptureDirectory=Captures
+MachineId = RVM-RWP-MT
+CentralApiUrl = https://isprvm.binishaqsoft.com

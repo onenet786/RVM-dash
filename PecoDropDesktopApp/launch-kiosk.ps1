@@ -249,7 +249,8 @@ else {
     foreach ($w in $winList) {
         [Win32PecoMultiDisplay]::SetForegroundWindow($w.Handle) | Out-Null
     }
-    Write-Host "=================================================" -ForegroundColor Greenaptop display." -ForegroundColor Yellow
+    Write-Host "=================================================" -ForegroundColor Green
+    Write-Host "  Single Laptop / PC display mode active:" -ForegroundColor Yellow
     Write-Host "  - Left side:  Main Kiosk (Leaderboard 50% + Details 50%)" -ForegroundColor Cyan
     Write-Host "  - Right side: Secondary Digital Signage & Commercial Advertisements" -ForegroundColor Cyan
     Write-Host "  - HDMI second display LED is kept untouched." -ForegroundColor Yellow

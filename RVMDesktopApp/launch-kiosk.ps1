@@ -19,8 +19,9 @@
 param(
     [int]$ScreenIndex = 1,
     [ValidateSet("Auto", "Portrait", "Landscape")]
-    [string]$Mode = "Auto",
-    [string]$ExePath = ""
+    [string]$Mode = "Portrait",
+    [string]$ExePath = "",
+    [switch]$KillExisting = $true
 )
 
 # 1. Load Windows Forms to query connected displays
@@ -113,11 +114,17 @@ $targetWidth = $targetScreen.Bounds.Width
 $targetHeight = $targetScreen.Bounds.Height
 
 # Determine portrait / landscape mode flag to pass to application
-$isTargetPortrait = ($targetHeight -gt $targetWidth)
 if ($Mode -eq "Portrait") {
     $isTargetPortrait = $true
 } elseif ($Mode -eq "Landscape") {
     $isTargetPortrait = $false
+} else {
+    # Mode is Auto: Default secondary display (Screen 1) to Portrait mode; otherwise check physical bounds
+    if ($ScreenIndex -eq 1) {
+        $isTargetPortrait = $true
+    } else {
+        $isTargetPortrait = ($targetHeight -gt $targetWidth)
+    }
 }
 
 $modeArg = if ($isTargetPortrait) { "--portrait" } else { "--landscape" }
@@ -125,25 +132,31 @@ $modeLabel = if ($isTargetPortrait) { "PORTRAIT MODE" } else { "LANDSCAPE MODE" 
 
 Write-Host "`n[TARGET] Selected Screen $ScreenIndex ($modeLabel) -> (X=$targetX, Y=$targetY, Width=$targetWidth, Height=$targetHeight)" -ForegroundColor Green
 
-# 4.5 Ensure single instance - if already running, show temporary message box
+# 4.5 Ensure single instance - if already running, restart or show info
 $existingProcs = Get-Process -Name "RVMDesktopApp" -ErrorAction SilentlyContinue
 if ($existingProcs) {
-    Add-Type -AssemblyName System.Windows.Forms
-    $msgForm = New-Object System.Windows.Forms.Form
-    $msgForm.StartPosition = "CenterScreen"
-    $msgForm.Size = New-Object System.Drawing.Size(350,120)
-    $msgForm.FormBorderStyle = "FixedDialog"
-    $msgForm.Text = "Info"
-    $msgForm.TopMost = $true
-    $label = New-Object System.Windows.Forms.Label
-    $label.Text = "RVMDesktopApp is already running."
-    $label.AutoSize = $true
-    $label.Location = New-Object System.Drawing.Point(30,30)
-    $msgForm.Controls.Add($label)
-    $msgForm.Show()
-    Start-Sleep -Milliseconds 2000
-    $msgForm.Close()
-    exit 0
+    if ($KillExisting) {
+        Write-Host "[RESTART] Closing existing RVMDesktopApp instance ($($existingProcs.Count) process) to apply target screen ($ScreenIndex) and $modeLabel..." -ForegroundColor Yellow
+        $existingProcs | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 800
+    } else {
+        Add-Type -AssemblyName System.Windows.Forms
+        $msgForm = New-Object System.Windows.Forms.Form
+        $msgForm.StartPosition = "CenterScreen"
+        $msgForm.Size = New-Object System.Drawing.Size(350,120)
+        $msgForm.FormBorderStyle = "FixedDialog"
+        $msgForm.Text = "Info"
+        $msgForm.TopMost = $true
+        $label = New-Object System.Windows.Forms.Label
+        $label.Text = "RVMDesktopApp is already running."
+        $label.AutoSize = $true
+        $label.Location = New-Object System.Drawing.Point(30,30)
+        $msgForm.Controls.Add($label)
+        $msgForm.Show()
+        Start-Sleep -Milliseconds 2000
+        $msgForm.Close()
+        exit 0
+    }
 }
 
 # 5. Launch RVMDesktopApp process with orientation argument

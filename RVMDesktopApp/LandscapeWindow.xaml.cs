@@ -438,19 +438,26 @@ public partial class LandscapeWindow : Window
     {
         try
         {
-            string? path = FindVideoFiles(settings.InstructionVideoFolder).FirstOrDefault();
+            var candidateFiles = FindVideoFiles(settings.InstructionVideoFolder);
+            string? path = candidateFiles.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault(f => Path.GetFileName(f).Equals("Instructinal.mp4", StringComparison.OrdinalIgnoreCase))
+                          ?? candidateFiles.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase))
+                          ?? candidateFiles.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
+
             if (string.IsNullOrEmpty(path))
             {
                 // Fallback check in multiple well-known folders
                 string[] fallbackFolders = [
                     Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Ads", "Instructions"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "RVMDesktopApp", "Ads", "Instructions"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Ads", "Instructions"),
                     Path.Combine(Directory.GetCurrentDirectory(), "Ads", "Instructions"),
                     Path.Combine(Directory.GetCurrentDirectory(), "RVMDesktopApp", "Ads", "Instructions"),
-                    Path.Combine(Directory.GetCurrentDirectory(), "Ads", "Advertisements")
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Ads", "Advertisements")
                 ];
                 foreach (var folder in fallbackFolders)
                 {
-                    path = FindVideoFiles(folder).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase));
+                    path = FindVideoFiles(folder).OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault(f => Path.GetFileName(f).Equals("Instructinal.mp4", StringComparison.OrdinalIgnoreCase))
+                           ?? FindVideoFiles(folder).OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault(f => f.Contains("Instruct", StringComparison.OrdinalIgnoreCase));
                     if (!string.IsNullOrEmpty(path)) break;
                 }
             }
@@ -603,38 +610,42 @@ public partial class LandscapeWindow : Window
         if (string.IsNullOrWhiteSpace(directory)) return [];
 
         string targetDir = directory;
-        if (!Directory.Exists(targetDir))
+
+        // If path is absolute and exists, use it directly
+        if (Path.IsPathRooted(directory) && Directory.Exists(directory))
         {
-            // 1. Try relative to AppDomain base directory
+            targetDir = directory;
+        }
+        else
+        {
+            // For relative paths, ALWAYS check AppDomain BaseDirectory first (where build output & deployed assets reside)
             string fromBase = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
-            if (Directory.Exists(fromBase))
+            if (Directory.Exists(fromBase) && Directory.EnumerateFiles(fromBase).Any())
             {
                 targetDir = fromBase;
             }
             else
             {
-                // 2. Try relative to CWD / RVMDesktopApp
+                // Try project source directory (..\..\..\RVMDesktopApp\directory or ..\..\..\directory)
+                string fromProjectSource = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "RVMDesktopApp", directory));
+                string fromRepoRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", directory));
                 string fromCwdRvm = Path.Combine(Directory.GetCurrentDirectory(), "RVMDesktopApp", directory);
-                if (Directory.Exists(fromCwdRvm))
+
+                if (Directory.Exists(fromProjectSource) && Directory.EnumerateFiles(fromProjectSource).Any())
+                {
+                    targetDir = fromProjectSource;
+                }
+                else if (Directory.Exists(fromCwdRvm) && Directory.EnumerateFiles(fromCwdRvm).Any())
                 {
                     targetDir = fromCwdRvm;
                 }
-                else
+                else if (Directory.Exists(fromRepoRoot) && Directory.EnumerateFiles(fromRepoRoot).Any())
                 {
-                    // 3. Try project root from debug
-                    string fromDebugProject = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", directory));
-                    if (Directory.Exists(fromDebugProject))
-                    {
-                        targetDir = fromDebugProject;
-                    }
-                    else
-                    {
-                        string fromDebugRvm = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "RVMDesktopApp", directory));
-                        if (Directory.Exists(fromDebugRvm))
-                        {
-                            targetDir = fromDebugRvm;
-                        }
-                    }
+                    targetDir = fromRepoRoot;
+                }
+                else if (Directory.Exists(directory))
+                {
+                    targetDir = directory;
                 }
             }
         }
@@ -646,7 +657,7 @@ public partial class LandscapeWindow : Window
 
         return [.. Directory.EnumerateFiles(targetDir)
             .Where(path => VideoExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
-            .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)];
+            .OrderByDescending(path => File.GetLastWriteTime(path))];
     }
 
     private void CheckDatabase()

@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RVM Machine User Manual & SOP — Environmental Solutions & World Bank Group</title>
+  <style>
+    :root {
+      --forest-dark: #073B28;
+      --forest-guide: #073F26;
+      --brand-green: #15803D;
+      --bright-leaf: #22C55E;
+      --emerald-accent: #10B981;
+      --sky-blue: #0284C7;
+      --amber-gold: #F59E0B;
+      --rose-red: #EF4444;
+      --bg-slate: #0B1320;
+      --card-slate: #162235;
+      --border-slate: #2A3C53;
+      --text-light: #F8FAFC;
+      --text-muted: #94A3B8;
+      --kiosk-bezel: #0F172A;
+      --kiosk-banner-bg: #E0F2FE;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background: var(--bg-slate);
+      color: var(--text-light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP GLOBAL NAVIGATION BAR */
+    header.manual-header {
+      background: #060D17;
+      border-bottom: 1px solid var(--border-slate);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo-container {
+      background: #FFFFFF;
+      border-radius: 8px;
+      padding: 3px 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo-img {
+      height: 34px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .brand-titles h1 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-titles p {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-tab-btn {
+      background: var(--card-slate);
+      border: 1px solid var(--border-slate);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab-btn:hover {
+      color: #FFFFFF;
+      border-color: var(--emerald-accent);
+    }
+
+    .nav-tab-btn.active {
+      background: var(--forest-dark);
+      border-color: var(--bright-leaf);
+      color: #FFFFFF;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-print {
+      background: #0284C7;
+      border: none;
+      color: #FFFFFF;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-print:hover {
+      background: #0369A1;
+    }
+
+    /* MAIN CONTAINER */
+    main.content-area {
+      flex: 1;
+      padding: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* TAB CONTENT: SCREEN BY SCREEN DEMO (MATCHING PDF) */
+    .tab-section {
+      display: none;
+    }
+
+    .tab-section.active {
+      display: block;
+    }
+
+    /* PAGER / STEP SELECTOR */
+    .pager-selector {
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-slate);
+    }
+
+    .page-chip {
+      background: var(--card-slate);
+      border: 1px solid var(--border-slate);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-chip:hover {
+      border-color: var(--bright-leaf);
+      color: #FFFFFF;
+    }
+
+    .page-chip.active {
+      background: var(--forest-dark);
+      border-color: var(--bright-leaf);
+      color: #FFFFFF;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    }
+
+    /* DUAL COLUMN STAGE MATCHING PDF LAYOUT */
+    .screen-stage {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+      background: #0D1626;
+      border: 1px solid var(--border-slate);
+      border-radius: 16px;
+      padding: 28px;
+      align-items: start;
+    }
+
+    /* LEFT EXPLANATION COLUMN */
+    .guide-left-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .guide-page-tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--bright-leaf);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .guide-step-title {
+      font-size: 28px;
+      font-weight: 900;
+      color: #FFFFFF;
+      line-height: 1.2;
+    }
+
+    .guide-step-urdu {
+      font-size: 20px;
+      font-weight: 700;
+      color: #86EFAC;
+      direction: rtl;
+      font-family: 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Segoe UI', Tahoma, sans-serif;
+    }
+
+    .guide-description-card {
+      background: var(--card-slate);
+      border: 1px solid var(--border-slate);
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #CBD5E1;
+    }
+
+    .guide-instruction-box {
+      background: #073B28;
+      border-left: 4px solid var(--bright-leaf);
+      padding: 14px 16px;
+      border-radius: 0 10px 10px 0;
+      font-size: 13px;
+      color: #F0FDF4;
+    }
+
+    .guide-instruction-box strong {
+      color: #86EFAC;
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .guide-sensor-specs {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-slate);
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .sensor-spec-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+      border-bottom: 1px dashed #2A3C53;
+    }
+
+    .sensor-spec-item:last-child {
+      border-bottom: none;
+    }
+
+    .sensor-spec-label {
+      color: var(--text-muted);
+    }
+
+    .sensor-spec-val {
+      font-weight: 700;
+      color: #38BDF8;
+    }
+
+    /* RIGHT COLUMN: REALISTIC PHYSICAL KIOSK FASCIAS & SCREEN CUTOUT */
+    .kiosk-mockup-wrapper {
+      display: flex;
+      justify-content: center;
+    }
+
+    .kiosk-chassis {
+      width: 580px;
+      background: #0F172A;
+      border: 4px solid #334155;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 20px rgba(15, 118, 110, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* FASCIA TOP BANNER */
+    .fascia-top-banner {
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 3px solid #BAE6FD;
+    }
+
+    .fascia-top-banner h2 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .fascia-top-banner p {
+      font-size: 11px;
+      font-weight: 700;
+      color: #0284C7;
+      margin-top: 2px;
+    }
+
+    /* FASCIA MIDDLE SECTION: SENSORS + INSTRUCTIONS + SCREEN */
+    .fascia-body {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 16px;
+      background: #1E293B;
+    }
+
+    /* LEFT BODY: APERTURE HOLES + KEYPAD */
+    .fascia-controls-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .intake-apertures {
+      display: flex;
+      gap: 10px;
+    }
+
+    .aperture-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 30px;
+      background: radial-gradient(circle, #050B14 40%, #1E293B 90%);
+      border: 3px solid #475569;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .fascia-bullet-points {
+      background: #0F172A;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 10.5px;
+      color: #E2E8F0;
+      line-height: 1.4;
+      width: 100%;
+    }
+
+    .fascia-bullet-points strong {
+      color: var(--bright-leaf);
+    }
+
+    /* PHYSICAL KEYPAD 4x4 */
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: #0A0F1D;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      width: 130px;
+    }
+
+    .key-btn {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      padding: 6px 0;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 2px 0 #0F172A;
+      user-select: none;
+    }
+
+    .key-btn.key-highlight {
+      background: #047857;
+      border-color: #10B981;
+      color: #FFFFFF;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    /* RIGHT BODY: HIGH DEFINITION DISPLAY */
+    .screen-bezel {
+      background: #000000;
+      border: 4px solid #334155;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.9);
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* RVM DESKTOP APP SCREEN INNER */
+    .rvm-screen-inner {
+      background: #F7F9F5;
+      color: #0F172A;
+      border-radius: 8px;
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid #E2EAE0;
+      margin-bottom: 10px;
+    }
+
+    .screen-rvm-id {
+      font-size: 11px;
+      font-weight: 900;
+      color: var(--forest-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill-green {
+      background: #DCFCE7;
+      color: #15803D;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .status-pill-blue {
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .status-pill-red {
+      background: #FEE2E2;
+      color: #DC2626;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .screen-bilingual-welcome {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .screen-bilingual-welcome h3 {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--forest-dark);
+    }
+
+    .screen-bilingual-welcome p {
+      font-size: 9.5px;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    /* SCREEN 1: SPLASH VIEW */
+    .splash-view-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+      background: #081B13;
+      border-radius: 8px;
+      color: #FFFFFF;
+      padding: 20px;
+    }
+
+    .splash-logo-art {
+      width: 70px;
+      height: 70px;
+      border-radius: 35px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 2px dashed #22C55E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .splash-diag-list {
+      width: 100%;
+      background: #0F2D21;
+      border: 1px solid #1A4D38;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 10px;
+      text-align: left;
+      color: #86EFAC;
+    }
+
+    /* SCREEN 2: MAIN HOME VIEW */
+    .home-view-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .home-center-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 8px;
+    }
+
+    .insert-circle-card {
+      background: #FFFFFF;
+      border: 1.5px dashed #CBD5E1;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .circle-graphic {
+      width: 70px;
+      height: 70px;
+      border-radius: 35px;
+      background: #F8FCF7;
+      border: 2px solid #22C55E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 6px;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+    }
+
+    .teal-howto-card {
+      background: linear-gradient(135deg, #0F766E, #042E2B);
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .teal-howto-card h4 {
+      font-size: 10px;
+      color: #5EEAD4;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .howto-item {
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #E2E8F0;
+    }
+
+    .home-bottom-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mini-stat-card {
+      background: #FFFFFF;
+      border: 1px solid #E2EAE0;
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .mini-stat-card h5 {
+      font-size: 8.5px;
+      color: #64748B;
+      text-transform: uppercase;
+    }
+
+    .mini-stat-card .val {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--forest-dark);
+      margin: 2px 0;
+    }
+
+    /* SCREEN 3: ACTIVE INTAKE OPEN */
+    .active-intake-card {
+      background: #F0FDF4;
+      border: 2px solid #86EFAC;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .gate-icon-pulse {
+      font-size: 38px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    /* SCREEN 4: SCANNING */
+    .scanning-card {
+      background: #F0F9FF;
+      border: 2px solid #BAE6FD;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* SCREEN 5: REJECTION / WARNING */
+    .reject-card {
+      background: #FEF2F2;
+      border: 2px solid #FECACA;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* SCREEN 6: ITEM ACCEPTED CELEBRATION */
+    .accepted-card {
+      background: #ECFDF5;
+      border: 2px solid #34D399;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* SCREEN 7: WALLET PHONE MODAL */
+    .wallet-modal-view {
+      background: #0F172A;
+      color: #FFFFFF;
+      border-radius: 10px;
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .wallet-input-sim {
+      background: #1E293B;
+      border: 2px solid #38BDF8;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #38BDF8;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    /* SCREEN 8: TRANSACTION SUCCESS */
+    .success-modal-view {
+      background: #064E3B;
+      color: #FFFFFF;
+      border-radius: 10px;
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+    }
+
+    /* SCREEN 9: FEEDBACK */
+    .feedback-modal-view {
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .star-row {
+      display: flex;
+      gap: 8px;
+      font-size: 24px;
+      color: #F59E0B;
+    }
+
+    /* SCREEN 10: PROCESS COMPLETE */
+    .complete-modal-view {
+      background: #F8FCF7;
+      border: 2px solid #86EFAC;
+      border-radius: 10px;
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 8px;
+    }
+
+    /* FASCIA FOOTER WITH PARTNERS */
+    .fascia-footer {
+      background: #0B1320;
+      padding: 12px 20px;
+      border-top: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .partner-logo-tag {
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .partner-logo-tag span {
+      color: #22C55E;
+    }
+
+    .qr-download-chip {
+      background: #1E293B;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 8.5px;
+      color: #F8FAFC;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* TAB 2: SOP TABLE */
+    .sop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .sop-card {
+      background: #0D1626;
+      border: 1px solid var(--border-slate);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sop-badge {
+      display: inline-block;
+      background: #073B28;
+      border: 1px solid #22C55E;
+      color: #86EFAC;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+      width: fit-content;
+    }
+
+    .sop-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+
+    .sop-meta-row {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-slate);
+      padding-bottom: 8px;
+    }
+
+    .sop-checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: #CBD5E1;
+    }
+
+    .sop-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .sop-checklist li::before {
+      content: "✓";
+      color: var(--bright-leaf);
+      font-weight: 900;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+      }
+      header.manual-header, .pager-selector, .btn-print {
+        display: none !important;
+      }
+      .tab-section {
+        display: block !important;
+      }
+      .screen-stage {
+        background: #FFFFFF !important;
+        border: 1px solid #CCCCCC !important;
+        color: #000000 !important;
+        page-break-after: always;
+      }
+      .kiosk-chassis {
+        box-shadow: none !important;
+        border: 2px solid #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="manual-header">
+    <div class="header-brand">
+      <div class="brand-logo-container">
+        <img src="snapshots/isp_logo.png" class="brand-logo-img" alt="ISP Logo" />
+      </div>
+      <div class="brand-titles">
+        <h1>RVM MACHINE USER MANUAL &amp; SOP</h1>
+        <p>Institute of Southern Punjab (ISP) • Environmental Solutions • World Bank Group</p>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchTab('tab-screens')">📱 Citizen Screens (Demo Walkthrough)</button>
+      <button class="nav-tab-btn" onclick="switchTab('tab-sops')">📋 Standard Operating Procedures (SOPs)</button>
+      <button class="nav-tab-btn" onclick="switchTab('tab-matrix')">🔌 Pinout & Diagnostics Matrix</button>
+    </div>
+
+    <div class="action-btns">
+      <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </header>
+
+  <!-- CONTENT AREA -->
+  <main class="content-area">
+
+    <!-- TAB 1: CITIZEN SCREENS DEMO (PAGES 1 TO 10) -->
+    <section id="tab-screens" class="tab-section active">
+      
+      <!-- PAGER BAR -->
+      <div class="pager-selector">
+        <button class="page-chip active" onclick="showScreen(1)">Page 01: Splash</button>
+        <button class="page-chip" onclick="showScreen(2)">Page 02: Home Page</button>
+        <button class="page-chip" onclick="showScreen(3)">Page 03: Step 01 (Start)</button>
+        <button class="page-chip" onclick="showScreen(4)">Page 04: Step 02 (Insert)</button>
+        <button class="page-chip" onclick="showScreen(5)">Page 05: Step 02 (Rejection)</button>
+        <button class="page-chip" onclick="showScreen(6)">Page 06: Step 03 (Accepted)</button>
+        <button class="page-chip" onclick="showScreen(7)">Page 07: Step 04 (Wallet)</button>
+        <button class="page-chip" onclick="showScreen(8)">Page 08: Step 04 (Success)</button>
+        <button class="page-chip" onclick="showScreen(9)">Page 09: Feedback</button>
+        <button class="page-chip" onclick="showScreen(10)">Page 10: Complete</button>
+      </div>
+
+      <!-- SCREEN STAGE CONTAINER -->
+      <div id="screenStageContainer" class="screen-stage">
+        <!-- Injected via JavaScript below -->
+      </div>
+    </section>
+
+    <!-- TAB 2: SOPS -->
+    <section id="tab-sops" class="tab-section">
+      <div class="sop-grid">
+        
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-OPS-01</span>
+          <h3 class="sop-title">Daily Morning Startup & Pre-Flight Checklist</h3>
+          <div class="sop-meta-row">
+            <span>Frequency: Daily 07:00 AM</span>
+            <span>Role: Caretaker / Tech</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>Verify AC 220V UPS voltage is stable and surge protector green.</li>
+            <li>Power on lower cabinet rocker switch; allow Windows IoT to boot.</li>
+            <li>Confirm PowerShell `launch-kiosk.ps1` initializes dual displays without taskbar.</li>
+            <li>Check diagnostics bar: `SERIAL: CONNECTED 🟢`, `DB: OK 🟢`, `API: ONLINE 🟢`.</li>
+            <li>Execute test cycle: Press `0`, insert clean test bottle, claim test wallet points.</li>
+          </ul>
+        </div>
+
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-OPS-02</span>
+          <h3 class="sop-title">Public Citizen Operation & Material Rules</h3>
+          <div class="sop-meta-row">
+            <span>Frequency: Continuous</span>
+            <span>Role: Citizen Facilitator</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>Accepted: Clean PET bottles (0.2L - 2.5L), Aluminium Cans, Paper Cups/UBC.</li>
+            <li>Prohibited: Glass, oil/bleach containers, filled liquid bottles, metal tins.</li>
+            <li>Ensure users insert containers one-by-one, bottom first, without crushing.</li>
+            <li>Validate Pakistani mobile format (`03xxxxxxxxx` - exactly 11 digits).</li>
+          </ul>
+        </div>
+
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-MAINT-03</span>
+          <h3 class="sop-title">Storage Bin Emptying & Level Sensor Reset</h3>
+          <div class="sop-meta-row">
+            <span>Frequency: At 85% Full</span>
+            <span>Sensors: Pins D10 & D11</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>Press `888` + Admin PIN to pause public sessions.</li>
+            <li>Unlock bottom cabinet with master key; extract full 120L trolley liner.</li>
+            <li>Clean dust from Pin D10 (Plastic IR) and D11 (Can IR) level sensor lenses.</li>
+            <li>Insert fresh heavy-duty transparent collection liner; lock cabinet door.</li>
+            <li>In Admin Panel Tab 4, press "Reset Bin Full Counter".</li>
+          </ul>
+        </div>
+
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-MAINT-04</span>
+          <h3 class="sop-title">Chamber Optical Lens Cleaning & Calibration</h3>
+          <div class="sop-meta-row">
+            <span>Frequency: Weekly (Friday)</span>
+            <span>Hotkey: "33"</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>Wipe Bottom (D2), Middle (D7), Top (D8) IR photoelectric lenses with 90%+ IPA.</li>
+            <li>Wipe inductive face plate (D5) and clean dust from ultrasonic cones (D3/D4).</li>
+            <li>Lubricate servo drop flap pivot hinge with dry silicone spray.</li>
+            <li>Press `33` on keypad to run 20-sample auto-calibration baseline.</li>
+          </ul>
+        </div>
+
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-NET-05</span>
+          <h3 class="sop-title">Offline Resiliency & Cloud Synchronization</h3>
+          <div class="sop-meta-row">
+            <span>Trigger: Network Outage</span>
+            <span>Service: CentralSyncService</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>When 4G router disconnects, API dot shows Amber; recycling remains 100% operational.</li>
+            <li>Transactions written to local SQL Server `dbo.Transactions` with `IsSynced = 0`.</li>
+            <li>Upon network restoration, service auto-flushes FIFO queue in batches of 25 records.</li>
+            <li>Technician force override: Admin Window Tab 3 -> "Sync Pending Transactions".</li>
+          </ul>
+        </div>
+
+        <div class="sop-card">
+          <span class="sop-badge">SOP-RVM-SAFE-06</span>
+          <h3 class="sop-title">Emergency Jam Clearance & Safety Shutdown</h3>
+          <div class="sop-meta-row">
+            <span>Trigger: Jam Alert / Obstruction</span>
+            <span>Safety: PINCH HAZARD</span>
+          </div>
+          <ul class="sop-checklist">
+            <li>Immediately hit Red Emergency Stop Mushroom Button on kiosk side.</li>
+            <li>Unlock upper chamber access panel with maintenance key.</li>
+            <li>Using safety tongs or gloves, extract stuck container or foreign object.</li>
+            <li>Inspect sensor optical pathways for scratches or physical displacement.</li>
+            <li>Rotate E-Stop clockwise to release and reboot system.</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: MATRIX -->
+    <section id="tab-matrix" class="tab-section">
+      <div style="background: #0D1626; border: 1px solid var(--border-slate); border-radius: 12px; padding: 24px;">
+        <h2 style="font-size: 18px; color: var(--bright-leaf); margin-bottom: 16px;">ARDUINO UNO R3 INDUSTRIAL PINOUT ASSIGNMENTS</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+          <thead>
+            <tr style="background: #073B28; color: #FFFFFF;">
+              <th style="padding: 10px;">Pin</th>
+              <th style="padding: 10px;">Direction</th>
+              <th style="padding: 10px;">Hardware Subsystem</th>
+              <th style="padding: 10px;">Electronic Specification & Function</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D2</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Bottom IR Photoelectric Sensor</td>
+              <td style="padding: 10px;">Detects container entrance & base presence. Triggers scan timer.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D3</td>
+              <td style="padding: 10px;">OUTPUT</td>
+              <td style="padding: 10px;">Ultrasonic Distance Sensor (Trig)</td>
+              <td style="padding: 10px;">Transmits 40 kHz acoustic burst to measure container drop & length.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D4</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Ultrasonic Distance Sensor (Echo)</td>
+              <td style="padding: 10px;">Receives reflected echo; measures microsecond pulse width.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D5</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Inductive Proximity Sensor</td>
+              <td style="padding: 10px;">HIGH = Ferrous/Aluminium Metal Can. LOW = PET Plastic / Paper.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D7</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Middle IR Photoelectric Sensor</td>
+              <td style="padding: 10px;">Determines Medium height profile (> 18 cm threshold).</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D8</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Top IR Photoelectric Sensor</td>
+              <td style="padding: 10px;">Determines Large bottle profile (> 26 cm threshold).</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D9</td>
+              <td style="padding: 10px;">OUTPUT</td>
+              <td style="padding: 10px;">High-Torque Drop Gate Servo (PWM)</td>
+              <td style="padding: 10px;">0° = Closed Gate, 90° = Drop Open into collection bin.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D10</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Plastic Bin Level Optical Sensor</td>
+              <td style="padding: 10px;">Infrared beam at bin rim. LOW = Storage Bin Full Alert.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #2A3C53;">
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D11</td>
+              <td style="padding: 10px;">INPUT</td>
+              <td style="padding: 10px;">Can/Metal Bin Level Optical Sensor</td>
+              <td style="padding: 10px;">Infrared beam at metal bin rim. LOW = Can Bin Full Alert.</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; font-weight: 800; color: #38BDF8;">D13</td>
+              <td style="padding: 10px;">OUTPUT</td>
+              <td style="padding: 10px;">Internal Chamber LED Ring</td>
+              <td style="padding: 10px;">Illuminates scanning chamber during active container intake.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+        const screensData = {
+      1: {
+        page: "PAGE 01",
+        title: "Splash Screen",
+        urdu: "شروعاتی اسکرین اور ہارڈویئر ٹیسٹ",
+        desc: "This screen indicates that the Reverse Vending Machine (RVM) is starting up and initializing subsystems. The system automatically tests the Arduino serial COM port, verifies local SQL database connectivity, connects to the Central Master Cloud, and calibrates the ultrasonic chamber distance.",
+        instruction: "Citizen Action: No action required. Stand by while machine finishes auto-calibration (3-5 seconds).",
+        specs: [
+          { label: "Serial COM Port", val: "COM3 @ 9600 Baud (Auto-Detect)" },
+          { label: "Local Database", val: "Microsoft SQL Server RVMDB" },
+          { label: "Chamber Calibration", val: "Baseline 25.0 cm ± 2 cm" },
+          { label: "Signage Engine", val: "WPF MediaElement Full HD" }
+        ],
+        highlightKey: null,
+        screenHtml: `<img src="snapshots/screen_01_splash.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Splash Screen" />`
+      },
+      2: {
+        page: "PAGE 02",
+        title: "Home Page",
+        urdu: "مرکزی اسکرین اور طریقہ کار",
+        desc: "This is the primary standby welcome screen. Citizens are greeted with bilingual Urdu/English environmental messaging, live container intake counts, today's top community eco-champions, and cumulative environmental impact meters (CO2 & Water saved).",
+        instruction: "Citizen Action: Press the '*' or '0' button on the physical keypad, OR touch the glowing green circle on screen to start recycling.",
+        specs: [
+          { label: "Keypad Trigger", val: "Press '0' or '*' Key" },
+          { label: "Touchscreen Trigger", val: "Tap Central 310px Button" },
+          { label: "Bilingual Mode", val: "English + Urdu Nastaliq" },
+          { label: "Leaderboard", val: "Live Top 5 + Recent Pulse" }
+        ],
+        highlightKey: "0",
+        screenHtml: `<img src="snapshots/screen_02_home_page.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Home Page" />`
+      },
+      3: {
+        page: "PAGE 03",
+        title: "Step: 01 — Ready to Insert",
+        urdu: "پہلا مرحلہ: بوتل ڈالنے کی تیاری",
+        desc: "This is the first active step of the recycling process. By pressing the '0' button or touching the screen, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors begin listening.",
+        instruction: "Citizen Action: Ensure container is empty of liquid. Insert container bottom-first into the aperture.",
+        specs: [
+          { label: "Intake Gate Servo", val: "Rotates to 90° (Open)" },
+          { label: "Chamber LED Ring", val: "Pin D13 HIGH (Illuminated)" },
+          { label: "Citizen Inactivity Timer", val: "30 Seconds Timeout" },
+          { label: "Sensor Baseline", val: "Ultrasonic Calibrated" }
+        ],
+        highlightKey: "0",
+        screenHtml: `<img src="snapshots/screen_03_step_01.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Step 01" />`
+      },
+      4: {
+        page: "PAGE 04",
+        title: "Step: 02 — Container Scanning",
+        urdu: "دوسرا مرحلہ: اسکیننگ اور پیمائش",
+        desc: "The RVM is actively scanning the inserted container. The multi-sensor array checks container height (IR photo-beams), material conductivity (Inductive sensor), and length (Ultrasonic distance sensor).",
+        instruction: "Citizen Action: Let the container rest in the chamber. Press '1' to proceed or allow automatic sensor trigger.",
+        specs: [
+          { label: "Height Sizing", val: "Bottom (D2), Mid (D7), Top (D8)" },
+          { label: "Material Check", val: "Inductive Metal Sensor (D5)" },
+          { label: "Length / Distance", val: "Ultrasonic Cones (D3/D4)" },
+          { label: "Scan Time", val: "< 850 milliseconds" }
+        ],
+        highlightKey: "1",
+        screenHtml: `<img src="snapshots/screen_04_step_02.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Step 02" />`
+      },
+      5: {
+        page: "PAGE 05",
+        title: "Step: 02 (Cont.) — Rejection Alert",
+        urdu: "نامنظور یا بوتل پھنس جانے کا انتباہ",
+        desc: "If an invalid container is inserted (e.g. unemptied liquid bottle, non-recyclable garbage, glass), or if an item blocks the beam without dropping, the machine halts drop gate motion and alerts the user.",
+        instruction: "Citizen Action: Remove the rejected item from the aperture as prompted. Insert an acceptable plastic bottle or can.",
+        specs: [
+          { label: "Rejection Logic", val: "No clear beam / Heavy Liquid" },
+          { label: "Jam Prevention", val: "Servo reverse pulse after 4.0s" },
+          { label: "Anti-Pinch Gate", val: "Auto-reverses if obstructed" },
+          { label: "Audit Counter", val: "Increments RejectedTotalCount" }
+        ],
+        highlightKey: null,
+        screenHtml: `<img src="snapshots/screen_05_step_02_rejection.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Step 02 Rejection" />`
+      },
+      6: {
+        page: "PAGE 06",
+        title: "Step: 03 — Item Accepted",
+        urdu: "تیسرا مرحلہ: بوتل قبول اور پوائنٹس کا اندراج",
+        desc: "The container drops through the servo flap and into the collection bin. The celebratory pop-up modal triggers, reward points are allocated, and real-time environmental metrics update immediately.",
+        instruction: "Citizen Action: Insert another container for more points, OR press 'Enter' on keypad to claim your rewards.",
+        specs: [
+          { label: "Confirmation Event", val: "BOTTLE:CLEARED Drop Ping" },
+          { label: "Reward Allocation", val: "+5, +10, or +15 Points" },
+          { label: "CO2 Dividend", val: "+0.15 kg per item" },
+          { label: "Water Dividend", val: "+0.75 Liters per item" }
+        ],
+        highlightKey: "Enter",
+        screenHtml: `<div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><img src="snapshots/screen_02_home_page.png" style="width:100%; height:100%; object-fit:cover; filter:brightness(0.25) blur(1px); border-radius:6px;" /><img src="snapshots/screen_06_step_03_accepted.png" style="position:absolute; width:90%; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.8);" alt="Accepted Modal" /></div>`
+      },
+      7: {
+        page: "PAGE 07",
+        title: "Step: 04 — Mobile Wallet Claim",
+        urdu: "چوتھا مرحلہ: انعام کیلئے موبائل نمبر کا اندراج",
+        desc: "The citizen has finished inserting containers. The screen prompts for their 11-digit Pakistani mobile phone number (03xxxxxxxxx) or offers a QR code scan to transfer earned points into their EcoDrop digital wallet.",
+        instruction: "Citizen Action: Type your 11-digit mobile number using the keypad or touch screen, then press 'Enter' or tap 'Credit Wallet'.",
+        specs: [
+          { label: "Validation Regex", val: "^03[0-9]{9}$ (11 Digits)" },
+          { label: "Input Masking", val: "Digit-Only Prevention" },
+          { label: "Target Ledger", val: "dbo.WalletAccounts" },
+          { label: "QR Alternative", val: "Intake Camera Scan" }
+        ],
+        highlightKey: "Enter",
+        screenHtml: `<div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><img src="snapshots/screen_02_home_page.png" style="width:100%; height:100%; object-fit:cover; filter:brightness(0.25) blur(1px); border-radius:6px;" /><img src="snapshots/screen_07_step_04_wallet.png" style="position:absolute; width:90%; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.8);" alt="Wallet Modal" /></div>`
+      },
+      8: {
+        page: "PAGE 08",
+        title: "Step: 04 (Cont.) — Transaction Success",
+        urdu: "کامیابی: پوائنٹس کامیابی سے منتقل ہوگئے",
+        desc: "Indicates that the recycling session is committed. The transaction is written to the local database and pushed to the Central Cloud via API. The citizen's wallet points balance is updated immediately.",
+        instruction: "Citizen Action: Review your credit receipt on screen. Proceed to feedback.",
+        specs: [
+          { label: "Cloud Endpoint", val: "POST /api/machine/sync-session" },
+          { label: "Local Database", val: "dbo.Transactions Inserted" },
+          { label: "Sync Flag", val: "IsSynced = 1" },
+          { label: "SMS Gateway", val: "Dispatches SMS Receipt" }
+        ],
+        highlightKey: null,
+        screenHtml: `<img src="snapshots/screen_08_step_04_success.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Transaction Success" />`
+      },
+      9: {
+        page: "PAGE 09",
+        title: "Feedback Screen",
+        urdu: "تجربے کی درجہ بندی اور فیڈبیک",
+        desc: "Citizens are invited to submit their feedback regarding machine cleanliness, speed, and overall satisfaction using a 5-star rating system.",
+        instruction: "Citizen Action: Press a keypad number from 1 (Poor) to 5 (Excellent) or touch the corresponding star on the display.",
+        specs: [
+          { label: "Input Range", val: "Keypad keys 1 to 5" },
+          { label: "Default Timeout", val: "10 Seconds Auto-Skip" },
+          { label: "Storage", val: "Stored in Session Telemetry" },
+          { label: "Analytics", val: "Synced to Central QA Dashboard" }
+        ],
+        highlightKey: "5",
+        screenHtml: `<img src="snapshots/screen_09_feedback.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Feedback Screen" />`
+      },
+      10: {
+        page: "PAGE 10",
+        title: "Process Completed",
+        urdu: "عمل مکمل اور مشین کی بحالی",
+        desc: "Final acknowledgement thanking the citizen for supporting environmental protection. An automated 5-second countdown timer runs before resetting the machine back to the Welcome standby screen for the next user.",
+        instruction: "Citizen Action: Process finished! Have a great day and continue building a Clean & Green Pakistan.",
+        specs: [
+          { label: "Auto-Reset Timer", val: "5 Seconds Countdown" },
+          { label: "Chamber Shutter", val: "Locks Closed for Security" },
+          { label: "Session Buffer", val: "Cleared for Next User" },
+          { label: "Digital Signage", val: "Resumes Full Ads Playback" }
+        ],
+        highlightKey: null,
+        screenHtml: `<img src="snapshots/screen_10_complete.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Process Complete" />`
+      }
+    };
+
+    function showScreen(idx) {
+      // Update pager chips
+      document.querySelectorAll('.page-chip').forEach((chip, i) => {
+        chip.classList.toggle('active', i + 1 === idx);
+      });
+
+      const data = screensData[idx];
+      const container = document.getElementById('screenStageContainer');
+
+      // Build Keypad HTML
+      const keys = ['1','2','3','4','5','6','7','8','9','*','0','#'];
+      let keypadHtml = '<div class="keypad-grid">';
+      keys.forEach(k => {
+        const isHl = (k === data.highlightKey);
+        keypadHtml += `<div class="key-btn ${isHl ? 'key-highlight' : ''}">${k}</div>`;
+      });
+      keypadHtml += '</div>';
+
+      // Specs HTML
+      let specsHtml = '';
+      data.specs.forEach(s => {
+        specsHtml += `
+          <div class="sensor-spec-item">
+            <span class="sensor-spec-label">${s.label}</span>
+            <span class="sensor-spec-val">${s.val}</span>
+          </div>
+        `;
+      });
+
+      container.innerHTML = `
+        <!-- LEFT EXPLANATION PANEL -->
+        <div class="guide-left-panel">
+          <div class="guide-page-tag">${data.page} • RVM MACHINE GUIDE</div>
+          <h2 class="guide-step-title">${data.title}</h2>
+          <div class="guide-step-urdu">${data.urdu}</div>
+          
+          <div class="guide-description-card">
+            ${data.desc}
+          </div>
+
+          <div class="guide-instruction-box">
+            <strong>Action Required:</strong>
+            ${data.instruction}
+          </div>
+
+          <div class="guide-sensor-specs">
+            <div style="font-size: 11px; font-weight: 800; color: #F8FAFC; margin-bottom: 6px;">HARDWARE & SENSOR METRICS:</div>
+            ${specsHtml}
+          </div>
+        </div>
+
+        <!-- RIGHT KIOSK FASCIAS MOCKUP (MATCHING PDF DEMO) -->
+        <div class="kiosk-mockup-wrapper">
+          <div class="kiosk-chassis">
+            
+            <!-- TOP BLUE HEADER BANNER -->
+            <div class="fascia-top-banner">
+              <h2>Recycle Plastic • Win Rewards</h2>
+              <p>Institute of Southern Punjab (ISP) • Sustainable Kiosk Platform</p>
+            </div>
+
+            <!-- MIDDLE FASCIAS BODY -->
+            <div class="fascia-body">
+              
+              <!-- LEFT APERTURES & KEYPAD -->
+              <div class="fascia-controls-col">
+                <div class="intake-apertures">
+                  <div class="aperture-circle" title="Plastic Intake">🧴</div>
+                  <div class="aperture-circle" title="Can Intake">🥫</div>
+                </div>
+
+                <div class="fascia-bullet-points">
+                  <div>1- <strong>Insert bottle</strong> one by one</div>
+                  <div style="margin-top: 4px;">2- <strong>Enter Phone</strong> to get rewards</div>
+                </div>
+
+                ${keypadHtml}
+              </div>
+
+              <!-- RIGHT SCREEN DISPLAY -->
+              <div class="screen-bezel">
+                ${data.screenHtml}
+              </div>
+
+            </div>
+
+            <!-- BOTTOM FOOTER -->
+            <div class="fascia-footer">
+              <div class="partner-logo-tag" style="display: flex; align-items: center; gap: 5px;">
+                <img src="snapshots/isp_logo.png" style="height: 14px; background: #fff; border-radius: 2px; padding: 1px 3px;" alt="ISP" />
+                <span>ISP Enviro Solutions</span>
+              </div>
+              <div class="qr-download-chip">
+                📱 Scan QR for App
+              </div>
+              <div class="partner-logo-tag" style="color: #38BDF8;">
+                🌐 WORLD BANK GROUP
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    // Initialize to Screen 1
+    showScreen(1);
+  </script>
+</body>
+</html>
