@@ -595,10 +595,10 @@
       <div>
         <div class="action-callout-box">
           <strong>Action Required:</strong>
-          Citizen Action: Press the '*' or '0' button on the physical keypad, OR touch the glowing green circle on screen to start recycling.
+          Citizen Action: Press the '0' or '*' button on the physical keypad to start recycling.
         </div>
 
-        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Keypad Trigger:</span><span class="spec-val">Press '0' or '*' Key to Start</span></div><div class="spec-row"><span class="spec-lbl">Touchscreen:</span><span class="spec-val">Tap Central 310px Circular Button</span></div><div class="spec-row"><span class="spec-lbl">Bilingual Display:</span><span class="spec-val">English + Urdu Nastaliq Type</span></div><div class="spec-row"><span class="spec-lbl">Community Board:</span><span class="spec-val">Top 5 Recyclers + Live Pulse</span></div></div>
+        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Keypad Trigger:</span><span class="spec-val">Press '0' or '*' Key to Start</span></div><div class="spec-row"><span class="spec-lbl">Hardware Keypad:</span><span class="spec-val">Dedicated 12-Key Matrix Input</span></div><div class="spec-row"><span class="spec-lbl">Bilingual Display:</span><span class="spec-val">English + Urdu Nastaliq Type</span></div><div class="spec-row"><span class="spec-lbl">Community Board:</span><span class="spec-val">Top 5 Recyclers + Live Pulse</span></div></div>
       </div>
     </div>
 
@@ -663,7 +663,7 @@
       <div>
         <div class="step-h-num">Step: 01</div>
         <div class="step-h-urdu">پہلا مرحلہ: بوتل ڈالنے کی تیاری</div>
-        <div class="step-desc-p">This is the first active step of the recycling process. By pressing the '0' button or touching the screen, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors prepare for container entry.</div>
+        <div class="step-desc-p">This is the first active step of the recycling process. By pressing the '0' button on the physical keypad, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors prepare for container entry.</div>
       </div>
 
       <div>
@@ -960,16 +960,16 @@
       <div>
         <div class="step-h-num">Step: 04</div>
         <div class="step-h-urdu">چوتھا مرحلہ: انعام کیلئے موبائل نمبر کا اندراج</div>
-        <div class="step-desc-p">This screen displays the total earned points. The citizen enters their 11-digit Pakistani mobile phone number (03xxxxxxxxx) or scans their personal EcoDrop mobile app QR code to link points to their digital wallet.</div>
+        <div class="step-desc-p">This screen prompts the citizen to enter their 11-digit Pakistani mobile phone number (03xxxxxxxxx) to receive reward points in their wallet. Upon supplying the number and pressing Enter, the citizen is immediately directed to the experience rating screen.</div>
       </div>
 
       <div>
         <div class="action-callout-box">
           <strong>Action Required:</strong>
-          Citizen Action: Enter your 11-digit phone number using the physical keypad or screen, then press 'Enter' or tap 'Credit Wallet'.
+          Citizen Action: Enter your 11-digit mobile number using the physical keypad, then press 'Enter' to proceed to rating and claim points.
         </div>
 
-        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Mobile Format:</span><span class="spec-val">03xxxxxxxxx (Standard 11 Digits)</span></div><div class="spec-row"><span class="spec-lbl">Validation Regex:</span><span class="spec-val">^03[0-9]{9}$ (Strict Digit-Only)</span></div><div class="spec-row"><span class="spec-lbl">Local Ledger:</span><span class="spec-val">dbo.WalletAccounts Account Commit</span></div><div class="spec-row"><span class="spec-lbl">Alternative:</span><span class="spec-val">Personal QR Code Scan via Camera</span></div></div>
+        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Mobile Format:</span><span class="spec-val">03xxxxxxxxx (Standard 11 Digits)</span></div><div class="spec-row"><span class="spec-lbl">Validation Regex:</span><span class="spec-val">^03[0-9]{9}$ (Strict Digit-Only)</span></div><div class="spec-row"><span class="spec-lbl">Local Ledger:</span><span class="spec-val">dbo.WalletAccounts Account Commit</span></div><div class="spec-row"><span class="spec-lbl">Next Transition:</span><span class="spec-val">Seamless transition to Experience Rating</span></div></div>
       </div>
     </div>
 
@@ -1035,16 +1035,16 @@
       <div>
         <div class="step-h-num">Step: 04 (Continue...)</div>
         <div class="step-h-urdu">کامیابی: پوائنٹس اکاؤنٹ میں منتقل ہوگئے</div>
-        <div class="step-desc-p">This screen indicates that the session has been successfully completed. Points are written to the local database, synced via secure API to the Central Cloud, and a confirmation receipt is presented.</div>
+        <div class="step-desc-p">This screen confirms that the session points have been credited to the citizen's mobile wallet, recorded locally in the database, and synchronized via secure API to the Central Cloud platform.</div>
       </div>
 
       <div>
         <div class="action-callout-box">
           <strong>Action Required:</strong>
-          Citizen Action: Review your credit confirmation and updated points balance. Proceed to customer feedback.
+          Citizen Action: Review your credit confirmation and updated points balance. Proceed to customer experience rating.
         </div>
 
-        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Cloud Endpoint:</span><span class="spec-val">POST /api/machine/sync-session</span></div><div class="spec-row"><span class="spec-lbl">Local Record:</span><span class="spec-val">dbo.Transactions Inserted</span></div><div class="spec-row"><span class="spec-lbl">Sync Flag:</span><span class="spec-val">IsSynced = 1 (Real-Time Cloud)</span></div><div class="spec-row"><span class="spec-lbl">SMS Dispatch:</span><span class="spec-val">Dispatched to citizen phone</span></div></div>
+        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Cloud Endpoint:</span><span class="spec-val">POST /api/machine/sync-session</span></div><div class="spec-row"><span class="spec-lbl">Local Record:</span><span class="spec-val">dbo.Transactions Inserted</span></div><div class="spec-row"><span class="spec-lbl">Sync Flag:</span><span class="spec-val">IsSynced = 1 (Real-Time Cloud)</span></div><div class="spec-row"><span class="spec-lbl">Account Dispatch:</span><span class="spec-val">Real-time mobile wallet balance update</span></div></div>
       </div>
     </div>
 
@@ -1109,16 +1109,16 @@
       <div>
         <div class="step-h-num">Feedback</div>
         <div class="step-h-urdu">تجربے کی درجہ بندی اور فیڈبیک</div>
-        <div class="step-desc-p">On this screen, the citizen is prompted to provide their feedback regarding machine cleanliness, intake speed, and satisfaction using an interactive 5-star rating system.</div>
+        <div class="step-desc-p">On this screen, the citizen is prompted to rate their recycling experience on an interactive 5-star scale (Very Bad to Excellent), with feedback recorded locally and pushed to central QA telemetry.</div>
       </div>
 
       <div>
         <div class="action-callout-box">
           <strong>Action Required:</strong>
-          Citizen Action: Press a keypad number from 1 to 5 (1 = Poor, 5 = Excellent) or tap the stars on screen.
+          Citizen Action: Press a keypad digit from '1' to '5' to select your rating, then press 'Enter' to confirm (or wait for 8s auto-completion).
         </div>
 
-        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Input Options:</span><span class="spec-val">Keypad Keys '1' to '5'</span></div><div class="spec-row"><span class="spec-lbl">Auto-Skip:</span><span class="spec-val">10-Second Inactivity Timeout</span></div><div class="spec-row"><span class="spec-lbl">Data Sync:</span><span class="spec-val">Uploaded to QA Central Dashboard</span></div><div class="spec-row"><span class="spec-lbl">Metric:</span><span class="spec-val">Citizen CSAT Satisfaction Rating</span></div></div>
+        <div class="specs-box-table"><div class="spec-row"><span class="spec-lbl">Keypad Input:</span><span class="spec-val">Press '1' to '5', Enter to Confirm</span></div><div class="spec-row"><span class="spec-lbl">Rating Scale:</span><span class="spec-val">1 = Very Bad to 5 = Excellent</span></div><div class="spec-row"><span class="spec-lbl">Cloud Endpoint:</span><span class="spec-val">POST /api/machine/feedback</span></div><div class="spec-row"><span class="spec-lbl">Auto-Finish:</span><span class="spec-val">8-Second Inactivity Auto-Submit</span></div></div>
       </div>
     </div>
 

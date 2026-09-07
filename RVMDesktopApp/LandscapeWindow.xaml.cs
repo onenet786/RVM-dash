@@ -1316,6 +1316,10 @@ public partial class LandscapeWindow : Window
         }
 
         string phoneNumber = walletWindow.PhoneNumber;
+        int userRating = walletWindow.Rating;
+        string userFeedback = walletWindow.FeedbackText;
+        bool feedbackSubmitted = walletWindow.FeedbackSubmitted;
+
         activeUserMobile = phoneNumber;
         string currentSessionId = sessionId.ToString();
         int currentTotalItems = totalItems;
@@ -1339,6 +1343,12 @@ public partial class LandscapeWindow : Window
                 DatabaseManager.CreditWallet(phoneNumber, currentTotalPoints, sessionId);
                 RefreshLeaderboard();
                 LogTelemetry($"[LOCAL DB 🟢] Credited {currentTotalPoints} point(s) to {phoneNumber}");
+
+                if (feedbackSubmitted)
+                {
+                    DatabaseManager.SaveFeedback(settings.MachineId, phoneNumber, userRating, userFeedback, sessionId);
+                    LogTelemetry($"[LOCAL DB ⭐] Saved citizen feedback: {userFeedback} ({userRating} stars) for {phoneNumber}");
+                }
             }
             catch (Exception ex)
             {
@@ -1346,7 +1356,7 @@ public partial class LandscapeWindow : Window
             }
         }
 
-        // 2. Synchronize Recycling Session to Central Master Server API
+        // 2. Synchronize Recycling Session & Feedback to Central Master Server API
         _ = Task.Run(async () =>
         {
             try
@@ -1383,6 +1393,21 @@ public partial class LandscapeWindow : Window
                 {
                     LogTelemetry($"[CENTRAL SYNC 🔴] Session sync failed: HTTP {syncRes.StatusCode} - {syncRes.Message}");
                 }
+
+                if (feedbackSubmitted)
+                {
+                    var fbSyncRes = await CentralSyncService.SyncFeedbackToCentralAsync(
+                        settings.MachineId,
+                        phoneNumber,
+                        userRating,
+                        userFeedback,
+                        currentSessionId
+                    );
+                    if (fbSyncRes.IsSuccess)
+                    {
+                        LogTelemetry($"[FEEDBACK SYNC 🟢] Feedback '{userFeedback}' for user {phoneNumber} synced to Central Cloud!");
+                    }
+                }
             }
             catch (Exception syncEx)
             {
@@ -1391,9 +1416,11 @@ public partial class LandscapeWindow : Window
         });
 
         StopMachine();
-        StatusText.Text = "Wallet credited";
+        StatusText.Text = "Wallet credited & session completed";
         StatusText.Foreground = Brushes.LimeGreen;
-        BottleInfoText.Text = $"{currentTotalPoints} points sent to wallet {phoneNumber}";
+        BottleInfoText.Text = feedbackSubmitted
+            ? $"{currentTotalPoints} pts credited to {phoneNumber} · Rated {userRating}★ ({userFeedback})"
+            : $"{currentTotalPoints} points sent to wallet {phoneNumber}";
         ResetSession();
     }
 

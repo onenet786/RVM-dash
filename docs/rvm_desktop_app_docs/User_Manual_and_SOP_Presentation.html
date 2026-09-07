@@ -1160,10 +1160,10 @@
         title: "Home Page",
         urdu: "مرکزی اسکرین اور طریقہ کار",
         desc: "This is the primary standby welcome screen. Citizens are greeted with bilingual Urdu/English environmental messaging, live container intake counts, today's top community eco-champions, and cumulative environmental impact meters (CO2 & Water saved).",
-        instruction: "Citizen Action: Press the '*' or '0' button on the physical keypad, OR touch the glowing green circle on screen to start recycling.",
+        instruction: "Citizen Action: Press the '0' or '*' button on the physical keypad to start recycling.",
         specs: [
           { label: "Keypad Trigger", val: "Press '0' or '*' Key" },
-          { label: "Touchscreen Trigger", val: "Tap Central 310px Button" },
+          { label: "Hardware Input", val: "12-Key Physical Keypad" },
           { label: "Bilingual Mode", val: "English + Urdu Nastaliq" },
           { label: "Leaderboard", val: "Live Top 5 + Recent Pulse" }
         ],
@@ -1174,7 +1174,7 @@
         page: "PAGE 03",
         title: "Step: 01 — Ready to Insert",
         urdu: "پہلا مرحلہ: بوتل ڈالنے کی تیاری",
-        desc: "This is the first active step of the recycling process. By pressing the '0' button or touching the screen, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors begin listening.",
+        desc: "This is the first active step of the recycling process. By pressing the '0' button on the physical keypad, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors begin listening.",
         instruction: "Citizen Action: Ensure container is empty of liquid. Insert container bottom-first into the aperture.",
         specs: [
           { label: "Intake Gate Servo", val: "Rotates to 90° (Open)" },
@@ -1234,13 +1234,13 @@
         page: "PAGE 07",
         title: "Step: 04 — Mobile Wallet Claim",
         urdu: "چوتھا مرحلہ: انعام کیلئے موبائل نمبر کا اندراج",
-        desc: "The citizen has finished inserting containers. The screen prompts for their 11-digit Pakistani mobile phone number (03xxxxxxxxx) or offers a QR code scan to transfer earned points into their EcoDrop digital wallet.",
-        instruction: "Citizen Action: Type your 11-digit mobile number using the keypad or touch screen, then press 'Enter' or tap 'Credit Wallet'.",
+        desc: "The citizen has finished inserting containers. The screen prompts for their 11-digit Pakistani mobile phone number (03xxxxxxxxx) to transfer earned points into their digital wallet. Upon entering phone number and pressing Enter, the system proceeds to experience rating.",
+        instruction: "Citizen Action: Type your 11-digit mobile number using the keypad, then press 'Enter' to claim points and proceed to rating.",
         specs: [
           { label: "Validation Regex", val: "^03[0-9]{9}$ (11 Digits)" },
           { label: "Input Masking", val: "Digit-Only Prevention" },
           { label: "Target Ledger", val: "dbo.WalletAccounts" },
-          { label: "QR Alternative", val: "Intake Camera Scan" }
+          { label: "Next Transition", val: "Auto-proceed to Rating" }
         ],
         highlightKey: "Enter",
         screenHtml: `<div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center;"><img src="snapshots/screen_02_home_page.png" style="width:100%; height:100%; object-fit:cover; filter:brightness(0.25) blur(1px); border-radius:6px;" /><img src="snapshots/screen_07_step_04_wallet.png" style="position:absolute; width:90%; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.8);" alt="Wallet Modal" /></div>`
@@ -1249,13 +1249,13 @@
         page: "PAGE 08",
         title: "Step: 04 (Cont.) — Transaction Success",
         urdu: "کامیابی: پوائنٹس کامیابی سے منتقل ہوگئے",
-        desc: "Indicates that the recycling session is committed. The transaction is written to the local database and pushed to the Central Cloud via API. The citizen's wallet points balance is updated immediately.",
-        instruction: "Citizen Action: Review your credit receipt on screen. Proceed to feedback.",
+        desc: "Indicates that the recycling session is committed. The transaction is written to the local database and pushed to the Central Cloud via secure API. The citizen's wallet points balance is updated immediately.",
+        instruction: "Citizen Action: Review your credit confirmation on screen. Proceed to customer experience rating.",
         specs: [
           { label: "Cloud Endpoint", val: "POST /api/machine/sync-session" },
           { label: "Local Database", val: "dbo.Transactions Inserted" },
           { label: "Sync Flag", val: "IsSynced = 1" },
-          { label: "SMS Gateway", val: "Dispatches SMS Receipt" }
+          { label: "Account Dispatch", val: "Real-Time Balance Update" }
         ],
         highlightKey: null,
         screenHtml: `<img src="snapshots/screen_08_step_04_success.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Transaction Success" />`
@@ -1264,13 +1264,13 @@
         page: "PAGE 09",
         title: "Feedback Screen",
         urdu: "تجربے کی درجہ بندی اور فیڈبیک",
-        desc: "Citizens are invited to submit their feedback regarding machine cleanliness, speed, and overall satisfaction using a 5-star rating system.",
-        instruction: "Citizen Action: Press a keypad number from 1 (Poor) to 5 (Excellent) or touch the corresponding star on the display.",
+        desc: "Citizens are invited to submit their feedback regarding machine cleanliness, speed, and overall satisfaction using an interactive 5-star rating system.",
+        instruction: "Citizen Action: Press a keypad number from 1 (Very Bad) to 5 (Excellent), then press 'Enter' to confirm (or wait 8s for auto-completion).",
         specs: [
-          { label: "Input Range", val: "Keypad keys 1 to 5" },
-          { label: "Default Timeout", val: "10 Seconds Auto-Skip" },
-          { label: "Storage", val: "Stored in Session Telemetry" },
-          { label: "Analytics", val: "Synced to Central QA Dashboard" }
+          { label: "Keypad Input", val: "Keys 1 to 5, Enter to Confirm" },
+          { label: "Rating Scale", val: "1 = Very Bad to 5 = Excellent" },
+          { label: "Auto-Finish", val: "8 Seconds Auto-Submit" },
+          { label: "Cloud Sync", val: "POST /api/machine/feedback" }
         ],
         highlightKey: "5",
         screenHtml: `<img src="snapshots/screen_09_feedback.png" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" alt="Feedback Screen" />`

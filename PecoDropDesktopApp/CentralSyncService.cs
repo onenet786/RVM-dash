@@ -148,6 +148,54 @@ public static class CentralSyncService
     }
 
     /// <summary>
+    /// Syncs Citizen Experience Rating & Feedback to Central Master Server API.
+    /// </summary>
+    public static async Task<SyncResult> SyncFeedbackToCentralAsync(
+        string machineId,
+        string phoneNumber,
+        int rating,
+        string feedbackText,
+        string sessionId = "")
+    {
+        var result = new SyncResult
+        {
+            TargetUrl = $"{CentralApiUrl.TrimEnd('/')}/api/machine/feedback",
+            SessionId = sessionId
+        };
+
+        try
+        {
+            var payload = new
+            {
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                phoneNumber = phoneNumber,
+                rating = rating,
+                feedback = feedbackText,
+                feedbackText = feedbackText,
+                localSessionId = sessionId,
+                sessionId = sessionId,
+                createdAt = DateTime.UtcNow.ToString("o")
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await _httpClient.PostAsync(result.TargetUrl, content);
+            result.StatusCode = (int)response.StatusCode;
+            result.IsSuccess = response.IsSuccessStatusCode;
+            result.Message = response.IsSuccessStatusCode ? "Feedback synced successfully." : $"HTTP {result.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.StatusCode = 500;
+            result.Message = ex.Message;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Sends RVM Machine Heartbeat & Bin Level Status to Master Dashboard.
     /// </summary>
     public static async Task<bool> SendHeartbeatAsync(string machineId, int binFillPercentage, string status = "active")

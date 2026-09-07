@@ -474,6 +474,51 @@ public static class DatabaseManager
         command.ExecuteNonQuery();
     }
 
+    public static void SaveFeedback(string machineId, string phoneNumber, int rating, string feedbackText, Guid? sessionId = null)
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+
+            using var schemaCommand = new SqlCommand(
+                """
+                IF OBJECT_ID('dbo.Feedbacks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.Feedbacks
+                    (
+                        FeedbackID INT IDENTITY(1,1) PRIMARY KEY,
+                        MachineID NVARCHAR(50) NOT NULL,
+                        PhoneNumber NVARCHAR(20) NOT NULL,
+                        Rating INT NOT NULL,
+                        Feedback NVARCHAR(100) NOT NULL,
+                        SessionID UNIQUEIDENTIFIER NULL,
+                        CreatedAt DATETIME NOT NULL DEFAULT GETDATE()
+                    );
+                END;
+                """, connection);
+            schemaCommand.ExecuteNonQuery();
+
+            using var insertCommand = new SqlCommand(
+                """
+                INSERT INTO dbo.Feedbacks (MachineID, PhoneNumber, Rating, Feedback, SessionID, CreatedAt)
+                VALUES (@MachineID, @PhoneNumber, @Rating, @Feedback, @SessionID, GETDATE());
+                """, connection);
+
+            insertCommand.Parameters.Add(new SqlParameter("@MachineID", SqlDbType.NVarChar, 50) { Value = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId });
+            insertCommand.Parameters.Add(new SqlParameter("@PhoneNumber", SqlDbType.NVarChar, 20) { Value = phoneNumber });
+            insertCommand.Parameters.Add(new SqlParameter("@Rating", SqlDbType.Int) { Value = rating });
+            insertCommand.Parameters.Add(new SqlParameter("@Feedback", SqlDbType.NVarChar, 100) { Value = feedbackText });
+            insertCommand.Parameters.Add(new SqlParameter("@SessionID", SqlDbType.UniqueIdentifier) { Value = (object?)sessionId ?? DBNull.Value });
+
+            insertCommand.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Database SaveFeedback Warning] {ex.Message}");
+        }
+    }
+
     public static DataTable GetPointSettings() =>
         Get("SELECT PointSettingID, BottleSize, MaterialType, Points, IsActive FROM dbo.PointSettings ORDER BY BottleSize, MaterialType");
 

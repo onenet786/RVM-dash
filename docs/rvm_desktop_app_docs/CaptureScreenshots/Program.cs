@@ -238,13 +238,42 @@ public static class Program
         }
         sp.Children.Add(starSp);
 
+        var badge = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
+            BorderThickness = new Thickness(1.5),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(24, 8, 24, 8),
+            Margin = new Thickness(0, 0, 0, 20),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = "★★★★★  5/5 — Excellent · بہترین",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Foreground = new SolidColorBrush(Color.FromRgb(16, 185, 129))
+            }
+        };
+        sp.Children.Add(badge);
+
         sp.Children.Add(new TextBlock
         {
-            Text = "Press 1 to 5 on keypad or tap star to rate",
+            Text = "Press 1 to 5 on keypad to rate • Press ENTER to confirm",
             FontSize = 16,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
             HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        sp.Children.Add(new TextBlock
+        {
+            Text = "Auto-submitting in 8s...",
+            FontSize = 13,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 8, 0, 0)
         });
 
         card.Child = sp;

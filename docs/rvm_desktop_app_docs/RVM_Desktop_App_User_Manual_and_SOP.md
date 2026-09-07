@@ -218,9 +218,9 @@ The following step-by-step walkthrough details each stage of the recycling journ
 |  This is the first active step of  |   +--------------------------------------+   |
 |  the recycling process.            |   |                                      |   |
 |                                    |   |        >>> INTAKE GATE OPEN <<<      |   |
-|  By pressing the "0" button or     |   |                                      |   |
-|  touching the screen, the user     |   |      PLEASE INSERT YOUR BOTTLE       |   |
-|  signals they are ready to deposit.|   |        ایک ایک کر کے بوتل ڈالیں       |   |
+|  By pressing the "0" button on     |   |                                      |   |
+|  the physical keypad, the citizen  |   |      PLEASE INSERT YOUR BOTTLE       |   |
+|  signals readiness to deposit.     |   |        ایک ایک کر کے بوتل ڈالیں       |   |
 |                                    |   |                                      |   |
 |  The motorized security shutter    |   |     [ STATUS: WAITING FOR ITEM ]     |   |
 |  opens, the chamber illumination   |   |                                      |   |
@@ -274,8 +274,8 @@ The following step-by-step walkthrough details each stage of the recycling journ
 
 ---
 
-## Screen 05: Step 02 (Cont.) — Anti-Fraud, Jam Detection & Rejection
-*(Corresponds to Demo PDF Pages 05 & 06: Step 02 Continue & Step 03)*
+## Screen 05: Step 02 (Continue...) — Item Rejection Advisory
+*(Corresponds to Demo PDF Page 05: Step 02 Continue...)*
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -283,29 +283,23 @@ The following step-by-step walkthrough details each stage of the recycling journ
 +-----------------------------------------------------------------------------------+
 |                                    |                                              |
 |  Step: 02 (Continue...)            |   +--------------------------------------+   |
-|  Rejection & Jam Handling          |   | RVM-001  ⚠️ ATTENTION                |   |
+|  Rejection Advisory                |   | RVM-001  ⚠️ ITEM REJECTED            |   |
 |                                    |   +--------------------------------------+   |
-|  If an invalid object is inserted, |   |                                      |   |
-|  or if no container is detected,   |   |   🚫 ITEM REJECTED / BOTTLE STUCK    |   |
-|  the screen alerts the citizen:    |   |                                      |   |
-|                                    |   |   "Please insert valid bottle/cup    |   |
-|  - "Please insert bottle/cup       |   |       before proceeding."            |   |
-|    before proceeding."             |   |                                      |   |
-|  - "Container contains liquid —    |   |   "براہ کرم خالی بوتل داخل کریں"      |   |
-|    please empty and re-insert."    |   |                                      |   |
-|  - "Bottle stuck — remove item."   |   |   [ DROP GATE REVERSED FOR SAFETY ]  |   |
-|                                    |   +--------------------------------------+   |
+|  Machine protects its internal     |   |                                      |   |
+|  mechanisms by rejecting:          |   |       ⚠️ CANNOT ACCEPT THIS ITEM      |   |
+|                                    |   |         براہ کرم چیز واپس نکالیں       |   |
+|  - Containers with liquid residue  |   |                                      |   |
+|  - Non-recyclables or glass        |   |   Reason: Liquid / Unrecognized Item |   |
+|  - Items jamming the chamber       |   |   Intake Gate: REVERSED (OPEN)       |   |
+|                                    |   |                                      |   |
+|  Item is safely returned for       |   |   [ PLEASE REMOVE ITEM FROM GATE ]   |   |
+|  retrieval without penalty.        |   +--------------------------------------+   |
 +------------------------------------+----------------------------------------------+
 ```
 
-### Safety & Anti-Cheat Protocols:
-1. **Weight / Heavy Liquid Rejection**: If an unemptied bottle with residual liquid is inserted, optical refraction fails and the gate rejects the item.
-2. **String / Fishing Anti-Cheat**: Ultrasonic distance must confirm the container drops completely into the collection bin (`BOTTLE:CLEARED`). If an item is pulled back, points are cancelled.
-3. **Jamming Detection**: If IR beam stays broken for $> 4.0\text{ seconds}$, servo gate triggers a reverse pulse to release the jammed container and alerts: *"Bottle stuck — Remove the bottle"*.
-
 ---
 
-## Screen 06: Step 03 — Item Acceptance & Live Metric Accumulation
+## Screen 06: Step 03 — Item Accepted & Real-Time Impact Metric
 *(Corresponds to Demo PDF Page 06: Step 03)*
 
 ```
@@ -314,20 +308,17 @@ The following step-by-step walkthrough details each stage of the recycling journ
 +-----------------------------------------------------------------------------------+
 |                                    |                                              |
 |  Step: 03                          |   +--------------------------------------+   |
-|  Item Accepted & Points Added      |   | RVM-001  ✅ ACCEPTED!                 |   |
+|  Item Cleared & Points Awarded     |   | RVM-001  🎉 ITEM ACCEPTED!           |   |
 |                                    |   +--------------------------------------+   |
-|  Once the item drops successfully  |   |                                      |   |
-|  into the bin, the celebration     |   |         🎉 ITEM ACCEPTED! 🎉          |   |
-|  modal appears:                    |   |                                      |   |
-|  - Visual Green Checkmark          |   |          +10 POINTS EARNED           |   |
-|  - Sound Tone Triggered            |   |                                      |   |
-|  - Metrics Increment Instantly:    |   |   Bottles Recycled :  1 pcs          |   |
-|    • Plastic count updates         |   |   CO2 Saved        :  0.15 kg        |   |
-|    • CO2 & Water counters rise     |   |   Water Conserved  :  0.75 L         |   |
+|  When bottle clears internal drop  |   |                                      |   |
+|  gate, reward animation triggers:  |   |         🌟 +10 POINTS EARNED!        |   |
 |                                    |   |                                      |   |
-|  User can insert more containers   |   |    [ INSERT ANOTHER BOTTLE OR        |   |
-|  or proceed to claim points.       |   |      PRESS ENTER TO CLAIM REWARDS ]  |   |
-|                                    |   +--------------------------------------+   |
+|  - Points allocated to session     |   |   PET Plastic Medium Recognized      |   |
+|  - Drop sensor ping verified       |   |   Total Session Items : 3 Items      |   |
+|  - Real-time CO2 & Water update    |   |   Current Points      : 30 PTS       |   |
+|                                    |   |                                      |   |
+|  Citizen can insert next item or   |   |   [ INSERT MORE OR PRESS ENTER ]     |   |
+|  finish session.                   |   +--------------------------------------+   |
 +------------------------------------+----------------------------------------------+
 ```
 
@@ -356,11 +347,11 @@ The following step-by-step walkthrough details each stage of the recycling journ
 |  identification.                   |   +--------------------------------------+   |
 |                                    |   | 📱 ENTER MOBILE NUMBER:              |   |
 |  Citizen input methods:            |   |   +--------------------------------+ |   |
-|  1. Keypad / Screen: Enter         |   |   | 0 3 0 0 1 2 3 4 5 6 7          | |   |
+|  1. Physical Keypad: Enter         |   |   | 0 3 0 0 1 2 3 4 5 6 7          | |   |
 |     11-digit Pakistani phone       |   |   +--------------------------------+ |   |
 |     number (03xxxxxxxxx).          |   |   Must start with 03 (11 digits)     |   |
-|  2. Mobile App: Scan your personal |   |                                      |   |
-|     QR code via the intake camera. |   |   [ CANCEL ]      [ CREDIT WALLET ✓] |   |
+|  2. Press Enter to proceed to      |   |                                      |   |
+|     experience rating & crediting. |   |   [ CANCEL ]      [ CREDIT WALLET ✓] |   |
 |                                    |   +--------------------------------------+   |
 +------------------------------------+----------------------------------------------+
 ```
@@ -368,13 +359,13 @@ The following step-by-step walkthrough details each stage of the recycling journ
 ### Validation & Security Rules:
 - **Phone Number Regex Validation**: The software validates standard Pakistani mobile formatting:
   $$\text{Pattern: } \texttt{\textasciicircum 03[0-9]\{9\}\$}$$
-- Non-digit keystrokes are blocked automatically.
-- Numbers with fewer or more than 11 digits show an immediate red warning: *"Please enter a valid 11-digit mobile number starting with 03."*
+- **Strict Digit-Only Input**: Non-numeric characters are automatically stripped.
+- **Two-Step Transition**: Upon submitting valid phone number, UI immediately advances to Experience Rating.
 
 ---
 
-## Screen 08: Step 04 (Cont.) — Transaction Commit & Central Cloud Sync
-*(Corresponds to Demo PDF Page 08: Step 04 Continue)*
+## Screen 08: Step 04 (Continue...) — Wallet Credited Confirmation
+*(Corresponds to Demo PDF Page 08: Step 04 Continue...)*
 
 ```
 +-----------------------------------------------------------------------------------+
@@ -390,19 +381,19 @@ The following step-by-step walkthrough details each stage of the recycling journ
 |                                    |   |      +30 REWARD POINTS CREDITED      |   |
 |  - Written to Local SQL Database   |   |      TO WALLET: 0300-1234567         |   |
 |  - Real-time HTTPS POST to Cloud   |   |                                      |   |
-|  - SMS Confirmation Dispatched     |   |   Transaction ID : #TXN-948210       |   |
+|  - Direct Cloud Sync Confirmed     |   |   Transaction ID : #TXN-948210       |   |
 |                                    |   |   New Total Balance : 180 Points     |   |
 |                                    |   |                                      |   |
-|                                    |   |   [ PRINT RECEIPT OR CONTINUE ]      |   |
+|                                    |   |   [ PROCEEDING TO RATING... ]        |   |
 |                                    |   +--------------------------------------+   |
 +------------------------------------+----------------------------------------------+
 ```
 
 ### Data Pipeline Architecture:
-1. **Local Transaction Log**: Inserted into table `dbo.Transactions` with `MachineId`, `SessionId`, `Phone`, `ItemCount`, `PointsEarned`, and `Timestamp`.
-2. **Local Wallet Ledger**: Account created or updated in `dbo.WalletAccounts`.
-3. **Cloud Synchronization**: Asynchronous HTTPS call to `POST /api/machine/sync-session` with JWT token authorization.
-4. **Offline Buffer**: If internet is down, record is tagged `IsSynced = 0` for background spooling.
+- **Local Transaction Log**: Inserted into table `dbo.Transactions` with `MachineId`, `SessionId`, `Phone`, `ItemCount`, `PointsEarned`, and `Timestamp`.
+- **Local Wallet Ledger**: Account created or updated in `dbo.WalletAccounts`.
+- **Cloud Synchronization**: Asynchronous HTTPS call to `POST /api/machine/sync-session` with JWT token authorization.
+- **Offline Buffer**: If internet is down, record is tagged `IsSynced = 0` for background spooling.
 
 ---
 
@@ -418,15 +409,15 @@ The following step-by-step walkthrough details each stage of the recycling journ
 |                                    |   | RVM-001  ⭐ FEEDBACK & RATING         |   |
 |  On this screen, the citizen is    |   +--------------------------------------+   |
 |  prompted to rate their recycling  |   |                                      |   |
-|  experience:                       |   |     HOW WOULD YOU RATE YOUR VISIT?   |   |
-|                                    |   |          آپ کا تجربہ کیسا رہا؟         |   |
-|  - 1 Star: Poor                    |   |                                      |   |
-|  - 2 Stars: Fair                   |   |        ★   ★   ★   ★   ★         |   |
-|  - 3 Stars: Good                   |   |       [1] [2] [3] [4] [5]            |   |
+|  experience on a 5-star scale:     |   |    HOW WAS YOUR EXPERIENCE?          |   |
+|                                    |   |         آپ کا تجربہ کیسا رہا؟        |   |
+|  - 1 Star: Very Bad                |   |                                      |   |
+|  - 2 Stars: Bad                    |   |        ★   ★   ★   ★   ★         |   |
+|  - 3 Stars: Neutral                |   |       [1] [2] [3] [4] [5]            |   |
 |  - 4 Stars: Very Good              |   |                                      |   |
-|  - 5 Stars: Excellent              |   |   Press keypad number (1 to 5) or    |   |
-|                                    |   |   tap star on screen to submit.      |   |
-|  Helps improve machine service.    |   +--------------------------------------+   |
+|  - 5 Stars: Excellent              |   |   Press keypad number (1 to 5)       |   |
+|                                    |   |   then press ENTER to confirm.       |   |
+|  Logged to DB & Cloud feedback.    |   +--------------------------------------+   |
 +------------------------------------+----------------------------------------------+
 ```
 

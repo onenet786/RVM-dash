@@ -67,10 +67,10 @@ def generate_printable_html(html_path, snapshots_dir):
             "title": "Home Page",
             "urdu": "مرکزی اسکرین اور طریقہ کار",
             "desc": "This is the primary standby welcome screen. Citizens are greeted with bilingual Urdu/English environmental messaging, live container intake counts, today's top community eco-champions, and cumulative environmental impact meters (CO2 & Water saved).",
-            "action": "Citizen Action: Press the '*' or '0' button on the physical keypad, OR touch the glowing green circle on screen to start recycling.",
+            "action": "Citizen Action: Press the '0' or '*' button on the physical keypad to start recycling.",
             "specs": [
                 ("Keypad Trigger", "Press '0' or '*' Key to Start"),
-                ("Touchscreen", "Tap Central 310px Circular Button"),
+                ("Hardware Keypad", "Dedicated 12-Key Matrix Input"),
                 ("Bilingual Display", "English + Urdu Nastaliq Type"),
                 ("Community Board", "Top 5 Recyclers + Live Pulse")
             ],
@@ -82,7 +82,7 @@ def generate_printable_html(html_path, snapshots_dir):
             "num": "03",
             "title": "Step: 01",
             "urdu": "پہلا مرحلہ: بوتل ڈالنے کی تیاری",
-            "desc": "This is the first active step of the recycling process. By pressing the '0' button or touching the screen, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors prepare for container entry.",
+            "desc": "This is the first active step of the recycling process. By pressing the '0' button on the physical keypad, the citizen indicates readiness. The motorized security gate opens, internal chamber lights turn ON, and optical sensors prepare for container entry.",
             "action": "Citizen Action: Ensure container is empty of liquid. Insert bottle or can bottom-first into the open circular aperture.",
             "specs": [
                 ("Intake Gate Servo", "Rotates to 90° (Aperture Open)"),
@@ -147,13 +147,13 @@ def generate_printable_html(html_path, snapshots_dir):
             "num": "07",
             "title": "Step: 04",
             "urdu": "چوتھا مرحلہ: انعام کیلئے موبائل نمبر کا اندراج",
-            "desc": "This screen displays the total earned points. The citizen enters their 11-digit Pakistani mobile phone number (03xxxxxxxxx) or scans their personal EcoDrop mobile app QR code to link points to their digital wallet.",
-            "action": "Citizen Action: Enter your 11-digit phone number using the physical keypad or screen, then press 'Enter' or tap 'Credit Wallet'.",
+            "desc": "This screen prompts the citizen to enter their 11-digit Pakistani mobile phone number (03xxxxxxxxx) to receive reward points in their wallet. Upon supplying the number and pressing Enter, the citizen is immediately directed to the experience rating screen.",
+            "action": "Citizen Action: Enter your 11-digit mobile number using the physical keypad, then press 'Enter' to proceed to rating and claim points.",
             "specs": [
                 ("Mobile Format", "03xxxxxxxxx (Standard 11 Digits)"),
                 ("Validation Regex", "^03[0-9]{9}$ (Strict Digit-Only)"),
                 ("Local Ledger", "dbo.WalletAccounts Account Commit"),
-                ("Alternative", "Personal QR Code Scan via Camera")
+                ("Next Transition", "Seamless transition to Experience Rating")
             ],
             "highlight_key": "Enter",
             "img": img_wallet,
@@ -164,13 +164,13 @@ def generate_printable_html(html_path, snapshots_dir):
             "num": "08",
             "title": "Step: 04 (Continue...)",
             "urdu": "کامیابی: پوائنٹس اکاؤنٹ میں منتقل ہوگئے",
-            "desc": "This screen indicates that the session has been successfully completed. Points are written to the local database, synced via secure API to the Central Cloud, and a confirmation receipt is presented.",
-            "action": "Citizen Action: Review your credit confirmation and updated points balance. Proceed to customer feedback.",
+            "desc": "This screen confirms that the session points have been credited to the citizen's mobile wallet, recorded locally in the database, and synchronized via secure API to the Central Cloud platform.",
+            "action": "Citizen Action: Review your credit confirmation and updated points balance. Proceed to customer experience rating.",
             "specs": [
                 ("Cloud Endpoint", "POST /api/machine/sync-session"),
                 ("Local Record", "dbo.Transactions Inserted"),
                 ("Sync Flag", "IsSynced = 1 (Real-Time Cloud)"),
-                ("SMS Dispatch", "Dispatched to citizen phone")
+                ("Account Dispatch", "Real-time mobile wallet balance update")
             ],
             "highlight_key": None,
             "img": img_success,
@@ -180,13 +180,13 @@ def generate_printable_html(html_path, snapshots_dir):
             "num": "09",
             "title": "Feedback",
             "urdu": "تجربے کی درجہ بندی اور فیڈبیک",
-            "desc": "On this screen, the citizen is prompted to provide their feedback regarding machine cleanliness, intake speed, and satisfaction using an interactive 5-star rating system.",
-            "action": "Citizen Action: Press a keypad number from 1 to 5 (1 = Poor, 5 = Excellent) or tap the stars on screen.",
+            "desc": "On this screen, the citizen is prompted to rate their recycling experience on an interactive 5-star scale (Very Bad to Excellent), with feedback recorded locally and pushed to central QA telemetry.",
+            "action": "Citizen Action: Press a keypad digit from '1' to '5' to select your rating, then press 'Enter' to confirm (or wait for 8s auto-completion).",
             "specs": [
-                ("Input Options", "Keypad Keys '1' to '5'"),
-                ("Auto-Skip", "10-Second Inactivity Timeout"),
-                ("Data Sync", "Uploaded to QA Central Dashboard"),
-                ("Metric", "Citizen CSAT Satisfaction Rating")
+                ("Keypad Input", "Press '1' to '5', Enter to Confirm"),
+                ("Rating Scale", "1 = Very Bad to 5 = Excellent"),
+                ("Cloud Endpoint", "POST /api/machine/feedback"),
+                ("Auto-Finish", "8-Second Inactivity Auto-Submit")
             ],
             "highlight_key": "5",
             "img": img_feedback,

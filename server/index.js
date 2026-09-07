@@ -4252,6 +4252,80 @@ app.post('/api/machine/sync-session', async (req, res) => {
   }
 });
 
+// Upstream Machine Feedback & Experience Rating Endpoint
+app.post('/api/machine/feedback', async (req, res) => {
+  try {
+    const {
+      machineId = 'RVM-001',
+      phoneNumber = 'anonymous',
+      mobileNumber,
+      rating = 5,
+      feedback,
+      feedbackText,
+      localSessionId,
+      sessionId
+    } = req.body;
+
+    const phone = (phoneNumber && phoneNumber !== 'anonymous') ? phoneNumber : (mobileNumber || 'anonymous');
+    const numRating = parseInt(rating) || 5;
+    const ratingLabels = {
+      1: 'Very Bad (1)',
+      2: 'Bad (2)',
+      3: 'Neutral (3)',
+      4: 'Very Good (4)',
+      5: 'Excellent (5)'
+    };
+    const feedbackStr = feedback || feedbackText || ratingLabels[numRating] || `${numRating} Stars`;
+    const finalSessionId = localSessionId || sessionId || `session_${Date.now()}`;
+    const feedbackDoc = {
+      _id: `feedback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      machineId,
+      phoneNumber: phone,
+      rating: numRating,
+      feedback: feedbackStr,
+      sessionId: finalSessionId,
+      createdAt: new Date().toISOString()
+    };
+
+    await saveDocToEngine('feedbacks', feedbackDoc);
+
+    // If PostgreSQL pool is active, record into feedbacks_log table for relational queries
+    if (activeDbType === 'postgres' && activePgConfig) {
+      try {
+        const pool = getPgPool();
+        if (pool) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS feedbacks_log (
+              id SERIAL PRIMARY KEY,
+              machine_id VARCHAR(50),
+              phone_number VARCHAR(20),
+              rating INT,
+              feedback VARCHAR(100),
+              session_id VARCHAR(100),
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          await pool.query(`
+            INSERT INTO feedbacks_log (machine_id, phone_number, rating, feedback, session_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, NOW());
+          `, [machineId, phone, numRating, feedbackStr, finalSessionId]);
+        }
+      } catch (pgErr) {
+        console.warn('[PostgreSQL Feedback Insert Warning]', pgErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Citizen feedback recorded successfully',
+      feedback: feedbackDoc
+    });
+  } catch (err) {
+    console.error('[Machine Feedback Error]', err);
+    res.status(500).json({ error: 'Failed to record feedback', details: err.message });
+  }
+});
+
 // Helper to extract Public and Local IP from client requests
 function getClientIpInfo(req) {
   const forwarded = req.headers['x-forwarded-for'];
