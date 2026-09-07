@@ -63,6 +63,12 @@
                     </Border>
 
                     <Button
+                        Content="🎮 Simulator"
+                        Style="{StaticResource ModernButton}"
+                        Click="OpenSimulator_Click"
+                        Margin="0,0,10,0"
+                        ToolTip="Launch Hardware Simulator &amp; Demo Testing Panel"/>
+                    <Button
                         Content="Refresh"
                         Style="{StaticResource ModernButton}"
                         Click="Refresh_Click"

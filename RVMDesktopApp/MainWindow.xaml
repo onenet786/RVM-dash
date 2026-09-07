@@ -186,26 +186,46 @@
                                 <TextBlock Text="HARDWARE &amp; MACHINE DIAGNOSTICS 🔌" FontSize="10" FontWeight="Black" Foreground="#073B28"/>
                                 <TextBlock x:Name="MachineStateText" Text="MACHINE: IDLE" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right"/>
                             </Grid>
-                            <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="ConnectionText" Text="SERIAL: CONNECTED" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse x:Name="DbDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="DbStatusText" Text="DB: OK" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse x:Name="ApiDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="ApiStatusText" Text="API: ONLINE" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="ConnectionText" Text="SERIAL: CONNECTED" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5" Margin="0,0,5,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse x:Name="DbDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="DbStatusText" Text="DB: OK" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="6,2.5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse x:Name="ApiDot" Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="ApiStatusText" Text="API: ONLINE" FontSize="9" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Demo Testing Screen Launcher Button -->
+                                <Button Grid.Column="1" Click="DemoTestingButton_Click" Cursor="Hand" ToolTip="Open Hardware Simulator &amp; Demo Testing Panel (F2)">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="#0F172A" BorderBrush="#10B981" BorderThickness="1" CornerRadius="5" Padding="8,2.5">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="🎮 " FontSize="10" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="DEMO TESTING (F2)" FontSize="9" FontWeight="Bold" Foreground="#34D399" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
 
                             <!-- HARDWARE CONNECTION ERROR BANNER (DYNAMIC ALERT) -->
                             <Border x:Name="HardwareErrorBanner" Grid.Row="2" Margin="0,4,0,0" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1.2" CornerRadius="6" Padding="8,4" Visibility="Collapsed">
@@ -213,6 +233,7 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" Background="#FEE2E2" Margin="0,0,6,0" VerticalAlignment="Center">
@@ -222,7 +243,16 @@
                                         <TextBlock x:Name="HardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port • " FontSize="9" FontWeight="Bold" Foreground="#DC2626"/>
                                         <TextBlock Text="ہارڈویئر منسلک نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#DC2626"/>
                                     </StackPanel>
-                                    <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="6,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                                    <Button Grid.Column="2" Content="DEMO MODE 🎮" Background="#0F172A" Foreground="#34D399" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="6,0,0,0" Cursor="Hand" Click="DemoTestingButton_Click">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" BorderBrush="#059669" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <Button Grid.Column="3" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="8.5" FontWeight="Bold" Padding="8,2" Margin="4,0,0,0" Cursor="Hand" Click="RetryHardwareConnection_Click">
                                         <Button.Template>
                                             <ControlTemplate TargetType="Button">
                                                 <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">

@@ -29,6 +29,18 @@ public partial class AdminWindow : Window
         };
     }
 
+    private void OpenSimulator_Click(object sender, RoutedEventArgs e)
+    {
+        if (Owner is IKioskSimulatorTarget target)
+        {
+            DemoTestingWindow.OpenOrBringToFront(target);
+        }
+        else if (Application.Current.MainWindow is IKioskSimulatorTarget mainTarget)
+        {
+            DemoTestingWindow.OpenOrBringToFront(mainTarget);
+        }
+    }
+
     private void LoadConfigForm()
     {
         try

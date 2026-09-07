@@ -136,6 +136,14 @@ public partial class App : Application
 
             TryLaunchSecondaryDisplay();
         }
+
+        bool launchDemo = e.Args.Any(a => a.Equals("--demo", StringComparison.OrdinalIgnoreCase) ||
+                                          a.Equals("-d", StringComparison.OrdinalIgnoreCase) ||
+                                          a.Equals("/demo", StringComparison.OrdinalIgnoreCase));
+        if (launchDemo && startupWindow is IKioskSimulatorTarget simulatorTarget)
+        {
+            DemoTestingWindow.OpenOrBringToFront(simulatorTarget);
+        }
     }
 
     public static void TryLaunchSecondaryDisplay()

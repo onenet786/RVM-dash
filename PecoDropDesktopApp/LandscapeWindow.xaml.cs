@@ -10,8 +10,23 @@ using System.Windows.Threading;
 
 namespace PecoDropDesktopApp;
 
-public partial class LandscapeWindow : Window
+public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 {
+    public Window AsWindow => this;
+    public bool IsMachineStarted => machineStarted;
+    public bool IsDemoMode { get; set; } = false;
+    public int TotalItems => totalItems;
+    public int TotalPoints => totalPoints;
+    public int RejectedCount => rejectedCount;
+    public string MachineStatus => StatusText?.Text ?? "Ready";
+    public event Action? SimulatorStateChanged;
+
+    public void FocusKiosk()
+    {
+        Activate();
+        Focus();
+    }
+
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(25);
     private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".mp4", ".avi", ".wmv", ".mkv", ".mov", ".m4v" };
@@ -290,6 +305,13 @@ public partial class LandscapeWindow : Window
             return;
         }
 
+        if (e.Key == Key.F2 || (e.Key == Key.D && (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers == ModifierKeys.None)))
+        {
+            DemoTestingWindow.OpenOrBringToFront(this);
+            e.Handled = true;
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.Enter:
@@ -299,7 +321,16 @@ public partial class LandscapeWindow : Window
 
             case Key.D0:
             case Key.NumPad0:
-                StartMachine();
+                if (!serial.IsConnected)
+                {
+                    IsDemoMode = true;
+                    StartMachine(forceSimulator: true);
+                }
+                else
+                {
+                    StartMachine();
+                }
+                e.Handled = true;
                 break;
 
             case Key.S:
@@ -364,6 +395,8 @@ public partial class LandscapeWindow : Window
     }
 
     private void StartButton_Click(object sender, RoutedEventArgs e) => StartMachine();
+
+    private void DemoTestingButton_Click(object sender, RoutedEventArgs e) => DemoTestingWindow.OpenOrBringToFront(this);
 
     private void StopButton_Click(object sender, RoutedEventArgs e) => StopMachine();
 
@@ -847,32 +880,38 @@ public partial class LandscapeWindow : Window
         }
     }
 
-    private void StartMachine()
+    public void StartMachine(bool forceSimulator = false)
     {
-        if (!serial.IsConnected)
+        if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
             ConnectArduino();
         }
 
-        if (!serial.IsConnected)
+        if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
             MachineStateText.Text = "MACHINE: ERROR";
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Visible;
+            SimulatorStateChanged?.Invoke();
             return;
         }
 
-        serial.SendCommand("START");
+        if (serial.IsConnected)
+        {
+            serial.SendCommand("START");
+        }
+
         machineStarted = true;
         scanTimer.Stop();
-        StatusText.Text = "Machine Started";
+        StatusText.Text = (IsDemoMode || !serial.IsConnected) ? "Machine Started (Demo Mode)" : "Machine Started";
         StatusText.Foreground = Brushes.LimeGreen;
-        BottleInfoText.Text = "Insert a plastic bottle or metal can";
-        MachineStateText.Text = "MACHINE: RUNNING";
+        BottleInfoText.Text = "Insert container • (Or use Demo Testing Panel)";
+        MachineStateText.Text = (IsDemoMode || !serial.IsConnected) ? "MACHINE: RUNNING (DEMO)" : "MACHINE: RUNNING";
         if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
-        LogTelemetry("[CMD] START");
+        LogTelemetry((IsDemoMode || !serial.IsConnected) ? "[DEMO] Session Started without hardware" : "[CMD] START");
+        SimulatorStateChanged?.Invoke();
     }
 
-    private void StopMachine()
+    public void StopMachine()
     {
         if (serial.IsConnected)
         {
@@ -886,6 +925,103 @@ public partial class LandscapeWindow : Window
         BottleInfoText.Text = "• Insert item";
         MachineStateText.Text = "MACHINE: IDLE";
         LogTelemetry("[CMD] STOP");
+        SimulatorStateChanged?.Invoke();
+    }
+
+    public void SimulateItemDeposit(string material, string size, bool accept)
+    {
+        if (!machineStarted)
+        {
+            StartMachine(forceSimulator: true);
+        }
+
+        string matUpper = (material ?? "PLASTIC").Trim().ToUpperInvariant();
+        string sizeUpper = (size ?? "MEDIUM").Trim().ToUpperInvariant();
+
+        if (!accept)
+        {
+            rejectedCount++;
+            RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
+
+            StatusText.Text = "Rejected";
+            StatusText.Foreground = Brushes.OrangeRed;
+            BottleInfoText.Text = $"Item rejected ({sizeUpper} {matUpper}) - please remove from gate";
+
+            LogTelemetry($"[DEMO REJECT] Size={sizeUpper} Material={matUpper}");
+            SaveTransaction(new BottleResult { Material = matUpper, Size = sizeUpper }, 0, false);
+            SimulatorStateChanged?.Invoke();
+            return;
+        }
+
+        var result = new BottleResult
+        {
+            Material = matUpper,
+            Size = sizeUpper,
+            DurationMs = 350
+        };
+
+        int points = GetPoints(result);
+        totalItems++;
+        totalPoints += points;
+
+        IncrementMaterialSizeCounter(result.Material, result.Size);
+
+        StatusText.Text = "Accepted";
+        StatusText.Foreground = Brushes.LimeGreen;
+        string itemDescription = result.Material.ToLowerInvariant();
+        BottleInfoText.Text = $"{result.Size} {itemDescription} - {points} points";
+        TotalItemsText.Text = totalItems.ToString();
+        TotalPointsText.Text = totalPoints.ToString();
+        UpdateImpactMetrics();
+
+        LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
+        SaveTransaction(result, points, true);
+        AcceptedItemVideoWindow.ShowFor(this, result.Material);
+
+        // Real-Time Live Sync to Central Server
+        string currentSessionId = sessionId.ToString();
+        string currentMachineId = settings.MachineId;
+        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "3214424625";
+        int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
+        int curCan = canSmallCount + canMediumCount + canLargeCount;
+        int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
+        int curPoints = totalPoints;
+        int pSmall = plasticSmallCount;
+        int pMed = plasticMediumCount;
+        int pLg = plasticLargeCount;
+        int cSmall = canSmallCount;
+        int cMed = canMediumCount;
+        int cLg = canLargeCount;
+
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            try
+            {
+                var syncRes = await CentralSyncService.SyncSessionToCentralDetailedAsync(
+                    currentMachineId,
+                    currentSessionId,
+                    userIdentifier,
+                    curPlastic,
+                    curCan,
+                    curPaper,
+                    0,
+                    curPoints,
+                    0.0,
+                    result.Size,
+                    result.Material,
+                    pSmall, pMed, pLg,
+                    cSmall, cMed, cLg
+                );
+
+                if (syncRes.IsSuccess)
+                {
+                    LogTelemetry($"[LIVE SYNC 🟢] Accepted simulated item synced ({curPoints} pts)");
+                }
+            }
+            catch { }
+        });
+
+        SimulatorStateChanged?.Invoke();
     }
 
     private void Serial_DataReceived(string message)
@@ -1280,7 +1416,7 @@ public partial class LandscapeWindow : Window
         };
     }
 
-    private void CompleteSessionToWallet()
+    public void CompleteSessionToWallet()
     {
         if (!machineStarted)
         {
@@ -1297,11 +1433,11 @@ public partial class LandscapeWindow : Window
             return;
         }
 
-        // Allow wallet entry if either local SQL DB or Central Network API is available
+        // Allow wallet entry if either local SQL DB or Central Network API is available, or in Demo Mode
         bool localDbOk = databaseAvailable || RefreshDatabaseConnection();
         bool centralNetOk = HeartbeatService.CurrentStatus == NetworkStatus.Online;
 
-        if (!localDbOk && !centralNetOk)
+        if (!localDbOk && !centralNetOk && !IsDemoMode)
         {
             StatusText.Text = "Wallet unavailable";
             StatusText.Foreground = Brushes.OrangeRed;
@@ -1354,6 +1490,10 @@ public partial class LandscapeWindow : Window
             {
                 LogTelemetry($"[LOCAL DB WARN 🟡] Could not write local SQL: {ex.Message}");
             }
+        }
+        else if (IsDemoMode)
+        {
+            LogTelemetry($"[DEMO ⭐] Citizen {phoneNumber} completed session: {currentTotalPoints} pts, Rated {userRating}★ ({userFeedback})");
         }
 
         // 2. Synchronize Recycling Session & Feedback to Central Master Server API
@@ -1422,9 +1562,10 @@ public partial class LandscapeWindow : Window
             ? $"{currentTotalPoints} pts credited to {phoneNumber} · Rated {userRating}★ ({userFeedback})"
             : $"{currentTotalPoints} points sent to wallet {phoneNumber}";
         ResetSession();
+        SimulatorStateChanged?.Invoke();
     }
 
-    private void ResetSession()
+    public void ResetSession()
     {
         activeUserMobile = null;
         sessionId = Guid.NewGuid();
@@ -1436,6 +1577,7 @@ public partial class LandscapeWindow : Window
             PlasticTotalCountText.Text = CanTotalCountText.Text = TetraPakTotalCountText.Text = RejectedTotalCountText.Text = "0";
         TotalPointsText.Text = "0";
         UpdateImpactMetrics();
+        SimulatorStateChanged?.Invoke();
     }
 
     private void IncrementMaterialSizeCounter(string material, string size)

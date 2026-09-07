@@ -62,8 +62,17 @@ public partial class App : Application
             ? new MainWindow()
             : new LandscapeWindow();
 
+        bool launchDemo = e.Args.Any(a => a.Equals("--demo", StringComparison.OrdinalIgnoreCase) ||
+                                          a.Equals("-d", StringComparison.OrdinalIgnoreCase) ||
+                                          a.Equals("/demo", StringComparison.OrdinalIgnoreCase));
+
         MainWindow = startupWindow;
         startupWindow.Show();
+
+        if (launchDemo && startupWindow is IKioskSimulatorTarget simulatorTarget)
+        {
+            DemoTestingWindow.OpenOrBringToFront(simulatorTarget);
+        }
     }
 
     private static void BringExistingInstanceToForeground()

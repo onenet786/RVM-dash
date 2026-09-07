@@ -17,7 +17,8 @@
 
 param(
     [int]$ScreenIndex = 0,
-    [string]$ExePath = ""
+    [string]$ExePath = "",
+    [switch]$Demo = $false
 )
 
 # 1. Load Windows Forms to query connected displays
@@ -169,8 +170,9 @@ if ($existingProcs) {
 }
 
 # 5. Launch PecoDropDesktopApp process
-Write-Host "[LAUNCH] Starting PecoDropDesktopApp in LANDSCAPE MODE..." -ForegroundColor Cyan
-$process = Start-Process -FilePath $ExePath -ArgumentList "--landscape" -WorkingDirectory (Split-Path $ExePath) -PassThru
+$launchArgs = if ($Demo) { "--landscape --demo" } else { "--landscape" }
+Write-Host "[LAUNCH] Starting PecoDropDesktopApp in LANDSCAPE MODE with args: $launchArgs..." -ForegroundColor Cyan
+$process = Start-Process -FilePath $ExePath -ArgumentList $launchArgs -WorkingDirectory (Split-Path $ExePath) -PassThru
 
 # 6. Wait for MainWindowHandle to be created
 $hwnd = [IntPtr]::Zero

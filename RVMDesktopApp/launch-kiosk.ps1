@@ -21,7 +21,8 @@ param(
     [ValidateSet("Auto", "Portrait", "Landscape")]
     [string]$Mode = "Portrait",
     [string]$ExePath = "",
-    [switch]$KillExisting = $true
+    [switch]$KillExisting = $true,
+    [switch]$Demo = $false
 )
 
 # 1. Load Windows Forms to query connected displays
@@ -160,8 +161,9 @@ if ($existingProcs) {
 }
 
 # 5. Launch RVMDesktopApp process with orientation argument
-Write-Host "[LAUNCH] Starting RVMDesktopApp in $modeLabel with arg: $modeArg..." -ForegroundColor Cyan
-$process = Start-Process -FilePath $ExePath -ArgumentList $modeArg -WorkingDirectory (Split-Path $ExePath) -PassThru
+$launchArgs = if ($Demo) { "$modeArg --demo" } else { $modeArg }
+Write-Host "[LAUNCH] Starting RVMDesktopApp in $modeLabel with args: $launchArgs..." -ForegroundColor Cyan
+$process = Start-Process -FilePath $ExePath -ArgumentList $launchArgs -WorkingDirectory (Split-Path $ExePath) -PassThru
 
 # 6. Wait for MainWindowHandle to be created
 $hwnd = [IntPtr]::Zero
