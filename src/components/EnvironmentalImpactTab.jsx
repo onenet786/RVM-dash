@@ -99,7 +99,7 @@ export default function EnvironmentalImpactTab() {
       </div>
 
       {/* Audited Equivalency Impact KPI Cards (PDF Section 7.2) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         
         {/* 1. Avoided CO2e Emissions */}
         <div className="glass-panel p-5 rounded-3xl border border-emerald-500/30 space-y-3 relative">

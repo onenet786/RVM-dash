@@ -248,7 +248,7 @@ export default function AdvertisementsTab() {
   const totalSizeBytes = ads.reduce((acc, a) => acc + (a.fileSize || 0), 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
+    <div className="space-y-6 animate-fade-in w-full">
       
       {/* Top Banner / Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-emerald-950/40 via-cyan-950/30 to-purple-950/30 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden">
@@ -309,7 +309,7 @@ export default function AdvertisementsTab() {
       )}
 
       {/* Fleet Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         <div className="p-5 rounded-2xl bg-gray-900/50 border border-gray-800/80 shadow-lg flex items-center gap-4">
           <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
             <Film className="w-5 h-5" />
@@ -456,7 +456,7 @@ export default function AdvertisementsTab() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
           {ads.map((ad, index) => (
             <div 
               key={ad.id}

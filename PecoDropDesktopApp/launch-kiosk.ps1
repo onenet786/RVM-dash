@@ -191,7 +191,6 @@ while ($sw.Elapsed.TotalSeconds -lt $timeoutSec) {
 }
 
 if ($winList.Count -eq 0) {
-    \
     Write-Host "[ERROR] Timed out waiting for PecoDropDesktopApp window handles!" -ForegroundColor Red
     exit 1
 }

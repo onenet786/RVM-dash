@@ -80,16 +80,16 @@ export default function AnalyticsTab() {
       </div>
 
       {/* Leaderboard Chart & Top Champions Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6 2xl:gap-8">
         
         {/* Leaderboard Chart */}
-        <div className="lg:col-span-2 glass-panel p-6 rounded-3xl space-y-4">
+        <div className="lg:col-span-2 2xl:col-span-3 glass-panel p-6 rounded-3xl space-y-4">
           <h3 className="text-base font-bold t-text-primary flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-cyan-400" />
             Top 8 Champions Points Comparison
           </h3>
 
-          <div className="h-80 w-full pt-4">
+          <div className="h-80 2xl:h-96 w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 25 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
@@ -109,7 +109,7 @@ export default function AnalyticsTab() {
         </div>
 
         {/* Top 3 Podiums */}
-        <div className="glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+        <div className="lg:col-span-1 2xl:col-span-1 glass-panel p-6 rounded-3xl space-y-4 flex flex-col justify-between">
           <div>
             <h3 className="text-base font-bold t-text-primary flex items-center gap-2 mb-4">
               <Award className="w-5 h-5 text-amber-400" />

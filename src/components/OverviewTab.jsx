@@ -131,7 +131,7 @@ export default function OverviewTab({ currentUser }) {
       </div>
 
       {/* KPI Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         
         {/* Total Bottles */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-emerald-500">
@@ -212,7 +212,7 @@ export default function OverviewTab({ currentUser }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
           
           {/* Plastic Variant Breakdown */}
           <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
@@ -284,7 +284,7 @@ export default function OverviewTab({ currentUser }) {
       </div>
 
       {/* Secondary Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-5 2xl:gap-6">
 
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
           <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
@@ -329,7 +329,7 @@ export default function OverviewTab({ currentUser }) {
           </span>
         </div>
 
-        <div className="h-72 w-full pt-4">
+        <div className="h-72 lg:h-80 2xl:h-96 w-full pt-4">
           {trends.length === 0 ? (
             <div className="h-full flex items-center justify-center text-xs t-text-muted">
               No daily trends data available yet.

@@ -128,7 +128,7 @@ export default function MobileUsersTab() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         
         {/* Total Registered Users */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">

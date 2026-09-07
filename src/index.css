@@ -185,3 +185,111 @@ html[data-theme="sleek-light"] .glass-panel {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ============================================================ */
+/* MEDIA QUERIES FOR FLUID FULL-WIDTH RESPONSIVE DASHBOARD      */
+/* ============================================================ */
+
+/* Eliminate wasted side spaces and adjust fluid layout across display widths */
+.dashboard-viewport {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  transition: padding 0.2s ease-in-out;
+}
+
+@media (max-width: 639px) {
+  .dashboard-viewport {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .dashboard-viewport {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1535px) {
+  .dashboard-viewport {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (min-width: 1536px) and (max-width: 1919px) {
+  .dashboard-viewport {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Extra-wide / Full-HD / 2K / 4K Displays: zero side waste, maximum data visibility */
+@media (min-width: 1920px) {
+  .dashboard-viewport {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Fluid responsive grid utilities */
+.fluid-dashboard-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .fluid-dashboard-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .fluid-dashboard-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .fluid-dashboard-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+.fluid-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .fluid-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .fluid-cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .fluid-cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 2200px) {
+  .fluid-cards-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.75rem;
+  }
+}
+

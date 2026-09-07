@@ -6,6 +6,11 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '480px',
+        '3xl': '1920px',
+        '4xl': '2560px',
+      },
       colors: {
         darkBg: '#030712',
         cardBg: 'rgba(15, 23, 42, 0.75)',

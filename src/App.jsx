@@ -193,9 +193,9 @@ export default function App() {
           setIsMobileOpen={setIsMobileOpen}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-          <div className="max-w-7xl mx-auto space-y-6">
+        {/* Main Content Area: Media Queries Full-Width Adaptive Utilization */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 xl:p-7 2xl:p-8 3xl:px-10 transition-all duration-200">
+          <div className="dashboard-viewport space-y-6">
             {renderContent()}
           </div>
         </main>

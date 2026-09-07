@@ -98,7 +98,7 @@ export default function ReportingHubTab() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         <div className="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500">
           <div className="text-[10px] uppercase font-bold t-text-muted">Total Paper Mass</div>
           <div className="text-2xl font-black text-purple-400 mono mt-1">148.5 kg</div>
@@ -521,7 +521,7 @@ export default function ReportingHubTab() {
       </div>
 
       {/* 4 Report Tabs Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 xl:gap-4 2xl:gap-5">
         {reports.map(rep => {
           const Icon = rep.icon;
           const isSelected = activeReport === rep.id;
