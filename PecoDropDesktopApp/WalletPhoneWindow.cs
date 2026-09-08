@@ -35,6 +35,7 @@ public sealed class WalletPhoneWindow : Window
     private DispatcherTimer? _qrTimer;
     private int _qrSecondsRemaining = 90;
     private readonly Image _qrImage = new();
+    private readonly TextBlock _sessionCodeText = new();
     private readonly TextBlock _qrStatusText = new();
     private readonly TextBlock _qrTimerText = new();
     private readonly Border _qrBadgeBorder = new();
@@ -82,9 +83,9 @@ public sealed class WalletPhoneWindow : Window
         }
         catch { }
 
-        Width = 820;
+        Width = 680;
         SizeToContent = SizeToContent.Height;
-        MinHeight = 520;
+        MinHeight = 460;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.SingleBorderWindow;
@@ -145,18 +146,18 @@ public sealed class WalletPhoneWindow : Window
 
     private void BuildPhoneStep()
     {
-        _phoneBodyStack.Margin = new Thickness(24, 16, 24, 12);
+        _phoneBodyStack.Margin = new Thickness(24, 14, 24, 12);
         Grid.SetRow(_phoneBodyStack, 1);
 
-        // Top Summary Card Across Full Width
+        // 1. Top Summary Card Across Full Width
         var summaryCard = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(24, 33, 50)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(18, 10, 18, 10),
-            Margin = new Thickness(0, 0, 0, 14)
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(16, 8, 16, 8),
+            Margin = new Thickness(0, 0, 0, 12)
         };
 
         var summaryGrid = new Grid();
@@ -166,18 +167,18 @@ public sealed class WalletPhoneWindow : Window
         var sumLeft = new StackPanel();
         sumLeft.Children.Add(new TextBlock
         {
-            Text = "RECYCLED CONTAINERS DEPOSIT • ری سائیکل شدہ اشیاء",
-            FontSize = 10.5,
+            Text = "RECYCLED DEPOSIT SUMMARY • ری سائیکل شدہ اشیاء",
+            FontSize = 10,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184))
         });
         sumLeft.Children.Add(new TextBlock
         {
             Text = $"{_itemCount} Item(s) Recycled",
-            FontSize = 16,
+            FontSize = 15,
             FontWeight = FontWeights.Bold,
             Foreground = Brushes.White,
-            Margin = new Thickness(0, 2, 0, 0)
+            Margin = new Thickness(0, 1, 0, 0)
         });
         summaryGrid.Children.Add(sumLeft);
 
@@ -185,8 +186,8 @@ public sealed class WalletPhoneWindow : Window
         Grid.SetColumn(sumRight, 1);
         sumRight.Children.Add(new TextBlock
         {
-            Text = "POINTS TO CREDIT • پوائنٹس",
-            FontSize = 10.5,
+            Text = "POINTS TO CLAIM • پوائنٹس",
+            FontSize = 10,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)),
             TextAlignment = TextAlignment.Right
@@ -194,49 +195,41 @@ public sealed class WalletPhoneWindow : Window
         sumRight.Children.Add(new TextBlock
         {
             Text = $"+{_points} PTS",
-            FontSize = 20,
+            FontSize = 18,
             FontWeight = FontWeights.ExtraBold,
             Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)),
             TextAlignment = TextAlignment.Right,
-            Margin = new Thickness(0, 2, 0, 0)
+            Margin = new Thickness(0, 1, 0, 0)
         });
         summaryGrid.Children.Add(sumRight);
         summaryCard.Child = summaryGrid;
         _phoneBodyStack.Children.Add(summaryCard);
 
-        // Dual Split Container (Left: QR Code / Right: Phone + Touch Keypad)
-        var splitGrid = new Grid();
-        splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.05, GridUnitType.Star) });
-        splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
-        splitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) });
-
-        // ==========================
-        // LEFT: QR CODE CLAIM PANEL
-        // ==========================
+        // 2. Main Vertical Stack: QR Code at TOP
         var qrCard = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(20, 29, 47)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(14, 12, 14, 12)
+            Padding = new Thickness(16, 12, 16, 12),
+            Margin = new Thickness(0, 0, 0, 12)
         };
-        Grid.SetColumn(qrCard, 0);
 
         var qrStack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
 
-        var qrHeader = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 10) };
+        var qrHeader = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
         qrHeader.Children.Add(new TextBlock
         {
-            Text = "📲 SCAN TO CLAIM",
+            Text = "📲 SCAN QR CODE TO CLAIM POINTS",
             FontSize = 13,
             FontWeight = FontWeights.ExtraBold,
-            Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153)),
+            Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153)), // Emerald
             HorizontalAlignment = HorizontalAlignment.Center
         });
         qrHeader.Children.Add(new TextBlock
         {
-            Text = "Scan with phone camera or mobile app",
+            Text = "Scan using RVM Mobile App or your phone camera • موبائل ایپ سے اسکین کریں",
             FontSize = 10.5,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -250,118 +243,143 @@ public sealed class WalletPhoneWindow : Window
         _qrContainerBorder.Padding = new Thickness(8);
         _qrContainerBorder.HorizontalAlignment = HorizontalAlignment.Center;
 
-        _qrImage.Width = 170;
-        _qrImage.Height = 170;
+        _qrImage.Width = 150;
+        _qrImage.Height = 150;
         _qrImage.Stretch = Stretch.Uniform;
         RenderOptions.SetBitmapScalingMode(_qrImage, BitmapScalingMode.NearestNeighbor);
         _qrContainerBorder.Child = _qrImage;
         qrStack.Children.Add(_qrContainerBorder);
 
-        // Status Badge Pill
-        _qrBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(40, 56, 189, 248));
-        _qrBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
-        _qrBadgeBorder.BorderThickness = new Thickness(1);
-        _qrBadgeBorder.CornerRadius = new CornerRadius(14);
-        _qrBadgeBorder.Padding = new Thickness(10, 4, 10, 4);
-        _qrBadgeBorder.Margin = new Thickness(0, 10, 0, 0);
-        _qrBadgeBorder.HorizontalAlignment = HorizontalAlignment.Center;
-
-        _qrStatusText.Text = "⏳ Waiting for scan... • اسکین کریں";
-        _qrStatusText.FontSize = 10.5;
-        _qrStatusText.FontWeight = FontWeights.Bold;
-        _qrStatusText.Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248));
-        _qrStatusText.HorizontalAlignment = HorizontalAlignment.Center;
-        _qrBadgeBorder.Child = _qrStatusText;
-        qrStack.Children.Add(_qrBadgeBorder);
-
-        // Countdown Timer Text
-        _qrTimerText.Text = "⏱️ Valid for 90s";
-        _qrTimerText.FontSize = 10;
-        _qrTimerText.FontWeight = FontWeights.SemiBold;
-        _qrTimerText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
-        _qrTimerText.HorizontalAlignment = HorizontalAlignment.Center;
-        _qrTimerText.Margin = new Thickness(0, 5, 0, 0);
-        qrStack.Children.Add(_qrTimerText);
-
-        qrCard.Child = qrStack;
-        splitGrid.Children.Add(qrCard);
-
-        // ==========================
-        // MIDDLE: OR DIVIDER
-        // ==========================
-        var dividerGrid = new Grid();
-        Grid.SetColumn(dividerGrid, 1);
-        dividerGrid.Children.Add(new Border
+        // Session Code Box directly UNDER QR Code
+        var sessionCodeCard = new Border
         {
-            Width = 1,
-            Background = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
+            Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+            BorderThickness = new Thickness(1.5),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16, 6, 16, 6),
+            Margin = new Thickness(0, 8, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        var sessionCodeStack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+        sessionCodeStack.Children.Add(new TextBlock
+        {
+            Text = "SESSION CODE (FOR MANUAL APP ENTRY) • سیشن کوڈ",
+            FontSize = 9.5,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
-        var orBadge = new Border
-        {
-            Width = 26,
-            Height = 26,
-            CornerRadius = new CornerRadius(13),
-            Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
-            BorderThickness = new Thickness(1),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        orBadge.Child = new TextBlock
-        {
-            Text = "OR",
-            FontSize = 8.5,
-            FontWeight = FontWeights.Black,
-            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        dividerGrid.Children.Add(orBadge);
-        splitGrid.Children.Add(dividerGrid);
+        _sessionCodeText.Text = "Loading Session Code...";
+        _sessionCodeText.FontSize = 16;
+        _sessionCodeText.FontWeight = FontWeights.ExtraBold;
+        _sessionCodeText.FontFamily = new FontFamily("Consolas, Courier New, Segoe UI");
+        _sessionCodeText.Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // Cyan
+        _sessionCodeText.HorizontalAlignment = HorizontalAlignment.Center;
+        _sessionCodeText.Margin = new Thickness(0, 2, 0, 0);
+        sessionCodeStack.Children.Add(_sessionCodeText);
+        sessionCodeCard.Child = sessionCodeStack;
+        qrStack.Children.Add(sessionCodeCard);
 
-        // ==========================
-        // RIGHT: MANUAL PHONE & KEYPAD
-        // ==========================
+        // Status Badge & Timer Row
+        var timerBadgeStack = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 8, 0, 0)
+        };
+
+        _qrBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(40, 56, 189, 248));
+        _qrBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
+        _qrBadgeBorder.BorderThickness = new Thickness(1);
+        _qrBadgeBorder.CornerRadius = new CornerRadius(12);
+        _qrBadgeBorder.Padding = new Thickness(10, 3, 10, 3);
+        _qrBadgeBorder.Margin = new Thickness(0, 0, 8, 0);
+
+        _qrStatusText.Text = "⏳ Waiting for scan... • اسکین کریں";
+        _qrStatusText.FontSize = 10;
+        _qrStatusText.FontWeight = FontWeights.Bold;
+        _qrStatusText.Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248));
+        _qrBadgeBorder.Child = _qrStatusText;
+        timerBadgeStack.Children.Add(_qrBadgeBorder);
+
+        _qrTimerText.Text = "⏱️ Valid for 90s (Auto-fallback)";
+        _qrTimerText.FontSize = 10;
+        _qrTimerText.FontWeight = FontWeights.SemiBold;
+        _qrTimerText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
+        _qrTimerText.VerticalAlignment = VerticalAlignment.Center;
+        timerBadgeStack.Children.Add(_qrTimerText);
+
+        qrStack.Children.Add(timerBadgeStack);
+        qrCard.Child = qrStack;
+        _phoneBodyStack.Children.Add(qrCard);
+
+        // 3. Divider: OR ENTER MOBILE NUMBER
+        var dividerGrid = new Grid { Margin = new Thickness(0, 2, 0, 10) };
+        dividerGrid.Children.Add(new Border
+        {
+            Height = 1,
+            Background = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var orTextBorder = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            Padding = new Thickness(14, 2, 14, 2),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        orTextBorder.Child = new TextBlock
+        {
+            Text = "OR ENTER MOBILE NUMBER DIRECTLY",
+            FontSize = 10.5,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184))
+        };
+        dividerGrid.Children.Add(orTextBorder);
+        _phoneBodyStack.Children.Add(dividerGrid);
+
+        // 4. Mobile Number Input Section (No Touch Keypad)
         var phoneCard = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(20, 29, 47)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
-            Padding = new Thickness(14, 12, 14, 12)
+            Padding = new Thickness(16, 12, 16, 12)
         };
-        Grid.SetColumn(phoneCard, 2);
 
         var phoneStack = new StackPanel();
-
         var phoneHeader = new StackPanel { Margin = new Thickness(0, 0, 0, 8) };
         phoneHeader.Children.Add(new TextBlock
         {
-            Text = "🔢 ENTER MOBILE NUMBER",
-            FontSize = 13,
+            Text = "📱 CITIZEN MOBILE WALLET NUMBER",
+            FontSize = 12.5,
             FontWeight = FontWeights.ExtraBold,
             Foreground = Brushes.White
         });
         phoneHeader.Children.Add(new TextBlock
         {
-            Text = "Must be 11 digits (03xxxxxxxxx) • موبائل نمبر",
+            Text = "Enter 11 digits starting with 03 (e.g. 03xxxxxxxxx) • موبائل نمبر درج کریں",
             FontSize = 10.5,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
             Margin = new Thickness(0, 2, 0, 0)
         });
         phoneStack.Children.Add(phoneHeader);
 
-        // Input Box Container
+        // Input Box + Submit Button Grid
+        var inputGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+        inputGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
         _inputBorder.Background = new SolidColorBrush(Color.FromRgb(30, 41, 59));
         _inputBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(71, 85, 105));
         _inputBorder.BorderThickness = new Thickness(1.5);
         _inputBorder.CornerRadius = new CornerRadius(8);
-        _inputBorder.Padding = new Thickness(6, 2, 6, 2);
-        _inputBorder.Margin = new Thickness(0, 0, 0, 8);
+        _inputBorder.Padding = new Thickness(8, 2, 8, 2);
 
-        _phoneTextBox.FontSize = 16;
+        _phoneTextBox.FontSize = 17;
         _phoneTextBox.FontWeight = FontWeights.Bold;
         _phoneTextBox.MaxLength = 11;
         _phoneTextBox.Background = Brushes.Transparent;
@@ -369,6 +387,7 @@ public sealed class WalletPhoneWindow : Window
         _phoneTextBox.CaretBrush = Brushes.White;
         _phoneTextBox.BorderThickness = new Thickness(0);
         _phoneTextBox.Padding = new Thickness(4, 4, 4, 4);
+        _phoneTextBox.VerticalAlignment = VerticalAlignment.Center;
 
         _phoneTextBox.PreviewTextInput += PhoneTextBox_PreviewTextInput;
         DataObject.AddPastingHandler(_phoneTextBox, PhoneTextBox_Pasting);
@@ -376,67 +395,26 @@ public sealed class WalletPhoneWindow : Window
         _phoneTextBox.KeyDown += PhoneTextBox_KeyDown;
 
         _inputBorder.Child = _phoneTextBox;
-        phoneStack.Children.Add(_inputBorder);
+        Grid.SetColumn(_inputBorder, 0);
+        inputGrid.Children.Add(_inputBorder);
 
-        // On-Screen Touch Keypad (3 columns x 4 rows)
-        var keypadGrid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-        for (int c = 0; c < 3; c++)
-            keypadGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        for (int r = 0; r < 4; r++)
-            keypadGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(38) });
-
-        string[] keyLabels = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "CLR", "0", "⌫" };
-        for (int i = 0; i < keyLabels.Length; i++)
+        var submitBtn = new Button
         {
-            string key = keyLabels[i];
-            int row = i / 3;
-            int col = i % 3;
+            Content = "Claim Points ➔",
+            FontSize = 13,
+            FontWeight = FontWeights.Bold,
+            Height = 38,
+            Padding = new Thickness(16, 0, 16, 0),
+            Background = new SolidColorBrush(Color.FromRgb(16, 185, 129)), // Emerald
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand
+        };
+        submitBtn.Click += (_, _) => SubmitPhone();
+        Grid.SetColumn(submitBtn, 2);
+        inputGrid.Children.Add(submitBtn);
 
-            var btn = new Button
-            {
-                Content = key,
-                FontSize = key.Length > 1 ? 11 : 15,
-                FontWeight = FontWeights.Bold,
-                Background = key == "CLR" 
-                    ? new SolidColorBrush(Color.FromRgb(69, 26, 26)) 
-                    : key == "⌫" 
-                        ? new SolidColorBrush(Color.FromRgb(45, 55, 72)) 
-                        : new SolidColorBrush(Color.FromRgb(30, 41, 59)),
-                Foreground = key == "CLR" ? new SolidColorBrush(Color.FromRgb(252, 165, 165)) : Brushes.White,
-                BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
-                Margin = new Thickness(2),
-                Cursor = Cursors.Hand
-            };
-
-            btn.Click += (_, _) =>
-            {
-                if (key == "CLR")
-                {
-                    _phoneTextBox.Text = string.Empty;
-                }
-                else if (key == "⌫")
-                {
-                    if (_phoneTextBox.Text.Length > 0)
-                    {
-                        _phoneTextBox.Text = _phoneTextBox.Text.Substring(0, _phoneTextBox.Text.Length - 1);
-                    }
-                }
-                else
-                {
-                    if (_phoneTextBox.Text.Length < 11)
-                    {
-                        _phoneTextBox.Text += key;
-                    }
-                }
-                _phoneTextBox.CaretIndex = _phoneTextBox.Text.Length;
-            };
-
-            Grid.SetRow(btn, row);
-            Grid.SetColumn(btn, col);
-            keypadGrid.Children.Add(btn);
-        }
-        phoneStack.Children.Add(keypadGrid);
+        phoneStack.Children.Add(inputGrid);
 
         _validationText.Foreground = new SolidColorBrush(Color.FromRgb(244, 63, 94));
         _validationText.FontSize = 11;
@@ -445,54 +423,68 @@ public sealed class WalletPhoneWindow : Window
         phoneStack.Children.Add(_validationText);
 
         phoneCard.Child = phoneStack;
-        splitGrid.Children.Add(phoneCard);
+        _phoneBodyStack.Children.Add(phoneCard);
 
-        _phoneBodyStack.Children.Add(splitGrid);
         _rootGrid.Children.Add(_phoneBodyStack);
 
-        // Footer Action Buttons Bar
+        // Footer Action Bar
         _phoneFooterBorder.Background = new SolidColorBrush(Color.FromRgb(20, 29, 47));
         _phoneFooterBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85));
         _phoneFooterBorder.BorderThickness = new Thickness(0, 1, 0, 0);
-        _phoneFooterBorder.Padding = new Thickness(22, 12, 22, 14);
+        _phoneFooterBorder.Padding = new Thickness(20, 10, 20, 12);
         Grid.SetRow(_phoneFooterBorder, 2);
 
-        var buttonsGrid = new Grid();
-        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-        buttonsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.4, GridUnitType.Star) });
+        var footerGrid = new Grid();
+        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var fallbackButton = new Button
+        {
+            Content = "Skip / Guest Fallback (08884424625)",
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Height = 38,
+            Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+            Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            Cursor = Cursors.Hand
+        };
+        fallbackButton.Click += (_, _) =>
+        {
+            PhoneNumber = "08884424625";
+            Rating = 5;
+            FeedbackText = "Guest / Fallback (08884424625)";
+            FeedbackSubmitted = false;
+            CompleteAndClose();
+        };
+        Grid.SetColumn(fallbackButton, 0);
+        footerGrid.Children.Add(fallbackButton);
 
         var cancelButton = new Button
         {
-            Content = "✖  Cancel / منسوخ",
-            IsCancel = true,
-            FontSize = 13,
-            FontWeight = FontWeights.Bold,
-            Height = 42,
+            Content = "✖  Close Session",
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Height = 38,
             Background = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
             Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
             Cursor = Cursors.Hand
         };
-        Grid.SetColumn(cancelButton, 0);
-        buttonsGrid.Children.Add(cancelButton);
-
-        var creditButton = new Button
+        cancelButton.Click += (_, _) =>
         {
-            Content = "Credit via Phone Number ✓",
-            FontSize = 13.5,
-            FontWeight = FontWeights.Bold,
-            Height = 42,
-            Background = new SolidColorBrush(Color.FromRgb(16, 185, 129)),
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            Cursor = Cursors.Hand
+            PhoneNumber = "08884424625";
+            Rating = 5;
+            FeedbackText = "Manual Close / Fallback";
+            FeedbackSubmitted = false;
+            CompleteAndClose();
         };
-        creditButton.Click += (_, _) => SubmitPhone();
-        Grid.SetColumn(creditButton, 2);
-        buttonsGrid.Children.Add(creditButton);
+        Grid.SetColumn(cancelButton, 2);
+        footerGrid.Children.Add(cancelButton);
 
-        _phoneFooterBorder.Child = buttonsGrid;
+        _phoneFooterBorder.Child = footerGrid;
         _rootGrid.Children.Add(_phoneFooterBorder);
     }
 
@@ -787,6 +779,17 @@ public sealed class WalletPhoneWindow : Window
 
     private void WalletPhoneWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
+        {
+            PhoneNumber = "08884424625";
+            Rating = 5;
+            FeedbackText = "Manual Close / Fallback";
+            FeedbackSubmitted = false;
+            CompleteAndClose();
+            e.Handled = true;
+            return;
+        }
+
         if (_currentStep == WindowStep.Rating)
         {
             if (e.Key == Key.D1 || e.Key == Key.NumPad1)
@@ -1001,6 +1004,7 @@ public sealed class WalletPhoneWindow : Window
     private async Task StartQrSessionAsync()
     {
         _qrSessionId = $"qr_{_machineId}_{DateTime.Now.Ticks}";
+        _sessionCodeText.Text = _qrSessionId;
         string fallbackUrl = $"https://isprvm.binishaqsoft.com/claim?session={_qrSessionId}&pts={_points}&m={_machineId}";
 
         try
@@ -1015,6 +1019,7 @@ public sealed class WalletPhoneWindow : Window
             if (sessionResp != null && sessionResp.Success)
             {
                 _qrSessionId = sessionResp.SessionId;
+                _sessionCodeText.Text = _qrSessionId;
                 fallbackUrl = sessionResp.QrUrl;
                 _qrSecondsRemaining = sessionResp.ExpiresInSeconds > 0 ? sessionResp.ExpiresInSeconds : 90;
             }
@@ -1046,9 +1051,20 @@ public sealed class WalletPhoneWindow : Window
             if (_qrSecondsRemaining <= 0)
             {
                 StopQrTimer();
-                _qrTimerText.Text = "⏱️ Expired. Refreshing...";
-                _qrTimerText.Foreground = new SolidColorBrush(Color.FromRgb(244, 63, 94));
-                await StartQrSessionAsync();
+                _qrTimerText.Text = "⏱️ Expired - Auto-closing to fallback...";
+                _qrTimerText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+                _qrStatusText.Text = "✓ Credited to Fallback Account (08884424625)";
+                _qrStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+                _qrBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(50, 16, 185, 129));
+                _qrBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+
+                PhoneNumber = "08884424625";
+                Rating = 5;
+                FeedbackText = "Auto-fallback (QR Expired)";
+                FeedbackSubmitted = false;
+
+                await Task.Delay(1200);
+                CompleteAndClose();
                 return;
             }
 
