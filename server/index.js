@@ -5366,6 +5366,543 @@ app.post('/api/user/verify-qr', async (req, res) => {
   }
 });
 
+// =============================================================================
+// DYNAMIC QR CLAIM ENGINE (WhatsApp-Web Architecture for RVM & PecoDrop)
+// =============================================================================
+
+const activeClaimSessions = new Map();
+
+// Periodic purge of expired sessions (every 30 seconds)
+setInterval(() => {
+  const now = Date.now();
+  for (const [sessionId, session] of activeClaimSessions.entries()) {
+    if (session.expiresAt && session.expiresAt < now) {
+      activeClaimSessions.delete(sessionId);
+    }
+  }
+}, 30000);
+
+// 1. Create a dynamic claim session from Kiosk
+app.post('/api/session/create-claim', async (req, res) => {
+  try {
+    const {
+      machineId = 'RVM-001',
+      localSessionId,
+      points = 0,
+      totalBottles = 0,
+      plasticCount = 0,
+      aluminiumCount = 0,
+      paperCardboardCount = 0,
+      glassCount = 0,
+      plasticSmallCount = 0,
+      plasticMediumCount = 0,
+      plasticLargeCount = 0,
+      canSmallCount = 0,
+      canMediumCount = 0,
+      canLargeCount = 0,
+      weightKg = 0,
+      bottleSize = 'MEDIUM'
+    } = req.body;
+
+    const sessionId = localSessionId 
+      ? `${machineId}_${localSessionId}` 
+      : `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    
+    const claimToken = Math.random().toString(36).substring(2, 10);
+    const expiresAt = Date.now() + (90 * 1000); // 90-second lifespan
+
+    const sessionData = {
+      sessionId,
+      machineId,
+      localSessionId,
+      points: Number(points) || 0,
+      totalBottles: Number(totalBottles) || 0,
+      plasticCount: Number(plasticCount) || 0,
+      aluminiumCount: Number(aluminiumCount) || 0,
+      paperCardboardCount: Number(paperCardboardCount) || 0,
+      glassCount: Number(glassCount) || 0,
+      plasticSmallCount: Number(plasticSmallCount) || 0,
+      plasticMediumCount: Number(plasticMediumCount) || 0,
+      plasticLargeCount: Number(plasticLargeCount) || 0,
+      canSmallCount: Number(canSmallCount) || 0,
+      canMediumCount: Number(canMediumCount) || 0,
+      canLargeCount: Number(canLargeCount) || 0,
+      weightKg: Number(weightKg) || 0,
+      bottleSize: bottleSize || 'MEDIUM',
+      claimToken,
+      status: 'PENDING',
+      createdAt: Date.now(),
+      expiresAt,
+      claimedBy: null,
+      claimedUser: null
+    };
+
+    activeClaimSessions.set(sessionId, sessionData);
+
+    const host = req.get('host') || 'isprvm.binishaqsoft.com';
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+    const qrUrl = `${baseUrl}/claim?session=${encodeURIComponent(sessionId)}&pts=${sessionData.points}&m=${encodeURIComponent(machineId)}&tok=${claimToken}`;
+
+    res.json({
+      success: true,
+      sessionId,
+      claimToken,
+      qrUrl,
+      expiresInSeconds: 90,
+      points: sessionData.points,
+      totalBottles: sessionData.totalBottles
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Kiosk polls claim status
+app.get('/api/session/claim-status', async (req, res) => {
+  try {
+    const sessionId = req.query.sessionId || req.query.session;
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'sessionId is required' });
+    }
+
+    const session = activeClaimSessions.get(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, status: 'EXPIRED_OR_NOT_FOUND', error: 'Session expired or not found' });
+    }
+
+    if (Date.now() > session.expiresAt && session.status !== 'CLAIMED') {
+      activeClaimSessions.delete(sessionId);
+      return res.status(410).json({ success: false, status: 'EXPIRED', error: 'Session has expired' });
+    }
+
+    res.json({
+      success: true,
+      sessionId: session.sessionId,
+      status: session.status,
+      points: session.points,
+      totalBottles: session.totalBottles,
+      claimedBy: session.claimedBy,
+      claimedUser: session.claimedUser,
+      expiresInSeconds: Math.max(0, Math.round((session.expiresAt - Date.now()) / 1000))
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Mobile App or Web Browser claims points
+app.post('/api/session/claim-points', async (req, res) => {
+  try {
+    const { sessionId, claimToken, userId, mobileNumber, phone } = req.body;
+    const userIdentifier = (mobileNumber || phone || userId || '').toString().trim();
+
+    if (!sessionId) return res.status(400).json({ success: false, error: 'sessionId is required' });
+    if (!userIdentifier) return res.status(400).json({ success: false, error: 'User mobile number is required' });
+
+    const session = activeClaimSessions.get(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Session expired or not found' });
+    }
+
+    if (session.status === 'CLAIMED') {
+      return res.status(409).json({
+        success: false,
+        error: 'Session has already been claimed',
+        claimedBy: session.claimedBy,
+        claimedUser: session.claimedUser
+      });
+    }
+
+    if (Date.now() > session.expiresAt) {
+      activeClaimSessions.delete(sessionId);
+      return res.status(410).json({ success: false, error: 'Session has expired' });
+    }
+
+    const pointsEarned = session.points;
+    let displayName = userIdentifier;
+    let newBalance = pointsEarned;
+
+    // A. Update PostgreSQL if enabled
+    try {
+      const pool = getPgPool();
+      if (pool) {
+        // Upsert User
+        const userCheck = await pool.query(`
+          SELECT user_id, username, full_name, points_balance 
+          FROM users 
+          WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
+          LIMIT 1;
+        `, [userIdentifier]);
+
+        if (userCheck.rows.length > 0) {
+          const u = userCheck.rows[0];
+          displayName = u.full_name || u.username || userIdentifier;
+          newBalance = (Number(u.points_balance) || 0) + pointsEarned;
+          await pool.query(`
+            UPDATE users 
+            SET points_balance = $1, last_active = NOW() 
+            WHERE user_id = $2;
+          `, [newBalance, u.user_id]);
+        } else {
+          newBalance = pointsEarned;
+          await pool.query(`
+            INSERT INTO users (user_id, username, full_name, mobile, points_balance, role, is_active, created_at, last_active)
+            VALUES ($1, $1, $1, $1, $2, 'user', true, NOW(), NOW());
+          `, [userIdentifier, newBalance]);
+        }
+
+        // Write recycling session
+        await pool.query(`
+          INSERT INTO recycling_sessions (
+            session_id, machine_id, user_id, 
+            plastic_count, aluminium_count, paper_cardboard_count, glass_count,
+            plastic_small_count, plastic_medium_count, plastic_large_count,
+            can_small_count, can_medium_count, can_large_count,
+            bottle_size, total_weight_kg, points_earned, session_status, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'completed', NOW())
+          ON CONFLICT (session_id) DO UPDATE SET 
+            user_id = EXCLUDED.user_id,
+            points_earned = EXCLUDED.points_earned,
+            session_status = 'completed';
+        `, [
+          session.sessionId, session.machineId, userIdentifier,
+          session.plasticCount, session.aluminiumCount, session.paperCardboardCount, session.glassCount,
+          session.plasticSmallCount, session.plasticMediumCount, session.plasticLargeCount,
+          session.canSmallCount, session.canMediumCount, session.canLargeCount,
+          session.bottleSize, session.weightKg, pointsEarned
+        ]);
+      }
+    } catch (pgErr) {
+      console.warn('[QR Claim] PostgreSQL update warning:', pgErr.message);
+    }
+
+    // B. Update MongoDB / in-memory docs
+    try {
+      const users = await fetchCollectionDocs('userprofile');
+      const matched = users.find(u => u.username === userIdentifier || u.mobile === userIdentifier || u.userId === userIdentifier || u._id === userIdentifier);
+      if (matched) {
+        displayName = matched.fullName || matched.username || userIdentifier;
+        matched.pointsBalance = (matched.pointsBalance || 0) + pointsEarned;
+        await saveDocToEngine('userprofile', matched);
+      } else {
+        const newUserDoc = {
+          _id: `user_${Date.now()}`,
+          userId: userIdentifier,
+          username: userIdentifier,
+          fullName: `Citizen (${userIdentifier.slice(-4)})`,
+          mobile: userIdentifier,
+          pointsBalance: pointsEarned,
+          createdAt: new Date().toISOString()
+        };
+        displayName = newUserDoc.fullName;
+        await saveDocToEngine('userprofile', newUserDoc);
+      }
+
+      await saveDocToEngine('recyclingsessions', {
+        _id: session.sessionId,
+        sessionId: session.sessionId,
+        machineId: session.machineId,
+        userId: userIdentifier,
+        points: pointsEarned,
+        bottles: session.totalBottles,
+        recycledAt: new Date().toISOString(),
+        session_status: 'completed'
+      });
+    } catch (docErr) {
+      console.warn('[QR Claim] Doc save warning:', docErr.message);
+    }
+
+    session.status = 'CLAIMED';
+    session.claimedBy = userIdentifier;
+    session.claimedUser = {
+      fullName: displayName,
+      phone: userIdentifier,
+      pointsEarned,
+      newPointsBalance: newBalance,
+      claimedAt: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message: `Successfully credited ${pointsEarned} points to ${displayName}!`,
+      sessionId: session.sessionId,
+      pointsEarned,
+      newPointsBalance: newBalance,
+      user: session.claimedUser
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Web Claim Mobile Page (Opens directly when scanned via smartphone camera)
+app.get('/claim', (req, res) => {
+  const sessionId = req.query.session || '';
+  const points = req.query.pts || '0';
+  const machine = req.query.m || 'RVM-001';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PecoDrop • Claim Eco Points</title>
+  <style>
+    :root {
+      --brand-dark: #073B28;
+      --brand-green: #15803D;
+      --brand-light: #22C55E;
+      --bg-light: #F4F8F1;
+      --card-bg: #FFFFFF;
+      --text-dark: #0F172A;
+      --text-muted: #64748B;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg-light); color: var(--text-dark); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: var(--card-bg); border-radius: 20px; box-shadow: 0 10px 30px rgba(7, 59, 40, 0.08); width: 100%; max-width: 420px; padding: 28px 24px; text-align: center; border: 1.5px solid #E2EAE0; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: #DCFCE7; color: #15803D; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 20px; margin-bottom: 16px; border: 1px solid #BBF7D0; }
+    .badge-dot { width: 8px; height: 8px; background: #22C55E; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    .title { font-size: 24px; font-weight: 900; color: var(--brand-dark); margin-bottom: 4px; }
+    .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+    .reward-box { background: linear-gradient(135deg, #073B28 0%, #0F766E 100%); color: white; border-radius: 16px; padding: 20px; margin-bottom: 24px; box-shadow: 0 8px 20px rgba(7, 59, 40, 0.2); }
+    .points-val { font-size: 42px; font-weight: 900; line-height: 1; margin-bottom: 4px; color: #FDE047; }
+    .points-lbl { font-size: 13px; font-weight: 700; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px; }
+    .machine-info { font-size: 11px; opacity: 0.75; margin-top: 8px; }
+    .input-group { text-align: left; margin-bottom: 18px; }
+    .input-lbl { font-size: 12.5px; font-weight: 700; color: var(--brand-dark); margin-bottom: 6px; display: block; }
+    .phone-input { width: 100%; height: 50px; border-radius: 12px; border: 1.5px solid #CBD5E1; padding: 0 14px; font-size: 18px; font-weight: 700; color: var(--brand-dark); outline: none; transition: border-color 0.2s; background: #F8FAFC; }
+    .phone-input:focus { border-color: var(--brand-green); background: #FFFFFF; }
+    .btn { width: 100%; height: 52px; background: #15803D; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 16px rgba(21, 128, 61, 0.25); transition: background 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .urdu-text { font-family: "Jameel Noori Nastaleeq", "Noto Nastaliq Urdu", Tahoma, sans-serif; }
+    .footer-note { font-size: 11.5px; color: var(--text-muted); margin-top: 18px; line-height: 1.4; }
+    .success-panel { display: none; text-align: center; padding: 10px 0; }
+    .success-icon { font-size: 60px; line-height: 1; margin-bottom: 12px; }
+    .success-title { font-size: 22px; font-weight: 900; color: #15803D; margin-bottom: 6px; }
+    .success-msg { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="claimFormSection">
+      <div class="badge"><span class="badge-dot"></span> <span>REVERSE VENDING MACHINE</span></div>
+      <h1 class="title">Claim Eco Points</h1>
+      <p class="subtitle">ری سائیکلنگ انعامات حاصل کریں</p>
+
+      <div class="reward-box">
+        <div class="points-val">+${points}</div>
+        <div class="points-lbl">ECO POINTS EARNED</div>
+        <div class="machine-info">Machine: ${machine} • Session: ${sessionId.slice(-8)}</div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-lbl" for="phoneInput">Mobile Phone Number / موبائل نمبر</label>
+        <input type="tel" id="phoneInput" class="phone-input" placeholder="0300 1234567" autocomplete="tel" maxlength="15" />
+      </div>
+
+      <button id="claimBtn" class="btn" onclick="submitClaim()">
+        <span>CLAIM NOW • پوائنٹس کلیم کریں</span>
+      </button>
+
+      <p class="footer-note">Points will be credited instantly to your eco wallet and shown on the kiosk screen.</p>
+    </div>
+
+    <div id="successSection" class="success-panel">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Points Claimed!</div>
+      <p id="successMsg" class="success-msg">Your eco wallet has been credited.</p>
+      <div class="reward-box" style="margin-bottom: 0;">
+        <div id="creditedPts" class="points-val">+${points}</div>
+        <div class="points-lbl">ADDED TO YOUR WALLET</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sessionId = "${sessionId}";
+    const defaultPoints = "${points}";
+
+    // Auto-fill phone from previous claims
+    const savedPhone = localStorage.getItem('peco_saved_phone');
+    if (savedPhone) {
+      document.getElementById('phoneInput').value = savedPhone;
+    }
+
+    async function submitClaim() {
+      const phoneInput = document.getElementById('phoneInput');
+      const btn = document.getElementById('claimBtn');
+      const phone = phoneInput.value.trim();
+
+      if (!phone || phone.length < 9) {
+        alert('Please enter a valid mobile number (e.g. 03001234567)');
+        phoneInput.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Crediting Points...';
+
+      try {
+        const resp = await fetch('/api/session/claim-points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionId, mobileNumber: phone })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+          localStorage.setItem('peco_saved_phone', phone);
+          document.getElementById('claimFormSection').style.display = 'none';
+          document.getElementById('successSection').style.display = 'block';
+          document.getElementById('successMsg').innerText = data.message || 'Points credited successfully!';
+        } else {
+          alert('Error: ' + (data.error || 'Could not claim points.'));
+          btn.disabled = false;
+          btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+        }
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+        btn.disabled = false;
+        btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+      }
+    }
+  </script>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+// 5. In-App & Web Camera QR Scanner Portal (HTTPS origin for seamless getUserMedia camera access)
+app.get('/scanner', (req, res) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kiosk Screen Scanner • PecoDrop</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #0B1329; color: #FFFFFF; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 16px; overflow: hidden; }
+    .header { text-align: center; margin-top: 10px; width: 100%; }
+    .title { font-size: 17px; font-weight: 800; color: #38BDF8; letter-spacing: 0.5px; }
+    .subtitle { font-size: 12.5px; color: #94A3B8; margin-top: 4px; }
+    .scanner-wrapper { position: relative; width: 100%; max-width: 380px; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.15); border: 2px solid #1E293B; margin: auto 0; }
+    #reader { width: 100%; height: 100%; }
+    #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+    .reticle { position: absolute; inset: 0; pointer-events: none; border-radius: 20px; box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.6); }
+    .scan-line { position: absolute; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, transparent, #38BDF8, #22C55E, transparent); box-shadow: 0 0 12px #38BDF8; animation: scanning 2s infinite ease-in-out; }
+    @keyframes scanning {
+      0% { top: 15%; opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { top: 85%; opacity: 0; }
+    }
+    .status-box { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px); border: 1px solid #334155; border-radius: 14px; padding: 12px 16px; width: 100%; max-width: 380px; text-align: center; margin-bottom: 12px; }
+    .status-text { font-size: 13px; color: #E2E8F0; font-weight: 600; }
+    .error-text { color: #F87171; font-size: 12px; margin-top: 4px; display: none; }
+    .btn-retry { display: none; margin: 8px auto 0; background: #0284C7; color: white; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">RVM KIOSK SCANNER</div>
+    <div class="subtitle">Align the QR code on the kiosk screen • کیوسک کا کیو آر کوڈ اسکین کریں</div>
+  </div>
+
+  <div class="scanner-wrapper">
+    <div id="reader"></div>
+    <div class="reticle"></div>
+    <div class="scan-line"></div>
+  </div>
+
+  <div class="status-box">
+    <div id="statusText" class="status-text">Starting Camera... • کیمرہ آن ہو رہا ہے</div>
+    <div id="errorText" class="error-text"></div>
+    <button id="retryBtn" class="btn-retry" onclick="startScanner()">Try Again</button>
+  </div>
+
+  <script>
+    let html5QrCode = null;
+    let scanActive = true;
+
+    function notifyParent(data) {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(data));
+      }
+    }
+
+    function onScanSuccess(decodedText) {
+      if (!scanActive) return;
+      scanActive = false;
+      document.getElementById('statusText').innerText = "✓ Scanned! Claiming points...";
+      document.getElementById('statusText').style.color = "#34D399";
+      
+      notifyParent({ type: 'QR_SCANNED', text: decodedText });
+
+      // Fallback if opened directly in mobile browser: redirect to claim page
+      if (!window.ReactNativeWebView) {
+        if (decodedText.startsWith('http')) {
+          window.location.href = decodedText;
+        } else {
+          window.location.href = '/claim?session=' + encodeURIComponent(decodedText);
+        }
+      }
+    }
+
+    async function startScanner() {
+      const statusEl = document.getElementById('statusText');
+      const errorEl = document.getElementById('errorText');
+      const retryBtn = document.getElementById('retryBtn');
+
+      errorEl.style.display = 'none';
+      retryBtn.style.display = 'none';
+      statusEl.innerText = 'Accessing Camera...';
+      statusEl.style.color = '#E2E8F0';
+
+      try {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode('reader');
+        }
+
+        const config = {
+          fps: 15,
+          qrbox: { width: 260, height: 260 },
+          aspectRatio: 1.0
+        };
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          config,
+          onScanSuccess,
+          () => {} // silent decode frame misses
+        );
+
+        statusEl.innerText = 'Point camera at kiosk display • کیوسک کی اسکرین پر فوکس کریں';
+        notifyParent({ type: 'CAMERA_READY' });
+      } catch (err) {
+        console.error('Camera start error:', err);
+        statusEl.innerText = 'Camera Access Blocked';
+        statusEl.style.color = '#F87171';
+        errorEl.innerText = 'Please ensure camera permissions are granted. Error: ' + (err.message || err);
+        errorEl.style.display = 'block';
+        retryBtn.style.display = 'inline-block';
+        notifyParent({ type: 'CAMERA_ERROR', error: String(err.message || err) });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      startScanner();
+    });
+  </script>
+</body>
+</html>`;
+  res.send(html);
+});
+
 if (fs.existsSync(DIST_DIR)) {
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/')) return next();

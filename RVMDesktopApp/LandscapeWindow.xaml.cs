@@ -1494,7 +1494,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        var walletWindow = new WalletPhoneWindow(totalItems, totalPoints) { Owner = this };
+        var walletWindow = new WalletPhoneWindow(totalItems, totalPoints, settings.MachineId) { Owner = this };
         if (walletWindow.ShowDialog() is not true)
         {
             return;

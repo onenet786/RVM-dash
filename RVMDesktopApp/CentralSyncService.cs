@@ -18,10 +18,111 @@ public class SyncResult
     public string RemoteTables { get; set; } = "recycling_sessions, machines, users, recyclingsessions";
 }
 
+public class QrClaimSessionResponse
+{
+    public bool Success { get; set; }
+    public string SessionId { get; set; } = string.Empty;
+    public string ClaimToken { get; set; } = string.Empty;
+    public string QrUrl { get; set; } = string.Empty;
+    public int Points { get; set; }
+    public int TotalBottles { get; set; }
+    public int ExpiresInSeconds { get; set; } = 90;
+}
+
+public class QrClaimStatusResponse
+{
+    public bool Success { get; set; }
+    public string SessionId { get; set; } = string.Empty;
+    public string Status { get; set; } = "PENDING"; // PENDING, CLAIMED, EXPIRED
+    public int Points { get; set; }
+    public int TotalBottles { get; set; }
+    public string? ClaimedBy { get; set; }
+    public ClaimedUserInfo? ClaimedUser { get; set; }
+    public int ExpiresInSeconds { get; set; }
+}
+
+public class ClaimedUserInfo
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public int PointsEarned { get; set; }
+    public int NewPointsBalance { get; set; }
+    public string? ClaimedAt { get; set; }
+}
+
 public static class CentralSyncService
 {
     private static readonly HttpClient _httpClient = new HttpClient();
     public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
+
+    /// <summary>
+    /// Registers a pending claim session on Central API for dynamic WhatsApp-style QR scanning.
+    /// </summary>
+    public static async Task<QrClaimSessionResponse?> CreateClaimSessionAsync(
+        string machineId,
+        string localSessionId,
+        int points,
+        int totalItems,
+        int plasticCount = 0,
+        int canCount = 0,
+        int glassCount = 0,
+        int ubcCount = 0)
+    {
+        try
+        {
+            var payload = new
+            {
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                localSessionId = localSessionId,
+                points = points,
+                totalBottles = totalItems,
+                plasticCount = plasticCount,
+                aluminiumCount = canCount,
+                paperCardboardCount = ubcCount,
+                glassCount = glassCount
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/create-claim";
+            HttpResponseMessage response = await _httpClient.PostAsync(url, content);
+            if (response.IsSuccessStatusCode)
+            {
+                string respJson = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return System.Text.Json.JsonSerializer.Deserialize<QrClaimSessionResponse>(respJson, options);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QR Create Error] {ex.Message}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Polls Central API to check if the dynamic QR session has been claimed by a user.
+    /// </summary>
+    public static async Task<QrClaimStatusResponse?> CheckClaimStatusAsync(string sessionId)
+    {
+        try
+        {
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/claim-status?sessionId={Uri.EscapeDataString(sessionId)}";
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                string respJson = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return System.Text.Json.JsonSerializer.Deserialize<QrClaimStatusResponse>(respJson, options);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QR Status Error] {ex.Message}");
+        }
+        return null;
+    }
 
     /// <summary>
     /// Syncs local SQL Server recycling transactions to Central Master Dashboard API with detailed status and granular item variants.
