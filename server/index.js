@@ -78,7 +78,10 @@ if (fs.existsSync(DIST_DIR)) {
 }
 
 
-let activeDbType = process.env.DB_TYPE || 'postgres';
+// STRICT ARCHITECTURE:
+// Web Dashboard and Mobile App ONLY fetch and store data from the dedicated PostgreSQL database.
+// MongoDB is strictly restricted to Super Admin manual one-way data sync (/api/admin/sync-databases).
+let activeDbType = 'postgres';
 let activePgConfig = {
   host: process.env.PG_HOST || '127.0.0.1',
   port: parseInt(process.env.PG_PORT || '5432'),
@@ -3176,6 +3179,33 @@ async function handleMobileLogin(req, res) {
         }
       }
 
+      if (bottles === 0 && cups === 0) {
+        try {
+          const jsonStats = await pool.query(`
+            SELECT 
+              COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS total_bottles,
+              COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS total_cups,
+              COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, 0)), 0) AS total_earned_points,
+              COUNT(id) AS session_count,
+              MAX(synced_at) AS last_recycled_at
+            FROM recyclingsessions
+            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
+               OR data->>'userId' = ANY($1::text[]) 
+               OR data->>'user_id' = ANY($1::text[])
+               OR data->>'userName' = ANY($1::text[]))
+              AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', '') NOT IN ('anonymous', '', 'null');
+          `, [validUserIds]);
+          if (jsonStats.rows.length > 0 && (parseInt(jsonStats.rows[0].total_bottles) > 0 || parseInt(jsonStats.rows[0].total_cups) > 0)) {
+            const jr = jsonStats.rows[0];
+            bottles = parseInt(jr.total_bottles || 0);
+            cups = parseInt(jr.total_cups || 0);
+            totalSessions = parseInt(jr.session_count || 0);
+            latestRecycle = jr.last_recycled_at;
+            if (earnedPoints === 0) earnedPoints = parseInt(jr.total_earned_points || 0);
+          }
+        } catch (e) {}
+      }
+
       redeemedPoints = Math.max(0, earnedPoints - points);
 
       const recentRes = await pool.query(`
@@ -3188,6 +3218,34 @@ async function handleMobileLogin(req, res) {
         LIMIT 10;
       `, [validUserIds]);
       recentSessions = recentRes.rows || [];
+
+      if (recentSessions.length === 0) {
+        try {
+          const jsonRecent = await pool.query(`
+            SELECT id, data, synced_at 
+            FROM recyclingsessions 
+            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
+               OR data->>'userId' = ANY($1::text[]) 
+               OR data->>'user_id' = ANY($1::text[])
+               OR data->>'userName' = ANY($1::text[]))
+            ORDER BY synced_at DESC LIMIT 10;
+          `, [validUserIds]).catch(() => ({ rows: [] }));
+          if (jsonRecent.rows.length > 0) {
+            recentSessions = jsonRecent.rows.map(r => {
+              const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+              return {
+                session_id: r.id || d._id,
+                machine_id: d.machineId || d.machine_id || 'RVM-01',
+                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
+                aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
+                points_earned: parseInt(d.points || d.pointsEarned || 0),
+                session_status: 'completed',
+                created_at: d.recycledAt || d.timestamp || r.synced_at
+              };
+            });
+          }
+        } catch (e) {}
+      }
     }
 
     let token = '';
@@ -3513,6 +3571,33 @@ async function handleMobileGetPoints(req, res) {
         }
       }
 
+      if (bottles === 0 && cups === 0) {
+        try {
+          const jsonStats = await pool.query(`
+            SELECT 
+              COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS total_bottles,
+              COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS total_cups,
+              COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, 0)), 0) AS total_earned_points,
+              COUNT(id) AS session_count,
+              MAX(synced_at) AS last_recycled_at
+            FROM recyclingsessions
+            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
+               OR data->>'userId' = ANY($1::text[]) 
+               OR data->>'user_id' = ANY($1::text[])
+               OR data->>'userName' = ANY($1::text[]))
+              AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', '') NOT IN ('anonymous', '', 'null');
+          `, [validUserIds]);
+          if (jsonStats.rows.length > 0 && (parseInt(jsonStats.rows[0].total_bottles) > 0 || parseInt(jsonStats.rows[0].total_cups) > 0)) {
+            const jr = jsonStats.rows[0];
+            bottles = parseInt(jr.total_bottles || 0);
+            cups = parseInt(jr.total_cups || 0);
+            totalSessions = parseInt(jr.session_count || 0);
+            lastRecycled = jr.last_recycled_at;
+            if (earnedPoints === 0) earnedPoints = parseInt(jr.total_earned_points || 0);
+          }
+        } catch (e) {}
+      }
+
       redeemedPoints = Math.max(0, earnedPoints - points);
 
       const recentRes = await pool.query(`
@@ -3525,6 +3610,34 @@ async function handleMobileGetPoints(req, res) {
         LIMIT 10;
       `, [validUserIds]);
       recentSessions = recentRes.rows || [];
+
+      if (recentSessions.length === 0) {
+        try {
+          const jsonRecent = await pool.query(`
+            SELECT id, data, synced_at 
+            FROM recyclingsessions 
+            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
+               OR data->>'userId' = ANY($1::text[]) 
+               OR data->>'user_id' = ANY($1::text[])
+               OR data->>'userName' = ANY($1::text[]))
+            ORDER BY synced_at DESC LIMIT 10;
+          `, [validUserIds]).catch(() => ({ rows: [] }));
+          if (jsonRecent.rows.length > 0) {
+            recentSessions = jsonRecent.rows.map(r => {
+              const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+              return {
+                session_id: r.id || d._id,
+                machine_id: d.machineId || d.machine_id || 'RVM-01',
+                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
+                aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
+                points_earned: parseInt(d.points || d.pointsEarned || 0),
+                session_status: 'completed',
+                created_at: d.recycledAt || d.timestamp || r.synced_at
+              };
+            });
+          }
+        } catch (e) {}
+      }
     }
 
     const totalRecovered = bottles + cups + glass + paper;
@@ -3582,7 +3695,16 @@ async function handleMobileGetRecycle(req, res) {
       let validUserIds = [userId];
       if (uRes.rows.length > 0) {
         const u = uRes.rows[0];
-        validUserIds = Array.from(new Set([u.user_id, u.username, u.mobile, userId])).filter(Boolean);
+        validUserIds = Array.from(new Set([
+          u.user_id,
+          u.username,
+          u.mobile,
+          userId,
+          u.mobile ? u.mobile.replace(/[^0-9]/g, '') : null,
+          userId ? userId.replace(/[^0-9]/g, '') : null,
+          u.mobile && u.mobile.startsWith('0') ? u.mobile.substring(1) : null,
+          userId && userId.startsWith('0') ? userId.substring(1) : null
+        ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
       }
 
       const sRes = await pool.query(`
@@ -3594,7 +3716,40 @@ async function handleMobileGetRecycle(req, res) {
         ORDER BY created_at DESC
         LIMIT 100;
       `, [validUserIds]);
-      history = sRes.rows;
+      history = sRes.rows || [];
+
+      if (history.length === 0) {
+        try {
+          const jsonRes = await pool.query(`
+            SELECT id, data, synced_at 
+            FROM recyclingsessions 
+            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
+               OR data->>'userId' = ANY($1::text[]) 
+               OR data->>'user_id' = ANY($1::text[])
+               OR data->>'userName' = ANY($1::text[]))
+            ORDER BY synced_at DESC LIMIT 100;
+          `, [validUserIds]).catch(() => ({ rows: [] }));
+          if (jsonRes.rows.length > 0) {
+            history = jsonRes.rows.map(r => {
+              const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+              return {
+                session_id: r.id || d._id,
+                machine_id: d.machineId || d.machine_id || 'RVM-01',
+                user_id: d.phoneNumber || d.userId || d.user_id || userId,
+                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
+                aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
+                glass_count: parseInt(d.glassCount || 0),
+                paper_cardboard_count: parseInt(d.paperCount || 0),
+                item_variant: d.itemVariant || d.variant || 'RECYCLABLE ITEM',
+                total_weight_kg: parseFloat(d.totalWeightKg || d.weight || 0),
+                points_earned: parseInt(d.points || d.pointsEarned || 0),
+                session_status: 'completed',
+                created_at: d.recycledAt || d.timestamp || r.synced_at
+              };
+            });
+          }
+        } catch (e) {}
+      }
     }
 
     res.json({
@@ -3742,7 +3897,7 @@ app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
   res.json({ success: true, appName: 'ISP RVM Ecosystem', exportDate: new Date().toISOString() });
 });
 
-// 9. Mobile Users & Active Logins for Dashboard
+// 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL)
 app.get('/api/analytics/mobile-users', async (req, res) => {
   try {
     let usersList = [];
@@ -3754,89 +3909,126 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
       totalCups: 0
     };
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const uRes = await pool.query(`
-          SELECT 
-            u.user_id,
-            u.username,
-            u.full_name,
-            u.email,
-            u.mobile,
-            u.age,
-            u.nic,
-            u.gender,
-            u.dob,
-            u.profile_image,
-            COALESCE(u.points_balance, 0) AS points_balance,
-            COALESCE(u.is_online, FALSE) AS is_online,
-            u.last_login,
-            u.last_active,
-            u.created_at,
-            COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
-            COALESCE(SUM(aluminium_count), 0) AS total_cups,
-            COUNT(s.session_id) AS total_sessions
-          FROM users u
-          LEFT JOIN recycling_sessions s 
-            ON s.user_id = u.user_id OR s.user_id = u.mobile OR s.user_id = u.username
-          GROUP BY u.user_id
-          ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
-        `);
+    const pool = getPgPool();
+    if (pool) {
+      // 1. Fetch all citizens from PostgreSQL users table
+      const uRes = await pool.query(`
+        SELECT 
+          u.user_id,
+          u.username,
+          u.full_name,
+          u.email,
+          u.mobile,
+          u.age,
+          u.nic,
+          u.gender,
+          u.dob,
+          u.profile_image,
+          COALESCE(u.points_balance, 0) AS points_balance,
+          COALESCE(u.is_online, FALSE) AS is_online,
+          u.last_login,
+          u.last_active,
+          u.created_at
+        FROM users u
+        ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
+      `);
 
-        usersList = uRes.rows.map(u => {
-          // A user is strictly online ONLY if they sent a heartbeat/login within the last 2 minutes AND is_online is true
-          const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
-          const isOnline = Boolean(u.is_online && hasRecentHeartbeat);
+      // 2. Fetch session statistics from relational table: recycling_sessions
+      const relSessions = await pool.query(`
+        SELECT 
+          user_id, 
+          COALESCE(SUM(plastic_count), 0) AS bottles,
+          COALESCE(SUM(aluminium_count), 0) AS cups,
+          COUNT(session_id) AS sessions
+        FROM recycling_sessions
+        WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
+        GROUP BY user_id;
+      `).catch(() => ({ rows: [] }));
 
-          return {
-            id: u.user_id,
-            username: u.username,
-            fullName: u.full_name || u.username,
-            email: u.email,
-            mobile: u.mobile || '-',
-            age: u.age || 20,
-            dob: u.dob || '',
-            profileImage: u.profile_image || '',
-            isBirthday: checkIsBirthday(u.dob),
-            nic: u.nic || '-',
-            gender: u.gender || 'male',
-            points: parseInt(u.points_balance || 0),
-            bottles: parseInt(u.total_bottles || 0),
-            cups: parseInt(u.total_cups || 0),
-            sessions: parseInt(u.total_sessions || 0),
-            isOnline,
-            lastLogin: u.last_login || null,
-            lastActive: u.last_active || null,
-            createdAt: u.created_at
-          };
-        });
+      // 3. Fetch session statistics from JSONB table: recyclingsessions
+      const jsonSessions = await pool.query(`
+        SELECT 
+          COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') AS user_key,
+          COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS bottles,
+          COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS cups,
+          COUNT(id) AS sessions
+        FROM recyclingsessions
+        WHERE (data->>'phoneNumber' IS NOT NULL OR data->>'userId' IS NOT NULL OR data->>'user_id' IS NOT NULL OR data->>'userName' IS NOT NULL)
+          AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') NOT IN ('anonymous', '', 'null')
+        GROUP BY user_key;
+      `).catch(() => ({ rows: [] }));
 
-        stats.totalUsers = usersList.length;
-        stats.onlineNow = usersList.filter(u => u.isOnline).length;
-        stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
-        stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
-        stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
-      }
-    } else if (db) {
-      const users = await db.collection('users').find({}).toArray();
-      usersList = users.map(u => ({
-        id: u._id,
-        username: u.username || u.name,
-        fullName: u.fullName || u.username,
-        email: u.email,
-        mobile: u.mobile || u.phoneNumber || '-',
-        points: u.points || 0,
-        bottles: 0,
-        cups: 0,
-        sessions: 0,
-        isOnline: Boolean(u.isOnline),
-        lastLogin: u.lastLogin || u.createdAt,
-        lastActive: u.lastActive || u.createdAt,
-        createdAt: u.createdAt
-      }));
+      // Map sessions to normalized phone/id keys (handling leading zeros: 03214424625 vs 3214424625)
+      const userSessionMap = {};
+      const addStats = (key, b, c, s) => {
+        if (!key) return;
+        const clean = String(key).trim().toLowerCase();
+        const norm = clean.replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
+        if (!norm) return;
+        if (!userSessionMap[norm]) {
+          userSessionMap[norm] = { bottles: 0, cups: 0, sessions: 0 };
+        }
+        userSessionMap[norm].bottles += parseInt(b || 0);
+        userSessionMap[norm].cups += parseInt(c || 0);
+        userSessionMap[norm].sessions += parseInt(s || 0);
+      };
+
+      relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.sessions));
+      jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.sessions));
+
+      usersList = uRes.rows.map(u => {
+        const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
+        const isOnline = Boolean(u.is_online && hasRecentHeartbeat);
+
+        const keysToCheck = [
+          u.user_id,
+          u.username,
+          u.mobile,
+          u.email
+        ].filter(Boolean);
+
+        let userBottles = 0;
+        let userCups = 0;
+        let userSessions = 0;
+
+        for (const k of keysToCheck) {
+          const norm = String(k).trim().toLowerCase().replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
+          if (norm && userSessionMap[norm]) {
+            userBottles += userSessionMap[norm].bottles;
+            userCups += userSessionMap[norm].cups;
+            userSessions += userSessionMap[norm].sessions;
+            delete userSessionMap[norm];
+          }
+        }
+
+        return {
+          id: u.user_id,
+          username: u.username,
+          fullName: u.full_name || u.username,
+          email: u.email,
+          mobile: u.mobile || '-',
+          age: u.age || 20,
+          dob: u.dob || '',
+          profileImage: u.profile_image || '',
+          isBirthday: checkIsBirthday(u.dob),
+          nic: u.nic || '-',
+          gender: u.gender || 'male',
+          points: parseInt(u.points_balance || 0),
+          bottles: userBottles,
+          cups: userCups,
+          sessions: userSessions,
+          isOnline,
+          lastLogin: u.last_login || null,
+          lastActive: u.last_active || null,
+          createdAt: u.created_at
+        };
+      });
+
       stats.totalUsers = usersList.length;
       stats.onlineNow = usersList.filter(u => u.isOnline).length;
+      stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
+      stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
+      stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
     }
 
     res.json({
