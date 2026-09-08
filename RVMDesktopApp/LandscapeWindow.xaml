@@ -193,7 +193,7 @@
                 <!-- ROW 2: CENTER SECTION -->
                 <Grid Grid.Row="2" Margin="0,0,0,5">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="2.28*"/> <!-- Left: Insert Bottle + Live Container Breakdown (Enlarged +15% Width) -->
                         <ColumnDefinition Width="10"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
@@ -201,32 +201,32 @@
                     <!-- LEFT: INSERT BOTTLE / LIVE INSTRUCTION VIDEO + LIVE SESSION CONTAINER BREAKDOWN -->
                     <Grid Grid.Column="0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/> <!-- 1. Insert Bottle / Video (Enlarged +15% Height) -->
+                            <RowDefinition Height="5"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Insert Bottle (EXACT 16:9 BEST FIT) -->
-                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="220" CornerRadius="8" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                        <!-- Insert Bottle (ENLARGED +15% to 380px HEIGHT & WIDTH) -->
+                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="380" CornerRadius="14" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                             <Grid>
                                 <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                 <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                         <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                             <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Ellipse Width="190" Height="190" Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
-                                                <Ellipse Width="176" Height="176" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.5"/>
-                                                <Ellipse Width="160" Height="160" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.2"/>
+                                                <Ellipse Width="322" Height="322" Stroke="#CBD5E1" StrokeThickness="1.4" StrokeDashArray="3 3"/>
+                                                <Ellipse Width="299" Height="299" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.8"/>
+                                                <Ellipse Width="274" Height="274" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.4"/>
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                        <TextBlock Text="INSERT • " FontSize="14" FontWeight="Black" Foreground="#073B28"/>
-                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="14.5" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="INSERT • " FontSize="21" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="23" FontWeight="Black" Foreground="#073B28"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="8.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,5"/>
-                                                    <Border Background="#073B28" CornerRadius="10" Padding="14,3.5" HorizontalAlignment="Center">
+                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,9"/>
+                                                    <Border Background="#073B28" CornerRadius="16" Padding="20,6" HorizontalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="START • " FontSize="9.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="START • " FontSize="14.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="15.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
@@ -242,17 +242,44 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <Grid Grid.Row="0" Margin="0,0,0,5">
+                                <Grid Grid.Row="0" Margin="0,0,0,4">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="📊 " FontSize="10" VerticalAlignment="Center"/>
                                         <TextBlock Text="SESSION DETAILS • " FontSize="9" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                         <TextBlock Text="سیشن کی تفصیل" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Grid>
-                                <Grid Grid.Row="2" VerticalAlignment="Bottom">
+
+                                <!-- YOUR REWARD BALANCE IN SESSION DETAILS -->
+                                <Border Grid.Row="1" Background="#F4F8F1" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,1,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="🎁 " FontSize="11" VerticalAlignment="Center"/>
+                                            <TextBlock Text="REWARD BALANCE • " FontSize="9" FontWeight="Bold" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#15803D" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock x:Name="TotalPointsText" Text="0" FontSize="18" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text=" Pts" FontSize="9" FontWeight="Bold" Foreground="#15803D" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="3" Background="#073B28" Foreground="White" Padding="6,2" Cursor="Hand" Click="ViewRewardsButton_Click" VerticalAlignment="Center">
+                                            <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
+                                            <TextBlock Text="REDEEM 🎁" FontSize="8" FontWeight="Bold" Foreground="White"/>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <Grid Grid.Row="3" VerticalAlignment="Bottom">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
                                         <ColumnDefinition Width="*"/><ColumnDefinition Width="4"/>
@@ -369,13 +396,13 @@
 
                     <Grid Grid.Column="2">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/> <!-- How To Use (Exact Same Height 220 as Video Player) -->
+                            <RowDefinition Height="Auto"/> <!-- How To Use (Exact Same Height 380 as Video Player) -->
                             <RowDefinition Height="4"/>
                             <RowDefinition Height="*"/>    <!-- Top 5 Leaderboard + Flashing Last Recycler -->
                         </Grid.RowDefinitions>
 
-                        <!-- Bilingual How To Use RVM with Teal Glassmorphism & Yellow Icons (EXACT SAME SIZE AS VIDEO PLAYER) -->
-                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="220" CornerRadius="10" Padding="10,5" BorderThickness="1.2" Effect="{StaticResource TealGlassShadow}">
+                        <!-- Bilingual How To Use RVM with Teal Glassmorphism & Yellow Icons (EXACT SAME SIZE 380 AS VIDEO PLAYER) -->
+                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="380" CornerRadius="12" Padding="10,6" BorderThickness="1.2" Effect="{StaticResource TealGlassShadow}">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="#EB0F766E" Offset="0.0"/>
@@ -529,58 +556,11 @@
                         </Grid>
                     </Grid>
 
-                <!-- ROW 3: BOTTOM CARDS (EXACT SAME WIDTH & ALIGNMENT AS ROW 2) -->
-                <Grid Grid.Row="3" Margin="0,0,0,5" Height="195">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- LEFT: YOUR IMPACT CARD (195px) -->
-                    <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E8EFE5" BorderThickness="1" CornerRadius="10" Padding="14,10" Effect="{StaticResource CardShadow}">
-                        <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="YOUR IMPACT 🍃 " FontSize="11.5" FontWeight="Black" Foreground="#073B28"/>
-                                <TextBlock Text="ماحولیاتی فوائد" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#073B28"/>
-                            </StackPanel>
-                            <UniformGrid Grid.Row="1" Columns="1" Rows="3">
-                                <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌱 " FontSize="16" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Bottles Recycled (بوتلیں)" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="TotalItemsText" Text="0" FontSize="22" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/></Grid>
-                                <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="🌳 " FontSize="16" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="CO₂ Saved kg (کاربن بچت)" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="Co2SavedText" Text="0.00" FontSize="22" FontWeight="Black" Foreground="#0F766E" VerticalAlignment="Center"/></Grid>
-                                <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="💧 " FontSize="16" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Water Saved L (پانی کی بچت)" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#334155"/></StackPanel><TextBlock Grid.Column="2" x:Name="WaterSavedText" Text="0.00" FontSize="22" FontWeight="Black" Foreground="#1D4ED8" VerticalAlignment="Center"/></Grid>
-                            </UniformGrid>
-                        </Grid>
-                    </Border>
-
-                    <!-- RIGHT: YOUR BALANCE CARD (195px) -->
-                    <Border Grid.Column="2" Background="#F4F8F1" BorderBrush="#E2EBE0" BorderThickness="1" CornerRadius="10" Padding="14,10" Effect="{StaticResource CardShadow}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0" HorizontalAlignment="Left">
-                                <TextBlock Text="REWARD BALANCE 🎁" FontSize="11" FontWeight="Bold" Foreground="#64748B"/>
-                                <TextBlock Text="پوائنٹس بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#64748B"/>
-                            </StackPanel>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,10,0">
-                                <TextBlock x:Name="TotalPointsText" Text="0" FontSize="36" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Right" TextAlignment="Right"/>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
-                                    <TextBlock Text="POINTS • " FontSize="10" FontWeight="Bold" Foreground="#15803D"/>
-                                    <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D"/>
-                                </StackPanel>
-                            </StackPanel>
-                            <Button Grid.Row="2" HorizontalAlignment="Left" Background="#073B28" Foreground="White" Padding="14,5" Cursor="Hand" Click="ViewRewardsButton_Click">
-                                <Button.Template><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Button.Template>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="REDEEM • " FontSize="10" FontWeight="Bold" Foreground="White"/>
-                                    <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="White"/>
-                                </StackPanel>
-                            </Button>
-                        </Grid>
-                    </Border>
+                <!-- ROW 3: COLLAPSED (ENVIRONMENTAL IMPACT HIDDEN, REWARD BALANCE INTEGRATED INTO SESSION DETAILS) -->
+                <Grid Grid.Row="3" Visibility="Collapsed">
+                    <TextBlock x:Name="Co2SavedText" Text="0.00"/>
+                    <TextBlock x:Name="WaterSavedText" Text="0.00"/>
+                    <TextBlock x:Name="TotalItemsText" Text="0"/>
                 </Grid>
             </Grid>
         </Border>
