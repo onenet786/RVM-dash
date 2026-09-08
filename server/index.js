@@ -273,7 +273,22 @@ async function initProductionPostgresSchemas() {
       UPDATE users 
       SET is_online = FALSE 
       WHERE last_active IS NULL OR last_active < NOW() - INTERVAL '2 minutes';
-    `);
+
+      -- Auto-migrate legacy 3214424625 fallback user and sessions to official fallback 08884424625
+      UPDATE recycling_sessions 
+      SET user_id = '08884424625' 
+      WHERE user_id = '3214424625';
+
+      DELETE FROM users 
+      WHERE user_id = '3214424625' 
+         OR username = '3214424625' 
+         OR mobile = '3214424625' 
+         OR email = '3214424625@rvm-dash.io';
+
+      INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
+      VALUES ('08884424625', '08884424625', 'Fallback Kiosk Citizen', '08884424625', 'fallback@rvm-dash.io', 0, 'fleet_operator', 'active')
+      ON CONFLICT (user_id) DO NOTHING;
+    `).catch(err => console.warn('[PostgreSQL Fallback User Cleanup Warning]', err.message));
 
     // 4. Downstream Points Config Table
     await pool.query(`
@@ -3930,6 +3945,9 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           u.last_active,
           u.created_at
         FROM users u
+        WHERE u.user_id != '3214424625' 
+          AND u.username != '3214424625' 
+          AND (u.mobile IS NULL OR u.mobile != '3214424625')
         ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
       `);
 
@@ -3962,7 +3980,9 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
       const userSessionMap = {};
       const addStats = (key, b, c, s) => {
         if (!key) return;
-        const clean = String(key).trim().toLowerCase();
+        let clean = String(key).trim().toLowerCase();
+        // Redirect any legacy fallback 3214424625 sessions to 08884424625 so it never steals stats from 03214424625
+        if (clean === '3214424625') clean = '08884424625';
         const norm = clean.replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
         if (!norm) return;
         if (!userSessionMap[norm]) {
@@ -4230,14 +4250,20 @@ app.post('/api/machine/sync-session', async (req, res) => {
       else variant = `${totalBottles}x ${bSize} RECYCLABLE ITEM`;
     }
 
+    let cleanUserId = (userId || req.body.mobileNumber || '').toString().trim();
+    // Intercept legacy fallback 3214424625 or empty/anonymous -> force to official fallback 08884424625
+    if (!cleanUserId || cleanUserId === 'anonymous' || cleanUserId === 'null' || cleanUserId === 'undefined' || cleanUserId === '3214424625') {
+      cleanUserId = '08884424625';
+    }
+
     const sessionDoc = {
       _id: sessionId,
       session_id: sessionId,
       machineId: machineId || 'RVM-001',
       machine_id: machineId || 'RVM-001',
-      userId: userId || 'anonymous',
-      user_id: userId || 'anonymous',
-      mobile_number: userId || 'anonymous',
+      userId: cleanUserId,
+      user_id: cleanUserId,
+      mobile_number: cleanUserId,
       bottles: totalBottles,
       totalBottles: totalBottles,
       cups: 0,
@@ -4317,7 +4343,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, 'completed')
           ON CONFLICT (session_id) DO UPDATE SET 
-            user_id = CASE WHEN EXCLUDED.user_id != 'anonymous' AND EXCLUDED.user_id != '' THEN EXCLUDED.user_id ELSE recycling_sessions.user_id END,
+            user_id = CASE WHEN EXCLUDED.user_id != 'anonymous' AND EXCLUDED.user_id != '' AND EXCLUDED.user_id != '3214424625' THEN EXCLUDED.user_id ELSE recycling_sessions.user_id END,
             plastic_count = EXCLUDED.plastic_count,
             aluminium_count = EXCLUDED.aluminium_count,
             paper_cardboard_count = EXCLUDED.paper_cardboard_count,
@@ -4340,7 +4366,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
             points_earned = EXCLUDED.points_earned,
             session_status = 'completed';
         `, [
-          sessionId, machineId, userId || 'anonymous',
+          sessionId, machineId, cleanUserId,
           plasticCount, aluminiumCount, paperCardboardCount, glassCount,
           pSmall, pMedium, pLarge,
           cSmall, cMedium, cLarge,
@@ -4350,12 +4376,12 @@ app.post('/api/machine/sync-session', async (req, res) => {
         ]);
 
         // 3. Upsert user points
-        if (userId && userId !== 'anonymous') {
+        if (cleanUserId && cleanUserId !== 'anonymous') {
           const userCheck = await pool.query(`
             SELECT user_id, points_balance FROM users
             WHERE user_id = $1 OR mobile = $1 OR email = $1 OR username = $1
             LIMIT 1;
-          `, [userId]);
+          `, [cleanUserId]);
 
           if (userCheck.rows.length > 0) {
             const existingUid = userCheck.rows[0].user_id;
@@ -4365,11 +4391,14 @@ app.post('/api/machine/sync-session', async (req, res) => {
               WHERE user_id = $2;
             `, [pointsEarned, existingUid]);
           } else {
+            const isFallback = (cleanUserId === '08884424625');
+            const fullName = isFallback ? 'Fallback Kiosk Citizen' : cleanUserId;
+            const email = isFallback ? 'fallback@rvm-dash.io' : `${cleanUserId}@rvm-dash.io`;
             await pool.query(`
               INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
-              VALUES ($1, $1, $1, $1, $2, $3, 'fleet_operator', 'active')
+              VALUES ($1, $1, $2, $1, $3, $4, 'fleet_operator', 'active')
               ON CONFLICT (user_id) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance;
-            `, [userId, `${userId}@rvm-dash.io`, pointsEarned]);
+            `, [cleanUserId, fullName, email, pointsEarned]);
           }
         }
       }
@@ -4409,7 +4438,8 @@ app.post('/api/machine/feedback', async (req, res) => {
       sessionId
     } = req.body;
 
-    const phone = (phoneNumber && phoneNumber !== 'anonymous') ? phoneNumber : (mobileNumber || 'anonymous');
+    let phone = (phoneNumber && phoneNumber !== 'anonymous') ? phoneNumber : (mobileNumber || '08884424625');
+    if (phone === '3214424625' || phone === 'anonymous' || !phone) phone = '08884424625';
     const numRating = parseInt(rating) || 5;
     const ratingLabels = {
       1: 'Very Bad (1)',
@@ -5649,7 +5679,11 @@ app.post('/api/session/claim-points', async (req, res) => {
     }
 
     const pointsEarned = session.points;
-    let displayName = userIdentifier;
+    let cleanUserIdentifier = (userIdentifier || '').toString().trim();
+    if (cleanUserIdentifier === '3214424625' || !cleanUserIdentifier || cleanUserIdentifier === 'anonymous') {
+      cleanUserIdentifier = '08884424625';
+    }
+    let displayName = cleanUserIdentifier;
     let newBalance = pointsEarned;
 
     // A. Update PostgreSQL if enabled
@@ -5662,11 +5696,11 @@ app.post('/api/session/claim-points', async (req, res) => {
           FROM users 
           WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
           LIMIT 1;
-        `, [userIdentifier]);
+        `, [cleanUserIdentifier]);
 
         if (userCheck.rows.length > 0) {
           const u = userCheck.rows[0];
-          displayName = u.full_name || u.username || userIdentifier;
+          displayName = u.full_name || u.username || cleanUserIdentifier;
           newBalance = (Number(u.points_balance) || 0) + pointsEarned;
           await pool.query(`
             UPDATE users 
@@ -5675,10 +5709,12 @@ app.post('/api/session/claim-points', async (req, res) => {
           `, [newBalance, u.user_id]);
         } else {
           newBalance = pointsEarned;
+          const isFallback = (cleanUserIdentifier === '08884424625');
+          const fullName = isFallback ? 'Fallback Kiosk Citizen' : cleanUserIdentifier;
           await pool.query(`
             INSERT INTO users (user_id, username, full_name, mobile, points_balance, role, is_active, created_at, last_active)
-            VALUES ($1, $1, $1, $1, $2, 'user', true, NOW(), NOW());
-          `, [userIdentifier, newBalance]);
+            VALUES ($1, $1, $2, $1, $3, 'user', true, NOW(), NOW());
+          `, [cleanUserIdentifier, fullName, newBalance]);
         }
 
         // Write recycling session
@@ -5695,7 +5731,7 @@ app.post('/api/session/claim-points', async (req, res) => {
             points_earned = EXCLUDED.points_earned,
             session_status = 'completed';
         `, [
-          session.sessionId, session.machineId, userIdentifier,
+          session.sessionId, session.machineId, cleanUserIdentifier,
           session.plasticCount, session.aluminiumCount, session.paperCardboardCount, session.glassCount,
           session.plasticSmallCount, session.plasticMediumCount, session.plasticLargeCount,
           session.canSmallCount, session.canMediumCount, session.canLargeCount,
