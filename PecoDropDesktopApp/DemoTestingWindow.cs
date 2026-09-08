@@ -80,6 +80,15 @@ public sealed class DemoTestingWindow : Window
         UpdateDisplayState();
     }
 
+    public static void CloseIfOpen()
+    {
+        if (_instance != null && _instance.IsLoaded)
+        {
+            try { _instance.Close(); } catch { }
+            _instance = null;
+        }
+    }
+
     public static DemoTestingWindow OpenOrBringToFront(IKioskSimulatorTarget target)
     {
         if (_instance != null && _instance.IsLoaded)

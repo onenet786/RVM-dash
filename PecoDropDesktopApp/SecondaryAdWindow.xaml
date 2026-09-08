@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" ShowInTaskbar="False"
-        Background="#03120A" Title="PecoDrop Digital Signage">
+        Background="#03120A" Title="PecoDrop Digital Signage"
+        PreviewKeyDown="Window_KeyDown">
 
     <Window.Resources>
         <FontFamily x:Key="UrduFont">Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Tahoma, Segoe UI</FontFamily>

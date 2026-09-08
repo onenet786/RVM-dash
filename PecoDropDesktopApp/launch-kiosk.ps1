@@ -18,7 +18,8 @@
 param(
     [int]$ScreenIndex = 0,
     [string]$ExePath = "",
-    [switch]$Demo = $false
+    [switch]$Demo = $false,
+    [switch]$BothOnPrimary = $false
 )
 
 # 1. Load Windows Forms to query connected displays
@@ -30,7 +31,6 @@ $Win32Signature = @"
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Text;
 
 public class Win32PecoMultiDisplay {
@@ -81,6 +81,7 @@ public class Win32PecoMultiDisplay {
 "@
 
 if (-not ([System.Management.Automation.PSTypeName]'Win32PecoMultiDisplay').Type) {
+    Add-Type -TypeDefinition $Win32Signature
 }
 
 Write-Host "=================================================" -ForegroundColor Green
@@ -174,8 +175,6 @@ $launchArgs = if ($Demo) { "--landscape --demo" } else { "--landscape" }
 Write-Host "[LAUNCH] Starting PecoDropDesktopApp in LANDSCAPE MODE with args: $launchArgs..." -ForegroundColor Cyan
 $process = Start-Process -FilePath $ExePath -ArgumentList $launchArgs -WorkingDirectory (Split-Path $ExePath) -PassThru
 
-# 6. Wait for MainWindowHandle to be created
-$hwnd = [IntPtr]::Zero
 # 6. Wait for windows to be created
 $timeoutSec = 10
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -253,7 +252,7 @@ else {
     }
     Write-Host "=================================================" -ForegroundColor Green
     Write-Host "  Single Laptop / PC display mode active:" -ForegroundColor Yellow
-    Write-Host "  - Left side:  Main Kiosk (Leaderboard 50% + Details 50%)" -ForegroundColor Cyan
+    Write-Host "  - Left side:  Main Kiosk (Details 50% Left + Leaderboard 50% Right)" -ForegroundColor Cyan
     Write-Host "  - Right side: Secondary Digital Signage & Commercial Advertisements" -ForegroundColor Cyan
     Write-Host "  - HDMI second display LED is kept untouched." -ForegroundColor Yellow
 }

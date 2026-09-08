@@ -3343,11 +3343,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
+      "projectUniqueName": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
       "projectName": "CaptureScreenshots",
-      "projectPath": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
+      "projectPath": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
       "packagesPath": "C:\\Users\\BIN ISHAQ\\.nuget\\packages\\",
-      "outputPath": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\obj\\",
+      "outputPath": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\BIN ISHAQ\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -3362,8 +3362,8 @@
         "net8.0-windows7.0": {
           "targetAlias": "net8.0-windows",
           "projectReferences": {
-            "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
-              "projectPath": "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj"
+            "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
+              "projectPath": "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj"
             }
           }
         }

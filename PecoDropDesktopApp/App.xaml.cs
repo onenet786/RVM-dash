@@ -79,7 +79,7 @@ public partial class App : Application
             double workW = SystemParameters.WorkArea.Width;
             double workH = SystemParameters.WorkArea.Height;
 
-            // 65% for Main Kiosk (Leaderboard 50% + Details 50%), 35% for Ad Player
+            // 65% for Main Kiosk (Details 50% Left + Leaderboard 50% Right), 35% for Ad Player
             double kioskW = Math.Round(workW * 0.65);
             double adW = workW - kioskW;
 
@@ -223,6 +223,18 @@ public partial class App : Application
 
         try
         {
+            HeartbeatService.Stop();
+        }
+        catch { }
+
+        try
+        {
+            DemoTestingWindow.CloseIfOpen();
+        }
+        catch { }
+
+        try
+        {
             singleInstanceMutex?.ReleaseMutex();
             singleInstanceMutex?.Dispose();
             singleInstanceMutex = null;
@@ -230,6 +242,8 @@ public partial class App : Application
         catch { }
 
         base.OnExit(e);
+
+        Environment.Exit(0);
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

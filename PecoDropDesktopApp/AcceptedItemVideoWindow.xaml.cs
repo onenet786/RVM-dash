@@ -86,6 +86,19 @@ public partial class AcceptedItemVideoWindow : Window
         }
     }
 
+    public static void CloseIfOpen()
+    {
+        try
+        {
+            if (current != null)
+            {
+                current.Close();
+                current = null;
+            }
+        }
+        catch { }
+    }
+
     private void CelebrationPlayer_MediaEnded(object sender, RoutedEventArgs e) => Close();
     private void CelebrationPlayer_MediaFailed(object sender, ExceptionRoutedEventArgs e) => Close();
     private void SafetyTimer_Tick(object? sender, EventArgs e) => Close();

@@ -80,17 +80,36 @@ public sealed class DemoTestingWindow : Window
         UpdateDisplayState();
     }
 
+    public static void CloseIfOpen()
+    {
+        if (_instance != null && _instance.IsLoaded)
+        {
+            try { _instance.Close(); } catch { }
+            _instance = null;
+        }
+
+    }
+
     public static DemoTestingWindow OpenOrBringToFront(IKioskSimulatorTarget target)
     {
         if (_instance != null && _instance.IsLoaded)
         {
+            if (_instance.WindowState == WindowState.Minimized)
+            {
+                _instance.WindowState = WindowState.Normal;
+            }
             _instance.Activate();
             _instance.Focus();
             return _instance;
         }
 
-        _instance = new DemoTestingWindow(target);
+        _instance = new DemoTestingWindow(target)
+        {
+            Owner = target.AsWindow
+        };
         _instance.Show();
+        _instance.Activate();
+        _instance.Focus();
         return _instance;
     }
 
@@ -253,7 +272,7 @@ public sealed class DemoTestingWindow : Window
         // ---------------------------------------------------------
         // STEP 1: PRESS 0 TO START SESSION
         // ---------------------------------------------------------
-        controlsStack.Children.Add(CreateSectionHeader("STEP 1: START OR STOP SESSION", "Keypad: [ 0 ] Start • [ Ctrl+S ] Stop"));
+        controlsStack.Children.Add(CreateSectionHeader("STEP 1: START OR STOP SESSION", "Keypad: [ 001 ] Demo Start • [ 0 ] Hardware Start • [ S ] Stop"));
 
         _btnStartStop.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105)); // Emerald 600
         _btnStartStop.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
@@ -263,11 +282,11 @@ public sealed class DemoTestingWindow : Window
         _btnStartStop.Margin = new Thickness(0, 2, 0, 6);
 
         var startStopContent = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        _txtStartStopLabel.Text = "▶ [ 0 ] START RECYCLING SESSION";
+        _txtStartStopLabel.Text = "▶ [ 001 ] START DEMO SESSION";
         _txtStartStopLabel.FontSize = 13;
         _txtStartStopLabel.FontWeight = FontWeights.Black;
         _txtStartStopLabel.Foreground = Brushes.White;
-        _txtStartStopSub.Text = "  (Press 0 or click here to activate machine)";
+        _txtStartStopSub.Text = "  (Type 001 or click here to activate demo)";
         _txtStartStopSub.FontSize = 10.5;
         _txtStartStopSub.Foreground = new SolidColorBrush(Color.FromRgb(209, 250, 229));
         _txtStartStopSub.VerticalAlignment = VerticalAlignment.Center;
@@ -804,13 +823,13 @@ public sealed class DemoTestingWindow : Window
             else
             {
                 _statusBadgeBorder.Background = new SolidColorBrush(Color.FromRgb(30, 41, 59));
-                _statusBadgeText.Text = "⚪ STANDBY (PRESS 0 TO START)";
+                _statusBadgeText.Text = "⚪ STANDBY (TYPE 001 FOR DEMO • 0 FOR HARDWARE)";
                 _statusBadgeText.Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184));
 
                 _btnStartStop.Background = new SolidColorBrush(Color.FromRgb(5, 150, 105));
                 _btnStartStop.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
-                _txtStartStopLabel.Text = "▶ [ 0 ] START RECYCLING SESSION";
-                _txtStartStopSub.Text = "  (Press 0 or click here)";
+                _txtStartStopLabel.Text = "▶ [ 001 ] START DEMO SESSION";
+                _txtStartStopSub.Text = "  (Type 001 or click here)";
             }
         });
     }

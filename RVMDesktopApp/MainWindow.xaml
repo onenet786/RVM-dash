@@ -3,7 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowState="Maximized" WindowStyle="None" ShowInTaskbar="True"
         Icon="pack://application:,,,/RVMDesktopApp;component/Assets/RvmIcon.ico"
-        Background="#F7F9F5" PreviewKeyDown="Window_KeyDown">
+        Background="#F7F9F5" PreviewKeyDown="Window_KeyDown"
+        PreviewMouseDown="Window_UserActivity" PreviewMouseMove="Window_MouseMoveActivity"
+        PreviewTouchDown="Window_UserActivity">
     
     <Window.Resources>
         <!-- Modern Natural Eco Palette -->
@@ -78,18 +80,18 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="MainRootGrid" ClipToBounds="True">
         <Grid.RowDefinitions>
             <!-- TOP 67%: Interactive Kiosk Dashboard (Expanded to provide generous vertical room) -->
-            <RowDefinition Height="67*"/>
+            <RowDefinition x:Name="TopDashboardRow" Height="67*"/>
             <!-- BOTTOM 33%: Cinematic Digital Signage Video Screen & Eco Bar -->
-            <RowDefinition Height="33*"/>
+            <RowDefinition x:Name="BottomSignageRow" Height="33*"/>
         </Grid.RowDefinitions>
 
         <!-- ========================================================================= -->
         <!-- TOP HALF: THE COMPLETE INTERACTIVE KIOSK DASHBOARD                        -->
         <!-- ========================================================================= -->
-        <Border Grid.Row="0" Background="#F7F9F5" Padding="24,10,24,6" BorderBrush="#E2E8F0" BorderThickness="0,0,0,2">
+        <Border Grid.Row="0" Background="#F7F9F5" Padding="24,10,24,6" BorderBrush="#E2E8F0" BorderThickness="0,0,0,2" ClipToBounds="True">
             <Grid>
                 <!-- Decorative Corner Leaf Art -->
                 <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" Width="100" Height="80" IsHitTestVisible="False" Opacity="0.30">
@@ -99,14 +101,14 @@
 
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- Row 0: Top Header -->
-                        <RowDefinition Height="Auto"/> <!-- Row 1: Hardware Status Card Bar -->
-                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers) -->
+                        <RowDefinition x:Name="HeaderRowDef" Height="Auto"/> <!-- Row 0: Top Header -->
+                        <RowDefinition x:Name="HardwareStatusRowDef" Height="Auto"/> <!-- Row 1: Hardware Status Card Bar -->
+                        <RowDefinition x:Name="MainContentRowDef" Height="*"/>    <!-- Row 2: Center Section (Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers) -->
                         <RowDefinition Height="Auto"/> <!-- Row 3: Bottom Cards (Side-by-Side: Your Environmental Impact & Your Reward Balance - Same Height!) -->
                     </Grid.RowDefinitions>
 
                     <!-- ROW 0: TOP HEADER BAR -->
-                    <Grid Grid.Row="0" Margin="0,0,0,8" MinHeight="68">
+                    <Grid x:Name="TopHeaderGrid" Grid.Row="0" Margin="0,0,0,8" MinHeight="68">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -175,7 +177,7 @@
                     </Grid>
 
                     <!-- ROW 1: HARDWARE & MACHINE DIAGNOSTICS WIDGET -->
-                    <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Margin="0,0,0,6" Effect="{StaticResource CardShadow}">
+                    <Border x:Name="HardwareStatusBar" Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="8" Padding="12,5" Margin="0,0,0,6" Effect="{StaticResource CardShadow}">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -246,19 +248,22 @@
                     <Grid Grid.Row="2" Margin="0,0,0,8">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/> <!-- 1. FULL WIDTH INSTRUCTIONAL VIDEO WIDGET (EXACT 16:9) -->
-                            <RowDefinition Height="6"/>
-                            <RowDefinition Height="Auto"/> <!-- 2. BILINGUAL HOW TO USE RVM (DIRECTLY UNDER THE VIDEO) -->
-                            <RowDefinition Height="6"/>
-                            <RowDefinition Height="*"/>    <!-- 3. LIVE SESSION BREAKDOWN + TOP 5 LEADERBOARD -->
+                            <RowDefinition x:Name="HowToUseSpacerRow1" Height="10"/>
+                            <RowDefinition x:Name="HowToUseRow" Height="Auto"/> <!-- 2. BILINGUAL HOW TO USE RVM (DIRECTLY UNDER THE VIDEO) -->
+                            <RowDefinition x:Name="HowToUseSpacerRow2" Height="6"/>
+                            <RowDefinition x:Name="LowerDashboardRow" Height="*"/>    <!-- 3. LIVE SESSION BREAKDOWN + TOP 5 LEADERBOARD -->
                         </Grid.RowDefinitions>
 
                         <!-- 1. FULL WIDTH INSTRUCTION VIDEO PLAYER & PLACEHOLDER (EXACT 16:9 FIT - ZERO LETTERBOXING) -->
-                        <Border Grid.Row="0" HorizontalAlignment="Stretch" Height="490" CornerRadius="16" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
-                            <Grid>
+                        <Border x:Name="InstructionContainer" Grid.Row="0" HorizontalAlignment="Stretch" Height="490" CornerRadius="16" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.5" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                            <Grid ClipToBounds="True" RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform>
+                                    <ScaleTransform x:Name="InstructionContainerScale" ScaleX="1.0" ScaleY="1.0"/>
+                                </Grid.RenderTransform>
                                 <!-- Video Player: Stretches across full width 16:9 container with zero blank space -->
                                 <MediaElement x:Name="InstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
                                 
-                                <!-- Placeholder (When video is stopped or loading) -->
+                                <!-- Placeholder (When video is stopped or loading in idle mode) -->
                                 <Grid x:Name="InstructionPlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                         <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -295,11 +300,291 @@
                                         </Border>
                                     </Button>
                                 </Grid>
+
+                                <!-- ========================================================================= -->
+                                <!-- 1. STATE: PLEASE INSERT BOTTLE / CAN / UBC (SHOWN WHEN USER PRESSES 0)    -->
+                                <!-- ========================================================================= -->
+                                <Grid x:Name="PleaseInsertOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Border Background="#071E16" BorderBrush="#22C55E" BorderThickness="2">
+                                        <Grid>
+                                            <Ellipse Width="650" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#0D3B2C" Opacity="0.6">
+                                                <Ellipse.Effect>
+                                                    <BlurEffect Radius="60"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+
+                                            <Grid Margin="24,16">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Header Title -->
+                                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,2,0,6">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Border Background="#16A34A" CornerRadius="8" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="READY" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        </Border>
+                                                        <TextBlock Text="PLEASE INSERT BOTTLE / CAN / UBC" FontSize="26" FontWeight="Black" Foreground="#4ADE80" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="برائے مہربانی بوتل، کین یا یو بی سی اندر داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="23" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Center: Visual Guide & Target Deposit Port -->
+                                                <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="280"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Left Items: Bottle & Can -->
+                                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,24,0">
+                                                        <Border Background="#0D2D21" BorderBrush="#10B981" BorderThickness="1.5" CornerRadius="14" Padding="14,10" Margin="0,0,0,10" Effect="{StaticResource CardShadow}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="🧴" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="PLASTIC BOTTLE" FontSize="14" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                    <TextBlock Text="PET / HDPE • پلاسٹک بوتل" FontSize="11" FontWeight="SemiBold" Foreground="#A7F3D0"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Background="#0D2D21" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="14" Padding="14,10" Effect="{StaticResource CardShadow}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="🥫" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="ALUMINIUM CAN" FontSize="14" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                    <TextBlock Text="Beverage Can • ایلومینیم کین" FontSize="11" FontWeight="SemiBold" Foreground="#BAE6FD"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+
+                                                    <!-- Center: Animated Insert Chamber Portal -->
+                                                    <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Ellipse Width="190" Height="190" Stroke="#22C55E" StrokeThickness="2.5" StrokeDashArray="6 3">
+                                                            <Ellipse.RenderTransform>
+                                                                <RotateTransform x:Name="InsertRingRotate" Angle="0" CenterX="95" CenterY="95"/>
+                                                            </Ellipse.RenderTransform>
+                                                        </Ellipse>
+                                                        <Ellipse Width="165" Height="165" Fill="#051911" Stroke="#16A34A" StrokeThickness="3"/>
+                                                        <Ellipse Width="140" Height="140" Fill="#0B2F22"/>
+
+                                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock x:Name="InsertArrowIcon" Text="⬇" FontSize="38" FontWeight="Black" Foreground="#4ADE80" HorizontalAlignment="Center">
+                                                                <TextBlock.RenderTransform>
+                                                                    <TranslateTransform x:Name="InsertArrowBounce" Y="0"/>
+                                                                </TextBlock.RenderTransform>
+                                                            </TextBlock>
+                                                            <TextBlock Text="DEPOSIT HERE" FontSize="12" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                            <TextBlock Text="یہاں داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="14" FontWeight="Bold" Foreground="#FDE047" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <!-- Right Items: UBC & One-by-one guide -->
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="24,0,0,0">
+                                                        <Border Background="#0D2D21" BorderBrush="#F59E0B" BorderThickness="1.5" CornerRadius="14" Padding="14,10" Margin="0,0,0,10" Effect="{StaticResource CardShadow}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="🧃" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="UBC / TETRA PAK" FontSize="14" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                    <TextBlock Text="Carton &amp; Cup • ٹیٹرا پیک" FontSize="11" FontWeight="SemiBold" Foreground="#FDE68A"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <Border Background="#0D2D21" BorderBrush="#94A3B8" BorderThickness="1.5" CornerRadius="14" Padding="14,10" Effect="{StaticResource CardShadow}">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="☝" FontSize="28" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="1 BY 1 DEPOSIT" FontSize="14" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                    <TextBlock Text="Barcode Forward • ایک ایک کرکے" FontSize="11" FontWeight="SemiBold" Foreground="#CBD5E1"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <!-- Footer Guidance -->
+                                                <Border Grid.Row="2" Background="#061A13" BorderBrush="#10B981" BorderThickness="1" CornerRadius="10" Padding="16,6" HorizontalAlignment="Center">
+                                                    <TextBlock Text="💡 Insert item barcode facing upwards • خالی اور صاف کنٹینر سیدھا داخل کریں" FontSize="13" FontWeight="Bold" Foreground="#A7F3D0"/>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- ========================================================================= -->
+                                <!-- 2. STATE: DETECTING & SIZING ITEM PLEASE WAIT                              -->
+                                <!-- ========================================================================= -->
+                                <Grid x:Name="DetectingOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Border Background="#03140F" BorderBrush="#06B6D4" BorderThickness="2.5">
+                                        <Grid>
+                                            <Ellipse Width="700" Height="420" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#06282E" Opacity="0.6">
+                                                <Ellipse.Effect>
+                                                    <BlurEffect Radius="70"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+
+                                            <Grid Margin="24,16">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Title -->
+                                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,2,0,6">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Border Background="#0284C7" CornerRadius="8" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="SCANNING" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        </Border>
+                                                        <TextBlock Text="DETECTING &amp; SIZING ITEM..." FontSize="27" FontWeight="Black" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="آئٹم کی شناخت اور پیمائش ہو رہی ہے، برائے مہربانی انتظار فرمائیں" FontFamily="{StaticResource UrduFont}" FontSize="23" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Scanner Chamber with Animated Laser -->
+                                                <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="480" Height="220">
+                                                    <Border Background="#020E0A" BorderBrush="#0EA5E9" BorderThickness="2" CornerRadius="16" ClipToBounds="True">
+                                                        <Grid>
+                                                            <!-- Sensor Gridlines -->
+                                                            <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0.25">
+                                                                <Line X1="0" Y1="55" X2="480" Y2="55" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                                <Line X1="0" Y1="110" X2="480" Y2="110" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                                <Line X1="0" Y1="165" X2="480" Y2="165" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                                <Line X1="120" Y1="0" X2="120" Y2="220" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                                <Line X1="240" Y1="0" X2="240" Y2="220" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                                <Line X1="360" Y1="0" X2="360" Y2="220" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
+                                                            </Canvas>
+
+                                                            <!-- Bottle / Can Graphic under Scan -->
+                                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="🧴" FontSize="66" HorizontalAlignment="Center" Opacity="0.85"/>
+                                                            </StackPanel>
+
+                                                            <!-- Animated Laser Beam -->
+                                                            <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                                                <Rectangle x:Name="DetectingLaserLine" Canvas.Left="0" Canvas.Top="20" Width="480" Height="4" Fill="#F43F5E">
+                                                                    <Rectangle.Effect>
+                                                                        <DropShadowEffect Color="#F43F5E" BlurRadius="18" ShadowDepth="0" Opacity="0.9"/>
+                                                                    </Rectangle.Effect>
+                                                                </Rectangle>
+                                                            </Canvas>
+
+                                                            <!-- Real-time Status Pill -->
+                                                            <Border Background="#EB041A14" CornerRadius="12" Padding="14,6" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,12" BorderBrush="#22C55E" BorderThickness="1">
+                                                                <TextBlock x:Name="DetectingStatusDetailText" Text="CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE" FontSize="12" FontWeight="Black" Foreground="#4ADE80"/>
+                                                            </Border>
+                                                        </Grid>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Subtitle Guidance -->
+                                                <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,4,0,2">
+                                                    <TextBlock Text="PLEASE WAIT A MOMENT • DO NOT PULL ITEM" FontSize="14" FontWeight="ExtraBold" Foreground="#F8FAFC" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- ========================================================================= -->
+                                <!-- 3. STATE: CELEBRATION / ACCEPTED BADGE OVERLAY                            -->
+                                <!-- ========================================================================= -->
+                                <Grid x:Name="AcceptedOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Grid Margin="18,14">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Top Floating Glassmorphism Banner -->
+                                        <Border Grid.Row="0" Background="#E6051E16" BorderBrush="#22C55E" BorderThickness="2" CornerRadius="16" Padding="20,8" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="✔ " FontSize="22" FontWeight="Black" Foreground="#4ADE80" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="ITEM ACCEPTED! • " FontSize="22" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="آئٹم قبول کر لیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#FDE047" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <TextBlock x:Name="AcceptedItemBadgeText" Text="PLASTIC BOTTLE • MEDIUM" FontSize="13" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Bottom Points Pill -->
+                                        <Border Grid.Row="2" Background="#EB166534" BorderBrush="#FACC15" BorderThickness="2" CornerRadius="18" Padding="24,8" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <TextBlock Text="⭐ " FontSize="20" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="AcceptedItemPointsText" Text="+10 REWARD POINTS ADDED" FontSize="19" FontWeight="Black" Foreground="#FEF08A" VerticalAlignment="Center"/>
+                                                <TextBlock Text=" • پوائنٹس جمع ہو گئے" FontFamily="{StaticResource UrduFont}" FontSize="19" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- ========================================================================= -->
+                                <!-- 4. STATE: REJECTED OVERLAY                                                -->
+                                <!-- ========================================================================= -->
+                                <Grid x:Name="RejectedOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Border Background="#1A0607" BorderBrush="#EF4444" BorderThickness="3">
+                                        <Grid>
+                                            <Ellipse Width="650" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#450A0A" Opacity="0.7">
+                                                <Ellipse.Effect>
+                                                    <BlurEffect Radius="60"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+
+                                            <Grid Margin="24,16">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Warning Header -->
+                                                <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Border Background="#DC2626" CornerRadius="8" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="WARNING" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                        </Border>
+                                                        <TextBlock Text="ITEM REJECTED" FontSize="28" FontWeight="Black" Foreground="#F87171" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="آئٹم مسترد کر دیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#FCA5A5" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Center: Caution Icon and Action Message -->
+                                                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                                        <Ellipse Fill="#991B1B" Stroke="#F87171" StrokeThickness="3">
+                                                            <Ellipse.Effect>
+                                                                <DropShadowEffect Color="#EF4444" BlurRadius="25" ShadowDepth="0" Opacity="0.8"/>
+                                                            </Ellipse.Effect>
+                                                        </Ellipse>
+                                                        <TextBlock Text="✖" FontSize="40" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
+
+                                                    <Border Background="#2E0A0C" BorderBrush="#F87171" BorderThickness="1.5" CornerRadius="14" Padding="22,10" HorizontalAlignment="Center">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock x:Name="RejectedMessageText" Text="PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER" FontSize="17" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="برائے مہربانی اپنا آئٹم واپس چیمبر سے نکال لیں" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Bold" Foreground="#FCA5A5" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Bottom Hint -->
+                                                <Border Grid.Row="2" Background="#140304" BorderBrush="#B91C1C" BorderThickness="1" CornerRadius="10" Padding="16,5" HorizontalAlignment="Center">
+                                                    <TextBlock Text="⚠️ Acceptable items: Empty Plastic Bottles, Metal Cans, or UBC Tetra Paks" FontSize="13" FontWeight="Bold" Foreground="#CBD5E1"/>
+                                                </Border>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Grid>
                         </Border>
 
                         <!-- 2. TEAL GLASSMORPHISM HOW TO USE RVM CARD (REDUCED LEFT & RIGHT PADDING) -->
-                        <Border Grid.Row="2" HorizontalAlignment="Stretch" Height="185" CornerRadius="14" Padding="2,8" BorderThickness="1.5" Effect="{StaticResource TealGlassShadow}">
+                        <Border x:Name="HowToUseContainer" Grid.Row="2" HorizontalAlignment="Stretch" Height="185" CornerRadius="14" Padding="2,8" BorderThickness="1.5" Effect="{StaticResource TealGlassShadow}">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="#EB0F766E" Offset="0.0"/>
@@ -316,7 +601,7 @@
                             </Border.BorderBrush>
 
                             <Grid>
-                                <Border CornerRadius="12" BorderThickness="1,1,0,0" BorderBrush="#50FFFFFF" IsHitTestVisible="False" Margin="-10,-5,-10,-5"/>
+                                <Border CornerRadius="12" BorderThickness="1,1,0,0" BorderBrush="#30FFFFFF" IsHitTestVisible="False" Margin="0"/>
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -489,7 +774,7 @@
                         </Border>
 
                         <!-- 3. BOTTOM ROW: LIVE SESSION CONTAINER BREAKDOWN (LEFT) & TOP 5 RECYCLERS (RIGHT) -->
-                        <Grid Grid.Row="4">
+                        <Grid x:Name="LowerDashboardGrid" Grid.Row="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1.32*"/> <!-- Left: Live Session Breakdown Dashboard -->
                                 <ColumnDefinition Width="12"/>

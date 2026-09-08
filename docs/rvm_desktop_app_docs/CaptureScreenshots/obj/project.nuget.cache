@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "U/hWqGfTFW0=",
+  "dgSpecHash": "cxyPu9AbyuY=",
   "success": true,
-  "projectFilePath": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
+  "projectFilePath": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\BIN ISHAQ\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\BIN ISHAQ\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",

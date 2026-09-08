@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace RVMDesktopApp;
@@ -60,6 +61,35 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private int adPlaylistIndex;
     private string? currentPlayingAdPath;
 
+    // -------------------------------------------------------------
+    // IDLE MODE EXPANSION (1-MINUTE TIMEOUT & ZOOM TRANSITION)
+    // -------------------------------------------------------------
+    private readonly DispatcherTimer _idleTimer = new();
+    private DateTime _lastInteractionTime = DateTime.Now;
+    private Point _lastMousePosition;
+    private bool _isIdleExpandedMode = false;
+    private const double DefaultInstructionHeight = 490.0;
+    private const double DefaultHowToUseHeight = 185.0;
+
+    // -------------------------------------------------------------
+    // DYNAMIC INSTRUCTION DISPLAY STATES
+    // -------------------------------------------------------------
+    public enum InstructionDisplayState
+    {
+        DefaultIdleVideo,
+        PleaseInsert,
+        DetectingAndSizing,
+        Accepted,
+        Rejected
+    }
+
+    private InstructionDisplayState _currentInstructionState = InstructionDisplayState.DefaultIdleVideo;
+    private readonly DispatcherTimer _detectingLaserTimer = new();
+    private readonly DispatcherTimer _revertToInsertTimer = new();
+    private double _laserPos = 20.0;
+    private bool _laserDown = true;
+    private string? _defaultInstructionVideoPath;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -75,6 +105,27 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         clockTimer.Interval = TimeSpan.FromSeconds(1);
         clockTimer.Tick += (s, args) => UpdateClockDisplay();
+
+        _idleTimer.Interval = TimeSpan.FromSeconds(1);
+        _idleTimer.Tick += IdleTimer_Tick;
+        _idleTimer.Start();
+
+        _detectingLaserTimer.Interval = TimeSpan.FromMilliseconds(30);
+        _detectingLaserTimer.Tick += DetectingLaserTimer_Tick;
+
+        _revertToInsertTimer.Interval = TimeSpan.FromSeconds(4.5);
+        _revertToInsertTimer.Tick += (s, args) =>
+        {
+            _revertToInsertTimer.Stop();
+            if (machineStarted)
+            {
+                ShowPleaseInsertState();
+            }
+            else
+            {
+                ShowDefaultInstructionVideoState();
+            }
+        };
 
         TelemetryList.ItemsSource = telemetryLog;
     }
@@ -228,6 +279,23 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        RegisterUserActivity();
+
+        // Testing Hotkey: Ctrl+I triggers idle expanded mode immediately
+        if (e.Key == Key.I && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (_isIdleExpandedMode)
+            {
+                ExitIdleExpandedMode();
+            }
+            else
+            {
+                EnterIdleExpandedMode();
+            }
+            e.Handled = true;
+            return;
+        }
+
         // Secret code 1122 to open Demo Testing simulator
         char digit = e.Key switch
         {
@@ -247,7 +315,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (digit != '\0')
         {
             DateTime nowSeq = DateTime.Now;
-            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 2500)
+            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 4000)
             {
                 _demoSecretSequence = "";
             }
@@ -258,11 +326,33 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
+            if (_demoSecretSequence.EndsWith("001"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                LogTelemetry("[DEMO HOTKEY] Demo Mode activated via sequence '001'");
+                if (_isIdleExpandedMode)
+                {
+                    ExitIdleExpandedMode();
+                }
+                DemoTestingWindow.CloseIfOpen();
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
+                e.Handled = true;
+                return;
+            }
+
             if (_demoSecretSequence.EndsWith("1122"))
             {
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
                 LogTelemetry("[HOTKEY] Demo testing simulator opened via secret code 1122");
+                if (_isIdleExpandedMode)
+                {
+                    ExitIdleExpandedMode();
+                }
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
                 DemoTestingWindow.OpenOrBringToFront(this);
                 e.Handled = true;
                 return;
@@ -362,15 +452,39 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
             case Key.D0:
             case Key.NumPad0:
-                if (!serial.IsConnected)
+                if (_isIdleExpandedMode)
                 {
-                    IsDemoMode = true;
-                    StartMachine(forceSimulator: true);
+                    ExitIdleExpandedMode();
                 }
-                else
+                // Key 0 is strictly for hardware usage when connected
+                if (serial.IsConnected)
                 {
                     StartMachine();
                 }
+                else
+                {
+                    LogTelemetry("[HARDWARE] Key 0 is reserved for physical hardware. Hardware is not connected. Type '001' to start Demo Testing.");
+                }
+                e.Handled = true;
+                break;
+
+            case Key.B:
+                SimulateItemDeposit("PLASTIC", "MEDIUM", accept: true);
+                e.Handled = true;
+                break;
+
+            case Key.C:
+                SimulateItemDeposit("CAN", "MEDIUM", accept: true);
+                e.Handled = true;
+                break;
+
+            case Key.U:
+                SimulateItemDeposit("UBC", "MEDIUM", accept: true);
+                e.Handled = true;
+                break;
+
+            case Key.R:
+                SimulateItemDeposit("PLASTIC", "UNKNOWN", accept: false);
                 e.Handled = true;
                 break;
 
@@ -435,7 +549,193 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (WaterSavedText != null) WaterSavedText.Text = (totalItems * 0.75).ToString("0.00");
     }
 
-    private void StartButton_Click(object sender, RoutedEventArgs e) => StartMachine();
+    public void RegisterUserActivity()
+    {
+        _lastInteractionTime = DateTime.Now;
+        if (_isIdleExpandedMode)
+        {
+            ExitIdleExpandedMode();
+        }
+    }
+
+    private void Window_UserActivity(object sender, RoutedEventArgs e) => RegisterUserActivity();
+
+    private void Window_MouseMoveActivity(object sender, MouseEventArgs e)
+    {
+        Point current = e.GetPosition(this);
+        if (Math.Abs(current.X - _lastMousePosition.X) > 20 || Math.Abs(current.Y - _lastMousePosition.Y) > 20)
+        {
+            _lastMousePosition = current;
+            RegisterUserActivity();
+        }
+    }
+
+    private void IdleTimer_Tick(object? sender, EventArgs e)
+    {
+        if (machineStarted)
+        {
+            _lastInteractionTime = DateTime.Now;
+            return;
+        }
+
+        if (!_isIdleExpandedMode && (DateTime.Now - _lastInteractionTime) >= TimeSpan.FromMinutes(1))
+        {
+            EnterIdleExpandedMode();
+        }
+    }
+
+    public void EnterIdleExpandedMode()
+    {
+        if (_isIdleExpandedMode || machineStarted) return;
+        _isIdleExpandedMode = true;
+
+        LogTelemetry("[IDLE] Kiosk idle for > 1 min. Expanding instructional video to 50% height. Keeping 'How to Use RVM' and Ad Video section visible. Hiding header, status bar, and lower breakdown.");
+
+        double windowHeight = ActualHeight > 0 ? ActualHeight : 1920;
+        double targetInstructionHeight = windowHeight * 0.50; // 50% of whole height (e.g. 960px)
+
+        var easeInOut = new QuarticEase { EasingMode = EasingMode.EaseInOut };
+
+        // 1. Zoom in styling on instructional video container (expands to 50% of screen height)
+        var heightAnim = new DoubleAnimation
+        {
+            To = targetInstructionHeight,
+            Duration = TimeSpan.FromMilliseconds(750),
+            EasingFunction = easeInOut
+        };
+        InstructionContainer.BeginAnimation(HeightProperty, heightAnim);
+
+        var zoomAnim = new DoubleAnimation
+        {
+            To = 1.025,
+            Duration = TimeSpan.FromMilliseconds(750),
+            EasingFunction = easeInOut
+        };
+        InstructionContainerScale.BeginAnimation(ScaleTransform.ScaleXProperty, zoomAnim);
+        InstructionContainerScale.BeginAnimation(ScaleTransform.ScaleYProperty, zoomAnim);
+
+        if (InstructionPlayer.Visibility != Visibility.Visible && InstructionPlayer.Source != null)
+        {
+            InstructionPlayer.Visibility = Visibility.Visible;
+            InstructionPlaceholder.Visibility = Visibility.Collapsed;
+        }
+        InstructionPlayer?.Play();
+
+        // 2. Collapse hidden elements cleanly so there is zero overlap or layout collision
+        TopHeaderGrid.Visibility = Visibility.Collapsed;
+        if (HeaderRowDef != null) HeaderRowDef.Height = new GridLength(0);
+
+        HardwareStatusBar.Visibility = Visibility.Collapsed;
+        if (HardwareStatusRowDef != null) HardwareStatusRowDef.Height = new GridLength(0);
+
+        LowerDashboardGrid.Visibility = Visibility.Collapsed;
+        if (LowerDashboardRow != null) LowerDashboardRow.Height = new GridLength(0);
+        if (HowToUseSpacerRow2 != null) HowToUseSpacerRow2.Height = new GridLength(0);
+
+        if (MainContentRowDef != null) MainContentRowDef.Height = GridLength.Auto;
+
+        // 3. KEEP "HOW TO USE RVM" VISIBLE AND CLEAN DIRECTLY BELOW VIDEO (WITH GENEROUS 16PX SPACING)
+        HowToUseContainer.Visibility = Visibility.Visible;
+        if (HowToUseSpacerRow1 != null) HowToUseSpacerRow1.Height = new GridLength(16);
+        if (HowToUseRow != null) HowToUseRow.Height = GridLength.Auto;
+        HowToUseContainer.BeginAnimation(HeightProperty, null);
+        HowToUseContainer.Height = DefaultHowToUseHeight;
+        HowToUseContainer.Opacity = 1.0;
+
+        // 4. Set Top Dashboard to Auto and Bottom Signage to Star - strictly non-overlapping!
+        TopDashboardRow.Height = GridLength.Auto;
+        BottomSignageRow.Height = new GridLength(1, GridUnitType.Star);
+        BottomGrid.Visibility = Visibility.Visible;
+        BottomGrid.Opacity = 1.0;
+        try { AdvertisementPlayer?.Play(); } catch { }
+    }
+
+    public void ExitIdleExpandedMode()
+    {
+        if (!_isIdleExpandedMode) return;
+        _isIdleExpandedMode = false;
+        _lastInteractionTime = DateTime.Now;
+
+        LogTelemetry("[IDLE] Activity detected / Key 0 pressed. Returning smoothly to default kiosk screen.");
+
+        var easeInOut = new QuarticEase { EasingMode = EasingMode.EaseInOut };
+
+        // 1. Zoom out instructional video container back to default height and 1.0 scale
+        var heightAnim = new DoubleAnimation
+        {
+            To = DefaultInstructionHeight,
+            Duration = TimeSpan.FromMilliseconds(650),
+            EasingFunction = easeInOut
+        };
+        InstructionContainer.BeginAnimation(HeightProperty, heightAnim);
+
+        var zoomAnim = new DoubleAnimation
+        {
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(650),
+            EasingFunction = easeInOut
+        };
+        InstructionContainerScale.BeginAnimation(ScaleTransform.ScaleXProperty, zoomAnim);
+        InstructionContainerScale.BeginAnimation(ScaleTransform.ScaleYProperty, zoomAnim);
+
+        // 2. Restore standard Top Dashboard (67%) and Bottom Signage (33%) split
+        TopDashboardRow.Height = new GridLength(67, GridUnitType.Star);
+        BottomSignageRow.Height = new GridLength(33, GridUnitType.Star);
+        if (MainContentRowDef != null) MainContentRowDef.Height = new GridLength(1, GridUnitType.Star);
+
+        // 3. Restore Top Header Bar (Row 0)
+        TopHeaderGrid.Visibility = Visibility.Visible;
+        if (HeaderRowDef != null) HeaderRowDef.Height = GridLength.Auto;
+        var fadeInHeader = new DoubleAnimation
+        {
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(550),
+            EasingFunction = easeInOut
+        };
+        TopHeaderGrid.BeginAnimation(OpacityProperty, fadeInHeader);
+
+        // 4. Restore Hardware Status Bar (Row 1)
+        HardwareStatusBar.Visibility = Visibility.Visible;
+        if (HardwareStatusRowDef != null) HardwareStatusRowDef.Height = GridLength.Auto;
+        var fadeInHardware = new DoubleAnimation
+        {
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(550),
+            EasingFunction = easeInOut
+        };
+        HardwareStatusBar.BeginAnimation(OpacityProperty, fadeInHardware);
+
+        // 5. Restore "HOW TO USE RVM" Container
+        HowToUseContainer.Visibility = Visibility.Visible;
+        if (HowToUseSpacerRow1 != null) HowToUseSpacerRow1.Height = new GridLength(10);
+        if (HowToUseRow != null) HowToUseRow.Height = GridLength.Auto;
+        if (HowToUseSpacerRow2 != null) HowToUseSpacerRow2.Height = new GridLength(6);
+        HowToUseContainer.BeginAnimation(HeightProperty, null);
+        HowToUseContainer.Height = DefaultHowToUseHeight;
+        HowToUseContainer.Opacity = 1.0;
+
+        // 6. Restore Lower Dashboard (Row 4: Live Session Breakdown + Top 5 Leaderboard)
+        LowerDashboardGrid.Visibility = Visibility.Visible;
+        if (LowerDashboardRow != null) LowerDashboardRow.Height = new GridLength(1, GridUnitType.Star);
+        var fadeInLowerDash = new DoubleAnimation
+        {
+            To = 1.0,
+            Duration = TimeSpan.FromMilliseconds(600),
+            EasingFunction = easeInOut
+        };
+        LowerDashboardGrid.BeginAnimation(OpacityProperty, fadeInLowerDash);
+
+        // 7. Signage remains visible and playing
+        BottomGrid.Visibility = Visibility.Visible;
+        BottomGrid.Opacity = 1.0;
+        try { AdvertisementPlayer?.Play(); } catch { }
+    }
+
+    private void StartButton_Click(object sender, RoutedEventArgs e)
+    {
+        RegisterUserActivity();
+        StartMachine();
+    }
 
     private void DemoTestingButton_Click(object sender, RoutedEventArgs e) => DemoTestingWindow.OpenOrBringToFront(this);
 
@@ -544,7 +844,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
-            InstructionPlayer.Source = new Uri(Path.GetFullPath(path));
+            _defaultInstructionVideoPath = Path.GetFullPath(path);
+            InstructionPlayer.Source = new Uri(_defaultInstructionVideoPath);
             InstructionPlaceholder.Visibility = Visibility.Collapsed;
             InstructionPlayer.Visibility = Visibility.Visible;
             InstructionPlayer.Play();
@@ -560,8 +861,276 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
     private void InstructionPlayer_MediaEnded(object sender, RoutedEventArgs e)
     {
+        if (_currentInstructionState == InstructionDisplayState.Accepted || _currentInstructionState == InstructionDisplayState.Rejected)
+        {
+            if (machineStarted)
+            {
+                ShowPleaseInsertState();
+            }
+            else
+            {
+                ShowDefaultInstructionVideoState();
+            }
+            return;
+        }
+
         InstructionPlayer.Position = TimeSpan.Zero;
         InstructionPlayer.Play();
+    }
+
+    private void DetectingLaserTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_laserDown)
+        {
+            _laserPos += 7.0;
+            if (_laserPos >= 195.0)
+            {
+                _laserPos = 195.0;
+                _laserDown = false;
+            }
+        }
+        else
+        {
+            _laserPos -= 7.0;
+            if (_laserPos <= 15.0)
+            {
+                _laserPos = 15.0;
+                _laserDown = true;
+            }
+        }
+        if (DetectingLaserLine != null)
+        {
+            Canvas.SetTop(DetectingLaserLine, _laserPos);
+        }
+    }
+
+    public void ShowDefaultInstructionVideoState()
+    {
+        _currentInstructionState = InstructionDisplayState.DefaultIdleVideo;
+        _detectingLaserTimer.Stop();
+        _revertToInsertTimer.Stop();
+
+        if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Collapsed;
+        if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
+        if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
+        if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
+
+        if (!string.IsNullOrEmpty(_defaultInstructionVideoPath) && File.Exists(_defaultInstructionVideoPath))
+        {
+            try
+            {
+                InstructionPlayer.Source = new Uri(_defaultInstructionVideoPath);
+                InstructionPlayer.Visibility = Visibility.Visible;
+                if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                InstructionPlayer.Position = TimeSpan.Zero;
+                InstructionPlayer.Play();
+            }
+            catch
+            {
+                if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Visible;
+            }
+        }
+        else
+        {
+            if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Visible;
+            InstructionPlayer.Visibility = Visibility.Collapsed;
+        }
+
+        LogTelemetry("[STATE] Instruction screen -> DEFAULT IDLE INSTRUCTION VIDEO");
+    }
+
+    public void ShowPleaseInsertState()
+    {
+        _currentInstructionState = InstructionDisplayState.PleaseInsert;
+        _detectingLaserTimer.Stop();
+        _revertToInsertTimer.Stop();
+
+        try
+        {
+            InstructionPlayer.Stop();
+            InstructionPlayer.Visibility = Visibility.Collapsed;
+        }
+        catch { }
+
+        if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+        if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
+        if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
+        if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
+        if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Visible;
+
+        // Animate Arrow Bounce
+        try
+        {
+            if (InsertArrowBounce != null)
+            {
+                var bounceAnim = new DoubleAnimation
+                {
+                    From = -4,
+                    To = 14,
+                    Duration = TimeSpan.FromMilliseconds(650),
+                    AutoReverse = true,
+                    RepeatBehavior = RepeatBehavior.Forever,
+                    EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+                };
+                InsertArrowBounce.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
+            }
+
+            if (InsertRingRotate != null)
+            {
+                var rotateAnim = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 360,
+                    Duration = TimeSpan.FromSeconds(8),
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                InsertRingRotate.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
+            }
+        }
+        catch { }
+
+        LogTelemetry("[STATE] Instruction screen -> PLEASE INSERT BOTTLE/CAN/UBC");
+    }
+
+    public void ShowDetectingState(string detail = "")
+    {
+        _currentInstructionState = InstructionDisplayState.DetectingAndSizing;
+        _revertToInsertTimer.Stop();
+
+        try
+        {
+            InstructionPlayer.Stop();
+            InstructionPlayer.Visibility = Visibility.Collapsed;
+        }
+        catch { }
+
+        if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+        if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Collapsed;
+        if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
+        if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
+        if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Visible;
+
+        if (!string.IsNullOrWhiteSpace(detail) && DetectingStatusDetailText != null)
+        {
+            DetectingStatusDetailText.Text = detail;
+        }
+        else if (DetectingStatusDetailText != null)
+        {
+            DetectingStatusDetailText.Text = "CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE";
+        }
+
+        _laserPos = 20.0;
+        _laserDown = true;
+        if (DetectingLaserLine != null)
+        {
+            Canvas.SetTop(DetectingLaserLine, _laserPos);
+        }
+        _detectingLaserTimer.Start();
+
+        LogTelemetry("[STATE] Instruction screen -> DETECTING & SIZING ITEM");
+    }
+
+    public void ShowAcceptedState(string material, string size, int points)
+    {
+        _currentInstructionState = InstructionDisplayState.Accepted;
+        _detectingLaserTimer.Stop();
+        _revertToInsertTimer.Stop();
+
+        if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Collapsed;
+        if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
+        if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
+        if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+
+        string matUpper = (material ?? "").Trim().ToUpperInvariant();
+        string fileName;
+        if (matUpper.Contains("CAN") || matUpper.Contains("METAL") || matUpper.Contains("ALUMINIUM"))
+        {
+            fileName = "DancingCan.mp4";
+            string xnPath = Path.Combine(AppContext.BaseDirectory, "Assets", "DancingXN.mp4");
+            if (File.Exists(xnPath)) fileName = "DancingXN.mp4";
+        }
+        else if (matUpper.Contains("TETRA") || matUpper.Contains("PAPER") || matUpper.Contains("CARTON") || matUpper.Contains("CUP"))
+        {
+            fileName = "DancingTetra.mp4";
+        }
+        else
+        {
+            fileName = "DancingPlastic.mp4";
+        }
+
+        string videoPath = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+        if (!File.Exists(videoPath))
+        {
+            videoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Assets", fileName);
+        }
+
+        if (AcceptedItemBadgeText != null) AcceptedItemBadgeText.Text = $"{size.ToUpperInvariant()} {matUpper}";
+        if (AcceptedItemPointsText != null) AcceptedItemPointsText.Text = $"+{points} REWARD POINTS ADDED";
+        if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Visible;
+
+        if (File.Exists(videoPath))
+        {
+            try
+            {
+                InstructionPlayer.Source = new Uri(Path.GetFullPath(videoPath));
+                InstructionPlayer.Visibility = Visibility.Visible;
+                InstructionPlayer.Position = TimeSpan.Zero;
+                InstructionPlayer.Play();
+                LogTelemetry($"[STATE] Playing Celebration Video: {fileName} for {material}");
+            }
+            catch (Exception ex)
+            {
+                LogTelemetry($"[STATE Error] Could not play celebration video: {ex.Message}");
+            }
+        }
+
+        // Safety fallback timer in case video ends or doesn't play
+        _revertToInsertTimer.Interval = TimeSpan.FromSeconds(5);
+        _revertToInsertTimer.Start();
+    }
+
+    public void ShowRejectedState(string reason = "")
+    {
+        _currentInstructionState = InstructionDisplayState.Rejected;
+        _detectingLaserTimer.Stop();
+        _revertToInsertTimer.Stop();
+
+        if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Collapsed;
+        if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
+        if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
+        if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+
+        if (!string.IsNullOrWhiteSpace(reason) && RejectedMessageText != null)
+        {
+            RejectedMessageText.Text = reason.ToUpperInvariant();
+        }
+        else if (RejectedMessageText != null)
+        {
+            RejectedMessageText.Text = "PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER";
+        }
+
+        if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Visible;
+
+        string rejectVideoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "ItemRejected.mp4");
+        if (File.Exists(rejectVideoPath))
+        {
+            try
+            {
+                InstructionPlayer.Source = new Uri(Path.GetFullPath(rejectVideoPath));
+                InstructionPlayer.Visibility = Visibility.Visible;
+                InstructionPlayer.Position = TimeSpan.Zero;
+                InstructionPlayer.Play();
+            }
+            catch { }
+        }
+
+        try { System.Media.SystemSounds.Hand.Play(); } catch { }
+
+        // Revert back to please insert after 4 seconds
+        _revertToInsertTimer.Interval = TimeSpan.FromSeconds(4);
+        _revertToInsertTimer.Start();
+
+        LogTelemetry($"[STATE] Instruction screen -> ITEM REJECTED ({reason})");
     }
 
     private void InstructionPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
@@ -942,6 +1511,11 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
     public void StartMachine(bool forceSimulator = false)
     {
+        if (_isIdleExpandedMode)
+        {
+            ExitIdleExpandedMode();
+        }
+
         if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
             ConnectArduino();
@@ -968,6 +1542,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         MachineStateText.Text = (IsDemoMode || !serial.IsConnected) ? "MACHINE: RUNNING (DEMO)" : "MACHINE: RUNNING";
         if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
         LogTelemetry((IsDemoMode || !serial.IsConnected) ? "[DEMO] Session Started without hardware" : "[CMD] START");
+        ShowPleaseInsertState();
         SimulatorStateChanged?.Invoke();
     }
 
@@ -985,6 +1560,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         BottleInfoText.Text = "• Insert container";
         MachineStateText.Text = "MACHINE: IDLE";
         LogTelemetry("[CMD] STOP");
+        ShowDefaultInstructionVideoState();
         SimulatorStateChanged?.Invoke();
     }
 
@@ -998,6 +1574,21 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         string matUpper = (material ?? "PLASTIC").Trim().ToUpperInvariant();
         string sizeUpper = (size ?? "MEDIUM").Trim().ToUpperInvariant();
 
+        // 1. Immediately show Detecting & Sizing state with scanner animation
+        ShowDetectingState($"DETECTING {sizeUpper} {matUpper} • OPTICAL IR & SIZING ACTIVE");
+
+        // 2. Realistic 1.2s sensor delay, then trigger Accepted celebration or Rejected alert!
+        var detectTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
+        detectTimer.Tick += (s, e) =>
+        {
+            detectTimer.Stop();
+            ExecuteDepositCommit(matUpper, sizeUpper, accept);
+        };
+        detectTimer.Start();
+    }
+
+    private void ExecuteDepositCommit(string matUpper, string sizeUpper, bool accept)
+    {
         if (!accept)
         {
             rejectedCount++;
@@ -1009,6 +1600,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
             LogTelemetry($"[DEMO REJECT] Size={sizeUpper} Material={matUpper}");
             SaveTransaction(new BottleResult { Material = matUpper, Size = sizeUpper }, 0, false);
+            ShowRejectedState($"Item rejected ({sizeUpper} {matUpper}) • Please remove from gate");
             SimulatorStateChanged?.Invoke();
             return;
         }
@@ -1036,7 +1628,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
-        AcceptedItemVideoWindow.ShowFor(this, result.Material);
+        ShowAcceptedState(result.Material, result.Size, points);
 
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
@@ -1211,6 +1803,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         if (message == "IR:DETECTED")
         {
+            ShowDetectingState("CONTAINER SENSED • OPTICAL IR SCAN ACTIVE");
             StatusText.Text = "Scanning...";
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Bottle detected";
@@ -1221,6 +1814,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         if (message == "IR:DETECTED_TRIGGER")
         {
+            ShowDetectingState("ITEM HELD • MEASURING LENGTH & SIZING");
             StatusText.Text = "Item held for scan";
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Measuring item";
@@ -1362,6 +1956,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
             LogTelemetry($"[REJECT] Size={result.Size} Material={result.Material}");
             SaveTransaction(result, 0, false);
+            ShowRejectedState("Non-recyclable or invalid item");
             return;
         }
 
@@ -1404,7 +1999,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
-        AcceptedItemVideoWindow.ShowFor(this, result.Material);
+        ShowAcceptedState(result.Material, result.Size, points);
 
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();

@@ -4,8 +4,8 @@ using System.Reflection;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using RVMDesktopApp;
 
@@ -16,21 +16,24 @@ public static class Program
     [STAThread]
     public static void Main()
     {
-        Console.WriteLine("=== RVMDesktopApp Complete Screenshot Capturer ===");
+        Console.WriteLine("=== RVMDesktopApp High-Resolution Snapshot Capture Tool ===");
         
         string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        string outputDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDir, "..", "..", "..", "..", "snapshots"));
+        string outputDir = Path.GetFullPath(Path.Combine(baseDir, "..", "..", "..", "..", "snapshots"));
         Directory.CreateDirectory(outputDir);
         Console.WriteLine($"Output Directory: {outputDir}");
 
-        var app = new Application();
-        
+        var app = new Application
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown
+        };
+
         // 1. SCREEN 01: SPLASH SCREEN
         Console.WriteLine("[1/12] Capturing Screen 01: Splash Screen...");
         try
         {
             var splashWin = CreateSplashWindow();
-            SaveWindowBitmap(splashWin, System.IO.Path.Combine(outputDir, "screen_01_splash.png"), 1080, 1920);
+            SaveWindowBitmap(splashWin, Path.Combine(outputDir, "screen_01_splash.png"), 1080, 1920);
             splashWin.Close();
         }
         catch (Exception ex)
@@ -38,12 +41,163 @@ public static class Program
             Console.WriteLine($"Error capturing Splash Window: {ex.Message}");
         }
 
-        // 2. SCREEN 09: FEEDBACK SCREEN
-        Console.WriteLine("[9/12] Capturing Screen 09: Feedback Screen...");
+        // 2. PRIMARY MAINWINDOW STATES
+        MainWindow? mainWin = null;
+        try
+        {
+            Console.WriteLine("[INITIALIZING] Instantiating MainWindow in Portrait (1080x1920)...");
+            mainWin = new MainWindow
+            {
+                WindowState = WindowState.Normal,
+                WindowStyle = WindowStyle.None,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                Width = 1080,
+                Height = 1920,
+                ShowInTaskbar = false
+            };
+            mainWin.Show();
+            mainWin.Measure(new Size(1080, 1920));
+            mainWin.Arrange(new Rect(0, 0, 1080, 1920));
+            mainWin.UpdateLayout();
+            DoEvents(600);
+
+            // Set ideal diagnostics indicators
+            SetPristineDiagnostics(mainWin);
+            DoEvents(300);
+
+            // SCREEN 02: HOME PAGE (DEFAULT IDLE)
+            Console.WriteLine("[2/12] Capturing Screen 02: Home Page (Default Screen)...");
+            mainWin.ShowDefaultInstructionVideoState();
+            SetPristineDiagnostics(mainWin);
+            DoEvents(400);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_02_home_page.png"), 1080, 1920);
+
+            // SCREEN IDLE EXPANDED: 1-MINUTE IDLE EXPANSION (50% HEIGHT, ZERO OVERLAP)
+            Console.WriteLine("[3/12] Capturing Screen Idle Expanded: 1-Minute Standby Mode...");
+            mainWin.EnterIdleExpandedMode();
+            DoEvents(800); // Allow animation to complete
+            if (mainWin.InstructionContainer != null)
+            {
+                mainWin.InstructionContainer.BeginAnimation(FrameworkElement.HeightProperty, null);
+                mainWin.InstructionContainer.Height = 960; // 50% of 1920
+            }
+            DoEvents(300);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_idle_expanded.png"), 1080, 1920);
+
+            // Return from Idle
+            mainWin.ExitIdleExpandedMode();
+            DoEvents(500);
+            SetPristineDiagnostics(mainWin);
+
+            // SCREEN 03: STEP 01 - PLEASE INSERT CONTAINER
+            Console.WriteLine("[4/12] Capturing Screen 03: Step 01 - Please Insert Container...");
+            mainWin.StartMachine(forceSimulator: true);
+            mainWin.ShowPleaseInsertState();
+            SetPristineDiagnostics(mainWin);
+            mainWin.StatusText.Text = "Machine Started";
+            mainWin.StatusText.Foreground = Brushes.LimeGreen;
+            mainWin.BottleInfoText.Text = "Insert container • (Or use Demo Testing Panel)";
+            mainWin.MachineStateText.Text = "MACHINE: RUNNING";
+            DoEvents(400);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_03_step_01.png"), 1080, 1920);
+
+            // SCREEN 04: STEP 02 - DETECTING & SIZING
+            Console.WriteLine("[5/12] Capturing Screen 04: Step 02 - Detecting & Sizing Item...");
+            mainWin.ShowDetectingState("DETECTING MEDIUM PLASTIC • OPTICAL IR & SIZING ACTIVE");
+            SetPristineDiagnostics(mainWin);
+            mainWin.StatusText.Text = "Detecting...";
+            mainWin.StatusText.Foreground = Brushes.Gold;
+            mainWin.BottleInfoText.Text = "Optical IR & Ultrasonic sizing in progress...";
+            mainWin.MachineStateText.Text = "MACHINE: DETECTING";
+            DoEvents(400);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_04_step_02.png"), 1080, 1920);
+
+            // SCREEN 05: STEP 02 - REJECTION
+            Console.WriteLine("[6/12] Capturing Screen 05: Step 02 - Rejection Overlay...");
+            mainWin.ShowRejectedState("Item rejected (MEDIUM PLASTIC) • Please remove from gate");
+            SetPristineDiagnostics(mainWin);
+            mainWin.StatusText.Text = "Rejected";
+            mainWin.StatusText.Foreground = Brushes.OrangeRed;
+            mainWin.BottleInfoText.Text = "Item rejected (MEDIUM PLASTIC) - please remove from gate";
+            mainWin.RejectedCountText.Text = "1";
+            mainWin.RejectedTotalCountText.Text = "1";
+            DoEvents(400);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_05_step_02_rejection.png"), 1080, 1920);
+
+            // SCREEN 06: STEP 03 - CONTAINER ACCEPTED
+            Console.WriteLine("[7/12] Capturing Screen 06: Step 03 - Accepted (+10 Points)...");
+            mainWin.ShowAcceptedState("PLASTIC", "MEDIUM", 10);
+            SetPristineDiagnostics(mainWin);
+            mainWin.StatusText.Text = "Accepted";
+            mainWin.StatusText.Foreground = Brushes.LimeGreen;
+            mainWin.BottleInfoText.Text = "MEDIUM plastic - 10 points";
+            mainWin.TotalItemsText.Text = "1";
+            mainWin.TotalPointsText.Text = "10";
+            DoEvents(400);
+            SaveWindowBitmap(mainWin, Path.Combine(outputDir, "screen_06_step_03_accepted.png"), 1080, 1920);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MAINWINDOW ERROR] {ex}");
+        }
+
+        // 3. SCREEN 07: WALLET PHONE MODAL (COMPOSITE WITH MAINWINDOW)
+        Console.WriteLine("[8/12] Capturing Screen 07: Step 04 - Mobile Wallet Number Input...");
+        try
+        {
+            var walletWin = new WalletPhoneWindow(1, 10)
+            {
+                WindowState = WindowState.Normal,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                Width = 500,
+                ShowInTaskbar = false
+            };
+            walletWin.Show();
+            DoEvents(300);
+
+            if (mainWin != null)
+            {
+                var composite = CreateModalComposite(mainWin, walletWin, 1080, 1920);
+                SaveVisualBitmap(composite, Path.Combine(outputDir, "screen_07_step_04_wallet.png"), 1080, 1920);
+            }
+            else
+            {
+                SaveWindowBitmap(walletWin, Path.Combine(outputDir, "screen_07_step_04_wallet.png"), 500, 500);
+            }
+            walletWin.Close();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing Wallet Window: {ex.Message}");
+        }
+
+        // 4. SCREEN 08: WALLET SUCCESS (POINTS AWARDED)
+        Console.WriteLine("[9/12] Capturing Screen 08: Step 04 - Points Awarded Success...");
+        try
+        {
+            var successWin = CreatePointsSuccessWindow(1, 10, "03001234567");
+            if (mainWin != null)
+            {
+                var composite = CreateModalComposite(mainWin, successWin, 1080, 1920);
+                SaveVisualBitmap(composite, Path.Combine(outputDir, "screen_08_step_04_success.png"), 1080, 1920);
+            }
+            else
+            {
+                SaveWindowBitmap(successWin, Path.Combine(outputDir, "screen_08_step_04_success.png"), 1080, 1920);
+            }
+            successWin.Close();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing Success Window: {ex.Message}");
+        }
+
+        // 5. SCREEN 09: FEEDBACK SCREEN (1-5 STARS & TAGS)
+        Console.WriteLine("[10/12] Capturing Screen 09: Feedback & Star Rating...");
         try
         {
             var feedbackWin = CreateFeedbackWindow();
-            SaveWindowBitmap(feedbackWin, System.IO.Path.Combine(outputDir, "screen_09_feedback.png"), 1080, 1920);
+            SaveWindowBitmap(feedbackWin, Path.Combine(outputDir, "screen_09_feedback.png"), 1080, 1920);
             feedbackWin.Close();
         }
         catch (Exception ex)
@@ -51,12 +205,12 @@ public static class Program
             Console.WriteLine($"Error capturing Feedback Window: {ex.Message}");
         }
 
-        // 3. SCREEN 10: PROCESS COMPLETED SCREEN
-        Console.WriteLine("[10/12] Capturing Screen 10: Process Completed Screen...");
+        // 6. SCREEN 10: PROCESS COMPLETED
+        Console.WriteLine("[11/12] Capturing Screen 10: Process Completed Screen...");
         try
         {
             var completeWin = CreateProcessCompletedWindow();
-            SaveWindowBitmap(completeWin, System.IO.Path.Combine(outputDir, "screen_10_complete.png"), 1080, 1920);
+            SaveWindowBitmap(completeWin, Path.Combine(outputDir, "screen_10_complete.png"), 1080, 1920);
             completeWin.Close();
         }
         catch (Exception ex)
@@ -64,7 +218,204 @@ public static class Program
             Console.WriteLine($"Error capturing Process Completed Window: {ex.Message}");
         }
 
-        Console.WriteLine("Auxiliary snapshots captured successfully!");
+        // 7. SCREEN LANDSCAPE: SECONDARY PUBLIC SIGNAGE
+        Console.WriteLine("[12/12] Capturing Screen Landscape: Secondary Public Awareness Display (1920x1080)...");
+        try
+        {
+            var landWin = new LandscapeWindow
+            {
+                WindowState = WindowState.Normal,
+                WindowStyle = WindowStyle.None,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                Width = 1920,
+                Height = 1080,
+                ShowInTaskbar = false
+            };
+            landWin.Show();
+            landWin.Measure(new Size(1920, 1080));
+            landWin.Arrange(new Rect(0, 0, 1920, 1080));
+            landWin.UpdateLayout();
+            DoEvents(500);
+
+            try
+            {
+                landWin.ConnectionText.Text = "HARDWARE: COM3 🟢";
+                landWin.ConnectionText.Foreground = Brushes.LightGreen;
+                landWin.StatusDot.Fill = Brushes.LightGreen;
+                landWin.DbStatusText.Text = "DB: OK 🟢";
+                landWin.DbDot.Fill = Brushes.LightGreen;
+                landWin.ApiStatusText.Text = "API: ONLINE 🟢";
+                landWin.ApiDot.Fill = Brushes.LightGreen;
+            }
+            catch { }
+
+            DoEvents(300);
+            SaveWindowBitmap(landWin, Path.Combine(outputDir, "screen_landscape_kiosk.png"), 1920, 1080);
+            landWin.Close();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error capturing Landscape Window: {ex.Message}");
+        }
+
+        // Cleanup MainWindow
+        try { mainWin?.Close(); } catch { }
+
+        Console.WriteLine("\n=== ALL NEW REAL UI SNAPSHOTS CAPTURED SUCCESSFULLY! ===");
+        app.Shutdown(0);
+    }
+
+    private static void SetPristineDiagnostics(MainWindow win)
+    {
+        try
+        {
+            win.ConnectionText.Text = "HARDWARE: COM3 🟢";
+            win.ConnectionText.Foreground = Brushes.LightGreen;
+            win.StatusDot.Fill = Brushes.LightGreen;
+            if (win.HardwareErrorBanner != null) win.HardwareErrorBanner.Visibility = Visibility.Collapsed;
+
+            win.DbStatusText.Text = "DB: OK 🟢";
+            win.DbDot.Fill = Brushes.LightGreen;
+
+            win.ApiStatusText.Text = "API: ONLINE 🟢";
+            win.ApiDot.Fill = Brushes.LightGreen;
+
+            if (win.LiveBadgeBorder != null)
+            {
+                win.LiveBadgeBorder.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DCFCE7"));
+            }
+            if (win.LiveBadgeText != null)
+            {
+                win.LiveBadgeText.Text = "LIVE 🟢";
+                win.LiveBadgeText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#15803D"));
+            }
+        }
+        catch { }
+    }
+
+    private static FrameworkElement CreateModalComposite(Window parentWin, Window modalWin, int width, int height)
+    {
+        var container = new Grid { Width = width, Height = height, Background = new SolidColorBrush(Color.FromRgb(11, 17, 32)) };
+
+        var parentContent = (Visual)parentWin.Content;
+        var vbParent = new VisualBrush(parentContent) { Stretch = Stretch.UniformToFill };
+        var parentRect = new System.Windows.Shapes.Rectangle { Width = width, Height = height, Fill = vbParent };
+        container.Children.Add(parentRect);
+
+        var backdrop = new System.Windows.Shapes.Rectangle
+        {
+            Width = width,
+            Height = height,
+            Fill = new SolidColorBrush(Color.FromArgb(170, 0, 0, 0))
+        };
+        container.Children.Add(backdrop);
+
+        var modalContent = (Visual)modalWin.Content;
+        double mw = modalWin.ActualWidth > 0 ? modalWin.ActualWidth : 500;
+        double mh = modalWin.ActualHeight > 0 ? modalWin.ActualHeight : 450;
+        var vbModal = new VisualBrush(modalContent) { Stretch = Stretch.Uniform };
+        var modalBorder = new Border
+        {
+            Width = mw,
+            Height = mh,
+            CornerRadius = new CornerRadius(16),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1.5),
+            Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 35, ShadowDepth = 12, Opacity = 0.8 },
+            Child = new System.Windows.Shapes.Rectangle { Fill = vbModal }
+        };
+        container.Children.Add(modalBorder);
+
+        container.Measure(new Size(width, height));
+        container.Arrange(new Rect(0, 0, width, height));
+        container.UpdateLayout();
+        return container;
+    }
+
+    private static Window CreatePointsSuccessWindow(int items, int points, string phone)
+    {
+        var win = new Window
+        {
+            Width = 500,
+            Height = 440,
+            WindowStyle = WindowStyle.None,
+            Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
+            ShowInTaskbar = false
+        };
+
+        var root = new Grid { Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)), Width = 500, Height = 440 };
+        var border = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94)),
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(32),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Width = 440
+        };
+
+        var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+        sp.Children.Add(new TextBlock
+        {
+            Text = "🎉",
+            FontSize = 54,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 12)
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = "REWARDS CREDITED SUCCESSFULLY!",
+            FontSize = 16,
+            FontWeight = FontWeights.Black,
+            Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)),
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = "پوائنٹس کامیابی کے ساتھ منتقل کر دیے گئے ہیں",
+            FontSize = 14,
+            FontWeight = FontWeights.Bold,
+            Foreground = new SolidColorBrush(Color.FromRgb(134, 239, 172)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 4, 0, 18)
+        });
+
+        var pointsPill = new Border
+        {
+            Background = new SolidColorBrush(Color.FromArgb(40, 34, 197, 94)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94)),
+            BorderThickness = new Thickness(1.5),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(20, 8, 20, 8),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 16),
+            Child = new TextBlock
+            {
+                Text = $"+{points} POINTS ADDED TO {phone}",
+                FontSize = 15,
+                FontWeight = FontWeights.Bold,
+                Foreground = Brushes.White
+            }
+        };
+        sp.Children.Add(pointsPill);
+
+        sp.Children.Add(new TextBlock
+        {
+            Text = "Receipt synchronized to Central Cloud & Local Database",
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        border.Child = sp;
+        root.Children.Add(border);
+        win.Content = root;
+        win.Show();
+        DoEvents(200);
+        return win;
     }
 
     private static Window CreateSplashWindow()
@@ -159,7 +510,7 @@ public static class Program
         root.Children.Add(sp);
         win.Content = root;
         win.Show();
-        DoEvents();
+        DoEvents(300);
         return win;
     }
 
@@ -196,7 +547,8 @@ public static class Program
             CornerRadius = new CornerRadius(24),
             Padding = new Thickness(48),
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 30, ShadowDepth = 8, Opacity = 0.15 }
         };
 
         var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
@@ -257,6 +609,29 @@ public static class Program
         };
         sp.Children.Add(badge);
 
+        var tagsPanel = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24) };
+        string[] tags = ["⚡ Fast & Easy", "✨ Clean Machine", "🎁 Great Rewards", "👍 Helpful Instructions"];
+        foreach (var tag in tags)
+        {
+            tagsPanel.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(241, 245, 249)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(14, 6, 14, 6),
+                Margin = new Thickness(4),
+                Child = new TextBlock
+                {
+                    Text = tag,
+                    FontSize = 13,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(51, 65, 85))
+                }
+            });
+        }
+        sp.Children.Add(tagsPanel);
+
         sp.Children.Add(new TextBlock
         {
             Text = "Press 1 to 5 on keypad to rate • Press ENTER to confirm",
@@ -280,7 +655,7 @@ public static class Program
         root.Children.Add(card);
         win.Content = root;
         win.Show();
-        DoEvents();
+        DoEvents(300);
         return win;
     }
 
@@ -305,7 +680,8 @@ public static class Program
             CornerRadius = new CornerRadius(24),
             Padding = new Thickness(48),
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 30, ShadowDepth = 8, Opacity = 0.15 }
         };
 
         var sp = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
@@ -363,15 +739,24 @@ public static class Program
         root.Children.Add(card);
         win.Content = root;
         win.Show();
-        DoEvents();
+        DoEvents(300);
         return win;
     }
 
     private static void SaveWindowBitmap(Window window, string outputPath, int width, int height)
     {
+        window.Measure(new Size(width, height));
+        window.Arrange(new Rect(0, 0, width, height));
+        window.UpdateLayout();
+
         var target = (UIElement)window.Content ?? window;
+        SaveVisualBitmap(target, outputPath, width, height);
+    }
+
+    private static void SaveVisualBitmap(Visual visual, string outputPath, int width, int height)
+    {
         var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        rtb.Render(target);
+        rtb.Render(visual);
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(rtb));
@@ -382,13 +767,16 @@ public static class Program
         Console.WriteLine($"[SNAPSHOT SAVED] {fi.Name} -> {fi.Length / 1024} KB ({width}x{height})");
     }
 
-    private static void DoEvents()
+    private static void DoEvents(int sleepMs = 300)
     {
         var frame = new System.Windows.Threading.DispatcherFrame();
         System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
             System.Windows.Threading.DispatcherPriority.Background,
             new Action(() => frame.Continue = false));
         System.Windows.Threading.Dispatcher.PushFrame(frame);
-        Thread.Sleep(300);
+        if (sleepMs > 0)
+        {
+            Thread.Sleep(sleepMs);
+        }
     }
 }

@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="CaptureScreenshots" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets\RvmIcon.ico" />
     <Resource Include="Assets\RvmIconSource.png" />
     <Resource Include="Assets\RvmLogo.png" />
@@ -26,6 +30,7 @@
     <Content Include="Assets\DancingPlastic.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingTetra.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingXN.mp4" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\ItemRejected.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Ads\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.example.txt" CopyToOutputDirectory="PreserveNewest" />

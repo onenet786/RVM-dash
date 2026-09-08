@@ -25,14 +25,25 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        bool createdNew;
-        try
+        bool createdNew = false;
+        for (int i = 0; i < 5; i++)
         {
-            singleInstanceMutex = new Mutex(true, MutexId, out createdNew);
-        }
-        catch
-        {
-            createdNew = true;
+            try
+            {
+                singleInstanceMutex = new Mutex(true, MutexId, out createdNew);
+                if (createdNew) break;
+            }
+            catch (AbandonedMutexException)
+            {
+                createdNew = true;
+                break;
+            }
+            catch
+            {
+                createdNew = true;
+                break;
+            }
+            Thread.Sleep(300);
         }
 
         if (!createdNew)

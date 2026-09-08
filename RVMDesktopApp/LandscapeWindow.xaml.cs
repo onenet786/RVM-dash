@@ -252,11 +252,25 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
+            if (_demoSecretSequence.EndsWith("001"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                LogTelemetry("[DEMO HOTKEY] Demo Mode activated via sequence '001'");
+                DemoTestingWindow.CloseIfOpen();
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
+                e.Handled = true;
+                return;
+            }
+
             if (_demoSecretSequence.EndsWith("1122"))
             {
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
                 LogTelemetry("[HOTKEY] Demo testing simulator opened via secret code 1122");
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
                 DemoTestingWindow.OpenOrBringToFront(this);
                 e.Handled = true;
                 return;

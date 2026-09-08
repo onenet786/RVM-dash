@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
 
 namespace PecoDropDesktopApp;
 
@@ -18,6 +19,33 @@ public partial class SecondaryAdWindow : Window
         InitializeComponent();
         settings = appSettings ?? AppSettings.Load();
         Loaded += SecondaryAdWindow_Loaded;
+        SourceInitialized += (s, ev) =>
+        {
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            var source = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
+            source?.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == 0x0010) // WM_CLOSE
+                {
+                    handled = true;
+                    try { HeartbeatService.Stop(); } catch { }
+                    try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                    try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                    try { Application.Current?.Shutdown(); } catch { }
+                    Environment.Exit(0);
+                }
+                else if (msg == 0x0100 && wParam.ToInt32() == 0x1B) // WM_KEYDOWN VK_ESCAPE
+                {
+                    handled = true;
+                    try { HeartbeatService.Stop(); } catch { }
+                    try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                    try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                    try { Application.Current?.Shutdown(); } catch { }
+                    Environment.Exit(0);
+                }
+                return IntPtr.Zero;
+            });
+        };
     }
 
     private void SecondaryAdWindow_Loaded(object sender, RoutedEventArgs e)
@@ -95,10 +123,37 @@ public partial class SecondaryAdWindow : Window
         PlayNextVideo();
     }
 
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            try { HeartbeatService.Stop(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
+            return;
+        }
+        base.OnPreviewKeyDown(e);
+    }
+
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            try { HeartbeatService.Stop(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
+        }
+    }
+
     public void StopAndClose()
     {
         try
         {
+            SecondaryPlayer?.Stop();
             SecondaryPlayer?.Close();
         }
         catch { }
@@ -108,5 +163,16 @@ public partial class SecondaryAdWindow : Window
             Close();
         }
         catch { }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        try
+        {
+            SecondaryPlayer?.Stop();
+            SecondaryPlayer?.Close();
+        }
+        catch { }
+        base.OnClosed(e);
     }
 }

@@ -65,7 +65,43 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         InitializeComponent();
 
         Loaded += LandscapeWindow_Loaded;
+        Closing += LandscapeWindow_Closing;
         Closed += LandscapeWindow_Closed;
+        SourceInitialized += (s, ev) =>
+        {
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            var source = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
+            source?.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == 0x0010) // WM_CLOSE
+                {
+                    handled = true;
+                    try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+                    try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                    try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                    try { HeartbeatService.Stop(); } catch { }
+                    Environment.Exit(0);
+                }
+                else if (msg == 0x0100 && wParam.ToInt32() == 0x1B) // WM_KEYDOWN VK_ESCAPE
+                {
+                    handled = true;
+                    if (TelemetryPanel.Visibility == Visibility.Visible)
+                    {
+                        ToggleTelemetry();
+                    }
+                    else
+                    {
+                        try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+                        try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                        try { HeartbeatService.Stop(); } catch { }
+                        try { Application.Current?.Shutdown(); } catch { }
+                        Environment.Exit(0);
+                    }
+                }
+                return IntPtr.Zero;
+            });
+        };
         serial.DataReceived += Serial_DataReceived;
         serial.ErrorReceived += Serial_ErrorReceived;
         AdvertisementPlayer.MediaFailed += AdvertisementPlayer_MediaFailed;
@@ -190,9 +226,47 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         catch { }
     }
 
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        DisconnectHardwareOnExit();
+        try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+        try { DemoTestingWindow.CloseIfOpen(); } catch { }
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+        try { HeartbeatService.Stop(); } catch { }
+        base.OnClosing(e);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        DisconnectHardwareOnExit();
+        try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+        try { DemoTestingWindow.CloseIfOpen(); } catch { }
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+        try { HeartbeatService.Stop(); } catch { }
+        try { Application.Current?.Shutdown(); } catch { }
+        base.OnClosed(e);
+        Environment.Exit(0);
+    }
+
+    private void LandscapeWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        DisconnectHardwareOnExit();
+        try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+        try { DemoTestingWindow.CloseIfOpen(); } catch { }
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+        try { HeartbeatService.Stop(); } catch { }
+        Environment.Exit(0);
+    }
+
     private void LandscapeWindow_Closed(object? sender, EventArgs e)
     {
         DisconnectHardwareOnExit();
+        try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+        try { DemoTestingWindow.CloseIfOpen(); } catch { }
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+        try { HeartbeatService.Stop(); } catch { }
+        try { Application.Current?.Shutdown(); } catch { }
+        Environment.Exit(0);
     }
 
     private void ScanTimer_Tick(object? sender, EventArgs e)
@@ -217,6 +291,30 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private int digit8PressCount = 0;
     private DateTime lastDigit8PressTime = DateTime.MinValue;
     private DateTime lastDigit3PressTime = DateTime.MinValue;
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            if (TelemetryPanel.Visibility == Visibility.Visible)
+            {
+                ToggleTelemetry();
+                e.Handled = true;
+                return;
+            }
+
+            e.Handled = true;
+            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+            try { HeartbeatService.Stop(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
+            return;
+        }
+
+        base.OnPreviewKeyDown(e);
+    }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
@@ -301,7 +399,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
-            Close();
+            e.Handled = true;
+            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+            try { HeartbeatService.Stop(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
             return;
         }
 

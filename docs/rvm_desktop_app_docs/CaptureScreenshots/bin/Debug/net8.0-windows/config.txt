@@ -10,5 +10,5 @@ CameraPort=COM31
 CameraBaud=921600
 ModelPath=Models\rvm_classifier.onnx
 CaptureDirectory=Captures
-MachineId = RVM-RWP-MT
+MachineId = RVM-007
 CentralApiUrl = https://isprvm.binishaqsoft.com
