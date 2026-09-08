@@ -163,8 +163,8 @@ public static class CentralSyncService
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
                 localSessionId = localSessionId,
-                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "3214424625" : mobileNumber,
-                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "3214424625" : mobileNumber,
+                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
+                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
                 plasticCount = plasticCount,
                 aluminiumCount = aluminiumCount,
                 paperCardboardCount = paperCardboardCount,

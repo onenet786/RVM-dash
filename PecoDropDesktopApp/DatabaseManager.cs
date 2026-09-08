@@ -902,7 +902,7 @@ public static class DatabaseManager
             string sql = @"
                 SELECT 
                     SessionID,
-                    ISNULL(MobileNumber, '3214424625') AS MobileNumber,
+                    ISNULL(MobileNumber, '08884424625') AS MobileNumber,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS PlasticSmall,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS PlasticLarge,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS PlasticMedium,
@@ -916,7 +916,7 @@ public static class DatabaseManager
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
                 WHERE (IsSynced = 0 OR IsSynced IS NULL) AND (IsAccepted = 1 OR IsAccepted IS NULL)
-                GROUP BY SessionID, ISNULL(MobileNumber, '3214424625');
+                GROUP BY SessionID, ISNULL(MobileNumber, '08884424625');
             ";
 
             using var cmd = new SqlCommand(sql, connection);
@@ -928,7 +928,7 @@ public static class DatabaseManager
             {
                 sessionList.Add((
                     reader["SessionID"].ToString() ?? Guid.NewGuid().ToString(),
-                    reader["MobileNumber"].ToString() ?? "3214424625",
+                    reader["MobileNumber"].ToString() ?? "08884424625",
                     Convert.ToInt32(reader["PlasticSmall"]),
                     Convert.ToInt32(reader["PlasticMedium"]),
                     Convert.ToInt32(reader["PlasticLarge"]),

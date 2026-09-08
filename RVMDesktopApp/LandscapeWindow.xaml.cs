@@ -1030,7 +1030,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "3214424625";
+        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
@@ -1386,7 +1386,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "3214424625";
+        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;

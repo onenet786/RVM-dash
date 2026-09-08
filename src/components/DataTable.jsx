@@ -136,7 +136,7 @@ export default function DataTable({ collectionName, displayName }) {
     }
 
     if (key === 'mobile number' || key === 'user_id' || key === 'userId' || key === 'mobile_number') {
-      const mob = doc?.user_id || doc?.mobile_number || doc?.userId || val || '3214424625';
+      const mob = doc?.user_id || doc?.mobile_number || doc?.userId || val || '08884424625';
       return <span className="mono text-xs font-bold text-cyan-300">{String(mob)}</span>;
     }
 
