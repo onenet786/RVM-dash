@@ -487,14 +487,6 @@ app.get('/api/health', async (req, res) => {
         try {
           const countRes = await client.query(`SELECT COUNT(*) FROM "${tName}";`);
           count = parseInt(countRes.rows[0].count || '0');
-
-          if (tName === 'recycling_sessions') {
-            const altRes = await client.query(`SELECT COUNT(*) FROM recyclingsessions;`).catch(() => ({ rows: [{ count: 0 }] }));
-            count += parseInt(altRes.rows[0].count || '0');
-          } else if (tName === 'recyclingsessions') {
-            const altRes = await client.query(`SELECT COUNT(*) FROM recycling_sessions;`).catch(() => ({ rows: [{ count: 0 }] }));
-            count += parseInt(altRes.rows[0].count || '0');
-          }
         } catch (cErr) {}
 
         collectionsWithStats.push({
@@ -859,8 +851,14 @@ function getAssignedMachinesList(req) {
 app.get('/api/overview', async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
-      const sessions = await fetchCollectionDocs('recyclingsessions');
-      const users = await fetchCollectionDocs('userprofile');
+      let sessions = await fetchCollectionDocs('recycling_sessions');
+      if (sessions.length === 0) {
+        sessions = await fetchCollectionDocs('recyclingsessions');
+      }
+      let users = await fetchCollectionDocs('users');
+      if (users.length === 0) {
+        users = await fetchCollectionDocs('userprofile');
+      }
       const feedbacks = await fetchCollectionDocs('feedbacks');
       const binAlerts = await fetchCollectionDocs('binfullnotifications');
       const redemptions = await fetchCollectionDocs('redemptions');
@@ -953,7 +951,7 @@ app.get('/api/overview', async (req, res) => {
         databaseType: 'postgres',
         serverHost: `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}`,
         totalSessions: sessions.length,
-        totalUsers: users.length > 0 ? users.length : 3,
+        totalUsers: users.length,
         totalFeedbacks: feedbacks.length,
         totalBinAlerts: binAlerts.length,
         totalRedemptions: redemptions.length,
@@ -1201,7 +1199,10 @@ app.get('/api/collections/:name', async (req, res) => {
 app.get('/api/analytics/trends', async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
-      const sessions = await fetchCollectionDocs('recyclingsessions');
+      let sessions = await fetchCollectionDocs('recycling_sessions');
+      if (sessions.length === 0) {
+        sessions = await fetchCollectionDocs('recyclingsessions');
+      }
       const grouped = {};
       sessions.forEach(s => {
         const dateKey = (s.recycledAt || s.timestamp || new Date().toISOString()).substring(0, 10);
@@ -1247,7 +1248,10 @@ app.get('/api/analytics/trends', async (req, res) => {
 app.get('/api/analytics/leaderboard', async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
-      const sessions = await fetchCollectionDocs('recyclingsessions');
+      let sessions = await fetchCollectionDocs('recycling_sessions');
+      if (sessions.length === 0) {
+        sessions = await fetchCollectionDocs('recyclingsessions');
+      }
       const grouped = {};
       sessions.forEach(s => {
         const phone = s.phoneNumber || s.userId || 'Unknown';
@@ -1304,7 +1308,10 @@ app.get('/api/analytics/machines', async (req, res) => {
     const now = Date.now();
 
     if (activeDbType === 'postgres' && activePgConfig) {
-      const sessions = await fetchCollectionDocs('recyclingsessions');
+      let sessions = await fetchCollectionDocs('recycling_sessions');
+      if (sessions.length === 0) {
+        sessions = await fetchCollectionDocs('recyclingsessions');
+      }
       const alerts = await fetchCollectionDocs('binfullnotifications');
 
       const pool = getPgPool();
@@ -1756,7 +1763,10 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
     let count = 0;
 
     if (activeDbType === 'postgres' && activePgConfig) {
-      const sessions = await fetchCollectionDocs('recyclingsessions');
+      let sessions = await fetchCollectionDocs('recycling_sessions');
+      if (sessions.length === 0) {
+        sessions = await fetchCollectionDocs('recyclingsessions');
+      }
       count = sessions.length;
       sessions.forEach(s => {
         const plastic = parseInt(s.plasticCount || s.plastic_count || s.bottles || s.totalBottles || 0) +
@@ -2214,137 +2224,144 @@ async function fetchCollectionDocs(colName) {
     if (!pool) return [];
     const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
-    // 1. Relational Table: recycling_sessions / recyclingsessions
-    if (tableName === 'recycling_sessions' || tableName === 'recyclingsessions') {
-      const docs = [];
+    // 1. Relational Table: recycling_sessions (Exclusively relational)
+    if (tableName === 'recycling_sessions') {
+      try {
+        const relRes = await pool.query(`SELECT * FROM recycling_sessions ORDER BY created_at DESC;`).catch(() => ({ rows: [] }));
+        return relRes.rows.map(r => {
+          const sId = r.session_id;
+          const pCount = parseInt(r.plastic_count || 0);
+          const aCount = parseInt(r.aluminium_count || 0);
+          const paperCount = parseInt(r.paper_cardboard_count || 0);
+          const gCount = parseInt(r.glass_count || 0);
+          const bSize = r.bottle_size || 'MEDIUM';
+
+          let variant = r.item_variant;
+          if (!variant) {
+            if (pCount > 0) variant = `${pCount}x ${bSize} PLASTIC`;
+            else if (aCount > 0) variant = `${aCount}x CAN (Metal)`;
+            else if (paperCount > 0) variant = `${paperCount}x PAPER / TETRA PAK`;
+            else if (gCount > 0) variant = `${gCount}x ${bSize} GLASS`;
+            else variant = 'RECYCLABLE ITEM';
+          }
+
+          const totItems = pCount + aCount + paperCount + gCount;
+
+          return {
+            _id: sId,
+            session_id: sId,
+            machineId: r.machine_id,
+            machine_id: r.machine_id,
+            userId: r.user_id,
+            user_id: r.user_id,
+            mobile_number: r.user_id,
+            bottles: totItems,
+            totalBottles: totItems,
+            plasticCount: pCount,
+            plastic_count: pCount,
+            plastic_small_count: parseInt(r.plastic_small_count || 0),
+            plastic_medium_count: parseInt(r.plastic_medium_count || 0),
+            plastic_large_count: parseInt(r.plastic_large_count || 0),
+            aluminiumCount: aCount,
+            aluminium_count: aCount,
+            can_small_count: parseInt(r.can_small_count || 0),
+            can_medium_count: parseInt(r.can_medium_count || 0),
+            can_large_count: parseInt(r.can_large_count || 0),
+            paperCardboardCount: paperCount,
+            paper_cardboard_count: paperCount,
+            paper_weight_grams: parseInt(r.paper_weight_grams || 0),
+            tetrapak_weight_grams: parseInt(r.tetrapak_weight_grams || 0),
+            glassCount: gCount,
+            glass_count: gCount,
+            glass_small_count: parseInt(r.glass_small_count || 0),
+            glass_medium_count: parseInt(r.glass_medium_count || 0),
+            glass_large_count: parseInt(r.glass_large_count || 0),
+            itemVariant: variant,
+            item_variant: variant,
+            bottleSize: bSize,
+            bottle_size: bSize,
+            totalWeightKg: parseFloat(r.total_weight_kg || 0),
+            total_weight_kg: parseFloat(r.total_weight_kg || 0),
+            co2AvoidedKg: parseFloat(r.co2_avoided_kg || 0),
+            co2_avoided_kg: parseFloat(r.co2_avoided_kg || 0),
+            points: parseInt(r.points_earned || 0),
+            totalPoints: parseInt(r.points_earned || 0),
+            pointsEarned: parseInt(r.points_earned || 0),
+            points_earned: parseInt(r.points_earned || 0),
+            session_status: r.session_status || 'completed',
+            recycledAt: r.created_at,
+            created_at: r.created_at,
+            timestamp: r.created_at
+          };
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 2. JSONB Document Table: recyclingsessions (Exclusively JSONB)
+    if (tableName === 'recyclingsessions') {
       try {
         const jsonRes = await pool.query(`SELECT id, data FROM recyclingsessions;`).catch(() => ({ rows: [] }));
-        jsonRes.rows.forEach(r => {
+        return jsonRes.rows.map(r => {
           const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
           delete parsed.id;
           if (!parsed._id) parsed._id = r.id;
-          docs.push(parsed);
+          return parsed;
         });
-      } catch (e) {}
-
-      try {
-        const relRes = await pool.query(`SELECT * FROM recycling_sessions;`).catch(() => ({ rows: [] }));
-        const existingIds = new Set(docs.map(d => d._id || d.session_id));
-        relRes.rows.forEach(r => {
-          const sId = r.session_id;
-          if (!existingIds.has(sId)) {
-            const pCount = parseInt(r.plastic_count || 0);
-            const aCount = parseInt(r.aluminium_count || 0);
-            const paperCount = parseInt(r.paper_cardboard_count || 0);
-            const gCount = parseInt(r.glass_count || 0);
-            const bSize = r.bottle_size || 'MEDIUM';
-
-            let variant = r.item_variant;
-            if (!variant) {
-              if (pCount > 0) variant = `${pCount}x ${bSize} PLASTIC`;
-              else if (aCount > 0) variant = `${aCount}x CAN (Metal)`;
-              else if (paperCount > 0) variant = `${paperCount}x PAPER / TETRA PAK`;
-              else if (gCount > 0) variant = `${gCount}x ${bSize} GLASS`;
-              else variant = 'RECYCLABLE ITEM';
-            }
-
-            const totItems = pCount + aCount + paperCount + gCount;
-
-            docs.push({
-              _id: sId,
-              session_id: sId,
-              machineId: r.machine_id,
-              machine_id: r.machine_id,
-              userId: r.user_id,
-              user_id: r.user_id,
-              mobile_number: r.user_id,
-              bottles: totItems,
-              totalBottles: totItems,
-              plasticCount: pCount,
-              plastic_count: pCount,
-              plastic_small_count: parseInt(r.plastic_small_count || 0),
-              plastic_medium_count: parseInt(r.plastic_medium_count || 0),
-              plastic_large_count: parseInt(r.plastic_large_count || 0),
-              aluminiumCount: aCount,
-              aluminium_count: aCount,
-              can_small_count: parseInt(r.can_small_count || 0),
-              can_medium_count: parseInt(r.can_medium_count || 0),
-              can_large_count: parseInt(r.can_large_count || 0),
-              paperCardboardCount: paperCount,
-              paper_cardboard_count: paperCount,
-              paper_weight_grams: parseInt(r.paper_weight_grams || 0),
-              tetrapak_weight_grams: parseInt(r.tetrapak_weight_grams || 0),
-              glassCount: gCount,
-              glass_count: gCount,
-              glass_small_count: parseInt(r.glass_small_count || 0),
-              glass_medium_count: parseInt(r.glass_medium_count || 0),
-              glass_large_count: parseInt(r.glass_large_count || 0),
-              itemVariant: variant,
-              item_variant: variant,
-              bottleSize: bSize,
-              bottle_size: bSize,
-              totalWeightKg: parseFloat(r.total_weight_kg || 0),
-              total_weight_kg: parseFloat(r.total_weight_kg || 0),
-              co2AvoidedKg: parseFloat(r.co2_avoided_kg || 0),
-              co2_avoided_kg: parseFloat(r.co2_avoided_kg || 0),
-              points: parseInt(r.points_earned || 0),
-              totalPoints: parseInt(r.points_earned || 0),
-              pointsEarned: parseInt(r.points_earned || 0),
-              points_earned: parseInt(r.points_earned || 0),
-              session_status: r.session_status || 'completed',
-              recycledAt: r.created_at,
-              created_at: r.created_at,
-              timestamp: r.created_at
-            });
-
-          }
-        });
-
-      } catch (e) {}
-
-      return docs;
+      } catch (e) {
+        return [];
+      }
     }
 
-    // 2. Relational Table: users / userprofile
-    if (tableName === 'users' || tableName === 'userprofile') {
-      const docs = [];
+    // 3. Relational Table: users (Exclusively relational)
+    if (tableName === 'users') {
+      try {
+        const relRes = await pool.query(`SELECT * FROM users ORDER BY created_at DESC;`).catch(() => ({ rows: [] }));
+        return relRes.rows.map(r => {
+          const uId = r.user_id || r.username;
+          return {
+            _id: uId,
+            user_id: uId,
+            username: r.username,
+            fullName: r.full_name,
+            full_name: r.full_name,
+            email: r.email,
+            mobile: r.mobile,
+            age: r.age,
+            nic: r.nic,
+            gender: r.gender,
+            dob: r.dob,
+            profileImage: r.profile_image,
+            pointsBalance: r.points_balance,
+            points_balance: r.points_balance,
+            role: r.role_id,
+            status: r.status,
+            createdAt: r.created_at,
+            created_at: r.created_at
+          };
+        });
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 4. JSONB Document Table: userprofile (Exclusively JSONB)
+    if (tableName === 'userprofile') {
       try {
         const jsonRes = await pool.query(`SELECT id, data FROM userprofile;`).catch(() => ({ rows: [] }));
-        jsonRes.rows.forEach(r => {
+        return jsonRes.rows.map(r => {
           const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
           delete parsed.id;
           if (!parsed._id) parsed._id = r.id;
-          docs.push(parsed);
+          return parsed;
         });
-      } catch (e) {}
-
-      try {
-        const relRes = await pool.query(`SELECT * FROM users;`).catch(() => ({ rows: [] }));
-        const existingIds = new Set(docs.map(d => d._id || d.user_id || d.username));
-        relRes.rows.forEach(r => {
-          const uId = r.user_id || r.username;
-          if (!existingIds.has(uId)) {
-            docs.push({
-              _id: uId,
-              user_id: uId,
-              username: r.username,
-              fullName: r.full_name,
-              full_name: r.full_name,
-              email: r.email,
-              pointsBalance: r.points_balance,
-              points_balance: r.points_balance,
-              role: r.role_id,
-              status: r.status,
-              createdAt: r.created_at
-            });
-          }
-        });
-      } catch (e) {}
-
-      return docs;
+      } catch (e) {
+        return [];
+      }
     }
 
-    // 3. Relational Table: machines
+    // 5. Relational Table: machines
     if (tableName === 'machines') {
       try {
         const relRes = await pool.query(`SELECT * FROM machines;`).catch(() => ({ rows: [] }));
@@ -2354,14 +2371,17 @@ async function fetchCollectionDocs(colName) {
           name: r.name,
           location: r.location,
           status: r.status,
+          binFillPercentage: r.bin_fill_percentage,
           totalBottlesRecycled: r.total_bottles_recycled,
           totalWeightKg: r.total_weight_kg,
           lastPingAt: r.last_ping_at
         }));
-      } catch (e) {}
+      } catch (e) {
+        return [];
+      }
     }
 
-    // 4. Relational Table: machine_configs
+    // 6. Relational Table: machine_configs
     if (tableName === 'machine_configs') {
       try {
         const relRes = await pool.query(`SELECT * FROM machine_configs;`).catch(() => ({ rows: [] }));
@@ -2374,31 +2394,43 @@ async function fetchCollectionDocs(colName) {
           pointsPerPaperKg: r.points_per_paper_kg,
           updatedAt: r.updated_at
         }));
-      } catch (e) {}
+      } catch (e) {
+        return [];
+      }
     }
 
-    // 5. Dynamic JSONB Document Tables
+    // 7. General Tables (Inspect column structure: JSONB vs Relational)
     try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS "${tableName}" (
-          id VARCHAR(255) PRIMARY KEY,
-          data JSONB NOT NULL,
-          synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-      const res = await pool.query(`SELECT id, data FROM "${tableName}"`);
-      return res.rows.map(r => {
-        const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
-        delete parsed.id; // Keep _id as the single primary ID field
-        if (!parsed._id) parsed._id = r.id;
-        return parsed;
-      });
+      const colCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = $1 
+          AND column_name = 'data';
+      `, [tableName]);
+
+      if (colCheck.rows.length > 0) {
+        const res = await pool.query(`SELECT id, data FROM "${tableName}"`);
+        return res.rows.map(r => {
+          const parsed = typeof r.data === 'string' ? JSON.parse(r.data) : { ...r.data };
+          delete parsed.id;
+          if (!parsed._id) parsed._id = r.id;
+          return parsed;
+        });
+      } else {
+        const res = await pool.query(`SELECT * FROM "${tableName}"`);
+        return res.rows.map(r => {
+          const doc = { ...r };
+          if (!doc._id) {
+            doc._id = doc.id || doc.session_id || doc.user_id || doc.machine_id || `row_${Math.random()}`;
+          }
+          return doc;
+        });
+      }
     } catch (e) {
       return [];
     }
   }
-
-
 
   // MongoDB Collection Query
   if (!db) await connectDB();
@@ -3111,53 +3143,51 @@ async function handleMobileLogin(req, res) {
       identifier && identifier.startsWith('0') ? identifier.substring(1) : null
     ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const statsRes = await pool.query(`
-          SELECT 
-            COALESCE(SUM(plastic_count), 0) AS total_bottles,
-            COALESCE(SUM(aluminium_count), 0) AS total_cups,
-            COALESCE(SUM(glass_count), 0) AS total_glass,
-            COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
-            COALESCE(SUM(total_weight_kg), 0) AS total_weight,
-            COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
-            COALESCE(SUM(points_earned), 0) AS total_earned_points,
-            COUNT(session_id) AS session_count,
-            MAX(created_at) AS last_recycled_at
-          FROM recycling_sessions
-          WHERE user_id = ANY($1::text[])
-            AND user_id NOT IN ('anonymous', '', 'null');
-        `, [validUserIds]);
+    // STRICT: Mobile App always reads recycling history and metrics from PostgreSQL
+    if (pool) {
+      const statsRes = await pool.query(`
+        SELECT 
+          COALESCE(SUM(plastic_count), 0) AS total_bottles,
+          COALESCE(SUM(aluminium_count), 0) AS total_cups,
+          COALESCE(SUM(glass_count), 0) AS total_glass,
+          COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
+          COALESCE(SUM(total_weight_kg), 0) AS total_weight,
+          COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
+          COALESCE(SUM(points_earned), 0) AS total_earned_points,
+          COUNT(session_id) AS session_count,
+          MAX(created_at) AS last_recycled_at
+        FROM recycling_sessions
+        WHERE user_id = ANY($1::text[])
+          AND user_id NOT IN ('anonymous', '', 'null');
+      `, [validUserIds]);
 
-        if (statsRes.rows.length > 0) {
-          bottles = parseInt(statsRes.rows[0].total_bottles || 0);
-          cups = parseInt(statsRes.rows[0].total_cups || 0);
-          glass = parseInt(statsRes.rows[0].total_glass || 0);
-          paper = parseInt(statsRes.rows[0].total_paper || 0);
-          totalWeightKg = parseFloat(statsRes.rows[0].total_weight || 0);
-          totalCo2Kg = parseFloat(statsRes.rows[0].total_co2 || 0);
-          totalSessions = parseInt(statsRes.rows[0].session_count || 0);
-          latestRecycle = statsRes.rows[0].last_recycled_at;
-          earnedPoints = parseInt(statsRes.rows[0].total_earned_points || 0);
-          if (points === 0 && earnedPoints > 0) {
-            points = earnedPoints;
-          }
+      if (statsRes.rows.length > 0) {
+        bottles = parseInt(statsRes.rows[0].total_bottles || 0);
+        cups = parseInt(statsRes.rows[0].total_cups || 0);
+        glass = parseInt(statsRes.rows[0].total_glass || 0);
+        paper = parseInt(statsRes.rows[0].total_paper || 0);
+        totalWeightKg = parseFloat(statsRes.rows[0].total_weight || 0);
+        totalCo2Kg = parseFloat(statsRes.rows[0].total_co2 || 0);
+        totalSessions = parseInt(statsRes.rows[0].session_count || 0);
+        latestRecycle = statsRes.rows[0].last_recycled_at;
+        earnedPoints = parseInt(statsRes.rows[0].total_earned_points || 0);
+        if (points === 0 && earnedPoints > 0) {
+          points = earnedPoints;
         }
-
-        redeemedPoints = Math.max(0, earnedPoints - points);
-
-        const recentRes = await pool.query(`
-          SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
-                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
-          FROM recycling_sessions
-          WHERE user_id = ANY($1::text[])
-            AND user_id NOT IN ('anonymous', '', 'null')
-          ORDER BY created_at DESC
-          LIMIT 10;
-        `, [validUserIds]);
-        recentSessions = recentRes.rows || [];
       }
+
+      redeemedPoints = Math.max(0, earnedPoints - points);
+
+      const recentRes = await pool.query(`
+        SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+               item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+        FROM recycling_sessions
+        WHERE user_id = ANY($1::text[])
+          AND user_id NOT IN ('anonymous', '', 'null')
+        ORDER BY created_at DESC
+        LIMIT 10;
+      `, [validUserIds]);
+      recentSessions = recentRes.rows || [];
     }
 
     let token = '';
@@ -3427,76 +3457,74 @@ async function handleMobileGetPoints(req, res) {
     let earnedPoints = 0;
     let redeemedPoints = 0;
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const uRes = await pool.query(`
-          SELECT user_id, username, mobile, points_balance
-          FROM users
-          WHERE mobile = $1 OR email = $1 OR username = $1 OR user_id = $1
-          LIMIT 1;
-        `, [phone]);
+    const pool = getPgPool();
+    if (pool) {
+      const uRes = await pool.query(`
+        SELECT user_id, username, mobile, points_balance
+        FROM users
+        WHERE mobile = $1 OR email = $1 OR username = $1 OR user_id = $1
+        LIMIT 1;
+      `, [phone]);
 
-        let validUserIds = [phone];
-        if (uRes.rows.length > 0) {
-          points = uRes.rows[0].points_balance || 0;
-          const u = uRes.rows[0];
-          validUserIds = Array.from(new Set([
-            u.user_id,
-            u.username,
-            u.mobile,
-            phone,
-            u.mobile ? u.mobile.replace(/[^0-9]/g, '') : null,
-            phone ? phone.replace(/[^0-9]/g, '') : null,
-            u.mobile && u.mobile.startsWith('0') ? u.mobile.substring(1) : null,
-            phone && phone.startsWith('0') ? phone.substring(1) : null
-          ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
-        }
-
-        const sRes = await pool.query(`
-          SELECT 
-            COALESCE(SUM(plastic_count), 0) AS total_bottles,
-            COALESCE(SUM(aluminium_count), 0) AS total_cups,
-            COALESCE(SUM(glass_count), 0) AS total_glass,
-            COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
-            COALESCE(SUM(total_weight_kg), 0) AS total_weight,
-            COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
-            COALESCE(SUM(points_earned), 0) AS total_earned_points,
-            COUNT(session_id) AS session_count,
-            MAX(created_at) AS last_recycled_at
-          FROM recycling_sessions
-          WHERE user_id = ANY($1::text[])
-            AND user_id NOT IN ('anonymous', '', 'null');
-        `, [validUserIds]);
-
-        if (sRes.rows.length > 0) {
-          bottles = parseInt(sRes.rows[0].total_bottles || 0);
-          cups = parseInt(sRes.rows[0].total_cups || 0);
-          glass = parseInt(sRes.rows[0].total_glass || 0);
-          paper = parseInt(sRes.rows[0].total_paper || 0);
-          totalWeightKg = parseFloat(sRes.rows[0].total_weight || 0);
-          totalCo2Kg = parseFloat(sRes.rows[0].total_co2 || 0);
-          totalSessions = parseInt(sRes.rows[0].session_count || 0);
-          lastRecycled = sRes.rows[0].last_recycled_at;
-          earnedPoints = parseInt(sRes.rows[0].total_earned_points || 0);
-          if (points === 0 && earnedPoints > 0) {
-            points = earnedPoints;
-          }
-        }
-
-        redeemedPoints = Math.max(0, earnedPoints - points);
-
-        const recentRes = await pool.query(`
-          SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
-                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
-          FROM recycling_sessions
-          WHERE user_id = ANY($1::text[])
-            AND user_id NOT IN ('anonymous', '', 'null')
-          ORDER BY created_at DESC
-          LIMIT 10;
-        `, [validUserIds]);
-        recentSessions = recentRes.rows || [];
+      let validUserIds = [phone];
+      if (uRes.rows.length > 0) {
+        points = uRes.rows[0].points_balance || 0;
+        const u = uRes.rows[0];
+        validUserIds = Array.from(new Set([
+          u.user_id,
+          u.username,
+          u.mobile,
+          phone,
+          u.mobile ? u.mobile.replace(/[^0-9]/g, '') : null,
+          phone ? phone.replace(/[^0-9]/g, '') : null,
+          u.mobile && u.mobile.startsWith('0') ? u.mobile.substring(1) : null,
+          phone && phone.startsWith('0') ? phone.substring(1) : null
+        ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
       }
+
+      const sRes = await pool.query(`
+        SELECT 
+          COALESCE(SUM(plastic_count), 0) AS total_bottles,
+          COALESCE(SUM(aluminium_count), 0) AS total_cups,
+          COALESCE(SUM(glass_count), 0) AS total_glass,
+          COALESCE(SUM(paper_cardboard_count), 0) AS total_paper,
+          COALESCE(SUM(total_weight_kg), 0) AS total_weight,
+          COALESCE(SUM(co2_avoided_kg), 0) AS total_co2,
+          COALESCE(SUM(points_earned), 0) AS total_earned_points,
+          COUNT(session_id) AS session_count,
+          MAX(created_at) AS last_recycled_at
+        FROM recycling_sessions
+        WHERE user_id = ANY($1::text[])
+          AND user_id NOT IN ('anonymous', '', 'null');
+      `, [validUserIds]);
+
+      if (sRes.rows.length > 0) {
+        bottles = parseInt(sRes.rows[0].total_bottles || 0);
+        cups = parseInt(sRes.rows[0].total_cups || 0);
+        glass = parseInt(sRes.rows[0].total_glass || 0);
+        paper = parseInt(sRes.rows[0].total_paper || 0);
+        totalWeightKg = parseFloat(sRes.rows[0].total_weight || 0);
+        totalCo2Kg = parseFloat(sRes.rows[0].total_co2 || 0);
+        totalSessions = parseInt(sRes.rows[0].session_count || 0);
+        lastRecycled = sRes.rows[0].last_recycled_at;
+        earnedPoints = parseInt(sRes.rows[0].total_earned_points || 0);
+        if (points === 0 && earnedPoints > 0) {
+          points = earnedPoints;
+        }
+      }
+
+      redeemedPoints = Math.max(0, earnedPoints - points);
+
+      const recentRes = await pool.query(`
+        SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+               item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+        FROM recycling_sessions
+        WHERE user_id = ANY($1::text[])
+          AND user_id NOT IN ('anonymous', '', 'null')
+        ORDER BY created_at DESC
+        LIMIT 10;
+      `, [validUserIds]);
+      recentSessions = recentRes.rows || [];
     }
 
     const totalRecovered = bottles + cups + glass + paper;
@@ -3536,47 +3564,38 @@ async function handleMobileGetPoints(req, res) {
 app.post('/api/get-points', handleMobileGetPoints);
 app.post('/get-points', handleMobileGetPoints);
 
-// 4. Mobile Get Recycle History
+// 4. Mobile Get Recycle History (Exclusively from PostgreSQL)
 async function handleMobileGetRecycle(req, res) {
   try {
     const { userId } = req.params;
     if (!userId || userId === 'anonymous') return res.status(400).json({ success: false, error: 'Valid userId is required' });
 
     let history = [];
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const uRes = await pool.query(`
-          SELECT user_id, username, mobile FROM users
-          WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
-          LIMIT 1;
-        `, [userId]);
+    const pool = getPgPool();
+    if (pool) {
+      const uRes = await pool.query(`
+        SELECT user_id, username, mobile FROM users
+        WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
+        LIMIT 1;
+      `, [userId]);
 
-        let validUserIds = [userId];
-        if (uRes.rows.length > 0) {
-          const u = uRes.rows[0];
-          validUserIds = Array.from(new Set([u.user_id, u.username, u.mobile, userId])).filter(Boolean);
-        }
-
-        const sRes = await pool.query(`
-          SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
-                 item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
-          FROM recycling_sessions
-          WHERE user_id = ANY($1::text[])
-            AND user_id NOT IN ('anonymous', '', 'null')
-          ORDER BY created_at DESC
-          LIMIT 100;
-        `, [validUserIds]);
-        history = sRes.rows;
+      let validUserIds = [userId];
+      if (uRes.rows.length > 0) {
+        const u = uRes.rows[0];
+        validUserIds = Array.from(new Set([u.user_id, u.username, u.mobile, userId])).filter(Boolean);
       }
-    } else if (db) {
-      history = await db.collection('recyclingsessions').find({
-        $and: [
-          { $or: [{ userId }, { user_id: userId }, { mobile: userId }] },
-          { user_id: { $nin: ['anonymous', '', null] } }
-        ]
-      }).sort({ recycledAt: -1 }).limit(100).toArray();
-    } 
+
+      const sRes = await pool.query(`
+        SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+               item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+        FROM recycling_sessions
+        WHERE user_id = ANY($1::text[])
+          AND user_id NOT IN ('anonymous', '', 'null')
+        ORDER BY created_at DESC
+        LIMIT 100;
+      `, [validUserIds]);
+      history = sRes.rows;
+    }
 
     res.json({
       success: true,
@@ -3591,37 +3610,25 @@ async function handleMobileGetRecycle(req, res) {
 app.get('/api/getrecycle/:userId', handleMobileGetRecycle);
 app.get('/getrecycle/:userId', handleMobileGetRecycle);
 
-// 5. Mobile Usernames / Leaderboard (Mobile & RVM Kiosk Leaderboard)
+// 5. Mobile Usernames / Leaderboard (Exclusively from PostgreSQL)
 async function handleMobileUsernames(req, res) {
   try {
     let usersList = [];
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const uRes = await pool.query(`
-          SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name, profile_image, dob
-          FROM users
-          ORDER BY points_balance DESC, created_at ASC
-          LIMIT 100;
-        `);
-        usersList = uRes.rows.map(r => ({
-          userName: r.userName || r.full_name || 'Eco User',
-          fullName: r.full_name || r.userName || 'Eco User',
-          profileImage: r.profile_image || '',
-          dob: r.dob || '',
-          isBirthday: checkIsBirthday(r.dob),
-          totalPoints: Number(r.totalPoints || 0)
-        }));
-      }
-    } else if (db) {
-      const docs = await db.collection('users').find({}).sort({ points: -1 }).limit(100).toArray();
-      usersList = docs.map(d => ({
-        userName: d.username || d.userName || d.fullName || 'Eco User',
-        fullName: d.fullName || d.username || 'Eco User',
-        profileImage: d.profileImage || '',
-        dob: d.dob || '',
-        isBirthday: checkIsBirthday(d.dob),
-        totalPoints: Number(d.points || d.pointsBalance || 0)
+    const pool = getPgPool();
+    if (pool) {
+      const uRes = await pool.query(`
+        SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name, profile_image, dob
+        FROM users
+        ORDER BY points_balance DESC, created_at ASC
+        LIMIT 100;
+      `);
+      usersList = uRes.rows.map(r => ({
+        userName: r.userName || r.full_name || 'Eco User',
+        fullName: r.full_name || r.userName || 'Eco User',
+        profileImage: r.profile_image || '',
+        dob: r.dob || '',
+        isBirthday: checkIsBirthday(r.dob),
+        totalPoints: Number(r.totalPoints || 0)
       }));
     }
 
@@ -3645,19 +3652,17 @@ async function handleForgotPassword(req, res) {
     const cleanEmail = email.trim().toLowerCase();
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const check = await pool.query(`SELECT user_id FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;`, [cleanEmail]);
-        if (check.rows.length === 0) {
-          return res.status(404).json({ success: false, message: 'Email address not found' });
-        }
-        await pool.query(`
-          UPDATE users 
-          SET otp = $1, otp_expiry = NOW() + INTERVAL '15 minutes'
-          WHERE email = $2 OR mobile = $2;
-        `, [otp, cleanEmail]);
+    const pool = getPgPool();
+    if (pool) {
+      const check = await pool.query(`SELECT user_id FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;`, [cleanEmail]);
+      if (check.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Email address not found' });
       }
+      await pool.query(`
+        UPDATE users 
+        SET otp = $1, otp_expiry = NOW() + INTERVAL '15 minutes'
+        WHERE email = $2 OR mobile = $2;
+      `, [otp, cleanEmail]);
     }
 
     console.log(`[Mobile OTP] Generated OTP ${otp} for ${cleanEmail}`);
@@ -3683,28 +3688,26 @@ async function handleResetPassword(req, res) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const check = await pool.query(`
-          SELECT user_id, otp, otp_expiry FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;
-        `, [cleanEmail]);
+    const pool = getPgPool();
+    if (pool) {
+      const check = await pool.query(`
+        SELECT user_id, otp, otp_expiry FROM users WHERE email = $1 OR mobile = $1 LIMIT 1;
+      `, [cleanEmail]);
 
-        if (check.rows.length === 0) {
-          return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        const user = check.rows[0];
-        if (user.otp !== String(otp).trim()) {
-          return res.status(400).json({ success: false, message: 'Invalid or expired OTP code' });
-        }
-
-        await pool.query(`
-          UPDATE users 
-          SET password = $1, otp = NULL, otp_expiry = NULL 
-          WHERE user_id = $2;
-        `, [newPassword, user.user_id]);
+      if (check.rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'User not found' });
       }
+
+      const user = check.rows[0];
+      if (user.otp !== String(otp).trim()) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP code' });
+      }
+
+      await pool.query(`
+        UPDATE users 
+        SET password = $1, otp = NULL, otp_expiry = NULL 
+        WHERE user_id = $2;
+      `, [newPassword, user.user_id]);
     }
 
     res.json({ success: true, message: 'Password reset successfully' });

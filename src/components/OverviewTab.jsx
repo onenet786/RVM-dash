@@ -53,15 +53,16 @@ export default function OverviewTab({ currentUser }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-        <p className="text-sm font-semibold">Loading MongoDB Live Dashboard Metrics...</p>
+        <p className="text-sm font-semibold">Loading Live Dashboard Metrics...</p>
       </div>
     );
   }
 
-  const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
-  const dbName = health?.database || 'ONS-RVM';
+  const isPostgres = health?.databaseType === 'postgres';
+  const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
+  const dbName = health?.database || (isPostgres ? 'rvmpg' : 'ONS-RVM');
   const isMasterDev = currentUser?.username === 'onenet';
-
+  const locationDisplay = health?.serverLocation?.display || (isPostgres ? 'Ubuntu Dedicated Server (Localhost)' : 'Paris, France (AWS EU_WEST_3)');
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -77,14 +78,16 @@ export default function OverviewTab({ currentUser }) {
             <div className="text-xs font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
               {isMasterDev ? (
                 <>
-                  <span>Cluster Host: <span className="text-cyan-400">{serverHost}</span></span>
+                  <span>Host: <span className="text-cyan-400">{serverHost}</span></span>
+                  <span>•</span>
+                  <span>Engine: <span className="text-indigo-400 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
                   <span>•</span>
                   <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
                   <span>•</span>
-                  <span>Location: <span className="text-amber-400 font-bold">{health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}</span></span>
+                  <span>Location: <span className="text-amber-400 font-bold">{locationDisplay}</span></span>
                 </>
               ) : (
-                <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
+                <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
               )}
             </div>
           </div>
@@ -93,11 +96,11 @@ export default function OverviewTab({ currentUser }) {
         <div className="flex items-center gap-2 text-xs">
           {isMasterDev && (
             <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-bold border border-amber-500/20 flex items-center gap-1.5">
-              📍 {health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)'}
+              📍 {locationDisplay}
             </span>
           )}
           <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-bold border border-emerald-500/20 flex items-center gap-1.5">
-            🟢 Active ({dbName})
+            🟢 Active ({isPostgres ? 'PostgreSQL: ' : 'MongoDB: '}{dbName})
           </span>
         </div>
       </div>

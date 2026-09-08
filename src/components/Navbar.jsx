@@ -64,20 +64,20 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
                     {serverHost}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <span className="flex items-center gap-1 text-indigo-400 font-bold">
                     <HardDrive className="w-3 h-3" />
-                    DB: {dbName}
+                    {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1 text-amber-400 font-bold">
                     <MapPin className="w-3 h-3 text-amber-400" />
-                    Region: {serverLoc}
+                    Region: {health?.serverLocation?.display || (health?.databaseType === 'postgres' ? 'Ubuntu Dedicated Server' : serverLoc)}
                   </span>
                 </>
               ) : (
                 <span className="flex items-center gap-1 text-emerald-400 font-bold">
                   <HardDrive className="w-3 h-3" />
-                  Database: {dbName}
+                  {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
                 </span>
               )}
             </div>
@@ -92,7 +92,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs">
             <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 pulse-glow shadow-md shadow-emerald-400/50' : 'bg-rose-500'}`} />
             <div className="flex items-center gap-1.5 font-semibold">
-              <span className="t-text-primary">{isOnline ? 'MongoDB Atlas' : 'Disconnected'}</span>
+              <span className="t-text-primary">{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
               <span className="text-emerald-400 font-bold">({dbName})</span>
             </div>
           </div>
