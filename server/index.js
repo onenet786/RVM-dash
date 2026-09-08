@@ -2406,83 +2406,77 @@ async function fetchCollectionDocs(colName) {
 }
 
 async function saveDocToEngine(colName, doc) {
-
-  if (activeDbType === 'postgres' && activePgConfig) {
-    const pool = getPgPool();
-    if (!pool) return false;
-    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "${tableName}" (
-        id VARCHAR(255) PRIMARY KEY,
-        data JSONB NOT NULL,
-        synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    const idStr = doc._id ? doc._id.toString() : (doc.roleId ? doc.roleId : (doc.id ? doc.id.toString() : new ObjectId().toString()));
-    const docToSave = { ...doc, _id: idStr };
-    delete docToSave.id; // Single primary _id field
-    const docJson = JSON.stringify(docToSave);
-    await pool.query(`
-      INSERT INTO "${tableName}" (id, data, synced_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
-    `, [idStr, docJson]);
-
-    return true;
+  // STRICT ARCHITECTURAL RULE:
+  // All document persistence writes EXCLUSIVELY to PostgreSQL.
+  // MongoDB Atlas (ONS-RVM / rvmapp) is strictly READ-ONLY and used ONLY for Super Admin one-way sync.
+  // Zero writes (insert/update/delete) are permitted to MongoDB from kiosks, mobile apps, or backend.
+  const pool = getPgPool();
+  if (!pool) {
+    console.warn(`[Engine Write Guard] PostgreSQL pool unavailable. Write to "${colName}" suppressed (MongoDB writes strictly forbidden).`);
+    return false;
   }
 
-  if (!db) await connectDB();
-  const query = doc.username ? { username: doc.username } : (doc.roleId ? { roleId: doc.roleId } : { _id: doc._id });
-  if (query.username || query.roleId) {
-    await db.collection(colName).updateOne(query, { $set: doc }, { upsert: true });
-  } else {
-    await db.collection(colName).insertOne(doc);
-  }
+  const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "${tableName}" (
+      id VARCHAR(255) PRIMARY KEY,
+      data JSONB NOT NULL,
+      synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  const idStr = doc._id ? doc._id.toString() : (doc.roleId ? doc.roleId : (doc.id ? doc.id.toString() : new ObjectId().toString()));
+  const docToSave = { ...doc, _id: idStr };
+  delete docToSave.id; // Single primary _id field
+  const docJson = JSON.stringify(docToSave);
+  await pool.query(`
+    INSERT INTO "${tableName}" (id, data, synced_at)
+    VALUES ($1, $2, NOW())
+    ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+  `, [idStr, docJson]);
+
   return true;
 }
 
 async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
-  if (activeDbType === 'postgres' && activePgConfig) {
-    const pool = getPgPool();
-    if (!pool) return false;
-    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const res = await pool.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
-    if (res.rows.length > 0) {
-      const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
-      const updatedData = { ...existingData, ...updateFields, _id: res.rows[0].id };
-      delete updatedData.id;
-      await pool.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
-    } else {
-      const idStr = matchVal;
-      const docToSave = { [matchKey]: matchVal, ...updateFields, _id: idStr };
-      delete docToSave.id;
-      await pool.query(`
-        INSERT INTO "${tableName}" (id, data, synced_at)
-        VALUES ($1, $2, NOW())
-        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
-      `, [idStr, JSON.stringify(docToSave)]);
-    }
-    return true;
+  // STRICT ARCHITECTURAL RULE:
+  // All document updates write EXCLUSIVELY to PostgreSQL. Zero writes to MongoDB.
+  const pool = getPgPool();
+  if (!pool) {
+    console.warn(`[Engine Update Guard] PostgreSQL pool unavailable. Update to "${colName}" suppressed (MongoDB writes strictly forbidden).`);
+    return false;
   }
 
-  if (!db) await connectDB();
-  const query = { [matchKey]: matchVal };
-  await db.collection(colName).updateOne(query, { $set: updateFields });
+  const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const res = await pool.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+  if (res.rows.length > 0) {
+    const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
+    const updatedData = { ...existingData, ...updateFields, _id: res.rows[0].id };
+    delete updatedData.id;
+    await pool.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
+  } else {
+    const idStr = matchVal;
+    const docToSave = { [matchKey]: matchVal, ...updateFields, _id: idStr };
+    delete docToSave.id;
+    await pool.query(`
+      INSERT INTO "${tableName}" (id, data, synced_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+    `, [idStr, JSON.stringify(docToSave)]);
+  }
   return true;
 }
 
 async function deleteDocFromEngine(colName, matchKey, matchVal) {
-  if (activeDbType === 'postgres' && activePgConfig) {
-    const pool = getPgPool();
-    if (!pool) return false;
-    const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    await pool.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
-    return true;
+  // STRICT ARCHITECTURAL RULE:
+  // All document deletions execute EXCLUSIVELY in PostgreSQL. Zero writes to MongoDB.
+  const pool = getPgPool();
+  if (!pool) {
+    console.warn(`[Engine Delete Guard] PostgreSQL pool unavailable. Deletion from "${colName}" suppressed (MongoDB writes strictly forbidden).`);
+    return false;
   }
 
-  if (!db) await connectDB();
-  const query = ObjectId.isValid(matchVal) ? { _id: new ObjectId(matchVal) } : { [matchKey]: matchVal };
-  await db.collection(colName).deleteOne(query);
+  const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  await pool.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
   return true;
 }
 
@@ -3269,46 +3263,22 @@ async function handleMobileRegister(req, res) {
 
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        const checkRes = await pool.query(`
-          SELECT user_id FROM users 
-          WHERE mobile = $1 OR email = $2 OR username = $3
-          LIMIT 1;
-        `, [cleanMobile, cleanEmail, cleanUsername]);
+    const pool = getPgPool();
+    if (pool) {
+      const checkRes = await pool.query(`
+        SELECT user_id FROM users 
+        WHERE mobile = $1 OR email = $2 OR username = $3
+        LIMIT 1;
+      `, [cleanMobile, cleanEmail, cleanUsername]);
 
-        if (checkRes.rows.length > 0) {
-          return res.status(409).json({ success: false, message: 'User with this mobile number, email, or username already exists' });
-        }
+      if (checkRes.rows.length > 0) {
+        return res.status(409).json({ success: false, message: 'User with this mobile number, email, or username already exists' });
+      }
 
-        await pool.query(`
-          INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, dob, profile_image, points_balance, status, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', NOW());
-        `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage]);
-      }
-    } else if (db) {
-      const existing = await db.collection('users').findOne({
-        $or: [{ mobile: cleanMobile }, { email: cleanEmail }, { username: cleanUsername }]
-      });
-      if (existing) {
-        return res.status(409).json({ success: false, message: 'User already exists' });
-      }
-      await db.collection('users').insertOne({
-        userId,
-        username: cleanUsername,
-        fullName: cleanFullName,
-        email: cleanEmail,
-        mobile: cleanMobile,
-        password: password || '',
-        age: userAge,
-        nic: nic || '',
-        gender,
-        dob: cleanDob,
-        profileImage: cleanProfileImage,
-        points: 0,
-        createdAt: new Date()
-      });
+      await pool.query(`
+        INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, dob, profile_image, points_balance, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', NOW());
+      `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage]);
     }
 
     const isBirthday = checkIsBirthday(cleanDob);
@@ -3410,28 +3380,6 @@ async function handleUpdateProfile(req, res) {
           nic: newNic,
           gender: newGender,
           points: uRes.rows[0].points_balance || 0,
-          isBirthday: checkIsBirthday(newDob)
-        };
-      }
-    } else if (db) {
-      const user = await db.collection('users').findOne({
-        $or: [{ userId: identifier }, { username: identifier }, { mobile: identifier }]
-      });
-      if (user) {
-        const newFullName = fullName || user.fullName || user.username;
-        const newDob = dob !== undefined ? dob : user.dob;
-        const newImg = profileImage !== undefined ? profileImage : user.profileImage;
-        await db.collection('users').updateOne(
-          { _id: user._id },
-          { $set: { fullName: newFullName, dob: newDob, profileImage: newImg } }
-        );
-        updatedUser = {
-          id: user.userId || user._id,
-          username: user.username,
-          fullName: newFullName,
-          dob: newDob,
-          profileImage: newImg,
-          points: user.points || 0,
           isBirthday: checkIsBirthday(newDob)
         };
       }
@@ -4353,32 +4301,18 @@ app.post('/api/machine/heartbeat', async (req, res) => {
     }
 
     const { publicIp, localIp } = getClientIpInfo(req);
-
-    if (activeDbType === 'postgres') {
-      const pool = getPgPool();
-      if (pool) {
-        await pool.query(`
-          INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip)
-          VALUES ($1, $1, $2, $3, NOW(), $4, $5)
-          ON CONFLICT (machine_id) DO UPDATE 
-          SET status = EXCLUDED.status, 
-              bin_fill_percentage = EXCLUDED.bin_fill_percentage, 
-              last_ping_at = NOW(),
-              public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
-              local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
-        `, [machineId, status, binFillPercentage, publicIp, localIp]);
-      }
-    }
-
-    if (activeDbType === 'mongodb') {
-      const db = getMongoDb();
-      if (db) {
-        await db.collection('machines').updateOne(
-          { machineId },
-          { $set: { lastPingAt: new Date(), updatedAt: new Date(), status: 'active', binFillPercentage, publicIp, localIp } },
-          { upsert: true }
-        ).catch(() => {});
-      }
+    const pool = getPgPool();
+    if (pool) {
+      await pool.query(`
+        INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip)
+        VALUES ($1, $1, $2, $3, NOW(), $4, $5)
+        ON CONFLICT (machine_id) DO UPDATE 
+        SET status = EXCLUDED.status, 
+            bin_fill_percentage = EXCLUDED.bin_fill_percentage, 
+            last_ping_at = NOW(),
+            public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
+            local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
+      `, [machineId, status, binFillPercentage, publicIp, localIp]);
     }
 
     if (binFillPercentage >= 80) {
