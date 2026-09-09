@@ -286,6 +286,28 @@ async function initProductionPostgresSchemas() {
          OR email IN ('3214424625@rvm-dash.io', 'fallback@rvm-dash.io');
     `).catch(err => console.warn('[PostgreSQL Fallback User Cleanup Warning]', err.message));
 
+    // Auto-reconcile and heal users.points_balance from recycling_sessions (ensures imported MongoDB users have real points from their recycling sessions)
+    await pool.query(`
+      UPDATE users u
+      SET points_balance = sub.total_points
+      FROM (
+        SELECT 
+          s.user_id AS session_uid,
+          COALESCE(SUM(s.points_earned), 0) AS total_points
+        FROM recycling_sessions s
+        WHERE s.user_id IS NOT NULL AND s.user_id NOT IN ('anonymous', '', 'null')
+        GROUP BY s.user_id
+      ) sub
+      WHERE (
+        u.user_id = sub.session_uid 
+        OR u.mobile = sub.session_uid 
+        OR u.username = sub.session_uid
+        OR (u.mobile IS NOT NULL AND regexp_replace(u.mobile, '^0+', '') = regexp_replace(sub.session_uid, '^0+', ''))
+        OR (u.user_id IS NOT NULL AND regexp_replace(u.user_id, '^0+', '') = regexp_replace(sub.session_uid, '^0+', ''))
+      )
+      AND (u.points_balance IS NULL OR u.points_balance < sub.total_points);
+    `).catch(err => console.warn('[PostgreSQL Points Reconcile Notice]', err.message));
+
     // 4. Downstream Points Config Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS machine_configs (
@@ -2327,6 +2349,28 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         )
         ON CONFLICT DO NOTHING;
       `);
+
+      // 4. Auto-reconcile points_balance in users from recycling_sessions for imported users
+      await client.query(`
+        UPDATE users u
+        SET points_balance = sub.total_points
+        FROM (
+          SELECT 
+            s.user_id AS session_uid,
+            COALESCE(SUM(s.points_earned), 0) AS total_points
+          FROM recycling_sessions s
+          WHERE s.user_id IS NOT NULL AND s.user_id NOT IN ('anonymous', '', 'null')
+          GROUP BY s.user_id
+        ) sub
+        WHERE (
+          u.user_id = sub.session_uid 
+          OR u.mobile = sub.session_uid 
+          OR u.username = sub.session_uid
+          OR (u.mobile IS NOT NULL AND regexp_replace(u.mobile, '^0+', '') = regexp_replace(sub.session_uid, '^0+', ''))
+          OR (u.user_id IS NOT NULL AND regexp_replace(u.user_id, '^0+', '') = regexp_replace(sub.session_uid, '^0+', ''))
+        )
+        AND (u.points_balance IS NULL OR u.points_balance < sub.total_points);
+      `);
     } catch (inDbErr) {
       console.warn('[Postgres In-DB Relational Transform Notice]', inDbErr.message);
     }
@@ -3973,7 +4017,18 @@ async function handleMobileGetRecycle(req, res) {
         ORDER BY created_at DESC
         LIMIT 100;
       `, [validUserIds]);
-      history = sRes.rows || [];
+      history = (sRes.rows || []).map(s => {
+        let pts = parseInt(s.points_earned || 0);
+        const bottles = parseInt(s.plastic_count || 0);
+        const cans = parseInt(s.aluminium_count || 0);
+        if (pts <= 0 && (bottles > 0 || cans > 0)) {
+          pts = (bottles * 5) + (cans * 10);
+        }
+        return {
+          ...s,
+          points_earned: pts
+        };
+      });
 
       if (history.length === 0) {
         try {
@@ -3989,17 +4044,23 @@ async function handleMobileGetRecycle(req, res) {
           if (jsonRes.rows.length > 0) {
             history = jsonRes.rows.map(r => {
               const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+              const b = parseInt(d.bottles || d.plasticCount || 0);
+              const c = parseInt(d.cups || d.aluminiumCount || 0);
+              let pts = parseInt(d.points || d.pointsEarned || 0);
+              if (pts <= 0 && (b > 0 || c > 0)) {
+                pts = (b * 5) + (c * 10);
+              }
               return {
                 session_id: r.id || d._id,
                 machine_id: d.machineId || d.machine_id || 'RVM-01',
                 user_id: d.phoneNumber || d.userId || d.user_id || userId,
-                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
-                aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
+                plastic_count: b,
+                aluminium_count: c,
                 glass_count: parseInt(d.glassCount || 0),
                 paper_cardboard_count: parseInt(d.paperCount || 0),
                 item_variant: d.itemVariant || d.variant || 'RECYCLABLE ITEM',
                 total_weight_kg: parseFloat(d.totalWeightKg || d.weight || 0),
-                points_earned: parseInt(d.points || d.pointsEarned || 0),
+                points_earned: pts,
                 session_status: 'completed',
                 created_at: d.recycledAt || d.timestamp || r.synced_at
               };
@@ -4029,9 +4090,21 @@ async function handleMobileUsernames(req, res) {
     const pool = getPgPool();
     if (pool) {
       const uRes = await pool.query(`
-        SELECT username AS "userName", COALESCE(points_balance, 0) AS "totalPoints", user_id, full_name, profile_image, dob
-        FROM users
-        ORDER BY points_balance DESC, created_at ASC
+        SELECT 
+          u.username AS "userName", 
+          GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints", 
+          u.user_id, 
+          u.full_name, 
+          u.profile_image, 
+          u.dob
+        FROM users u
+        LEFT JOIN (
+          SELECT user_id, SUM(points_earned) AS session_pts
+          FROM recycling_sessions
+          WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
+          GROUP BY user_id
+        ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
+        ORDER BY "totalPoints" DESC, u.created_at ASC
         LIMIT 100;
       `);
       usersList = uRes.rows.map(r => ({
@@ -4199,28 +4272,31 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           user_id, 
           COALESCE(SUM(plastic_count), 0) AS bottles,
           COALESCE(SUM(aluminium_count), 0) AS cups,
+          COALESCE(SUM(points_earned), 0) AS points,
           COUNT(session_id) AS sessions
         FROM recycling_sessions
         WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
         GROUP BY user_id;
       `).catch(() => ({ rows: [] }));
 
-      // 3. Fetch session statistics from JSONB table: recyclingsessions
+      // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions to avoid duplicate counts
       const jsonSessions = await pool.query(`
         SELECT 
           COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') AS user_key,
           COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS bottles,
           COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS cups,
+          COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, (data->>'points_earned')::int, 0)), 0) AS points,
           COUNT(id) AS sessions
         FROM recyclingsessions
-        WHERE (data->>'phoneNumber' IS NOT NULL OR data->>'userId' IS NOT NULL OR data->>'user_id' IS NOT NULL OR data->>'userName' IS NOT NULL)
+        WHERE id NOT IN (SELECT session_id FROM recycling_sessions)
+          AND (data->>'phoneNumber' IS NOT NULL OR data->>'userId' IS NOT NULL OR data->>'user_id' IS NOT NULL OR data->>'userName' IS NOT NULL)
           AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') NOT IN ('anonymous', '', 'null')
         GROUP BY user_key;
       `).catch(() => ({ rows: [] }));
 
       // Map sessions to normalized phone/id keys (handling leading zeros: 03214424625 vs 3214424625)
       const userSessionMap = {};
-      const addStats = (key, b, c, s) => {
+      const addStats = (key, b, c, pts, s) => {
         if (!key) return;
         let clean = String(key).trim().toLowerCase();
         // Redirect any legacy fallback 3214424625 sessions to 08884424625 so it never steals stats from 03214424625
@@ -4228,15 +4304,16 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
         const norm = clean.replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
         if (!norm) return;
         if (!userSessionMap[norm]) {
-          userSessionMap[norm] = { bottles: 0, cups: 0, sessions: 0 };
+          userSessionMap[norm] = { bottles: 0, cups: 0, points: 0, sessions: 0 };
         }
         userSessionMap[norm].bottles += parseInt(b || 0);
         userSessionMap[norm].cups += parseInt(c || 0);
+        userSessionMap[norm].points += parseInt(pts || 0);
         userSessionMap[norm].sessions += parseInt(s || 0);
       };
 
-      relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.sessions));
-      jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.sessions));
+      relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.points, r.sessions));
+      jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.points, r.sessions));
 
       usersList = uRes.rows.map(u => {
         const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
@@ -4251,6 +4328,7 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
 
         let userBottles = 0;
         let userCups = 0;
+        let userSessionPoints = 0;
         let userSessions = 0;
 
         for (const k of keysToCheck) {
@@ -4258,9 +4336,15 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           if (norm && userSessionMap[norm]) {
             userBottles += userSessionMap[norm].bottles;
             userCups += userSessionMap[norm].cups;
+            userSessionPoints += userSessionMap[norm].points;
             userSessions += userSessionMap[norm].sessions;
             delete userSessionMap[norm];
           }
+        }
+
+        const effectivePoints = Math.max(parseInt(u.points_balance || 0), userSessionPoints);
+        if (effectivePoints > parseInt(u.points_balance || 0)) {
+          pool.query(`UPDATE users SET points_balance = $1 WHERE user_id = $2;`, [effectivePoints, u.user_id]).catch(() => {});
         }
 
         return {
@@ -4275,7 +4359,7 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           isBirthday: checkIsBirthday(u.dob),
           nic: u.nic || '-',
           gender: u.gender || 'male',
-          points: parseInt(u.points_balance || 0),
+          points: effectivePoints,
           bottles: userBottles,
           cups: userCups,
           sessions: userSessions,
