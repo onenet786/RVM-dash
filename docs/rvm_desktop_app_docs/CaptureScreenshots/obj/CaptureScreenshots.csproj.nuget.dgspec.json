@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj": {}
+    "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj": {}
   },
   "projects": {
-    "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj": {
+    "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
+        "projectUniqueName": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
         "projectName": "CaptureScreenshots",
-        "projectPath": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
+        "projectPath": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\CaptureScreenshots.csproj",
         "packagesPath": "C:\\Users\\BIN ISHAQ\\.nuget\\packages\\",
-        "outputPath": "d:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\obj\\",
+        "outputPath": "D:\\GIT-HUB\\RVM-dash\\docs\\rvm_desktop_app_docs\\CaptureScreenshots\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\BIN ISHAQ\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -26,8 +26,8 @@
           "net8.0-windows7.0": {
             "targetAlias": "net8.0-windows",
             "projectReferences": {
-              "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
-                "projectPath": "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj"
+              "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
+                "projectPath": "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj"
               }
             }
           }
@@ -69,14 +69,14 @@
         }
       }
     },
-    "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
+    "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj",
+        "projectUniqueName": "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj",
         "projectName": "RVMDesktopApp",
-        "projectPath": "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj",
+        "projectPath": "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\RVMDesktopApp.csproj",
         "packagesPath": "C:\\Users\\BIN ISHAQ\\.nuget\\packages\\",
-        "outputPath": "d:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\obj\\",
+        "outputPath": "D:\\GIT-HUB\\RVM-dash\\RVMDesktopApp\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\BIN ISHAQ\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -111,6 +111,10 @@
             "Microsoft.Data.SqlClient": {
               "target": "Package",
               "version": "[6.1.3, )"
+            },
+            "QRCoder": {
+              "target": "Package",
+              "version": "[1.8.0, )"
             },
             "System.IO.Ports": {
               "target": "Package",

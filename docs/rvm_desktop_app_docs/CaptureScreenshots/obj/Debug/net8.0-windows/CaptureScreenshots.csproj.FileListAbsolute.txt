@@ -96,3 +96,4 @@ D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\obj\Debug\net8.
 D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\obj\Debug\net8.0-windows\CaptureScreenshots.genruntimeconfig.cache
 D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\obj\Debug\net8.0-windows\ref\CaptureScreenshots.dll
 d:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\ItemRejected.mp4
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\QRCoder.dll

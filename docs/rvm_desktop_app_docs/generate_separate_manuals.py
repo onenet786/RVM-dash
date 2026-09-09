@@ -548,7 +548,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <ul class="toc-list">
         <li><span>2.1 Default Welcome Screen & Live Dashboard</span><span>Page 4</span></li>
         <li><span>2.2 1-Minute Inactivity Idle Screen (50% Expansion)</span><span>Page 5</span></li>
-        <li><span>2.3 Instant Wake-up via Key 0 / Touch</span><span>Page 5</span></li>
+        <li><span>2.3 Instant Wake-up via Key 0 Trigger</span><span>Page 5</span></li>
       </ul>
     </div>
 
@@ -563,7 +563,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
         </ul>
         <ul class="toc-list">
           <li><span>Step 4: Drop Confirmation & Anti-Cheat</span><span>Page 9</span></li>
-          <li><span>Steps 5 & 6: Mobile Identification & Wallet Sync</span><span>Page 10</span></li>
+          <li><span>Steps 5 & 6: QR Scan & Mobile Wallet Sync</span><span>Page 10</span></li>
           <li><span>Step 7: Citizen Feedback & Completion</span><span>Page 11</span></li>
         </ul>
       </div>
@@ -574,7 +574,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <div class="toc-title">Hardware Keypad Reference</div>
       <ul class="toc-list">
         <li><span>4.1 Keypad Mapping Matrix</span><span>Page 12</span></li>
-        <li><span>4.2 Key 0 Reservation & Demo 001 Sequence</span><span>Page 12</span></li>
+        <li><span>4.2 Key 0 Session Trigger & Keypad Operations</span><span>Page 12</span></li>
       </ul>
     </div>
 
@@ -583,7 +583,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <div class="toc-title">FAQ & Citizen Troubleshooting</div>
       <ul class="toc-list">
         <li><span>5.1 Item Rejection Causes</span><span>Page 13</span></li>
-        <li><span>5.2 Offline Resiliency & Helpline Support</span><span>Page 13</span></li>
+        <li><span>5.2 Offline Resiliency & Points Safety FAQ</span><span>Page 13</span></li>
       </ul>
     </div>
   </div>
@@ -591,7 +591,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
   <div class="info-box" style="margin-top: 6mm;">
     <div class="info-box-title">⚡ QUICK START FOR CITIZENS</div>
     <div class="info-box-desc">
-      To recycle: Walk up to the RVM kiosk &rarr; <strong>Press '0' on the keypad</strong> &rarr; Insert your empty bottle/can bottom-first &rarr; Wait for the green checkmark &rarr; <strong>Press Enter</strong> &rarr; Enter your 11-digit mobile number &rarr; Rate your experience &rarr; Collect your reward points!
+      To recycle: Walk up to the RVM kiosk &rarr; <strong>Press '0' on the keypad</strong> &rarr; Insert your empty bottle/can bottom-first &rarr; Wait for the green checkmark &rarr; <strong>Press Enter</strong> &rarr; Scan on-screen QR code with RVM Mobile App or type 11-digit mobile number &rarr; Rate your experience &rarr; Collect your reward points!
     </div>
   </div>
 
@@ -838,13 +838,13 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
       <div class="action-callout">
         <div class="action-title">HOW TO RETURN TO DEFAULT SCREEN</div>
-        <div class="action-desc">Press the '0' key on the keypad or touch any area of the screen. The kiosk instantly zooms out and restores the default screen!</div>
+        <div class="action-desc">Press the '0' key on the keypad to start recycling. The kiosk instantly wakes up, exits idle mode, and prepares the intake chamber!</div>
       </div>
 
       <div class="info-box">
-        <div class="info-box-title">⚡ TESTING HOTKEY</div>
+        <div class="info-box-title">🌿 ECO-FRIENDLY STANDBY MODE</div>
         <div class="info-box-desc">
-          Technicians and attendants can instantly toggle Idle Mode anytime by pressing <strong>Ctrl + I</strong> without waiting for the full 60 seconds.
+          The 1-minute idle mode automatically expands instructional visuals to welcome new citizens while optimizing kiosk power efficiency.
         </div>
       </div>
     </div>
@@ -1161,7 +1161,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 </div>
 
 <!-- ========================================================================= -->
-<!-- PAGE 10: STEP 5 & 6 - MOBILE WALLET SYNC & REWARDS                         -->
+<!-- PAGE 10: STEP 5 & 6 - QR SCAN & MOBILE WALLET SYNC                         -->
 <!-- ========================================================================= -->
 <div class="pdf-page">
   <div class="page-header">
@@ -1178,50 +1178,56 @@ def generate_user_manual_html(html_path, snapshots_dir):
     </div>
 
     <div class="step-content">
-      <div class="step-pill">STEPS 5 & 6 · MOBILE IDENTIFICATION</div>
-      <div class="step-heading">Entering Mobile Number & Syncing Rewards</div>
-      <div class="step-urdu-heading urdu-text">پانچواں مرحلہ: انعام کیلئے موبائل نمبر کا اندراج</div>
+      <div class="step-pill">STEPS 5 & 6 · QR SCAN & WALLET CLAIM</div>
+      <div class="step-heading">Claiming Points via QR Code Scan or Mobile Entry</div>
+      <div class="step-urdu-heading urdu-text">پانچواں مرحلہ: کیو آر کوڈ اسکین یا موبائل نمبر سے انعام کا حصول</div>
 
       <div class="step-narrative">
-        After pressing Enter, the modal prompts the citizen for their 11-digit mobile phone number (03xxxxxxxxx). This number acts as your unique recycling account, aggregating points across all campus and public RVM machines.
+        After pressing <strong>Enter</strong> to conclude container deposits, the kiosk displays the Points Claim modal. Citizens can claim points in two convenient ways: instantly scan the on-screen dynamic QR Code using the RVM Mobile App, or type their 11-digit mobile number using the physical keypad.
       </div>
 
       <div class="action-callout">
         <div class="action-title">CITIZEN ACTION REQUIRED</div>
-        <div class="action-desc">Type your 11-digit mobile number using the keypad digits (0-9). Press 'Enter' when finished to submit.</div>
+        <div class="action-desc">
+          Scan the on-screen QR Code using your RVM Mobile App (or phone camera), enter the 6-character Session Code in the app, OR type your 11-digit mobile number on the keypad and press 'Enter'.
+        </div>
       </div>
 
       <table class="specs-table">
         <tr>
-          <th>Input Validation Rule</th>
-          <th>Specification</th>
+          <th>Claim Method / Rule</th>
+          <th>Specification & Citizen Experience</th>
         </tr>
         <tr>
-          <td>Mobile Number Format</td>
-          <td>Standard Pakistani format: 03001234567 (Strict 11 Digits)</td>
+          <td>Dynamic QR Code Scan</td>
+          <td>Instant, touchless wallet sync via RVM Mobile App or smartphone camera</td>
         </tr>
         <tr>
-          <td>Backspace Correction</td>
-          <td>Pressing '*' key clears the last typed digit</td>
+          <td>Session Code (App Entry)</td>
+          <td>6-character code under QR for quick manual entry in the mobile app</td>
+        </tr>
+        <tr>
+          <td>Keypad Mobile Input</td>
+          <td>Enter 11-digit Pakistani mobile number (03001234567) + press 'Enter'</td>
+        </tr>
+        <tr>
+          <td>Backspace / Delete</td>
+          <td>Press '*' key on physical keypad to clear the last typed digit</td>
         </tr>
         <tr>
           <td>Cancel Transaction</td>
-          <td>Pressing '#' key cancels entry and returns to home</td>
+          <td>Press '#' key on keypad to cancel entry and return to deposit screen</td>
         </tr>
         <tr>
-          <td>Cloud Synchronization</td>
-          <td>Instant HTTPS API commit to Central Cloud database</td>
-        </tr>
-        <tr>
-          <td>Local Database Commit</td>
-          <td>Instant transaction commit to local SQL Server ledger</td>
+          <td>90-Second Active Timer</td>
+          <td>Ensures session privacy and triggers safe automatic fallback if uncollected</td>
         </tr>
       </table>
 
       <div class="info-box">
-        <div class="info-box-title">📱 POINTS REDEMPTION</div>
+        <div class="info-box-title">📱 POINTS REDEMPTION & WALLET BALANCE</div>
         <div class="info-box-desc">
-          Your points never expire! Accumulated points can be converted into mobile balance top-ups, cafeteria discount vouchers, and campus bookstore gift coupons.
+          Your points never expire! Rewards sync directly to your centralized account across all campus and public RVM kiosks, redeemable for mobile balance top-ups, cafeteria discounts, and gift cards.
         </div>
       </div>
     </div>
@@ -1322,66 +1328,66 @@ def generate_user_manual_html(html_path, snapshots_dir):
   </div>
 
   <div class="section-title">4. Keypad & Input Quick Reference</div>
-  <div class="section-subtitle">Comprehensive guide to all tactile keypad inputs, hotkeys, and citizen commands.</div>
+  <div class="section-subtitle">Comprehensive guide to all tactile keypad inputs, QR claim options, and citizen commands.</div>
 
   <table class="specs-table" style="margin-top: 4mm;">
     <tr>
-      <th style="width: 18%;">Key / Input</th>
-      <th style="width: 25%;">Screen State</th>
+      <th style="width: 22%;">Input Method</th>
+      <th style="width: 26%;">Screen State</th>
       <th>Function & Kiosk Response</th>
     </tr>
     <tr>
       <td><strong>Key 0</strong></td>
       <td>Standby / Idle Mode</td>
-      <td><strong>Hardware Session Trigger:</strong> Opens safety door, activates chamber illumination, and arms sensors. Also immediately exits Idle Expanded Mode and restores default screen.</td>
+      <td><strong>Hardware Session Trigger:</strong> Opens safety entrance door, activates chamber lighting, and arms sensors. Exits idle video mode.</td>
     </tr>
     <tr>
       <td><strong>Enter ↵</strong></td>
       <td>Container Deposited</td>
-      <td><strong>Finalize & Proceed:</strong> Concludes container intake and triggers the mobile wallet number entry modal.</td>
+      <td><strong>Finalize & Proceed:</strong> Concludes container intake and opens the points claim dialog.</td>
     </tr>
     <tr>
-      <td><strong>Enter ↵</strong></td>
-      <td>Mobile Number Modal</td>
-      <td><strong>Submit Wallet:</strong> Validates 11-digit mobile number, credits points to database, and navigates to rating screen.</td>
+      <td><strong>QR Code Scan</strong></td>
+      <td>Wallet Claim Screen</td>
+      <td><strong>Touchless Points Claim:</strong> Scan the dynamic on-screen QR code with RVM Mobile App or phone camera for instant wallet crediting.</td>
+    </tr>
+    <tr>
+      <td><strong>Session Code</strong></td>
+      <td>Wallet Claim Screen</td>
+      <td><strong>Manual Mobile App Entry:</strong> Type the 6-character session code shown below the QR code directly in the RVM Mobile App.</td>
     </tr>
     <tr>
       <td><strong>Digits 0–9</strong></td>
-      <td>Mobile Number Modal</td>
-      <td><strong>Phone Number Input:</strong> Types digits for Pakistani mobile number (03xxxxxxxxx).</td>
+      <td>Wallet Claim Screen</td>
+      <td><strong>Mobile Number Input:</strong> Types 11 digits for Pakistani mobile number (03xxxxxxxxx) via physical keypad.</td>
+    </tr>
+    <tr>
+      <td><strong>Enter ↵</strong></td>
+      <td>Wallet Claim Screen</td>
+      <td><strong>Submit Wallet:</strong> Validates 11-digit mobile number, credits points to database, and proceeds to rating screen.</td>
     </tr>
     <tr>
       <td><strong>Star Key (*)</strong></td>
-      <td>Mobile Number Modal</td>
+      <td>Wallet Claim Screen</td>
       <td><strong>Backspace / Delete:</strong> Removes the last typed digit for instant correction.</td>
     </tr>
     <tr>
       <td><strong>Hash Key (#)</strong></td>
-      <td>Any Modal</td>
-      <td><strong>Cancel / Back:</strong> Closes active modal dialog and returns to the previous screen.</td>
+      <td>Any Modal / Dialog</td>
+      <td><strong>Cancel / Back:</strong> Closes active dialog and returns to the previous screen.</td>
     </tr>
     <tr>
-      <td><strong>Touch Screen</strong></td>
-      <td>Any Screen</td>
-      <td><strong>Direct Touch:</strong> Citizens can tap on-screen buttons, star ratings, and feedback chips directly.</td>
-    </tr>
-    <tr>
-      <td><strong>Code 001</strong></td>
-      <td>Standby Home Screen</td>
-      <td><strong>Direct Demo Mode:</strong> Typing 0-0-1 on keyboard starts the live demo session directly on the kiosk screen without dialogs.</td>
-    </tr>
-    <tr>
-      <td><strong>Ctrl + I</strong></td>
-      <td>Any State</td>
-      <td><strong>Idle Mode Test Hotkey:</strong> Instantly toggles the 50% expanded instructional video standby mode.</td>
+      <td><strong>Digits 1–5</strong></td>
+      <td>Feedback Rating</td>
+      <td><strong>Citizen Rating:</strong> Selects satisfaction level from 1 (Very Bad) to 5 (Excellent), followed by Enter.</td>
     </tr>
   </table>
 
   <div class="two-col-grid" style="margin-top: 6mm;">
     <div class="info-box">
-      <div class="info-box-title">🔒 KEY 0 HARDWARE RESERVATION</div>
+      <div class="info-box-title">🔑 KEY 0 SESSION INITIATION</div>
       <div class="info-box-desc">
-        Key 0 is strictly reserved for physical hardware when connected. When Arduino COM port is online, pressing 0 initiates the physical gate and sensor loop. In disconnected testing mode, typing <strong>001</strong> initiates demo mode.
+        Pressing <strong>Key 0</strong> on the tactile keypad immediately initiates your recycling journey: the motorized safety gate opens, internal chamber lights activate, and deposit sensors arm ready for your containers.
       </div>
     </div>
     <div class="action-callout">
@@ -1442,12 +1448,12 @@ def generate_user_manual_html(html_path, snapshots_dir):
         <strong>Answer:</strong> Visit the official web portal at <strong>isprvm.binishaqsoft.com</strong> or visit the campus partner desk. Enter your registered 11-digit mobile number to view balance vouchers, mobile recharge codes, and gift rewards.
       </div>
     </div>
-  </div>
 
-  <div class="info-box" style="margin-top: 6mm;">
-    <div class="info-box-title">📞 CITIZEN SUPPORT & HELPLINE</div>
-    <div class="info-box-desc">
-      If an item is stuck or you require assistance: Call Kiosk Support at <strong>0800-RECYCLE (0800-73292)</strong> or email <strong>support@binishaqsoft.com</strong>. State the Machine ID displayed in the top header (e.g. <strong>RVM-001</strong>).
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q5: How do I scan the QR code to claim my points?</div>
+      <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
+        <strong>Answer:</strong> Open the <strong>RVM Mobile App</strong> on your smartphone, tap the <strong>Scan QR</strong> tab, and point your camera at the kiosk screen. Your points will be credited immediately to your account. Alternatively, you can type the 6-character session code shown below the QR code into the app.
+      </div>
     </div>
   </div>
 
