@@ -2048,6 +2048,57 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
     await sourceClient.connect();
     const sourceDb = sourceClient.db(sourceDbName);
 
+    // Ensure relational schemas for machines, recycling_sessions, and users exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS machines (
+        machine_id VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        location VARCHAR(200),
+        status VARCHAR(20) DEFAULT 'active',
+        bin_fill_percentage INT DEFAULT 0,
+        total_bottles_recycled BIGINT DEFAULT 0,
+        total_weight_kg NUMERIC(10,3) DEFAULT 0.000,
+        public_ip VARCHAR(100),
+        local_ip VARCHAR(100),
+        last_ping_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS users (
+        user_id VARCHAR(255) PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        full_name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        mobile VARCHAR(50),
+        password VARCHAR(255),
+        age INT DEFAULT 20,
+        nic VARCHAR(50),
+        gender VARCHAR(20) DEFAULT 'male',
+        otp VARCHAR(10),
+        otp_expiry TIMESTAMPTZ,
+        points_balance INT DEFAULT 0,
+        role_id VARCHAR(50) DEFAULT 'citizen',
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS recycling_sessions (
+        session_id VARCHAR(255) PRIMARY KEY,
+        machine_id VARCHAR(50) REFERENCES machines(machine_id) ON DELETE CASCADE,
+        user_id VARCHAR(100),
+        plastic_count INT DEFAULT 0,
+        aluminium_count INT DEFAULT 0,
+        paper_cardboard_count INT DEFAULT 0,
+        glass_count INT DEFAULT 0,
+        item_variant VARCHAR(100),
+        bottle_size VARCHAR(50),
+        total_weight_kg NUMERIC(8,3) DEFAULT 0,
+        co2_avoided_kg NUMERIC(8,3) DEFAULT 0,
+        points_earned INT DEFAULT 0,
+        session_status VARCHAR(20) DEFAULT 'completed',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     const collections = await sourceDb.listCollections().toArray();
     let totalSyncedDocs = 0;
     const syncedTables = [];
@@ -2056,7 +2107,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
       const colName = colInfo.name;
       const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
 
-      // Create relational table if not exists with JSONB column
+      // 1. Create table if not exists with JSONB column
       await client.query(`
         CREATE TABLE IF NOT EXISTS "${tableName}" (
           id VARCHAR(255) PRIMARY KEY,
@@ -2072,18 +2123,172 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || `gen_${Math.random()}`);
         const docJson = JSON.stringify(doc);
 
-        await client.query(`
+        // SAFE SYNC: ON CONFLICT DO NOTHING (NEVER OVERWRITE EXISTING POSTGRESQL DATA)
+        const insRes = await client.query(`
           INSERT INTO "${tableName}" (id, data, synced_at)
           VALUES ($1, $2, NOW())
-          ON CONFLICT (id) 
-          DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+          ON CONFLICT (id) DO NOTHING;
         `, [idStr, docJson]);
 
-        tableSyncedCount++;
+        if (insRes.rowCount > 0) {
+          tableSyncedCount++;
+        }
       }
 
       totalSyncedDocs += tableSyncedCount;
       syncedTables.push({ name: colName, tableName, count: tableSyncedCount });
+
+      // 2. Relational Mapping: recyclingsessions -> recycling_sessions
+      if (colName === 'recyclingsessions') {
+        let relSessionsAdded = 0;
+        for (const doc of docs) {
+          const sessionId = doc._id ? doc._id.toString() : (doc.session_id || doc.id);
+          const machineId = (doc.machineId || doc.machine_id || 'UNKNOWN').trim();
+          const userId = (doc.phoneNumber || doc.userId || doc.user_id || 'anonymous').trim();
+          const plasticCount = parseInt(doc.plastic_count || doc.plasticCount || doc.bottles || 0);
+          const aluminiumCount = parseInt(doc.aluminium_count || doc.aluminiumCount || doc.cups || 0);
+          const paperCount = parseInt(doc.paper_cardboard_count || doc.paperCardboardCount || 0);
+          const glassCount = parseInt(doc.glass_count || doc.glassCount || 0);
+          const pointsEarned = parseInt(doc.points_earned || doc.pointsEarned || doc.points || 0);
+          const weightKg = parseFloat(doc.total_weight_kg || doc.totalWeightKg || (plasticCount * 0.025 + aluminiumCount * 0.015));
+          const co2Kg = parseFloat(doc.co2_avoided_kg || doc.co2AvoidedKg || (plasticCount * 0.082 + aluminiumCount * 0.095));
+          const itemVariant = doc.item_variant || doc.itemVariant || (plasticCount > 0 ? `${plasticCount}x PLASTIC` : aluminiumCount > 0 ? `${aluminiumCount}x CAN` : 'RECYCLABLE ITEM');
+          const bottleSize = doc.bottle_size || doc.bottleSize || 'MEDIUM';
+          const createdAt = doc.recycledAt || doc.created_at || doc.timestamp || new Date();
+
+          // Ensure foreign key machine exists
+          await client.query(`
+            INSERT INTO machines (machine_id, name, status)
+            VALUES ($1, $1, 'active')
+            ON CONFLICT (machine_id) DO NOTHING;
+          `, [machineId]);
+
+          // Insert session ONLY IF NOT EXISTING (DO NOT OVERWRITE)
+          const rIns = await client.query(`
+            INSERT INTO recycling_sessions (
+              session_id, machine_id, user_id,
+              plastic_count, aluminium_count, paper_cardboard_count, glass_count,
+              item_variant, bottle_size, total_weight_kg, co2_avoided_kg,
+              points_earned, session_status, created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'completed', $13)
+            ON CONFLICT (session_id) DO NOTHING;
+          `, [
+            sessionId, machineId, userId,
+            plasticCount, aluminiumCount, paperCount, glassCount,
+            itemVariant, bottleSize, weightKg, co2Kg,
+            pointsEarned, createdAt
+          ]);
+
+          if (rIns.rowCount > 0) relSessionsAdded++;
+        }
+        syncedTables.push({ name: 'recycling_sessions (Relational)', tableName: 'recycling_sessions', count: relSessionsAdded });
+      }
+
+      // 3. Relational Mapping: userprofile -> users
+      if (colName === 'userprofile') {
+        let relUsersAdded = 0;
+        for (const doc of docs) {
+          const rawUserId = (doc.mobile || doc.username || (doc._id ? doc._id.toString() : `usr_${Math.random()}`)).trim();
+          const rawUsername = (doc.username || doc.mobile || rawUserId).trim().substring(0, 50);
+          const fullName = (doc.fullName || doc.username || doc.mobile || 'Eco Citizen').trim().substring(0, 100);
+          const email = (doc.email || `${rawUserId}@rvm-user.com`).trim().toLowerCase().substring(0, 100);
+          const mobile = (doc.mobile || '').trim();
+          const password = doc.password || null;
+          const age = parseInt(doc.age || 20);
+          const nic = doc.nic || null;
+          const gender = doc.gender || 'male';
+          const pointsBalance = parseInt(doc.pointsBalance || doc.totalPoints || doc.points || 0);
+          const createdAt = doc.createdAt || new Date();
+
+          // Check if user already exists in users by user_id, username, or email to PREVENT OVERWRITING
+          const uExists = await client.query(`
+            SELECT user_id FROM users 
+            WHERE user_id = $1 OR username = $2 OR email = $3 
+            LIMIT 1;
+          `, [rawUserId, rawUsername, email]);
+
+          if (uExists.rows.length === 0) {
+            // User does NOT exist: insert cleanly without overwriting
+            const uIns = await client.query(`
+              INSERT INTO users (
+                user_id, username, full_name, email, mobile, password,
+                age, nic, gender, points_balance, role_id, status, created_at
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'citizen', 'active', $11)
+              ON CONFLICT DO NOTHING;
+            `, [
+              rawUserId, rawUsername, fullName, email, mobile, password,
+              age, nic, gender, pointsBalance, createdAt
+            ]);
+            if (uIns.rowCount > 0) relUsersAdded++;
+          }
+        }
+        syncedTables.push({ name: 'users (Relational)', tableName: 'users', count: relUsersAdded });
+      }
+    }
+
+    // 4. In-Database Transform: Also migrate any existing recyclingsessions / userprofile already in Postgres
+    try {
+      await client.query(`
+        -- Auto-register machines from recyclingsessions
+        INSERT INTO machines (machine_id, name, status)
+        SELECT DISTINCT COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), 'active'
+        FROM recyclingsessions
+        WHERE COALESCE(data->>'machineId', data->>'machine_id') IS NOT NULL
+        ON CONFLICT (machine_id) DO NOTHING;
+
+        -- Migrate missing sessions from recyclingsessions into recycling_sessions (DO NOT OVERWRITE)
+        INSERT INTO recycling_sessions (
+          session_id, machine_id, user_id,
+          plastic_count, aluminium_count, paper_cardboard_count, glass_count,
+          total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+        )
+        SELECT 
+          id,
+          COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'),
+          COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', 'anonymous'),
+          COALESCE((data->>'plastic_count')::int, (data->>'bottles')::int, 0),
+          COALESCE((data->>'aluminium_count')::int, (data->>'cups')::int, 0),
+          COALESCE((data->>'paper_cardboard_count')::int, 0),
+          COALESCE((data->>'glass_count')::int, 0),
+          COALESCE((data->>'total_weight_kg')::numeric, 0),
+          COALESCE((data->>'co2_avoided_kg')::numeric, 0),
+          COALESCE((data->>'points_earned')::int, (data->>'points')::int, 0),
+          'completed',
+          COALESCE((data->>'recycledAt')::timestamptz, (data->>'created_at')::timestamptz, NOW())
+        FROM recyclingsessions
+        ON CONFLICT (session_id) DO NOTHING;
+
+        -- Migrate missing users from userprofile into users (DO NOT OVERWRITE)
+        INSERT INTO users (
+          user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, role_id, status, created_at
+        )
+        SELECT 
+          COALESCE(data->>'mobile', data->>'username', id),
+          COALESCE(NULLIF(TRIM(data->>'username'), ''), data->>'mobile', id),
+          COALESCE(NULLIF(TRIM(data->>'fullName'), ''), NULLIF(TRIM(data->>'username'), ''), data->>'mobile', 'Eco Citizen'),
+          COALESCE(NULLIF(TRIM(data->>'email'), ''), (data->>'mobile') || '@rvm-user.com', id || '@rvm-user.com'),
+          data->>'mobile',
+          data->>'password',
+          COALESCE((data->>'age')::int, 20),
+          data->>'nic',
+          COALESCE(data->>'gender', 'male'),
+          COALESCE((data->>'pointsBalance')::int, (data->>'totalPoints')::int, 0),
+          'citizen',
+          'active',
+          COALESCE((data->>'createdAt')::timestamptz, NOW())
+        FROM userprofile
+        WHERE NOT EXISTS (
+          SELECT 1 FROM users 
+          WHERE users.user_id = COALESCE(userprofile.data->>'mobile', userprofile.data->>'username', userprofile.id)
+             OR users.username = COALESCE(NULLIF(TRIM(userprofile.data->>'username'), ''), userprofile.data->>'mobile', userprofile.id)
+             OR users.email = COALESCE(NULLIF(TRIM(userprofile.data->>'email'), ''), (userprofile.data->>'mobile') || '@rvm-user.com', userprofile.id || '@rvm-user.com')
+        )
+        ON CONFLICT DO NOTHING;
+      `);
+    } catch (inDbErr) {
+      console.warn('[Postgres In-DB Relational Transform Notice]', inDbErr.message);
     }
 
     await client.end();
@@ -2091,7 +2296,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully synchronized ${totalSyncedDocs} documents across ${syncedTables.length} tables from MongoDB database "${sourceDbName}" into PostgreSQL database "${pgConfig.database || 'rvmpg'}".`,
+      message: `Successfully synchronized ${totalSyncedDocs} new documents into PostgreSQL "${pgConfig.database || 'rvmpg'}". All existing PostgreSQL data was preserved without being overwritten. Relational tables (recycling_sessions, users, machines) are now populated and ready for future RVM/PECO and Mobile operations.`,
       sourceMongoDb: sourceDbName,
       targetPostgresDb: pgConfig.database || 'rvmpg',
       totalSyncedDocs,
