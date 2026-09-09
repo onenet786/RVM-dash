@@ -100,10 +100,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         
         {/* Main Section */}
         <div>
-          <div className="text-[10px] font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
+          <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
             <span>Core Dashboards</span>
-            <span className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase mono ${
-              isPostgres ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            <span className={`px-2 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
+              isPostgres ? 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/30' : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
             }`}>
               {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
             </span>
@@ -117,17 +117,17 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 <button
                   key={item.id}
                   onClick={() => handleTabClick(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                     isActive 
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md' 
+                      ? 'bg-emerald-600/15 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
                       : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-400' : 't-text-muted'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#0b5d3b] dark:text-emerald-400' : 't-text-muted'}`} />
                     <span>{item.label}</span>
                   </div>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400" />}
                 </button>
               );
             })}
@@ -137,12 +137,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         {/* PostgreSQL Relational Tables (Shown when in Postgres Mode) */}
         {isPostgres && (
           <div>
-            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-cyan-400 mb-2 px-3">
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-3">
               <span className="flex items-center gap-1.5">
                 <Table className="w-3.5 h-3.5" />
                 PostgreSQL Relational Tables
               </span>
-              <span className="text-cyan-300 mono bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
                 {postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length} Tables
               </span>
             </div>
@@ -156,19 +156,19 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                       isActive 
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md' 
+                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
                         : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-cyan-300' : 't-text-muted'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-300' : 't-text-muted'}`} />
                       <span className="truncate mono">{item.label}</span>
                     </div>
                     {count !== null && (
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md mono ${
-                        isActive ? 'bg-cyan-500/40 text-white' : 't-bg-sec t-text-muted'
+                      <span className={`px-2 py-0.5 text-xs font-bold rounded-md mono ${
+                        isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
                       }`}>
                         {count}
                       </span>
@@ -184,15 +184,15 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         <div>
           <button
             onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
-            className="w-full flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group"
+            className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group"
             title={isMongoCollapsed ? "Click to expand MongoDB rvmapp collections to sync data" : "Click to collapse MongoDB collections"}
           >
             <span className="flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400" />
               <span>MongoDB rvmapp Collections</span>
             </span>
             <div className="flex items-center gap-1.5">
-              <span className="text-emerald-400 mono text-[9px] bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              <span className="text-emerald-800 dark:text-emerald-400 mono text-xs bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
                 {mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
@@ -202,10 +202,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           {isPostgres && isMongoCollapsed && (
             <div 
               onClick={() => setIsMongoCollapsed(false)}
-              className="mx-3 p-2.5 text-[10px] font-semibold t-bg-sec border border-amber-500/30 rounded-xl text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-500/10 transition-all"
+              className="mx-3 p-2.5 text-xs font-bold bg-amber-50 dark:bg-amber-950/30 border border-amber-400/40 rounded-xl text-amber-800 dark:text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-100 transition-all shadow-sm"
             >
               <span>📁 Collapsed (Connected to PostgreSQL)</span>
-              <span className="text-[9px] underline font-bold">Sync Data</span>
+              <span className="text-xs underline font-extrabold text-amber-900 dark:text-amber-200">Sync Data</span>
             </div>
           )}
 
@@ -219,19 +219,19 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
                       isActive 
-                        ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md' 
+                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
                         : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-cyan-400' : 't-text-muted'}`} />
-                      <span className="truncate text-[11px]">{item.label}</span>
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
+                      <span className="truncate text-xs">{item.label}</span>
                     </div>
                     {count !== null && (
-                      <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md mono ${
-                        isActive ? 'bg-cyan-500/30 text-cyan-300' : 't-bg-sec t-text-muted'
+                      <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md mono ${
+                        isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
                       }`}>
                         {count}
                       </span>

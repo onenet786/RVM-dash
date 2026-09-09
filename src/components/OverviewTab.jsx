@@ -68,26 +68,26 @@ export default function OverviewTab({ currentUser }) {
     <div className="space-y-6 animate-fade-in">
       
       {/* Connected Server & DB Info Banner */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-cyan-500/30">
+      <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200 dark:border-cyan-500/30">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
+          <div className="p-2.5 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 rounded-xl border border-emerald-200 dark:border-cyan-500/30">
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Active Database Connection</div>
-            <div className="text-xs font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-300">Active Database Connection</div>
+            <div className="text-sm font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
               {isMasterDev ? (
                 <>
-                  <span>Host: <span className="text-cyan-400">{serverHost}</span></span>
+                  <span>Host: <span className="text-[#0b5d3b] dark:text-cyan-300 font-bold">{serverHost}</span></span>
                   <span>•</span>
-                  <span>Engine: <span className="text-indigo-400 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
+                  <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
                   <span>•</span>
-                  <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span></span>
+                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span></span>
                   <span>•</span>
-                  <span>Location: <span className="text-amber-400 font-bold">{locationDisplay}</span></span>
+                  <span>Location: <span className="text-amber-800 dark:text-amber-300 font-bold">{locationDisplay}</span></span>
                 </>
               ) : (
-                <span>Database: <span className="text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
+                <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
               )}
             </div>
           </div>
@@ -95,11 +95,11 @@ export default function OverviewTab({ currentUser }) {
 
         <div className="flex items-center gap-2 text-xs">
           {isMasterDev && (
-            <span className="px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-bold border border-amber-500/20 flex items-center gap-1.5">
+            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-sm">
               📍 {locationDisplay}
             </span>
           )}
-          <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-bold border border-emerald-500/20 flex items-center gap-1.5">
+          <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-sm">
             🟢 Active ({isPostgres ? 'PostgreSQL: ' : 'MongoDB: '}{dbName})
           </span>
         </div>
@@ -107,25 +107,25 @@ export default function OverviewTab({ currentUser }) {
 
 
       {/* Main Header Banner */}
-      <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-emerald-500/20 glow-emerald">
+      <div className="glass-panel p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Master Developer Dashboard</span>
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">Master Developer Dashboard</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
               Reverse Vending Machine System Analytics
             </h1>
-            <p className="text-xs md:text-sm t-text-secondary mt-1">
+            <p className="text-sm t-text-secondary mt-1">
               Real-time monitoring of recycling sessions, material throughput, user participation, and machine status.
             </p>
           </div>
 
           <button
             onClick={fetchOverview}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-950/40 shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] text-sm font-extrabold rounded-xl transition-all shadow-md shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh Metrics
@@ -137,64 +137,64 @@ export default function OverviewTab({ currentUser }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         
         {/* Total Bottles */}
-        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-emerald-500">
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#0b5d3b]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Plastic Bottles</span>
-            <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-[#0b5d3b] dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
               <Wine className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalBottles ?? 0}</div>
-            <p className="text-[11px] text-emerald-400 flex items-center gap-1 mt-1 font-semibold">
+            <p className="text-xs text-[#0b5d3b] dark:text-emerald-400 flex items-center gap-1 mt-1 font-bold">
               <TrendingUp className="w-3.5 h-3.5" /> Total PET Bottles Recycled
             </p>
           </div>
         </div>
 
         {/* Total Cups */}
-        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-amber-500">
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#e5a919]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Recyclable Cups</span>
-            <div className="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-500/20">
               <Coffee className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalCups ?? 0}</div>
-            <p className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 font-semibold">
+            <p className="text-xs text-amber-800 dark:text-amber-400 flex items-center gap-1 mt-1 font-bold">
               <TrendingUp className="w-3.5 h-3.5" /> Total Cups Collected
             </p>
           </div>
         </div>
 
         {/* Total Points */}
-        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-cyan-500">
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-sky-600">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Points Rewarded</span>
-            <div className="p-2.5 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
+            <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-800 dark:text-cyan-400 rounded-xl border border-sky-200 dark:border-cyan-500/20">
               <Award className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalPoints ?? 0}</div>
-            <p className="text-[11px] text-cyan-400 flex items-center gap-1 mt-1 font-semibold">
+            <p className="text-xs text-sky-800 dark:text-cyan-400 flex items-center gap-1 mt-1 font-bold">
               <TrendingUp className="w-3.5 h-3.5" /> Total User Loyalty Points
             </p>
           </div>
         </div>
 
         {/* Total Sessions */}
-        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-purple-500">
+        <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-purple-600">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Total Sessions</span>
-            <div className="p-2.5 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
+            <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-400 rounded-xl border border-purple-200 dark:border-purple-500/20">
               <Recycle className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalSessions ?? 0}</div>
-            <p className="text-[11px] text-purple-400 flex items-center gap-1 mt-1 font-semibold">
+            <p className="text-xs text-purple-800 dark:text-purple-400 flex items-center gap-1 mt-1 font-bold">
               <Activity className="w-3.5 h-3.5" /> Active RVM Transactions
             </p>
           </div>
@@ -202,15 +202,15 @@ export default function OverviewTab({ currentUser }) {
       </div>
 
       {/* Real-time Material Variant Analytics Grid */}
-      <div className="glass-panel p-5 rounded-3xl border border-cyan-500/20 space-y-4">
+      <div className="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-cyan-500/20 space-y-4">
         <div className="flex items-center justify-between border-b t-border pb-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <Sparkles className="w-4 h-4 text-amber-500" />
             <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
               Material Variant Breakdown & Unit Throughput
             </h3>
           </div>
-          <span className="text-[11px] px-2.5 py-0.5 bg-cyan-500/10 text-cyan-300 font-bold rounded-full border border-cyan-500/20 mono">
+          <span className="text-xs px-3 py-1 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 font-bold rounded-full border border-emerald-300/60 mono">
             PostgreSQL Multi-Variant Metrics
           </span>
         </div>
@@ -218,67 +218,67 @@ export default function OverviewTab({ currentUser }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
           
           {/* Plastic Variant Breakdown */}
-          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-emerald-400">
+          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
               <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
-              <span className="mono text-sm">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
+              <span className="mono font-extrabold">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
-              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
-                <div className="text-[10px] t-text-muted">Small</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Small</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
               </div>
-              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
-                <div className="text-[10px] t-text-muted">Medium</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Medium</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
               </div>
-              <div className="p-1.5 bg-emerald-500/10 text-emerald-300 rounded-lg border border-emerald-500/20">
-                <div className="text-[10px] t-text-muted">Large</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
+              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Large</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
               </div>
             </div>
           </div>
 
           {/* Metal Can Variant Breakdown */}
-          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-amber-400">
+          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
               <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
-              <span className="mono text-sm">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
+              <span className="mono font-extrabold">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center text-[11px] font-semibold pt-1">
-              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
-                <div className="text-[10px] t-text-muted">Small</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canSmall ?? 0}</div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Small</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canSmall ?? 0}</div>
               </div>
-              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
-                <div className="text-[10px] t-text-muted">Medium</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canMedium ?? 0}</div>
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Medium</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canMedium ?? 0}</div>
               </div>
-              <div className="p-1.5 bg-amber-500/10 text-amber-300 rounded-lg border border-amber-500/20">
-                <div className="text-[10px] t-text-muted">Large</div>
-                <div className="mono font-bold">{overview?.variantBreakdown?.canLarge ?? 0}</div>
+              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Large</div>
+                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canLarge ?? 0}</div>
               </div>
             </div>
           </div>
 
           {/* Paper Weight */}
-          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-purple-400">
+          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-sm font-bold text-purple-800 dark:text-purple-400">
               <span>📦 Paper Weight</span>
-              <span className="mono text-sm">{overview?.totalPaperGrams ?? 0} gGams</span>
+              <span className="mono font-extrabold">{overview?.totalPaperGrams ?? 0} Grams</span>
             </div>
-            <div className="p-2 bg-purple-500/10 text-purple-300 rounded-xl border border-purple-500/20 text-center font-mono text-xs font-extrabold">
+            <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200 rounded-xl border border-purple-300/60 text-center font-mono text-sm font-black">
               {((overview?.totalPaperGrams ?? 0) / 1000).toFixed(3)} kg Paper Collected
             </div>
           </div>
 
           {/* TetraPak Weight */}
-          <div className="p-4 t-bg-sec border t-border rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-cyan-400">
+          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+            <div className="flex items-center justify-between text-sm font-bold text-sky-800 dark:text-cyan-400">
               <span>🧃 TetraPak Weight</span>
-              <span className="mono text-sm">{overview?.totalTetraPakGrams ?? 0} Grams</span>
+              <span className="mono font-extrabold">{overview?.totalTetraPakGrams ?? 0} Grams</span>
             </div>
-            <div className="p-2 bg-cyan-500/10 text-cyan-300 rounded-xl border border-cyan-500/20 text-center font-mono text-xs font-extrabold">
+            <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-950 dark:text-cyan-200 rounded-xl border border-sky-300/60 text-center font-mono text-sm font-black">
               {((overview?.totalTetraPakGrams ?? 0) / 1000).toFixed(3)} kg TetraPak Collected
             </div>
           </div>

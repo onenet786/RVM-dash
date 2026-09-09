@@ -61,6 +61,16 @@ export default {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
+      fontSize: {
+        'xs': ['0.8125rem', { lineHeight: '1.25rem' }],   // 13px (proportional sub-text)
+        'sm': ['0.875rem', { lineHeight: '1.375rem' }],   // 14px (clean label)
+        'base': ['1rem', { lineHeight: '1.5rem' }],        // 16px Standard Base Font
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],    // 18px
+        'xl': ['1.25rem', { lineHeight: '1.875rem' }],    // 20px
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],        // 24px
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],   // 30px
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],     // 36px
+      },
     },
   },
   plugins: [],
