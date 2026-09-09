@@ -98,6 +98,21 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     <div className="flex flex-col justify-between h-full space-y-6">
       <div className="space-y-6">
         
+        {/* Brand Header Banner in Sidebar (Matches ISP Enterprise Portal Design) */}
+        <div className="px-3 pb-3 mb-1 border-b t-border flex items-center gap-3 sidebar-brand-container">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 p-2 flex items-center justify-center shadow-lg shadow-amber-500/25 shrink-0">
+            <Leaf className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-black tracking-tight t-text-primary sidebar-brand-title leading-tight truncate">
+              ISP Environmental
+            </div>
+            <div className="text-[11px] font-semibold t-text-muted sidebar-brand-sub leading-tight truncate">
+              Solutions Pvt. Ltd
+            </div>
+          </div>
+        </div>
+
         {/* Main Section */}
         <div>
           <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">

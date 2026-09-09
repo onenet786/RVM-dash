@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu } from 'lucide-react';
+import { Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu, Building2 } from 'lucide-react';
 
 export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout, isMobileOpen, setIsMobileOpen }) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
@@ -18,6 +18,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   const serverLoc = health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
 
   const themesList = [
+    { id: 'isp-portal', label: 'ISP Enterprise Portal', icon: Building2, color: 'bg-[#063323]', desc: 'Dark Forest Sidebar & Clean White Executive Canvas' },
     { id: 'isp-eco', label: 'ISP Eco Vanguard', icon: Leaf, color: 'bg-[#0B5D3B]', desc: 'ISP Environmental Solutions Brand' },
     { id: 'cyber-dark', label: 'Cyber Emerald', icon: Moon, color: 'bg-emerald-500', desc: 'Midnight Obsidian & Emerald Glow' },
     { id: 'ocean-dark', label: 'Ocean Sapphire', icon: Moon, color: 'bg-cyan-500', desc: 'Deep Sapphire & Ice Cyan' },

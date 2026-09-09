@@ -121,6 +121,33 @@ html[data-theme="isp-eco"], body[data-theme="isp-eco"] {
   color-scheme: light;
 }
 
+/* ============================================================ */
+/* THEME 6: ISP ENTERPRISE PORTAL (DARK FOREST SIDEBAR + WHITE) */
+/* ============================================================ */
+html[data-theme="isp-portal"], body[data-theme="isp-portal"] {
+  --brand-primary: #063323;
+  --brand-primary-hover: #0a4430;
+  --brand-primary-light: #e6f3ec;
+  --brand-accent: #f59e0b;
+  --brand-accent-hover: #d97706;
+  --brand-accent-light: #fef3c7;
+
+  --bg-app: #f3f6f4;
+  --bg-surface: #ffffff;
+  --bg-surface-sec: #f8fafc;
+  --bg-surface-hover: #eef5f1;
+  --bg-header: #ffffff;
+  --border-color: #e2e8f0;
+  --border-accent: #0b5d3b;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --accent-color: #f59e0b;
+  --accent-light: rgba(245, 158, 11, 0.15);
+  --accent-glow: rgba(245, 158, 11, 0.3);
+  color-scheme: light;
+}
+
 body {
   font-size: 16px;
   line-height: 1.5;
@@ -159,7 +186,7 @@ table th {
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Glassmorphism utility classes utilizing variables */
+/* Glassmorphism primitives */
 .glass-panel {
   background: var(--bg-surface);
   backdrop-filter: blur(12px);
@@ -170,7 +197,8 @@ table th {
 }
 
 html[data-theme="sleek-light"] .glass-panel,
-html[data-theme="isp-eco"] .glass-panel {
+html[data-theme="isp-eco"] .glass-panel,
+html[data-theme="isp-portal"] .glass-panel {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 
@@ -908,4 +936,249 @@ html[data-theme="isp-eco"] .bg-\[\#0b5d3b\] *,
 html[data-theme="isp-eco"] button.bg-emerald-600 * {
   color: #ffffff !important;
 }
+
+/* ============================================================ */
+/* THEME 6: ISP ENTERPRISE PORTAL (ATTACHED SCREENSHOT DESIGN)  */
+/* Dark Forest Sidebar + Clean White Executive Canvas & Cards   */
+/* ============================================================ */
+
+/* --- 1. TOP HEADER NAVBAR (PURE CRISP WHITE) --- */
+html[data-theme="isp-portal"] header.t-bg-header,
+body[data-theme="isp-portal"] header.t-bg-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .t-text-primary,
+html[data-theme="isp-portal"] header.t-bg-header h1 {
+  color: #0f172a !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .t-text-secondary,
+html[data-theme="isp-portal"] header.t-bg-header .t-text-muted {
+  color: #64748b !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .nav-logo-badge {
+  background: linear-gradient(135deg, #063323 0%, #0b5d3b 100%) !important;
+  border: 1px solid #146c43 !important;
+  box-shadow: 0 2px 6px rgba(6, 51, 35, 0.2) !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .nav-badge-pro {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .t-bg-sec,
+html[data-theme="isp-portal"] header.t-bg-header .bg-\[\#08422a\] {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .bg-\[\#08422a\] span,
+html[data-theme="isp-portal"] header.t-bg-header .bg-\[\#08422a\] div {
+  color: #1e293b !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .bg-\[\#08422a\] .text-\[\#fde68a\],
+html[data-theme="isp-portal"] header.t-bg-header .bg-\[\#08422a\] .text-\[\#e5a919\] {
+  color: #0b5d3b !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header button:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .border-emerald-700\/50 {
+  border-left-color: #e2e8f0 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .border-emerald-700\/50 span.text-white {
+  color: #0f172a !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header .border-emerald-700\/50 span.text-\[\#fde68a\] {
+  color: #d97706 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header button[title="Sign Out"] {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3 !important;
+}
+
+html[data-theme="isp-portal"] header.t-bg-header button[title="Sign Out"] svg {
+  color: #be123c !important;
+}
+
+/* --- 2. SIDEBAR (DEEP DARK FOREST GREEN) --- */
+html[data-theme="isp-portal"] aside.t-bg-surface {
+  background-color: #063323 !important;
+  border-right: 1px solid #0a402d !important;
+  color: #a7c7b7 !important;
+}
+
+html[data-theme="isp-portal"] aside .sidebar-brand-container {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="isp-portal"] aside .sidebar-brand-title {
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-portal"] aside .sidebar-brand-sub {
+  color: #9cbfae !important;
+}
+
+html[data-theme="isp-portal"] aside .t-text-muted,
+html[data-theme="isp-portal"] aside .text-cyan-400 {
+  color: #6d9b85 !important;
+}
+
+/* Inactive nav buttons in sidebar */
+html[data-theme="isp-portal"] aside nav button {
+  color: #a7c7b7 !important;
+  transition: all 0.2s ease !important;
+}
+
+html[data-theme="isp-portal"] aside nav button svg {
+  color: #7ea894 !important;
+}
+
+html[data-theme="isp-portal"] aside nav button:hover {
+  background-color: #0a422e !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-portal"] aside nav button:hover svg {
+  color: #ffffff !important;
+}
+
+/* Active navigation item: soft capsule with amber/gold icon & white text */
+html[data-theme="isp-portal"] aside nav button.bg-emerald-600\/15,
+html[data-theme="isp-portal"] aside nav button.bg-emerald-500\/20,
+html[data-theme="isp-portal"] aside nav button.bg-cyan-500\/20 {
+  background-color: #0e4e35 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  border-left: 4px solid #f59e0b !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 800 !important;
+}
+
+html[data-theme="isp-portal"] aside nav button.bg-emerald-600\/15 svg,
+html[data-theme="isp-portal"] aside nav button.bg-emerald-500\/20 svg,
+html[data-theme="isp-portal"] aside nav button.bg-cyan-500\/20 svg {
+  color: #f59e0b !important;
+}
+
+html[data-theme="isp-portal"] aside nav button.bg-emerald-600\/15 .text-\[\#0b5d3b\],
+html[data-theme="isp-portal"] aside nav button.bg-emerald-500\/20 .text-\[\#0b5d3b\] {
+  color: #34d399 !important;
+}
+
+/* Table counter badge in sidebar */
+html[data-theme="isp-portal"] aside nav button span.mono {
+  background-color: #0b4530 !important;
+  color: #a7c7b7 !important;
+  border: 1px solid #135c41 !important;
+}
+
+html[data-theme="isp-portal"] aside nav button.bg-emerald-600\/15 span.mono,
+html[data-theme="isp-portal"] aside nav button.bg-cyan-500\/20 span.mono {
+  background-color: #10b981 !important;
+  color: #063323 !important;
+  font-weight: 800 !important;
+}
+
+/* --- 3. HERO WELCOME BANNER (DEEP PINE GRADIENT) --- */
+html[data-theme="isp-portal"] .overview-hero-banner {
+  background: linear-gradient(135deg, #063323 0%, #094731 45%, #0e6344 100%) !important;
+  border: 1px solid #136643 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 25px -5px rgba(6, 51, 35, 0.25) !important;
+}
+
+html[data-theme="isp-portal"] .overview-hero-banner h1,
+html[data-theme="isp-portal"] .overview-hero-banner h2,
+html[data-theme="isp-portal"] .overview-hero-banner h3,
+html[data-theme="isp-portal"] .overview-hero-banner .text-2xl,
+html[data-theme="isp-portal"] .overview-hero-banner .text-3xl {
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-portal"] .overview-hero-banner p,
+html[data-theme="isp-portal"] .overview-hero-banner .t-text-secondary {
+  color: #d1fae5 !important;
+}
+
+html[data-theme="isp-portal"] .overview-hero-banner button {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+html[data-theme="isp-portal"] .overview-hero-banner button:hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+}
+
+/* --- 4. CARDS & EXECUTIVE WHITE CANVAS --- */
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.05), 0 1px 3px -1px rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) h1,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) h2,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) h3,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) h4,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) td {
+  color: #0f172a !important;
+}
+
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) .t-text-muted,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) .text-slate-400,
+html[data-theme="isp-portal"] .glass-panel:not(.overview-hero-banner) .text-gray-400 {
+  color: #64748b !important;
+}
+
+html[data-theme="isp-portal"] .bg-black\/40,
+html[data-theme="isp-portal"] .bg-gray-800,
+html[data-theme="isp-portal"] [class*="bg-slate-900"],
+html[data-theme="isp-portal"] [class*="bg-slate-950"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme="isp-portal"] table th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="isp-portal"] table tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* --- 5. THEME PICKER MENU --- */
+html[data-theme="isp-portal"] .theme-picker-menu {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme="isp-portal"] .theme-picker-menu .theme-option-btn:hover {
+  background-color: #f1f5f9 !important;
+}
+
 
