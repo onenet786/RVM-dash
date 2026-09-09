@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   FileText, Scale, Cpu, Leaf, DollarSign, Download, Printer, 
   AlertTriangle, Sliders, CheckCircle2, TrendingUp, Clock, Info, Layers, 
-  Activity, ArrowUpRight, BarChart3
+  Activity, ArrowUpRight, BarChart3, Loader2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
@@ -10,6 +10,7 @@ import {
 
 export default function ReportingHubTab() {
   const [activeReport, setActiveReport] = useState('paper_calibration');
+  const [isExporting, setIsExporting] = useState(false);
 
   const reports = [
     { 
@@ -498,6 +499,588 @@ export default function ReportingHubTab() {
     </div>
   );
 
+  const handleExportPDF = () => {
+    setIsExporting(true);
+    try {
+      const activeObj = reports.find(r => r.id === activeReport) || reports[0];
+      const nowStr = new Date().toLocaleString('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+      const auditRef = `AUD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      let contentHtml = '';
+
+      if (activeReport === 'paper_calibration') {
+        contentHtml = `
+          <div class="kpi-grid">
+            <div class="kpi-card purple">
+              <div class="kpi-title">Total Paper Mass</div>
+              <div class="kpi-val">148.5 kg</div>
+              <div class="kpi-sub">Verified Load Cell Net Intake</div>
+            </div>
+            <div class="kpi-card cyan">
+              <div class="kpi-title">Scale Tare Accuracy</div>
+              <div class="kpi-val">99.82%</div>
+              <div class="kpi-sub">Within ±0.1g tare calibration</div>
+            </div>
+            <div class="kpi-card amber">
+              <div class="kpi-title">Zero-Point Drift Events</div>
+              <div class="kpi-val">4 Events</div>
+              <div class="kpi-sub">3 Auto-zeroed, 1 Flagged</div>
+            </div>
+            <div class="kpi-card rose">
+              <div class="kpi-title">Weight-Limit Events</div>
+              <div class="kpi-val">2 Triggers</div>
+              <div class="kpi-sub">Paper bin limit exceeded (&gt;15 kg)</div>
+            </div>
+          </div>
+
+          <div class="section-title">Scale Tare Calibration Ledger</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Log ID</th>
+                <th>Hardware Device</th>
+                <th>Timestamp</th>
+                <th>Tare Offset</th>
+                <th>Zero Drift</th>
+                <th>Status</th>
+                <th>Technician / Routine</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${calibrationLogs.map(l => `
+                <tr>
+                  <td class="mono font-bold">${l.id}</td>
+                  <td class="font-bold">${l.unit}</td>
+                  <td class="mono">${l.timestamp}</td>
+                  <td class="mono">${l.tareOffset}</td>
+                  <td class="mono font-bold">${l.zeroDrift}</td>
+                  <td><span class="badge ${l.status.toLowerCase().replace(/[^a-z]/g, '-')}">${l.status}</span></td>
+                  <td>${l.technician}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="section-title" style="margin-top: 22px;">Paper Weight Strain Gauge Anomalies & Exception Feed</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Unit</th>
+                <th>Exception Description</th>
+                <th>Mitigation / Action Taken</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${scaleAnomalies.map(a => `
+                <tr>
+                  <td class="mono font-bold">${a.id}</td>
+                  <td class="font-bold">${a.unit}</td>
+                  <td>${a.event}</td>
+                  <td class="status-cleared">${a.action}</td>
+                  <td class="mono">${a.timestamp}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (activeReport === 'fleet_efficiency') {
+        contentHtml = `
+          <div class="kpi-grid">
+            <div class="kpi-card cyan">
+              <div class="kpi-title">Average Service Turnaround</div>
+              <div class="kpi-val">34.2 mins</div>
+              <div class="kpi-sub">Trigger to Cleared turnaround</div>
+            </div>
+            <div class="kpi-card green">
+              <div class="kpi-title">RVM Fleet Mean Uptime</div>
+              <div class="kpi-val">98.7%</div>
+              <div class="kpi-sub">Optical recognition & motor uptime</div>
+            </div>
+            <div class="kpi-card amber">
+              <div class="kpi-title">PicoDrop Mean Uptime</div>
+              <div class="kpi-val">98.3%</div>
+              <div class="kpi-sub">Counter & load-scale uptime</div>
+            </div>
+            <div class="kpi-card purple">
+              <div class="kpi-title">Weight-Limit Triggers</div>
+              <div class="kpi-val">5 Events</div>
+              <div class="kpi-sub">Paper bin full events resolved</div>
+            </div>
+          </div>
+
+          <div class="section-title">Hardware Telemetry & Turnaround by Location</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Location / Facility</th>
+                <th>RVM Uptime</th>
+                <th>PicoDrop Uptime</th>
+                <th>Avg Turnaround</th>
+                <th>Weekly Intake Throughput</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${fleetUptimeData.map(f => `
+                <tr>
+                  <td class="font-bold">${f.location}</td>
+                  <td class="mono font-bold text-cyan">${f.rvmUptime}%</td>
+                  <td class="mono font-bold text-purple">${f.picoUptime}%</td>
+                  <td class="mono font-bold text-green">${f.avgTurnaroundMin} mins</td>
+                  <td class="mono">~3,200 units / wk</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="section-title" style="margin-top: 22px;">Subsystem Failure Rate Comparison</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Hardware Subsystem</th>
+                <th>Failure Description</th>
+                <th>Failure Rate (% Sessions)</th>
+                <th>Reliability Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">RVM Optical Chute</td>
+                <td>Scanner Lens Smudge / Foreign Matter</td>
+                <td class="mono font-bold">0.38%</td>
+                <td><span class="badge optimal">High (99.6%)</span></td>
+              </tr>
+              <tr>
+                <td class="font-bold">RVM Intake Motor</td>
+                <td>Gate Jam Auto-Clear Trigger</td>
+                <td class="mono font-bold">0.05%</td>
+                <td><span class="badge optimal">Ultra-Reliable</span></td>
+              </tr>
+              <tr>
+                <td class="font-bold">PicoDrop Strain Gauge</td>
+                <td>Load Scale Zero Drift Auto-Compensated</td>
+                <td class="mono font-bold">0.28%</td>
+                <td><span class="badge optimal">Calibrated</span></td>
+              </tr>
+              <tr>
+                <td class="font-bold">PicoDrop Chute Sensor</td>
+                <td>PET / Can Optical Trigger Miscount</td>
+                <td class="mono font-bold">0.07%</td>
+                <td><span class="badge optimal">Ultra-Reliable</span></td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      } else if (activeReport === 'esg_diversion') {
+        contentHtml = `
+          <div class="kpi-grid">
+            <div class="kpi-card green">
+              <div class="kpi-title">Total CO₂e Avoided</div>
+              <div class="kpi-val">1,842.6 kg</div>
+              <div class="kpi-sub">ISO 14064 Compliance Model</div>
+            </div>
+            <div class="kpi-card purple">
+              <div class="kpi-title">Trees Conserved</div>
+              <div class="kpi-val">2.52 Trees</div>
+              <div class="kpi-sub">From 148.5 kg measured paper</div>
+            </div>
+            <div class="kpi-card cyan">
+              <div class="kpi-title">Landfill Volume Diverted</div>
+              <div class="kpi-val">4.82 m³</div>
+              <div class="kpi-sub">Compacted solid waste volume</div>
+            </div>
+            <div class="kpi-card amber">
+              <div class="kpi-title">Energy Conserved</div>
+              <div class="kpi-val">3,490 kWh</div>
+              <div class="kpi-sub">Vs virgin material synthesis</div>
+            </div>
+          </div>
+
+          <div class="section-title">Certified Material Diversion Breakdown</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Recycled Material Stream</th>
+                <th>Measurement Standard</th>
+                <th>Quantity Diverted</th>
+                <th>Estimated Mass</th>
+                <th>CO₂e Avoided</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">PET Plastic Bottles</td>
+                <td>Unit Count (RVM + PicoDrop)</td>
+                <td class="mono font-bold">8,420 Units</td>
+                <td class="mono">252.6 kg</td>
+                <td class="mono font-bold text-green">690.4 kg CO₂e</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Aluminium Cans</td>
+                <td>Unit Count (RVM + PicoDrop)</td>
+                <td class="mono font-bold">3,615 Units</td>
+                <td class="mono">54.2 kg</td>
+                <td class="mono font-bold text-green">515.0 kg CO₂e</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Cardboard / TetraPak</td>
+                <td>Unit Count (RVM Hopper)</td>
+                <td class="mono font-bold">1,240 Units</td>
+                <td class="mono">37.2 kg</td>
+                <td class="mono font-bold text-green">148.8 kg CO₂e</td>
+              </tr>
+              <tr>
+                <td class="font-bold">PicoDrop Recycled Paper</td>
+                <td>Strain Gauge Load Cell (kg)</td>
+                <td class="mono font-bold">148.50 kg</td>
+                <td class="mono">148.5 kg</td>
+                <td class="mono font-bold text-green">488.4 kg CO₂e</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="background:#f1f5f9; font-weight: bold;">
+                <td colspan="2">Consolidated ESG Total</td>
+                <td class="mono">13,275 Units</td>
+                <td class="mono">492.5 kg</td>
+                <td class="mono text-green">1,842.6 kg CO₂e</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      } else {
+        contentHtml = `
+          <div class="kpi-grid">
+            <div class="kpi-card amber">
+              <div class="kpi-title">Total Points Distributed</div>
+              <div class="kpi-val">142,850 pts</div>
+              <div class="kpi-sub">Citizen eco-wallet credits</div>
+            </div>
+            <div class="kpi-card green">
+              <div class="kpi-title">Total Financial Liability</div>
+              <div class="kpi-val">PKR 14,285</div>
+              <div class="kpi-sub">At PKR 0.10 / pt conversion</div>
+            </div>
+            <div class="kpi-card purple">
+              <div class="kpi-title">Paper Acquisition Cost</div>
+              <div class="kpi-val">PKR 10.00 / kg</div>
+              <div class="kpi-sub">100 pts / kg formula rate</div>
+            </div>
+            <div class="kpi-card cyan">
+              <div class="kpi-title">Unit Reward Cost</div>
+              <div class="kpi-val">PKR 1.15 / unit</div>
+              <div class="kpi-sub">Weighted avg across containers</div>
+            </div>
+          </div>
+
+          <div class="section-title">Incentive Payout Reconciliation Ledger</div>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Intake Stream</th>
+                <th>Incentive Formula Rate</th>
+                <th>Volume Collected</th>
+                <th>Points Issued</th>
+                <th>Equivalent Liability (PKR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">PET Plastic Containers</td>
+                <td>10 - 15 pts / container</td>
+                <td class="mono">8,420 units</td>
+                <td class="mono font-bold">84,200 pts</td>
+                <td class="mono font-bold">PKR 8,420.00</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Aluminium Cans</td>
+                <td>15 - 20 pts / container</td>
+                <td class="mono">3,615 units</td>
+                <td class="mono font-bold">36,150 pts</td>
+                <td class="mono font-bold">PKR 3,615.00</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Cardboard / TetraPak</td>
+                <td>10 pts / container</td>
+                <td class="mono">1,240 units</td>
+                <td class="mono font-bold">12,400 pts</td>
+                <td class="mono font-bold">PKR 1,240.00</td>
+              </tr>
+              <tr>
+                <td class="font-bold">PicoDrop Paper Mass</td>
+                <td>100 pts / kg</td>
+                <td class="mono">148.50 kg</td>
+                <td class="mono font-bold">14,850 pts</td>
+                <td class="mono font-bold">PKR 1,485.00</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="background:#f1f5f9; font-weight: bold;">
+                <td colspan="3">Audited Payout Aggregate</td>
+                <td class="mono font-black">142,850 pts</td>
+                <td class="mono font-black text-green">PKR 14,285.00</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      }
+
+      const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>${activeObj.title} • EcoDrop Operations Audit</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.4;
+      font-size: 11.5px;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #073b28;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .brand-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #073b28;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-sub {
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+    .report-title-main {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 6px;
+    }
+    .meta-box {
+      text-align: right;
+      font-size: 10.5px;
+      color: #334155;
+    }
+    .meta-item {
+      margin-bottom: 2px;
+    }
+    .meta-item strong {
+      color: #0f172a;
+    }
+    .badge-confidential {
+      display: inline-block;
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 9.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge.optimal { background: #dcfce7; color: #15803d; }
+    .badge.compensated { background: #e0f2fe; color: #0369a1; }
+    .badge.drift-warning { background: #fee2e2; color: #b91c1c; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      background: #f8fafc;
+      border-left-width: 4px;
+    }
+    .kpi-card.purple { border-left-color: #8b5cf6; }
+    .kpi-card.cyan { border-left-color: #0ea5e9; }
+    .kpi-card.amber { border-left-color: #f59e0b; }
+    .kpi-card.green { border-left-color: #10b981; }
+    .kpi-card.rose { border-left-color: #f43f5e; }
+    .kpi-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .kpi-val {
+      font-size: 16px;
+      font-weight: 900;
+      color: #0f172a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      margin: 3px 0 1px 0;
+    }
+    .kpi-sub {
+      font-size: 9px;
+      color: #475569;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #073b28;
+      border-left: 3px solid #15803d;
+      padding-left: 6px;
+      margin: 14px 0 8px 0;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+      margin-bottom: 12px;
+    }
+    .report-table th {
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+    .report-table td {
+      padding: 5px 8px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .report-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .font-bold { font-weight: 700; color: #0f172a; }
+    .font-black { font-weight: 900; color: #0f172a; }
+    .text-green { color: #15803d; font-weight: 800; }
+    .text-cyan { color: #0284c7; }
+    .text-purple { color: #7c3aed; }
+    .status-cleared { color: #047857; font-weight: 600; }
+    .footer-signoff {
+      margin-top: 24px;
+      border-top: 1px dashed #94a3b8;
+      padding-top: 14px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      font-size: 9.5px;
+      color: #475569;
+    }
+    .sign-box {
+      border-top: 1px solid #64748b;
+      padding-top: 4px;
+      margin-top: 22px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand-title">♻ EcoDrop™ Systems • Regulatory & Operations Audit</div>
+      <div class="brand-sub">Reverse Vending Machine & PicoDrop Telemetry Network</div>
+      <div class="report-title-main">${activeObj.title}</div>
+    </div>
+    <div class="meta-box">
+      <div class="badge-confidential">Official Compliance Record</div>
+      <div class="meta-item">Ref ID: <strong class="mono">${auditRef}</strong></div>
+      <div class="meta-item">Date: <strong>${nowStr}</strong></div>
+      <div class="meta-item">Standard: <strong>ISO 14064 / ONS-RVM</strong></div>
+    </div>
+  </div>
+
+  ${contentHtml}
+
+  <div class="footer-signoff">
+    <div>
+      <strong>Audit Verification & Integrity Statement:</strong>
+      <p style="margin-top: 3px; line-height: 1.35; color: #64748b;">
+        This document represents certified telemetry extracted from active load cells, optical counters, and database records. All records have been verified against hardware calibration offsets and transaction logs.
+      </p>
+    </div>
+    <div>
+      <div class="sign-box">Certified Operations Lead</div>
+      <span style="font-size: 8.5px; color: #94a3b8;">Signature & Timestamp</span>
+    </div>
+    <div>
+      <div class="sign-box">Compliance & QA Officer</div>
+      <span style="font-size: 8.5px; color: #94a3b8;">Verification Seal</span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const printFrame = document.createElement('iframe');
+      printFrame.style.position = 'fixed';
+      printFrame.style.right = '0';
+      printFrame.style.bottom = '0';
+      printFrame.style.width = '0';
+      printFrame.style.height = '0';
+      printFrame.style.border = '0';
+      document.body.appendChild(printFrame);
+
+      printFrame.contentDocument.open();
+      printFrame.contentDocument.write(fullHtml);
+      printFrame.contentDocument.close();
+
+      setTimeout(() => {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        setTimeout(() => {
+          try {
+            document.body.removeChild(printFrame);
+          } catch(e) {}
+          setIsExporting(false);
+        }, 1000);
+      }, 500);
+
+    } catch (err) {
+      console.error('Export error:', err);
+      setIsExporting(false);
+      window.print();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       
@@ -520,18 +1103,21 @@ export default function ReportingHubTab() {
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl t-bg-sec hover:t-bg-hover border t-border text-xs font-bold t-text-primary transition-all shadow-sm"
+            onClick={() => handleExportPDF()}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl t-bg-sec hover:t-bg-hover border t-border text-xs font-bold t-text-primary transition-all shadow-sm"
+            title="Print Clean Compliance Audit"
           >
             <Printer className="w-4 h-4 text-cyan-400" />
             <span>Print Audit</span>
           </button>
           <button 
-            onClick={() => alert('Generating compliance audit PDF...')}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-950/40"
+            onClick={() => handleExportPDF()}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-950/40 disabled:opacity-50"
+            title="Export Clean Compliance Audit as PDF"
           >
-            <Download className="w-4 h-4" />
-            <span>Export Report (PDF)</span>
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span>{isExporting ? 'Generating PDF...' : 'Export Report (PDF)'}</span>
           </button>
         </div>
       </div>
