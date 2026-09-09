@@ -18,6 +18,10 @@ public sealed class WalletPhoneWindow : Window
     private readonly int _itemCount;
     private readonly int _points;
     private readonly string _machineId;
+    private readonly string _localSessionId;
+    private readonly int _plasticCount;
+    private readonly int _canCount;
+    private readonly int _paperCount;
 
     // Controls for Step 1: Phone + QR Claim
     private readonly Grid _rootGrid = new();
@@ -60,6 +64,7 @@ public sealed class WalletPhoneWindow : Window
     public int Rating { get; private set; } = 5;
     public string FeedbackText { get; private set; } = "Excellent (5)";
     public bool FeedbackSubmitted { get; private set; } = false;
+    public bool IsAutoFallbackExpired { get; private set; } = false;
 
     private enum WindowStep
     {
@@ -70,11 +75,22 @@ public sealed class WalletPhoneWindow : Window
 
     private WindowStep _currentStep = WindowStep.PhoneInput;
 
-    public WalletPhoneWindow(int itemCount, int points, string machineId = "RVM-001")
+    public WalletPhoneWindow(
+        int itemCount,
+        int points,
+        string machineId = "RVM-001",
+        string localSessionId = "",
+        int plasticCount = 0,
+        int canCount = 0,
+        int paperCount = 0)
     {
         _itemCount = itemCount;
         _points = points;
         _machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId;
+        _localSessionId = localSessionId ?? string.Empty;
+        _plasticCount = plasticCount;
+        _canCount = canCount;
+        _paperCount = paperCount;
 
         Title = "Send Points to Your Wallet";
         try
@@ -436,38 +452,13 @@ public sealed class WalletPhoneWindow : Window
 
         var footerGrid = new Grid();
         footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-        footerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        var fallbackButton = new Button
-        {
-            Content = "Skip / Guest Fallback (08884424625)",
-            FontSize = 12,
-            FontWeight = FontWeights.SemiBold,
-            Height = 38,
-            Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
-            Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
-            BorderThickness = new Thickness(1),
-            Cursor = Cursors.Hand
-        };
-        fallbackButton.Click += (_, _) =>
-        {
-            PhoneNumber = "08884424625";
-            Rating = 5;
-            FeedbackText = "Guest / Fallback (08884424625)";
-            FeedbackSubmitted = false;
-            CompleteAndClose();
-        };
-        Grid.SetColumn(fallbackButton, 0);
-        footerGrid.Children.Add(fallbackButton);
 
         var cancelButton = new Button
         {
-            Content = "✖  Close Session",
-            FontSize = 12,
+            Content = "✖  Close Session / سیشن ختم کریں",
+            FontSize = 13,
             FontWeight = FontWeights.SemiBold,
-            Height = 38,
+            Height = 40,
             Background = new SolidColorBrush(Color.FromRgb(51, 65, 85)),
             Foreground = Brushes.White,
             BorderThickness = new Thickness(0),
@@ -475,13 +466,21 @@ public sealed class WalletPhoneWindow : Window
         };
         cancelButton.Click += (_, _) =>
         {
-            PhoneNumber = "08884424625";
-            Rating = 5;
-            FeedbackText = "Manual Close / Fallback";
-            FeedbackSubmitted = false;
-            CompleteAndClose();
+            if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))
+            {
+                CompleteAndClose();
+            }
+            else
+            {
+                // Citizen explicitly closed the session without claiming points:
+                // Do NOT credit fallback account! Session is closed without reward.
+                PhoneNumber = string.Empty;
+                FeedbackSubmitted = false;
+                DialogResult = false;
+                Close();
+            }
         };
-        Grid.SetColumn(cancelButton, 2);
+        Grid.SetColumn(cancelButton, 0);
         footerGrid.Children.Add(cancelButton);
 
         _phoneFooterBorder.Child = footerGrid;
@@ -781,11 +780,17 @@ public sealed class WalletPhoneWindow : Window
     {
         if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
         {
-            PhoneNumber = "08884424625";
-            Rating = 5;
-            FeedbackText = "Manual Close / Fallback";
-            FeedbackSubmitted = false;
-            CompleteAndClose();
+            if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))
+            {
+                CompleteAndClose();
+            }
+            else
+            {
+                PhoneNumber = string.Empty;
+                FeedbackSubmitted = false;
+                DialogResult = false;
+                Close();
+            }
             e.Handled = true;
             return;
         }
@@ -1004,7 +1009,11 @@ public sealed class WalletPhoneWindow : Window
 
     private async Task StartQrSessionAsync()
     {
-        _qrSessionId = $"qr_{_machineId}_{DateTime.Now.Ticks}";
+        string localSid = !string.IsNullOrWhiteSpace(_localSessionId)
+            ? _localSessionId
+            : Guid.NewGuid().ToString("N").Substring(0, 8);
+
+        _qrSessionId = $"{_machineId}_{localSid}";
         _sessionCodeText.Text = _qrSessionId;
         string fallbackUrl = $"https://isprvm.binishaqsoft.com/claim?session={_qrSessionId}&pts={_points}&m={_machineId}";
 
@@ -1012,9 +1021,13 @@ public sealed class WalletPhoneWindow : Window
         {
             var sessionResp = await CentralSyncService.CreateClaimSessionAsync(
                 _machineId,
-                Guid.NewGuid().ToString("N").Substring(0, 8),
+                localSid,
                 _points,
-                _itemCount
+                _itemCount,
+                _plasticCount,
+                _canCount,
+                0,
+                _paperCount
             );
 
             if (sessionResp != null && sessionResp.Success)
@@ -1063,6 +1076,7 @@ public sealed class WalletPhoneWindow : Window
                 Rating = 5;
                 FeedbackText = "Auto-fallback (QR Expired)";
                 FeedbackSubmitted = false;
+                IsAutoFallbackExpired = true;
 
                 await Task.Delay(1200);
                 CompleteAndClose();

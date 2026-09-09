@@ -280,14 +280,10 @@ async function initProductionPostgresSchemas() {
       WHERE user_id = '3214424625';
 
       DELETE FROM users 
-      WHERE user_id = '3214424625' 
-         OR username = '3214424625' 
-         OR mobile = '3214424625' 
-         OR email = '3214424625@rvm-dash.io';
-
-      INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
-      VALUES ('08884424625', '08884424625', 'Fallback Kiosk Citizen', '08884424625', 'fallback@rvm-dash.io', 0, 'fleet_operator', 'active')
-      ON CONFLICT (user_id) DO NOTHING;
+      WHERE user_id IN ('3214424625', '08884424625') 
+         OR username IN ('3214424625', '08884424625') 
+         OR mobile IN ('3214424625', '08884424625') 
+         OR email IN ('3214424625@rvm-dash.io', 'fallback@rvm-dash.io');
     `).catch(err => console.warn('[PostgreSQL Fallback User Cleanup Warning]', err.message));
 
     // 4. Downstream Points Config Table
@@ -3945,9 +3941,9 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           u.last_active,
           u.created_at
         FROM users u
-        WHERE u.user_id != '3214424625' 
-          AND u.username != '3214424625' 
-          AND (u.mobile IS NULL OR u.mobile != '3214424625')
+        WHERE u.user_id NOT IN ('3214424625', '08884424625') 
+          AND u.username NOT IN ('3214424625', '08884424625') 
+          AND (u.mobile IS NULL OR u.mobile NOT IN ('3214424625', '08884424625'))
         ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
       `);
 
@@ -4330,11 +4326,17 @@ app.post('/api/machine/sync-session', async (req, res) => {
         const paperGrams = paperWeightGrams || (paperCardboardCount > 0 ? Math.round(weightKg * 1000) : 0);
         const tetrapakGrams = tetrapakWeightGrams || 0;
 
-        // 2. Insert or Update recycling_sessions table
+        // 2. Insert or Update recycling_sessions table        // Check if session was already inserted/credited by dynamic QR claim (/api/session/claim-points)
+        const existingSessionCheck = await pool.query(
+          `SELECT session_id, user_id, points_earned FROM recycling_sessions WHERE session_id = $1 LIMIT 1;`,
+          [sessionId]
+        );
+        const alreadyCredited = existingSessionCheck.rows.length > 0;
+
         await pool.query(`
           INSERT INTO recycling_sessions (
             session_id, machine_id, user_id, 
-            plastic_count, aluminium_count, paper_cardboard_count, glass_count, 
+            plastic_count, aluminium_count, paper_cardboard_count, glass_count,
             plastic_small_count, plastic_medium_count, plastic_large_count,
             can_small_count, can_medium_count, can_large_count,
             paper_weight_grams, tetrapak_weight_grams,
@@ -4375,8 +4377,8 @@ app.post('/api/machine/sync-session', async (req, res) => {
           variant, bSize, weightKg, co2AvoidedKg, pointsEarned
         ]);
 
-        // 3. Upsert user points
-        if (cleanUserId && cleanUserId !== 'anonymous') {
+        // 3. Upsert user points (only if session was not already credited via dynamic QR claim)
+        if (!alreadyCredited && cleanUserId && cleanUserId !== 'anonymous') {
           const userCheck = await pool.query(`
             SELECT user_id, points_balance FROM users
             WHERE user_id = $1 OR mobile = $1 OR email = $1 OR username = $1

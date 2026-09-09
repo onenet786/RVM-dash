@@ -2112,18 +2112,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        var walletWindow = new WalletPhoneWindow(totalItems, totalPoints, settings.MachineId) { Owner = this };
-        if (walletWindow.ShowDialog() is not true)
-        {
-            return;
-        }
-
-        string phoneNumber = walletWindow.PhoneNumber;
-        int userRating = walletWindow.Rating;
-        string userFeedback = walletWindow.FeedbackText;
-        bool feedbackSubmitted = walletWindow.FeedbackSubmitted;
-
-        activeUserMobile = phoneNumber;
         string currentSessionId = sessionId.ToString();
         int currentTotalItems = totalItems;
         int currentTotalPoints = totalPoints;
@@ -2137,6 +2125,38 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         int tpSmall = tetraPakSmallCount;
         int tpMed = tetraPakMediumCount;
         int tpLg = tetraPakLargeCount;
+
+        int plasticCount = pSmall + pMed + pLg;
+        int canCount = cSmall + cMed + cLg;
+        int paperCount = tpSmall + tpMed + tpLg;
+
+        var walletWindow = new WalletPhoneWindow(
+            totalItems,
+            totalPoints,
+            settings.MachineId,
+            currentSessionId,
+            plasticCount,
+            canCount,
+            paperCount)
+        {
+            Owner = this
+        };
+
+        if (walletWindow.ShowDialog() is not true || string.IsNullOrWhiteSpace(walletWindow.PhoneNumber))
+        {
+            StopMachine();
+            StatusText.Text = "Session closed without claiming";
+            StatusText.Foreground = Brushes.SlateGray;
+            BottleInfoText.Text = "Session ended without claiming points.";
+            return;
+        }
+
+        string phoneNumber = walletWindow.PhoneNumber;
+        int userRating = walletWindow.Rating;
+        string userFeedback = walletWindow.FeedbackText;
+        bool feedbackSubmitted = walletWindow.FeedbackSubmitted;
+
+        activeUserMobile = phoneNumber;
 
         // 1. Credit Local SQL Database if available
         if (localDbOk)
