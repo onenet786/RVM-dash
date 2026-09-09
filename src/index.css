@@ -11,7 +11,28 @@ html {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  color-scheme: dark;
+  color-scheme: light;
+
+  --brand-primary: #0b5d3b;
+  --brand-primary-hover: #08422a;
+  --brand-primary-light: #e6f3ec;
+  --brand-accent: #e5a919;
+  --brand-accent-hover: #c8900e;
+  --brand-accent-light: #fef8e8;
+
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-sec: #f1f5f9;
+  --bg-surface-hover: #e6f3ec;
+  --bg-header: #0b5d3b;
+  --border-color: #e2e8f0;
+  --border-accent: #0b5d3b;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent-color: #e5a919;
+  --accent-light: rgba(229, 169, 25, 0.18);
+  --accent-glow: rgba(229, 169, 25, 0.35);
 }
 
 /* ============================================================ */

@@ -19,8 +19,8 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   const serverLoc = health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
 
   const themesList = [
+    { id: 'isp-eco', label: 'ISP Eco Vanguard (Default)', icon: Leaf, color: 'bg-[#0B5D3B]', desc: 'Official ISP Environmental Solutions Brand' },
     { id: 'isp-portal', label: 'ISP Enterprise Portal', icon: Building2, color: 'bg-[#063323]', desc: 'Dark Forest Sidebar & Clean White Executive Canvas' },
-    { id: 'isp-eco', label: 'ISP Eco Vanguard', icon: Leaf, color: 'bg-[#0B5D3B]', desc: 'ISP Environmental Solutions Brand' },
     { id: 'cyber-dark', label: 'Cyber Emerald', icon: Moon, color: 'bg-emerald-500', desc: 'Midnight Obsidian & Emerald Glow' },
     { id: 'ocean-dark', label: 'Ocean Sapphire', icon: Moon, color: 'bg-cyan-500', desc: 'Deep Sapphire & Ice Cyan' },
     { id: 'neon-violet', label: 'Neon Violet', icon: Moon, color: 'bg-purple-500', desc: 'Cosmic Void & Violet Aether' },
@@ -129,6 +129,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
                       <button
                         key={t.id}
                         onClick={() => {
+                          try { localStorage.setItem('rvm_theme_explicit', 'true'); } catch (e) {}
                           setTheme(t.id);
                           setShowThemeMenu(false);
                         }}

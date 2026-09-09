@@ -19,8 +19,16 @@ import ReportingHubTab from './components/ReportingHubTab';
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('rvm_theme') || 'isp-eco');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const explicit = localStorage.getItem('rvm_theme_explicit');
+      if (explicit) {
+        return localStorage.getItem('rvm_theme') || 'isp-eco';
+      }
+    } catch (e) {}
+    return 'isp-eco';
+  });
 
   // Authentication State (sessionStorage: demands re-login on browser window restart)
 
