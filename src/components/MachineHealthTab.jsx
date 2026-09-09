@@ -396,101 +396,101 @@ export default function MachineHealthTab({ currentUser }) {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold t-text-primary text-sm mono">{m.machineId}</h4>
-                        <button onClick={() => openEditModal(m)} className="t-text-muted hover:text-cyan-400">
+                        <h4 className="font-extrabold t-text-primary text-sm mono">{m.machineId}</h4>
+                        <button onClick={() => openEditModal(m)} className="t-text-muted hover:text-[#0b5d3b]">
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="text-xs font-semibold text-cyan-300">{m.name || `RVM Unit ${m.machineId}`}</div>
-                      <span className="text-[11px] t-text-muted flex items-center gap-1 mt-0.5">
-                        <MapPin className="w-3 h-3 text-emerald-400" />
+                      <div className="text-sm font-bold text-slate-800 dark:text-cyan-300">{m.name || `RVM Unit ${m.machineId}`}</div>
+                      <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-[#0b5d3b]" />
                         {m.location || 'Islamabad Main Campus'}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full flex items-center gap-1.5 ${isOnline
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    <span className={`px-2.5 py-1 text-xs font-extrabold uppercase rounded-full flex items-center gap-1.5 ${isOnline
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
+                        : 'bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30'
                       }`}>
-                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                       {isOnline ? 'ONLINE' : 'OFFLINE'}
                     </span>
 
                     {hasAlerts && (
-                      <span className="px-2 py-0.5 text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                      <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-full">
                         Bin Alert
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs t-bg-sec p-3 rounded-xl border t-border">
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="t-text-muted block text-[10px] font-bold uppercase">Total Sessions</span>
-                    <span className="font-bold t-text-primary mono text-sm">{m.sessionCount || 0}</span>
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 dark:t-bg-sec p-3 rounded-2xl border border-slate-200 dark:t-border">
+                  <div className="bg-white dark:bg-slate-900/70 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-slate-500 dark:t-text-muted block text-xs font-bold uppercase">Total Sessions</span>
+                    <span className="font-extrabold text-slate-900 dark:t-text-primary mono text-base">{m.sessionCount || 0}</span>
                   </div>
 
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-emerald-400 block text-[10px] font-bold uppercase">Plastic Bottles</span>
-                    <span className="font-bold text-emerald-300 mono text-sm">🥤 {m.plasticCount || (m.glassCount === 0 && m.canCount === 0 && m.paperCount === 0 ? m.totalBottles : 0)}</span>
+                  <div className="bg-emerald-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-emerald-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-[#0b5d3b] dark:text-emerald-400 block text-xs font-bold uppercase">Plastic Bottles</span>
+                    <span className="font-extrabold text-[#0b5d3b] dark:text-emerald-300 mono text-base">🥤 {m.plasticCount || (m.glassCount === 0 && m.canCount === 0 && m.paperCount === 0 ? m.totalBottles : 0)}</span>
                   </div>
 
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-purple-400 block text-[10px] font-bold uppercase">Glass Bottles</span>
-                    <span className="font-bold text-purple-300 mono text-sm">🍾 {m.glassCount || 0}</span>
+                  <div className="bg-purple-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-purple-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-purple-800 dark:text-purple-400 block text-xs font-bold uppercase">Glass Bottles</span>
+                    <span className="font-extrabold text-purple-900 dark:text-purple-300 mono text-base">🍾 {m.glassCount || 0}</span>
                   </div>
 
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-amber-400 block text-[10px] font-bold uppercase">Can / Metal</span>
-                    <span className="font-bold text-amber-300 mono text-sm">🥫 {m.canCount || 0}</span>
+                  <div className="bg-amber-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-amber-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-amber-800 dark:text-amber-400 block text-xs font-bold uppercase">Can / Metal</span>
+                    <span className="font-extrabold text-amber-900 dark:text-amber-300 mono text-base">🥫 {m.canCount || 0}</span>
                   </div>
 
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-cyan-400 block text-[10px] font-bold uppercase">Paper</span>
-                    <span className="font-bold text-cyan-300 mono text-sm">📦 {m.paperCount || 0}</span>
+                  <div className="bg-sky-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-sky-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-sky-800 dark:text-cyan-400 block text-xs font-bold uppercase">Paper</span>
+                    <span className="font-extrabold text-sky-900 dark:text-cyan-300 mono text-base">📦 {m.paperCount || 0}</span>
                   </div>
 
-                  <div className="bg-slate-900/70 p-2 rounded-lg border border-slate-800/80">
-                    <span className="text-amber-400 block text-[10px] font-bold uppercase">Points Issued</span>
-                    <span className="font-bold text-amber-400 mono text-sm">⭐ {m.totalPoints || 0}</span>
+                  <div className="bg-amber-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-amber-200 dark:border-slate-800 shadow-sm">
+                    <span className="text-amber-800 dark:text-amber-400 block text-xs font-bold uppercase">Points Issued</span>
+                    <span className="font-extrabold text-amber-900 dark:text-amber-400 mono text-base">⭐ {m.totalPoints || 0}</span>
                   </div>
                 </div>
 
                 {/* Connected IP Addresses: Public IP & Local IP */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/90 shadow-inner">
+                <div className="grid grid-cols-2 gap-2 text-xs p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 shadow-sm">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex-shrink-0">
+                    <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-cyan-500/10 text-sky-800 dark:text-cyan-400 border border-sky-200 dark:border-cyan-500/20 flex-shrink-0">
                       <Globe className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Public IP</span>
-                      <span className="font-mono font-bold text-cyan-300 truncate block text-[11px]" title={m.publicIp || 'Not Detected'}>
+                      <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Public IP</span>
+                      <span className="font-mono font-bold text-sky-900 dark:text-cyan-300 truncate block text-xs" title={m.publicIp || 'Not Detected'}>
                         {m.publicIp && m.publicIp !== 'N/A' ? m.publicIp : '127.0.0.1'}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 overflow-hidden border-l border-slate-800/80 pl-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+                  <div className="flex items-center gap-2 overflow-hidden border-l border-slate-200 dark:border-slate-800/80 pl-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-[#0b5d3b] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 flex-shrink-0">
                       <Wifi className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Local IP (LAN)</span>
-                      <span className="font-mono font-bold text-emerald-300 truncate block text-[11px]" title={m.localIp || 'Not Detected'}>
+                      <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Local IP (LAN)</span>
+                      <span className="font-mono font-bold text-[#0b5d3b] dark:text-emerald-300 truncate block text-xs" title={m.localIp || 'Not Detected'}>
                         {m.localIp && m.localIp !== 'N/A' ? m.localIp : '127.0.0.1'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] t-text-muted border-t t-border pt-3">
+                <div className="flex items-center justify-between text-xs text-slate-500 border-t t-border pt-3">
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-cyan-400" />
+                    <Clock className="w-3.5 h-3.5 text-[#0b5d3b]" />
                     Last Ping: {m.lastPingAt || m.lastActive ? new Date(m.lastPingAt || m.lastActive).toLocaleTimeString() : 'Never'}
                   </span>
-                  <span className={`font-bold text-[11px] ${isOnline ? 'text-emerald-400' : 'text-slate-400'}`}>
+                  <span className={`font-bold text-xs ${isOnline ? 'text-[#0b5d3b]' : 'text-slate-400'}`}>
                     {isOnline ? 'Live Ping Active' : 'Offline'}
                   </span>
                 </div>

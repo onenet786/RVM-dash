@@ -219,13 +219,13 @@ export default function MachineConfigsTab() {
         {/* Top Control Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b t-border pb-5">
           <div className="w-full sm:w-80">
-            <label className="block text-xs font-bold text-cyan-400 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-bold t-text-muted mb-1.5 uppercase tracking-wider">
               🎯 Target RVM Machine / Fleet Scope
             </label>
             <select
               value={targetMachine}
               onChange={e => setTargetMachine(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-900/90 border border-cyan-500/40 rounded-xl text-sm font-bold text-cyan-300 focus:outline-none focus:border-cyan-400 shadow-inner"
+              className="w-full px-3.5 py-2.5 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b] shadow-sm"
             >
               <option value="ALL">🌟 ALL MACHINES (Fleet Global Rule Sync)</option>
               {machines.map(m => (
@@ -240,9 +240,9 @@ export default function MachineConfigsTab() {
             <button
               type="button"
               onClick={() => setShowAddModal(true)}
-              className="px-4 py-2.5 text-xs font-bold bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-xl flex items-center gap-2 transition-all shadow-md"
+              className="px-4 py-2.5 text-xs font-bold bg-[#e6f3ec] dark:bg-emerald-950/40 text-[#0b5d3b] dark:text-emerald-300 hover:bg-[#d5ece0] border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center gap-2 transition-all shadow-sm"
             >
-              <Plus className="w-4 h-4 text-cyan-400" />
+              <Plus className="w-4 h-4 text-[#0b5d3b] dark:text-emerald-300" />
               <span>+ Add New Item Variant</span>
             </button>
 
@@ -250,7 +250,7 @@ export default function MachineConfigsTab() {
               type="button"
               onClick={handleSyncPointsConfig}
               disabled={saving}
-              className="px-6 py-2.5 text-xs font-extrabold bg-emerald-500 text-slate-950 hover:bg-emerald-400 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
+              className="px-6 py-2.5 text-xs font-extrabold bg-[#0b5d3b] text-white hover:bg-[#08422a] rounded-xl shadow-md flex items-center gap-2 transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
               <span>{saving ? 'Pushing Rules...' : '🚀 Save & Push Point Settings to RVMs'}</span>
@@ -259,10 +259,10 @@ export default function MachineConfigsTab() {
         </div>
 
         {/* Dynamic Point Settings Matrix Table */}
-        <div className="overflow-x-auto rounded-2xl border t-border bg-slate-950/60">
+        <div className="overflow-x-auto rounded-2xl border t-border t-bg-card">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-900/90 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 border-b t-border">
+              <tr className="t-bg-sec text-[11px] font-extrabold uppercase tracking-wider t-text-muted border-b t-border">
                 <th className="py-3.5 px-4">#</th>
                 <th className="py-3.5 px-4">Material Category</th>
                 <th className="py-3.5 px-4">Size / Variant</th>
@@ -274,7 +274,7 @@ export default function MachineConfigsTab() {
             </thead>
             <tbody className="divide-y t-border text-xs font-medium">
               {settingsList.map((item, idx) => (
-                <tr key={item.id || idx} className="hover:bg-slate-900/40 transition-colors">
+                <tr key={item.id || idx} className="hover:bg-slate-500/5 transition-colors">
                   <td className="py-3 px-4 font-mono text-slate-500 font-bold">{idx + 1}</td>
                   
                   {/* Material Type Badge */}
@@ -285,12 +285,12 @@ export default function MachineConfigsTab() {
                   </td>
 
                   {/* Bottle Size / Variant */}
-                  <td className="py-3 px-4 font-mono font-bold text-slate-200">
+                  <td className="py-3 px-4 font-mono font-bold t-text-primary">
                     <input
                       type="text"
                       value={item.bottleSize}
                       onChange={e => handleUpdateItemField(item.id, 'bottleSize', e.target.value.toUpperCase())}
-                      className="w-32 px-2.5 py-1 bg-slate-900 border t-border rounded-lg text-xs font-mono font-bold text-cyan-300 focus:outline-none focus:border-cyan-400"
+                      className="w-32 px-2.5 py-1 t-bg-sec border t-border rounded-lg text-xs font-mono font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                     />
                   </td>
 
@@ -300,7 +300,7 @@ export default function MachineConfigsTab() {
                       type="number"
                       value={item.points}
                       onChange={e => handleUpdateItemField(item.id, 'points', parseInt(e.target.value) || 0)}
-                      className="w-24 px-3 py-1 bg-slate-900 border border-emerald-500/40 rounded-lg text-xs font-mono font-bold text-emerald-400 focus:outline-none focus:border-emerald-400"
+                      className="w-24 px-3 py-1 t-bg-sec border border-emerald-500/40 rounded-lg text-xs font-mono font-bold text-[#0b5d3b] dark:text-emerald-400 focus:outline-none focus:border-emerald-500"
                     />
                   </td>
 
@@ -309,7 +309,7 @@ export default function MachineConfigsTab() {
                     <select
                       value={item.unit || 'per_piece'}
                       onChange={e => handleUpdateItemField(item.id, 'unit', e.target.value)}
-                      className="px-2.5 py-1 bg-slate-900 border t-border rounded-lg text-xs font-bold text-slate-300 focus:outline-none"
+                      className="px-2.5 py-1 t-bg-sec border t-border rounded-lg text-xs font-bold t-text-primary focus:outline-none"
                     >
                       <option value="per_piece">Per Piece (Per Item)</option>
                       <option value="per_gram">Per Gram (g)</option>
@@ -353,15 +353,15 @@ export default function MachineConfigsTab() {
 
       {/* Add New Item Variant Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="t-bg-card border t-border rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl animate-fade-in">
             
             <div className="flex items-center justify-between border-b t-border pb-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-extrabold text-slate-100">Add New Item & Size Variant</h3>
+                <Sparkles className="w-5 h-5 text-[#0b5d3b] dark:text-cyan-400" />
+                <h3 className="text-base font-extrabold t-text-primary">Add New Item & Size Variant</h3>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-200">
+              <button onClick={() => setShowAddModal(false)} className="t-text-muted hover:t-text-primary">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -370,11 +370,11 @@ export default function MachineConfigsTab() {
               
               {/* Material Type */}
               <div>
-                <label className="block text-slate-400 mb-1">Material Category</label>
+                <label className="block t-text-muted mb-1">Material Category</label>
                 <select
                   value={newMaterial}
                   onChange={e => setNewMaterial(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border t-border rounded-xl text-slate-200"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                 >
                   <option value="PLASTIC">🥤 PLASTIC (PET Bottles)</option>
                   <option value="CAN">🥫 CAN (Aluminium / Metal)</option>
@@ -390,7 +390,7 @@ export default function MachineConfigsTab() {
                     placeholder="Enter Custom Material (e.g. EWASTE, TIN)"
                     value={customMaterial}
                     onChange={e => setCustomMaterial(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-cyan-300 mt-2"
+                    className="w-full px-3 py-2 t-bg-sec border border-emerald-500/40 rounded-xl text-[#0b5d3b] dark:text-emerald-400 mt-2 focus:outline-none focus:border-[#0b5d3b]"
                     required
                   />
                 )}
@@ -398,11 +398,11 @@ export default function MachineConfigsTab() {
 
               {/* Bottle Size / Variant */}
               <div>
-                <label className="block text-slate-400 mb-1">Size / Variant Name</label>
+                <label className="block t-text-muted mb-1">Size / Variant Name</label>
                 <select
                   value={newSize}
                   onChange={e => setNewSize(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border t-border rounded-xl text-slate-200"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                 >
                   <option value="SMALL">SMALL (Standard Small)</option>
                   <option value="MEDIUM">MEDIUM (Standard Medium)</option>
@@ -415,7 +415,7 @@ export default function MachineConfigsTab() {
                     placeholder="Enter Custom Size (e.g. 500ML, 1.5L, JUMBO)"
                     value={customSize}
                     onChange={e => setCustomSize(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-cyan-300 mt-2"
+                    className="w-full px-3 py-2 t-bg-sec border border-emerald-500/40 rounded-xl text-[#0b5d3b] dark:text-emerald-400 mt-2 focus:outline-none focus:border-[#0b5d3b]"
                     required
                   />
                 )}
@@ -424,21 +424,21 @@ export default function MachineConfigsTab() {
               {/* Points & Unit */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Points Awarded</label>
+                  <label className="block t-text-muted mb-1">Points Awarded</label>
                   <input
                     type="number"
                     value={newPoints}
                     onChange={e => setNewPoints(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border border-emerald-500/40 rounded-xl text-emerald-400 font-mono"
+                    className="w-full px-3 py-2 t-bg-sec border border-emerald-500/40 rounded-xl text-[#0b5d3b] dark:text-emerald-400 font-mono focus:outline-none focus:border-[#0b5d3b]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Calculation Unit</label>
+                  <label className="block t-text-muted mb-1">Calculation Unit</label>
                   <select
                     value={newUnit}
                     onChange={e => setNewUnit(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-950 border t-border rounded-xl text-slate-200"
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   >
                     <option value="per_piece">Per Piece</option>
                     <option value="per_gram">Per Gram</option>

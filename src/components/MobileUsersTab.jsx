@@ -474,7 +474,7 @@ export default function MobileUsersTab() {
                   <span>Loading user sessions...</span>
                 </div>
               ) : userHistory.length === 0 ? (
-                <div className="py-8 text-center text-xs t-text-muted bg-slate-900/30 rounded-2xl border t-border">
+                <div className="py-8 text-center text-xs t-text-muted t-bg-sec rounded-2xl border t-border">
                   No recycling transactions recorded for this citizen yet.
                 </div>
               ) : (

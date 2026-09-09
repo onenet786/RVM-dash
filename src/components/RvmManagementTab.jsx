@@ -240,7 +240,7 @@ export default function RvmManagementTab({ currentUser }) {
 
               <button
                 onClick={() => handleOpenEditModal(m)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/80 hover:bg-cyan-500/20 text-cyan-400 border border-slate-700/80 rounded-xl text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-[#e6f3ec] text-[#0b5d3b] dark:text-cyan-400 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold transition-all"
               >
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Edit RVM</span>
@@ -248,26 +248,26 @@ export default function RvmManagementTab({ currentUser }) {
             </div>
 
             {/* Connected IP Addresses: Public IP & Local IP */}
-            <div className="grid grid-cols-2 gap-2 text-[11px] p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/90 shadow-inner">
+            <div className="grid grid-cols-2 gap-2 text-xs p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/90 shadow-sm">
               <div className="flex items-center gap-2 overflow-hidden">
-                <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex-shrink-0">
+                <div className="p-1.5 rounded-lg bg-sky-100 dark:bg-cyan-500/10 text-sky-800 dark:text-cyan-400 border border-sky-200 dark:border-cyan-500/20 flex-shrink-0">
                   <Globe className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Public IP</span>
-                  <span className="font-mono font-bold text-cyan-300 truncate block text-[11px]" title={m.publicIp || 'Not Detected'}>
+                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Public IP</span>
+                  <span className="font-mono font-bold text-sky-900 dark:text-cyan-300 truncate block text-xs" title={m.publicIp || 'Not Detected'}>
                     {m.publicIp && m.publicIp !== 'N/A' ? m.publicIp : '127.0.0.1'}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 overflow-hidden border-l border-slate-800/80 pl-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
+              <div className="flex items-center gap-2 overflow-hidden border-l border-slate-200 dark:border-slate-800/80 pl-2">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-[#0b5d3b] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 flex-shrink-0">
                   <Wifi className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[9px] font-extrabold text-slate-400 block uppercase tracking-wider">Local IP (LAN)</span>
-                  <span className="font-mono font-bold text-emerald-300 truncate block text-[11px]" title={m.localIp || 'Not Detected'}>
+                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Local IP (LAN)</span>
+                  <span className="font-mono font-bold text-[#0b5d3b] dark:text-emerald-300 truncate block text-xs" title={m.localIp || 'Not Detected'}>
                     {m.localIp && m.localIp !== 'N/A' ? m.localIp : '127.0.0.1'}
                   </span>
                 </div>
