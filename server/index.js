@@ -2016,6 +2016,30 @@ app.post('/api/admin/test-postgres', async (req, res) => {
   }
 });
 
+function safeParseDate(val, fallbackDate = new Date()) {
+  if (!val) return fallbackDate;
+  if (val instanceof Date) return isNaN(val.getTime()) ? fallbackDate : val;
+  const str = String(val).trim();
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  const match = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:T(.*))?$/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    let month = parseInt(match[2], 10);
+    let day = parseInt(match[3], 10);
+    const timePart = match[4] || '00:00:00Z';
+    if (month > 12 && day <= 12 && day > 0) {
+      const swapped = new Date(`${year}-${String(day).padStart(2, '0')}-${String(month).padStart(2, '0')}T${timePart}`);
+      if (!isNaN(swapped.getTime())) return swapped;
+    }
+    if (month > 12) month = 12;
+    if (day > 28) day = 28;
+    const clamped = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${timePart}`);
+    if (!isNaN(clamped.getTime())) return clamped;
+  }
+  return fallbackDate;
+}
+
 // Sync Data FROM Active MongoDB TO PostgreSQL Database
 app.post('/api/admin/sync-postgres', async (req, res) => {
   const { host, port, user, password, database, connectionString, mongoSourcePreset = 'rvmapp' } = req.body || {};
@@ -2154,7 +2178,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           const co2Kg = parseFloat(doc.co2_avoided_kg || doc.co2AvoidedKg || (plasticCount * 0.082 + aluminiumCount * 0.095));
           const itemVariant = doc.item_variant || doc.itemVariant || (plasticCount > 0 ? `${plasticCount}x PLASTIC` : aluminiumCount > 0 ? `${aluminiumCount}x CAN` : 'RECYCLABLE ITEM');
           const bottleSize = doc.bottle_size || doc.bottleSize || 'MEDIUM';
-          const createdAt = doc.recycledAt || doc.created_at || doc.timestamp || new Date();
+          const createdAt = safeParseDate(doc.recycledAt || doc.created_at || doc.timestamp, new Date());
 
           // Ensure foreign key machine exists
           await client.query(`
@@ -2199,7 +2223,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           const nic = doc.nic || null;
           const gender = doc.gender || 'male';
           const pointsBalance = parseInt(doc.pointsBalance || doc.totalPoints || doc.points || 0);
-          const createdAt = doc.createdAt || new Date();
+          const createdAt = safeParseDate(doc.createdAt || doc.created_at, new Date());
 
           // Check if user already exists in users by user_id, username, or email to PREVENT OVERWRITING
           const uExists = await client.query(`
@@ -2228,39 +2252,55 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
       }
     }
 
-    // 4. In-Database Transform: Also migrate any existing recyclingsessions / userprofile already in Postgres
+    // 4. In-Database Transform: Also safely migrate any unmigrated sessions/users already in Postgres JSONB
     try {
+      // Auto-register machines
       await client.query(`
-        -- Auto-register machines from recyclingsessions
         INSERT INTO machines (machine_id, name, status)
         SELECT DISTINCT COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), 'active'
         FROM recyclingsessions
         WHERE COALESCE(data->>'machineId', data->>'machine_id') IS NOT NULL
         ON CONFLICT (machine_id) DO NOTHING;
+      `);
 
-        -- Migrate missing sessions from recyclingsessions into recycling_sessions (DO NOT OVERWRITE)
-        INSERT INTO recycling_sessions (
-          session_id, machine_id, user_id,
-          plastic_count, aluminium_count, paper_cardboard_count, glass_count,
-          total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
-        )
-        SELECT 
-          id,
-          COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'),
-          COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', 'anonymous'),
-          COALESCE((data->>'plastic_count')::int, (data->>'bottles')::int, 0),
-          COALESCE((data->>'aluminium_count')::int, (data->>'cups')::int, 0),
-          COALESCE((data->>'paper_cardboard_count')::int, 0),
-          COALESCE((data->>'glass_count')::int, 0),
-          COALESCE((data->>'total_weight_kg')::numeric, 0),
-          COALESCE((data->>'co2_avoided_kg')::numeric, 0),
-          COALESCE((data->>'points_earned')::int, (data->>'points')::int, 0),
-          'completed',
-          COALESCE((data->>'recycledAt')::timestamptz, (data->>'created_at')::timestamptz, NOW())
-        FROM recyclingsessions
-        ON CONFLICT (session_id) DO NOTHING;
+      // Safely process missing sessions from JSONB with safeParseDate
+      const unmigratedSessions = await client.query(`
+        SELECT id, data FROM recyclingsessions 
+        WHERE id NOT IN (SELECT session_id FROM recycling_sessions)
+        LIMIT 5000;
+      `).catch(() => ({ rows: [] }));
 
-        -- Migrate missing users from userprofile into users (DO NOT OVERWRITE)
+      for (const row of unmigratedSessions.rows) {
+        const sData = typeof row.data === 'string' ? JSON.parse(row.data) : (row.data || {});
+        const sId = row.id;
+        const mId = (sData.machineId || sData.machine_id || 'UNKNOWN').trim();
+        const uId = (sData.phoneNumber || sData.userId || sData.user_id || 'anonymous').trim();
+        const pCount = parseInt(sData.plastic_count || sData.plasticCount || sData.bottles || 0);
+        const aCount = parseInt(sData.aluminium_count || sData.aluminiumCount || sData.cups || 0);
+        const paperCount = parseInt(sData.paper_cardboard_count || sData.paperCardboardCount || 0);
+        const glassCount = parseInt(sData.glass_count || sData.glassCount || 0);
+        const pts = parseInt(sData.points_earned || sData.pointsEarned || sData.points || 0);
+        const wt = parseFloat(sData.total_weight_kg || sData.totalWeightKg || (pCount * 0.025 + aCount * 0.015));
+        const co2 = parseFloat(sData.co2_avoided_kg || sData.co2AvoidedKg || (pCount * 0.082 + aCount * 0.095));
+        const variant = sData.item_variant || sData.itemVariant || (pCount > 0 ? `${pCount}x PLASTIC` : 'RECYCLABLE ITEM');
+        const size = sData.bottle_size || sData.bottleSize || 'MEDIUM';
+        const sCreated = safeParseDate(sData.recycledAt || sData.created_at || sData.timestamp, new Date());
+
+        await client.query(`
+          INSERT INTO machines (machine_id, name, status) VALUES ($1, $1, 'active') ON CONFLICT (machine_id) DO NOTHING;
+        `, [mId]);
+
+        await client.query(`
+          INSERT INTO recycling_sessions (
+            session_id, machine_id, user_id, plastic_count, aluminium_count, paper_cardboard_count, glass_count,
+            item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'completed', $13)
+          ON CONFLICT (session_id) DO NOTHING;
+        `, [sId, mId, uId, pCount, aCount, paperCount, glassCount, variant, size, wt, co2, pts, sCreated]);
+      }
+
+      // Safely migrate missing users from userprofile into users
+      await client.query(`
         INSERT INTO users (
           user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, role_id, status, created_at
         )
@@ -2277,7 +2317,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           COALESCE((data->>'pointsBalance')::int, (data->>'totalPoints')::int, 0),
           'citizen',
           'active',
-          COALESCE((data->>'createdAt')::timestamptz, NOW())
+          NOW()
         FROM userprofile
         WHERE NOT EXISTS (
           SELECT 1 FROM users 
