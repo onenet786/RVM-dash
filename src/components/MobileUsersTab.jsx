@@ -187,10 +187,15 @@ export default function MobileUsersTab() {
           </div>
           <div className="mt-3">
             <div className="text-2xl lg:text-3xl font-extrabold text-cyan-400 mono">
-              {(stats.totalBottles + stats.totalCups).toLocaleString()}
+              {(stats.totalBottles + stats.totalCups + (stats.totalTetra || 0) + (stats.totalPaper || 0) + (stats.totalGlass || 0)).toLocaleString()}
             </div>
-            <div className="text-[11px] t-text-muted mt-0.5">
-              {stats.totalBottles} bottles • {stats.totalCups} cans
+            <div className="text-[11px] t-text-muted mt-0.5 flex flex-wrap items-center gap-1">
+              <span>{stats.totalBottles} 🍾</span>
+              <span>•</span>
+              <span>{stats.totalCups} 🥫 (UBC)</span>
+              {stats.totalTetra > 0 && <span>• {stats.totalTetra} 🧃 Tetra</span>}
+              {stats.totalPaper > 0 && <span>• {stats.totalPaper} 📄 Paper</span>}
+              {stats.totalGlass > 0 && <span>• {stats.totalGlass} 🍶 Glass</span>}
             </div>
           </div>
         </div>
@@ -368,10 +373,30 @@ export default function MobileUsersTab() {
                     <td className="py-3.5 px-4 text-center">
                       <div className="space-y-0.5">
                         <div className="font-bold mono text-cyan-400">
-                          {user.bottles + user.cups} total
+                          {user.bottles + user.cups + (user.tetra || 0) + (user.paper || 0) + (user.glass || 0)} total
                         </div>
-                        <div className="text-[10px] t-text-muted">
-                          {user.bottles} 🍾 • {user.cups} 🥫
+                        <div className="text-[10px] t-text-muted flex items-center justify-center gap-1.5 flex-wrap">
+                          <span title="Plastic Bottles">{user.bottles} 🍾</span>
+                          <span>•</span>
+                          <span title="UBC / Aluminium Cans">{user.cups} 🥫 (UBC)</span>
+                          {(user.tetra > 0 || user.tetraGrams > 0) && (
+                            <>
+                              <span>•</span>
+                              <span className="text-orange-400 font-semibold" title="Tetra Pak">{user.tetra || Math.round((user.tetraGrams || 0)/25)} 🧃</span>
+                            </>
+                          )}
+                          {(user.paper > 0 || user.paperGrams > 0) && (
+                            <>
+                              <span>•</span>
+                              <span className="text-indigo-400 font-semibold" title="Paper / Cardboard">{user.paper || Math.round((user.paperGrams || 0)/50)} 📄</span>
+                            </>
+                          )}
+                          {user.glass > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-teal-400 font-semibold" title="Glass">{user.glass} 🍶</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -408,7 +433,7 @@ export default function MobileUsersTab() {
       {/* User History Breakdown Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-panel w-full max-w-2xl rounded-3xl p-6 border t-border space-y-6 max-h-[85vh] overflow-y-auto">
+          <div className="glass-panel w-full max-w-4xl rounded-3xl p-6 border t-border space-y-6 max-h-[85vh] overflow-y-auto">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b t-border">
@@ -439,27 +464,63 @@ export default function MobileUsersTab() {
               </button>
             </div>
 
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-2xl t-bg-sec border t-border text-center">
-                <div className="text-xs t-text-muted font-semibold">Points Balance</div>
-                <div className="text-xl font-extrabold text-amber-400 mono mt-1">
-                  {selectedUser.points} pts
+            {/* Quick Metrics with all 5 Materials + Points */}
+            {(() => {
+              const histBottles = userHistory.reduce((acc, s) => acc + parseInt(s.plastic_count || s.bottles || s.plasticCount || 0), 0) || selectedUser.bottles || 0;
+              const histCans = userHistory.reduce((acc, s) => acc + parseInt(s.aluminium_count || s.cups || s.cans || s.aluminiumCount || 0), 0) || selectedUser.cups || 0;
+              const histTetra = userHistory.reduce((acc, s) => {
+                const cnt = parseInt(s.tetrapak_count || s.tetra_count || s.tetraCount || 0);
+                const g = parseInt(s.tetrapak_weight_grams || s.tetrapakWeightGrams || 0);
+                return acc + (cnt > 0 ? cnt : (g > 0 ? Math.max(1, Math.round(g / 25)) : (s.item_variant && s.item_variant.toLowerCase().includes('tetra') ? 1 : 0)));
+              }, 0) || selectedUser.tetra || 0;
+              const histPaper = userHistory.reduce((acc, s) => {
+                const cnt = parseInt(s.paper_cardboard_count || s.paper_count || s.paperCount || 0);
+                const g = parseInt(s.paper_weight_grams || s.paperWeightGrams || 0);
+                return acc + (cnt > 0 ? cnt : (g > 0 ? Math.max(1, Math.round(g / 50)) : (s.item_variant && s.item_variant.toLowerCase().includes('paper') ? 1 : 0)));
+              }, 0) || selectedUser.paper || 0;
+              const histGlass = userHistory.reduce((acc, s) => acc + parseInt(s.glass_count || s.glassCount || s.glass || 0), 0) || selectedUser.glass || 0;
+
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">Points Balance</div>
+                    <div className="text-lg font-extrabold text-amber-400 mono mt-1">
+                      {selectedUser.points.toLocaleString()} pts
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">Bottles 🍾</div>
+                    <div className="text-lg font-extrabold text-emerald-400 mono mt-1">
+                      {histBottles.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">UBC / Cans 🥫</div>
+                    <div className="text-lg font-extrabold text-cyan-400 mono mt-1">
+                      {histCans.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">Tetra Pak 🧃</div>
+                    <div className="text-lg font-extrabold text-orange-400 mono mt-1">
+                      {histTetra.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">Paper / Box 📄</div>
+                    <div className="text-lg font-extrabold text-indigo-400 mono mt-1">
+                      {histPaper.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
+                    <div className="text-[11px] t-text-muted font-semibold">Glass 🍶</div>
+                    <div className="text-lg font-extrabold text-teal-400 mono mt-1">
+                      {histGlass.toLocaleString()}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="p-3.5 rounded-2xl t-bg-sec border t-border text-center">
-                <div className="text-xs t-text-muted font-semibold">Total Bottles</div>
-                <div className="text-xl font-extrabold text-emerald-400 mono mt-1">
-                  {selectedUser.bottles}
-                </div>
-              </div>
-              <div className="p-3.5 rounded-2xl t-bg-sec border t-border text-center">
-                <div className="text-xs t-text-muted font-semibold">Total Cans</div>
-                <div className="text-xl font-extrabold text-cyan-400 mono mt-1">
-                  {selectedUser.cups}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Recycling History Table */}
             <div className="space-y-3">
@@ -484,9 +545,12 @@ export default function MobileUsersTab() {
                       <tr className="border-b t-border t-bg-sec t-text-muted uppercase tracking-wider text-[10px] font-bold">
                         <th className="py-2.5 px-3">Session ID</th>
                         <th className="py-2.5 px-3">Machine</th>
-                        <th className="py-2.5 px-3 text-center">Bottles</th>
-                        <th className="py-2.5 px-3 text-center">Cans</th>
-                        <th className="py-2.5 px-3 text-right">Points</th>
+                        <th className="py-2.5 px-3 text-center">Bottles 🍾</th>
+                        <th className="py-2.5 px-3 text-center">UBC / Cans 🥫</th>
+                        <th className="py-2.5 px-3 text-center">Tetra Pak 🧃</th>
+                        <th className="py-2.5 px-3 text-center">Paper 📄</th>
+                        <th className="py-2.5 px-3 text-center">Glass 🍶</th>
+                        <th className="py-2.5 px-3 text-right">Points ⭐</th>
                         <th className="py-2.5 px-3 text-right">Date & Time</th>
                       </tr>
                     </thead>
@@ -494,16 +558,28 @@ export default function MobileUsersTab() {
                       {userHistory.map((s, idx) => (
                         <tr key={s.session_id || idx} className="hover:t-bg-hover">
                           <td className="py-2.5 px-3 mono text-[11px] t-text-primary">
-                            {(s.session_id || `SES-${idx}`).substring(0, 10)}...
+                            <div>{(s.session_id || `SES-${idx}`).substring(0, 10)}...</div>
+                            {s.item_variant && (
+                              <div className="text-[9px] t-text-muted font-normal truncate max-w-[120px]">{s.item_variant}</div>
+                            )}
                           </td>
-                          <td className="py-2.5 px-3 mono text-[11px] text-cyan-400">
+                          <td className="py-2.5 px-3 mono text-[11px] text-cyan-400 font-semibold">
                             {s.machine_id || 'RVM-01'}
                           </td>
                           <td className="py-2.5 px-3 text-center mono font-bold text-emerald-400">
-                            {s.plastic_count || s.bottles || 0}
+                            {s.plastic_count || s.bottles || s.plasticCount || 0}
                           </td>
-                          <td className="py-2.5 px-3 text-center mono font-bold text-amber-400">
-                            {s.aluminium_count || s.cups || 0}
+                          <td className="py-2.5 px-3 text-center mono font-bold text-cyan-400">
+                            {s.aluminium_count || s.cups || s.cans || s.aluminiumCount || 0}
+                          </td>
+                          <td className="py-2.5 px-3 text-center mono font-bold text-orange-400">
+                            {s.tetrapak_count || s.tetra_count || s.tetraCount || (s.tetrapak_weight_grams > 0 ? `${s.tetrapak_weight_grams}g` : (s.item_variant && s.item_variant.toLowerCase().includes('tetra') ? '1' : 0))}
+                          </td>
+                          <td className="py-2.5 px-3 text-center mono font-bold text-indigo-400">
+                            {s.paper_cardboard_count || s.paper_count || s.paperCount || (s.paper_weight_grams > 0 ? `${s.paper_weight_grams}g` : (s.item_variant && s.item_variant.toLowerCase().includes('paper') ? '1' : 0))}
+                          </td>
+                          <td className="py-2.5 px-3 text-center mono font-bold text-teal-400">
+                            {s.glass_count || s.glassCount || s.glass || 0}
                           </td>
                           <td className="py-2.5 px-3 text-right mono font-extrabold text-amber-400">
                             +{s.points_earned || s.points || 0}

@@ -4015,6 +4015,9 @@ async function handleMobileGetRecycle(req, res) {
 
       const sRes = await pool.query(`
         SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
+               paper_weight_grams, tetrapak_weight_grams,
+               plastic_small_count, plastic_medium_count, plastic_large_count,
+               can_small_count, can_medium_count, can_large_count,
                item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
         FROM recycling_sessions
         WHERE user_id = ANY($1::text[])
@@ -4026,11 +4029,30 @@ async function handleMobileGetRecycle(req, res) {
         let pts = parseInt(s.points_earned || 0);
         const bottles = parseInt(s.plastic_count || 0);
         const cans = parseInt(s.aluminium_count || 0);
-        if (pts <= 0 && (bottles > 0 || cans > 0)) {
-          pts = (bottles * 5) + (cans * 10);
+        const glass = parseInt(s.glass_count || 0);
+        const paperGrams = parseInt(s.paper_weight_grams || 0);
+        let paper = parseInt(s.paper_cardboard_count || 0);
+        if (paper === 0 && paperGrams > 0) paper = Math.max(1, Math.round(paperGrams / 50));
+        if (paper === 0 && s.item_variant && s.item_variant.toLowerCase().includes('paper')) paper = 1;
+
+        const tetraGrams = parseInt(s.tetrapak_weight_grams || 0);
+        let tetra = tetraGrams > 0 ? Math.max(1, Math.round(tetraGrams / 25)) : 0;
+        if (tetra === 0 && s.item_variant && s.item_variant.toLowerCase().includes('tetra')) tetra = 1;
+
+        if (pts <= 0 && (bottles > 0 || cans > 0 || paper > 0 || tetra > 0 || glass > 0)) {
+          pts = (bottles * 5) + (cans * 10) + (tetra * 10) + (paper * 15) + (glass * 10);
         }
         return {
           ...s,
+          plastic_count: bottles,
+          aluminium_count: cans,
+          glass_count: glass,
+          paper_cardboard_count: paper,
+          paper_count: paper,
+          tetrapak_count: tetra,
+          tetra_count: tetra,
+          paper_weight_grams: paperGrams,
+          tetrapak_weight_grams: tetraGrams,
           points_earned: pts
         };
       });
@@ -4049,11 +4071,22 @@ async function handleMobileGetRecycle(req, res) {
           if (jsonRes.rows.length > 0) {
             history = jsonRes.rows.map(r => {
               const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-              const b = parseInt(d.bottles || d.plasticCount || 0);
-              const c = parseInt(d.cups || d.aluminiumCount || 0);
-              let pts = parseInt(d.points || d.pointsEarned || 0);
-              if (pts <= 0 && (b > 0 || c > 0)) {
-                pts = (b * 5) + (c * 10);
+              const b = parseInt(d.bottles || d.plasticCount || d.plastic_count || 0);
+              const c = parseInt(d.cups || d.aluminiumCount || d.aluminium_count || d.cans || 0);
+              const g = parseInt(d.glassCount || d.glass_count || d.glass || 0);
+              let p = parseInt(d.paperCount || d.paper_count || d.paperCardboardCount || d.paper_cardboard_count || 0);
+              const pWeight = parseInt(d.paperWeightGrams || d.paper_weight_grams || 0);
+              if (p === 0 && pWeight > 0) p = Math.max(1, Math.round(pWeight / 50));
+              if (p === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('paper')) p = 1;
+
+              const tWeight = parseInt(d.tetrapakWeightGrams || d.tetrapak_weight_grams || 0);
+              let tetra = parseInt(d.tetraCount || d.tetra_count || d.tetrapakCount || 0);
+              if (tetra === 0 && tWeight > 0) tetra = Math.max(1, Math.round(tWeight / 25));
+              if (tetra === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('tetra')) tetra = 1;
+
+              let pts = parseInt(d.points || d.pointsEarned || d.points_earned || 0);
+              if (pts <= 0 && (b > 0 || c > 0 || p > 0 || tetra > 0 || g > 0)) {
+                pts = (b * 5) + (c * 10) + (tetra * 10) + (p * 15) + (g * 10);
               }
               return {
                 session_id: r.id || d._id,
@@ -4061,8 +4094,13 @@ async function handleMobileGetRecycle(req, res) {
                 user_id: d.phoneNumber || d.userId || d.user_id || userId,
                 plastic_count: b,
                 aluminium_count: c,
-                glass_count: parseInt(d.glassCount || 0),
-                paper_cardboard_count: parseInt(d.paperCount || 0),
+                glass_count: g,
+                paper_cardboard_count: p,
+                paper_count: p,
+                tetrapak_count: tetra,
+                tetra_count: tetra,
+                paper_weight_grams: pWeight,
+                tetrapak_weight_grams: tWeight,
                 item_variant: d.itemVariant || d.variant || 'RECYCLABLE ITEM',
                 total_weight_kg: parseFloat(d.totalWeightKg || d.weight || 0),
                 points_earned: pts,
@@ -4277,6 +4315,10 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           user_id, 
           COALESCE(SUM(plastic_count), 0) AS bottles,
           COALESCE(SUM(aluminium_count), 0) AS cups,
+          COALESCE(SUM(glass_count), 0) AS glass,
+          COALESCE(SUM(paper_cardboard_count), 0) AS paper,
+          COALESCE(SUM(paper_weight_grams), 0) AS paper_grams,
+          COALESCE(SUM(tetrapak_weight_grams), 0) AS tetra_grams,
           COALESCE(SUM(points_earned), 0) AS points,
           COUNT(session_id) AS sessions
         FROM recycling_sessions
@@ -4289,7 +4331,11 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
         SELECT 
           COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') AS user_key,
           COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS bottles,
-          COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS cups,
+          COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, (data->>'cans')::int, 0)), 0) AS cups,
+          COALESCE(SUM(COALESCE((data->>'glassCount')::int, (data->>'glass')::int, 0)), 0) AS glass,
+          COALESCE(SUM(COALESCE((data->>'paperCount')::int, (data->>'paperCardboardCount')::int, (data->>'paper')::int, 0)), 0) AS paper,
+          COALESCE(SUM(COALESCE((data->>'paperWeightGrams')::int, 0)), 0) AS paper_grams,
+          COALESCE(SUM(COALESCE((data->>'tetrapakWeightGrams')::int, (data->>'tetraCount')::int, (data->>'tetra')::int, 0)), 0) AS tetra_grams,
           COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, (data->>'points_earned')::int, 0)), 0) AS points,
           COUNT(id) AS sessions
         FROM recyclingsessions
@@ -4301,7 +4347,7 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
 
       // Map sessions to normalized phone/id keys (handling leading zeros: 03214424625 vs 3214424625)
       const userSessionMap = {};
-      const addStats = (key, b, c, pts, s) => {
+      const addStats = (key, b, c, g, p, pGrams, tGrams, pts, s) => {
         if (!key) return;
         let clean = String(key).trim().toLowerCase();
         // Redirect any legacy fallback 3214424625 sessions to 08884424625 so it never steals stats from 03214424625
@@ -4309,16 +4355,29 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
         const norm = clean.replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
         if (!norm) return;
         if (!userSessionMap[norm]) {
-          userSessionMap[norm] = { bottles: 0, cups: 0, points: 0, sessions: 0 };
+          userSessionMap[norm] = { bottles: 0, cups: 0, glass: 0, paper: 0, paperGrams: 0, tetra: 0, tetraGrams: 0, points: 0, sessions: 0 };
         }
         userSessionMap[norm].bottles += parseInt(b || 0);
         userSessionMap[norm].cups += parseInt(c || 0);
+        userSessionMap[norm].glass += parseInt(g || 0);
+
+        let parsedPaper = parseInt(p || 0);
+        const paperG = parseInt(pGrams || 0);
+        if (parsedPaper === 0 && paperG > 0) parsedPaper = Math.max(1, Math.round(paperG / 50));
+        userSessionMap[norm].paper += parsedPaper;
+        userSessionMap[norm].paperGrams += paperG;
+
+        const tetraG = parseInt(tGrams || 0);
+        let parsedTetra = (tetraG > 0 ? Math.max(1, Math.round(tetraG / 25)) : 0);
+        userSessionMap[norm].tetra += parsedTetra;
+        userSessionMap[norm].tetraGrams += tetraG;
+
         userSessionMap[norm].points += parseInt(pts || 0);
         userSessionMap[norm].sessions += parseInt(s || 0);
       };
 
-      relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.points, r.sessions));
-      jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.points, r.sessions));
+      relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.glass, r.paper, r.paper_grams, r.tetra_grams, r.points, r.sessions));
+      jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.glass, r.paper, r.paper_grams, r.tetra_grams, r.points, r.sessions));
 
       usersList = uRes.rows.map(u => {
         const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
@@ -4333,6 +4392,11 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
 
         let userBottles = 0;
         let userCups = 0;
+        let userGlass = 0;
+        let userPaper = 0;
+        let userPaperGrams = 0;
+        let userTetra = 0;
+        let userTetraGrams = 0;
         let userSessionPoints = 0;
         let userSessions = 0;
 
@@ -4341,6 +4405,11 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           if (norm && userSessionMap[norm]) {
             userBottles += userSessionMap[norm].bottles;
             userCups += userSessionMap[norm].cups;
+            userGlass += userSessionMap[norm].glass;
+            userPaper += userSessionMap[norm].paper;
+            userPaperGrams += userSessionMap[norm].paperGrams;
+            userTetra += userSessionMap[norm].tetra;
+            userTetraGrams += userSessionMap[norm].tetraGrams;
             userSessionPoints += userSessionMap[norm].points;
             userSessions += userSessionMap[norm].sessions;
             delete userSessionMap[norm];
@@ -4366,7 +4435,12 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
           gender: u.gender || 'male',
           points: effectivePoints,
           bottles: userBottles,
-          cups: userCups,
+          cups: userCups, // UBC / Aluminium Cans
+          glass: userGlass,
+          paper: userPaper,
+          paperGrams: userPaperGrams,
+          tetra: userTetra,
+          tetraGrams: userTetraGrams,
           sessions: userSessions,
           isOnline,
           lastLogin: u.last_login || null,
@@ -4380,6 +4454,9 @@ app.get('/api/analytics/mobile-users', async (req, res) => {
       stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
       stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
       stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
+      stats.totalGlass = usersList.reduce((acc, u) => acc + (u.glass || 0), 0);
+      stats.totalPaper = usersList.reduce((acc, u) => acc + (u.paper || 0), 0);
+      stats.totalTetra = usersList.reduce((acc, u) => acc + (u.tetra || 0), 0);
     }
 
     res.json({
