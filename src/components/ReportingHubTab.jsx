@@ -860,11 +860,21 @@ export default function ReportingHubTab() {
       padding-bottom: 12px;
       margin-bottom: 16px;
     }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo-img {
+      height: 48px;
+      width: auto;
+      object-fit: contain;
+    }
     .brand-title {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 900;
       color: #073b28;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
@@ -1016,10 +1026,13 @@ export default function ReportingHubTab() {
 </head>
 <body>
   <div class="header">
-    <div>
-      <div class="brand-title">♻ EcoDrop™ Systems • Regulatory & Operations Audit</div>
-      <div class="brand-sub">Reverse Vending Machine & PicoDrop Telemetry Network</div>
-      <div class="report-title-main">${activeObj.title}</div>
+    <div class="header-left">
+      <img src="/isp_logo.png" class="brand-logo-img" alt="ISP Environmental Logo" />
+      <div>
+        <div class="brand-title">ISP Environmental Solutions Pvt. Ltd.</div>
+        <div class="brand-sub">Regulatory & Operations Audit • Smart RVM Telemetry Network</div>
+        <div class="report-title-main">${activeObj.title}</div>
+      </div>
     </div>
     <div class="meta-box">
       <div class="badge-confidential">Official Compliance Record</div>

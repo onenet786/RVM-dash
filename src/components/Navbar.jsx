@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu, Building2 } from 'lucide-react';
+import ispLogo from '../assets/isp_logo.png';
 
 export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout, isMobileOpen, setIsMobileOpen }) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
@@ -46,13 +47,13 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
             <Menu className="w-5 h-5 text-emerald-400" />
           </button>
 
-          <div className="p-2 nav-logo-badge bg-gradient-to-tr from-emerald-600 to-cyan-500 rounded-xl shadow-lg shadow-emerald-950/40 shrink-0 hidden sm:flex">
-            <Database className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
+            <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">RVM MASTER DASHBOARD</h1>
+              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">ISP RVM DASHBOARD</h1>
               <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
                 PRO DEV
               </span>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, Eye, EyeOff, LogIn, Cpu, AlertTriangle, Key } from 'lucide-react';
+import ispLogo from '../assets/isp_logo.png';
 
 export default function LoginModal({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -45,14 +46,17 @@ export default function LoginModal({ onLoginSuccess }) {
         <div className="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        {/* Header Branding */}
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center shadow-inner">
-            <Cpu className="w-7 h-7" />
+        {/* Header Branding with Official ISP Logo */}
+        <div className="text-center space-y-3">
+          <div className="w-20 h-20 rounded-2xl bg-white p-2.5 mx-auto flex items-center justify-center shadow-xl shadow-emerald-950/25 border border-emerald-500/40">
+            <img src={ispLogo} alt="ISP Environmental Solutions" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h2 className="text-2xl font-extrabold t-text-primary tracking-wide">RVM Master Portal</h2>
-            <p className="text-xs t-text-secondary mt-1">Sign in with your system role credentials to access the fleet dashboard.</p>
+            <h2 className="text-2xl font-black t-text-primary tracking-tight">ISP Environmental</h2>
+            <div className="text-xs font-extrabold text-[#0b5d3b] dark:text-emerald-400 uppercase tracking-widest mt-0.5">
+              Solutions Pvt. Ltd. — Portal
+            </div>
+            <p className="text-xs t-text-secondary mt-1.5">Sign in with your role credentials to access the fleet dashboard.</p>
           </div>
         </div>
 

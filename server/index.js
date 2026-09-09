@@ -72,6 +72,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Serve uploaded advertisement videos statically
 app.use('/uploads/advertisements', express.static(ADS_UPLOAD_DIR));
 
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+if (fs.existsSync(PUBLIC_DIR)) {
+  app.use(express.static(PUBLIC_DIR));
+}
+
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR));

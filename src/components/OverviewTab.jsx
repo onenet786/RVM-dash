@@ -6,6 +6,7 @@ import {
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
 } from 'recharts';
+import ispLogo from '../assets/isp_logo.png';
 
 export default function OverviewTab({ currentUser }) {
   const [overview, setOverview] = useState(null);
@@ -110,19 +111,24 @@ export default function OverviewTab({ currentUser }) {
       <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
-                ISP Environmental Solutions Pvt. Ltd. — Waste Management Portal
-              </span>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 p-1.5 bg-white rounded-2xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
+              <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
-              Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Rizwan Akhtar'}!
-            </h1>
-            <p className="text-sm t-text-secondary mt-1">
-              Real-time monitoring of recycling sessions, material throughput, user participation, and machine status.
-            </p>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
+                  ISP Environmental Solutions Pvt. Ltd. — Waste Management Portal
+                </span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Rizwan Akhtar'}!
+              </h1>
+              <p className="text-sm t-text-secondary mt-1">
+                Real-time monitoring of recycling sessions, material throughput, user participation, and machine status.
+              </p>
+            </div>
           </div>
 
           <button

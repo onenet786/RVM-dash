@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
   MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText
 } from 'lucide-react';
+import ispLogo from '../assets/isp_logo.png';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
   const isMasterDev = currentUser?.username === 'onenet';
@@ -100,8 +101,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         
         {/* Brand Header Banner in Sidebar (Matches ISP Enterprise Portal Design) */}
         <div className="px-3 pb-3 mb-1 border-b t-border flex items-center gap-3 sidebar-brand-container">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 p-2 flex items-center justify-center shadow-lg shadow-amber-500/25 shrink-0">
-            <Leaf className="w-5 h-5 text-slate-950 stroke-[2.5]" />
+          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-black/20 border border-white/20 shrink-0 overflow-hidden">
+            <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-black tracking-tight t-text-primary sidebar-brand-title leading-tight truncate">
