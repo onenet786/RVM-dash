@@ -87,6 +87,33 @@ html[data-theme="sleek-light"], body[data-theme="sleek-light"] {
   color-scheme: light;
 }
 
+/* ============================================================ */
+/* THEME 5: ISP ECO VANGUARD (ISP ENVIRONMENTAL SOLUTIONS)      */
+/* ============================================================ */
+html[data-theme="isp-eco"], body[data-theme="isp-eco"] {
+  --brand-primary: #0b5d3b;
+  --brand-primary-hover: #08422a;
+  --brand-primary-light: #e6f3ec;
+  --brand-accent: #e5a919;
+  --brand-accent-hover: #c8900e;
+  --brand-accent-light: #fef8e8;
+
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-sec: #f1f5f9;
+  --bg-surface-hover: #e6f3ec;
+  --bg-header: #0b5d3b;
+  --border-color: #e2e8f0;
+  --border-accent: #0b5d3b;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --accent-color: #e5a919;
+  --accent-light: rgba(229, 169, 25, 0.18);
+  --accent-glow: rgba(229, 169, 25, 0.35);
+  color-scheme: light;
+}
+
 body {
   background-color: var(--bg-app);
   color: var(--text-primary);
@@ -110,8 +137,9 @@ body {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
-html[data-theme="sleek-light"] .glass-panel {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+html[data-theme="sleek-light"] .glass-panel,
+html[data-theme="isp-eco"] .glass-panel {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 
 .glass-panel-hover {
@@ -293,3 +321,132 @@ html[data-theme="sleek-light"] .glass-panel {
   }
 }
 
+/* ============================================================ */
+/* UI COMPONENT STYLING RULES: ISP ECO VANGUARD                 */
+/* ============================================================ */
+
+/* Top Navigation Bar: Solid Forest Green with High-Contrast White Text */
+html[data-theme="isp-eco"] header.t-bg-header,
+body[data-theme="isp-eco"] header.t-bg-header {
+  background-color: #0b5d3b !important;
+  border-bottom-color: #08422a !important;
+}
+
+html[data-theme="isp-eco"] header.t-bg-header .t-text-primary {
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-eco"] header.t-bg-header .t-text-secondary,
+html[data-theme="isp-eco"] header.t-bg-header .t-text-muted {
+  color: #d1fae5 !important;
+}
+
+html[data-theme="isp-eco"] header.t-bg-header .t-bg-sec {
+  background-color: #08422a !important;
+  border-color: #0e6e46 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-eco"] header.t-bg-header .t-bg-hover:hover,
+html[data-theme="isp-eco"] header.t-bg-header button:hover {
+  background-color: #0e6e46 !important;
+}
+
+html[data-theme="isp-eco"] header.t-bg-header .text-amber-400 {
+  color: #e5a919 !important;
+}
+
+/* Sidebar & Main Navigation Rules */
+html[data-theme="isp-eco"] aside nav button.bg-emerald-500\/20 {
+  background-color: #e6f3ec !important;
+  color: #0b5d3b !important;
+  border-color: #0b5d3b !important;
+  border-left-width: 4px !important;
+  box-shadow: 0 1px 3px rgba(11, 93, 59, 0.12) !important;
+}
+
+html[data-theme="isp-eco"] aside nav button.bg-emerald-500\/20 svg {
+  color: #0b5d3b !important;
+}
+
+html[data-theme="isp-eco"] aside nav button.bg-cyan-500\/20 {
+  background-color: #fef8e8 !important;
+  color: #92400e !important;
+  border-color: #e5a919 !important;
+  border-left-width: 4px !important;
+  box-shadow: 0 1px 3px rgba(229, 169, 25, 0.15) !important;
+}
+
+html[data-theme="isp-eco"] aside nav button.bg-cyan-500\/20 svg {
+  color: #b45309 !important;
+}
+
+html[data-theme="isp-eco"] aside nav button:not(.bg-emerald-500\/20):not(.bg-cyan-500\/20) {
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+html[data-theme="isp-eco"] aside nav button:not(.bg-emerald-500\/20):not(.bg-cyan-500\/20):hover {
+  color: #0b5d3b !important;
+  background-color: #f0f7f3 !important;
+}
+
+html[data-theme="isp-eco"] aside nav button:not(.bg-emerald-500\/20):not(.bg-cyan-500\/20):hover svg {
+  color: #0b5d3b !important;
+}
+
+/* Data Tables & Card Headers */
+html[data-theme="isp-eco"] table thead tr {
+  background-color: #0b5d3b !important;
+  color: #ffffff !important;
+  border-bottom-color: #08422a !important;
+}
+
+html[data-theme="isp-eco"] table thead th {
+  color: #ffffff !important;
+}
+
+html[data-theme="isp-eco"] table thead th svg {
+  color: #e5a919 !important;
+}
+
+html[data-theme="isp-eco"] table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+html[data-theme="isp-eco"] table tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+html[data-theme="isp-eco"] table tbody tr:hover {
+  background-color: #e6f3ec !important;
+}
+
+/* Buttons & Interactive Elements */
+html[data-theme="isp-eco"] .btn-primary,
+html[data-theme="isp-eco"] .btn-cta-gold {
+  background-color: #e5a919 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border-radius: 0.5rem !important;
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+}
+
+html[data-theme="isp-eco"] .btn-primary:hover,
+html[data-theme="isp-eco"] .btn-cta-gold:hover {
+  background-color: #c8900e !important;
+}
+
+html[data-theme="isp-eco"] .btn-secondary,
+html[data-theme="isp-eco"] .btn-outline-eco {
+  border: 1px solid #0b5d3b !important;
+  color: #0b5d3b !important;
+  background-color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+html[data-theme="isp-eco"] .btn-secondary:hover,
+html[data-theme="isp-eco"] .btn-outline-eco:hover {
+  background-color: #e6f3ec !important;
+}
