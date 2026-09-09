@@ -2023,11 +2023,12 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
     host: host || process.env.PG_HOST || '127.0.0.1',
     port: parseInt(port || process.env.PG_PORT || '5432'),
     user: user || process.env.PG_USER || 'postgres',
-    password: password || process.env.PG_PASSWORD || '',
+    password: (password && String(password).trim().length > 0) ? password : (process.env.PG_PASSWORD || ''),
     database: database || process.env.PG_DATABASE || 'rvmpg',
     ssl: req.body?.ssl ? { rejectUnauthorized: false } : false
   };
 
+  await ensurePostgresDatabase(pgConfig);
   const client = new pg.Client(pgConfig);
   let sourceClient = null;
   try {

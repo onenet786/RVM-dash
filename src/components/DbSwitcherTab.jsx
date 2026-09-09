@@ -48,6 +48,12 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
       if (pRes.ok) {
         const pData = await pRes.json();
         setPresets(pData.presets || []);
+        const pgPreset = (pData.presets || []).find(p => p.type === 'postgres' || p.id === 'rvm_postgres');
+        if (pgPreset) {
+          if (pgPreset.host) setPgHost(pgPreset.host);
+          if (pgPreset.port) setPgPort(String(pgPreset.port));
+          if (pgPreset.dbName) setPgDatabase(pgPreset.dbName);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -202,9 +208,10 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
           host: pgHost,
           port: pgPort,
           user: pgUser,
-          password: pgPassword,
-          database: pgDatabase,
-          connectionString: pgConnString
+          password: pgPassword || undefined,
+          database: pgDatabase || 'rvmpg',
+          connectionString: pgConnString,
+          mongoSourcePreset: 'rvmapp'
         })
       });
       const data = await res.json();
@@ -371,7 +378,7 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
             className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-cyan-950/40 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
           >
             <Zap className={`w-4 h-4 ${pgSyncing ? 'animate-spin' : ''}`} />
-            {pgSyncing ? 'Synchronizing to PostgreSQL...' : `Sync MongoDB (${activeDb}) ➔ PostgreSQL`}
+            {pgSyncing ? 'Synchronizing to PostgreSQL...' : `Sync MongoDB (rvmapp) ➔ PostgreSQL (${pgDatabase || 'rvmpg'})`}
           </button>
         </div>
 
