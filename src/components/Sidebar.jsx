@@ -102,8 +102,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         <div>
           <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
             <span>Core Dashboards</span>
-            <span className={`px-2 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
-              isPostgres ? 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/30' : 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
+            <span className={`px-2.5 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
+              isPostgres 
+                ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
+                : 'bg-emerald-50 text-[#0b5d3b] border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
             }`}>
               {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
             </span>

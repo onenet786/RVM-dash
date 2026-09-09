@@ -457,7 +457,7 @@ export default function MachineConfigsTab() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-cyan-500 text-slate-950 font-extrabold rounded-xl hover:bg-cyan-400 shadow-lg shadow-cyan-500/20"
+                  className="px-5 py-2 bg-[#0b5d3b] text-white font-extrabold rounded-xl hover:bg-[#08422a] shadow-md transition-all"
                 >
                   + Add Variant to Matrix
                 </button>

@@ -90,58 +90,65 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
         <div className="flex items-center gap-2 sm:gap-3">
           
           {/* DB Status Badge */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs nav-db-pill">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 pulse-glow shadow-md shadow-emerald-400/50' : 'bg-rose-500'}`} />
-            <div className="flex items-center gap-1.5 font-semibold">
-              <span className="t-text-primary">{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
-              <span className="text-emerald-400 font-bold nav-db-highlight">({dbName})</span>
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs text-white">
+            <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-[#e5a919] animate-pulse' : 'bg-rose-500'}`} />
+            <div className="flex items-center gap-1.5 font-semibold text-white">
+              <span>{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
+              <span className="text-[#fde68a] font-bold">({dbName})</span>
             </div>
           </div>
 
           {/* Clock */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 t-bg-sec border t-border rounded-xl text-xs mono nav-clock text-cyan-400">
-            <Activity className="w-3.5 h-3.5 text-amber-400" />
-            {timeStr}
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs mono text-white">
+            <Activity className="w-3.5 h-3.5 text-[#e5a919]" />
+            <span className="text-white font-bold">{timeStr}</span>
           </div>
 
           {/* Theme Selector Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-sm nav-theme-btn"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-[#08422a] hover:bg-[#063320] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-sm"
               title="Switch Dashboard Color Theme"
             >
-              <Palette className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">{currentThemeObj.label}</span>
+              <Palette className="w-4 h-4 text-[#e5a919]" />
+              <span className="hidden sm:inline text-white font-bold">{currentThemeObj.label}</span>
             </button>
 
             {showThemeMenu && (
-              <div className="absolute right-0 mt-2 w-64 t-bg-surface border t-border-accent rounded-2xl shadow-2xl p-2.5 z-50 animate-fade-in backdrop-blur-2xl theme-picker-menu">
-                <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted px-3 py-1">
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2.5 z-50 animate-fade-in backdrop-blur-2xl">
+                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
                   Master Themes
                 </div>
-                <div className="space-y-1 mt-1">
-                  {themesList.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => {
-                        setTheme(t.id);
-                        setShowThemeMenu(false);
-                      }}
-                      className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all theme-option-btn ${
-                        theme === t.id ? 't-bg-sec t-text-primary font-bold border t-border-accent' : 't-text-secondary hover:t-bg-hover'
-                      }`}
-                    >
-                      <div className={`w-3 h-3 rounded-full mt-0.5 shrink-0 ${t.color}`} />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between font-bold">
-                          <span>{t.label}</span>
-                          {theme === t.id && <Check className="w-3.5 h-3.5 text-emerald-400 theme-check-icon" />}
+                <div className="space-y-1 mt-1.5">
+                  {themesList.map((t) => {
+                    const isSelected = theme === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          setTheme(t.id);
+                          setShowThemeMenu(false);
+                        }}
+                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${
+                          isSelected
+                            ? 'bg-[#e6f3ec] text-[#0b5d3b] font-bold border border-[#0b5d3b]/40 shadow-sm'
+                            : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded-full mt-0.5 shrink-0 ${t.color} border border-black/10`} />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between font-bold">
+                            <span className={isSelected ? 'text-[#0b5d3b]' : 'text-slate-900 dark:text-white'}>{t.label}</span>
+                            {isSelected && <Check className="w-4 h-4 text-[#0b5d3b]" />}
+                          </div>
+                          <p className={`text-xs leading-snug mt-0.5 ${isSelected ? 'text-[#065f46] font-medium' : 'text-slate-600 dark:text-slate-400 font-normal'}`}>
+                            {t.desc}
+                          </p>
                         </div>
-                        <p className="text-[10px] theme-desc t-text-muted leading-tight mt-0.5">{t.desc}</p>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -149,18 +156,18 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
 
           {/* User Profile & Logout */}
           {currentUser && (
-            <div className="flex items-center gap-2 pl-2 border-l t-border nav-user-container">
+            <div className="flex items-center gap-2 pl-2 border-l border-emerald-700/50">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-extrabold t-text-primary leading-tight">{currentUser.fullName || currentUser.username}</span>
-                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider nav-user-role">{currentUser.roleName || currentUser.roleId}</span>
+                <span className="text-xs font-extrabold text-white leading-tight">{currentUser.fullName || currentUser.username}</span>
+                <span className="text-[11px] font-bold text-[#fde68a] uppercase tracking-wider">{currentUser.roleName || currentUser.roleId}</span>
               </div>
 
               <button
                 onClick={onLogout}
-                className="p-2 nav-logout-btn text-rose-400 hover:bg-rose-500/10 rounded-xl border border-rose-500/20 transition-all flex items-center gap-1 text-xs font-bold"
+                className="p-2 bg-[#08422a] hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
                 title="Sign Out"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-rose-300" />
                 <span className="hidden md:inline">Sign Out</span>
               </button>
             </div>

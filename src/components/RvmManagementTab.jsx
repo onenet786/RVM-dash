@@ -189,7 +189,7 @@ export default function RvmManagementTab({ currentUser }) {
           {isSuperAdmin && (
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-extrabold text-xs rounded-xl transition-all shadow-lg shadow-cyan-500/20"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] font-extrabold text-xs rounded-xl transition-all shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>+ Register New RVM Machine</span>
@@ -198,7 +198,7 @@ export default function RvmManagementTab({ currentUser }) {
 
           <button
             onClick={fetchMachines}
-            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all"
+            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -207,12 +207,12 @@ export default function RvmManagementTab({ currentUser }) {
 
       {/* Assigned RVM Fleet Scope Notification */}
       {assignedList && assignedList.length > 0 && (
-        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center justify-between text-xs font-bold animate-fade-in shadow-md">
+        <div className="p-4 rounded-2xl bg-[#e6f3ec] dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 text-[#0b5d3b] dark:text-emerald-300 flex items-center justify-between text-xs font-bold animate-fade-in shadow-sm">
           <div className="flex items-center gap-2.5">
-            <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+            <MapPin className="w-4 h-4 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
             <span>Assigned RVM Fleet Scope Active: Managing ({assignedList.join(', ')}) only</span>
           </div>
-          <span className="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-200 uppercase font-mono font-bold shrink-0 border border-cyan-500/30">
+          <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-[#0b5d3b] dark:text-emerald-200 uppercase font-mono font-bold shrink-0 border border-emerald-300 dark:border-emerald-700">
             {assignedList.length} Machine{assignedList.length > 1 ? 's' : ''} Scoped
           </span>
         </div>
@@ -223,11 +223,11 @@ export default function RvmManagementTab({ currentUser }) {
         {machines.map(m => (
           <div
             key={m.machineId}
-            className="glass-panel p-5 rounded-2xl space-y-4 border border-slate-800 hover:border-cyan-500/40 transition-all"
+            className="glass-panel p-5 rounded-2xl space-y-4 border t-border hover:border-[#0b5d3b]/50 transition-all shadow-sm"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <div className="p-2.5 rounded-xl bg-[#e6f3ec] dark:bg-emerald-950/40 text-[#0b5d3b] dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                   <Server className="w-5 h-5" />
                 </div>
                 <div>
@@ -377,7 +377,7 @@ export default function RvmManagementTab({ currentUser }) {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-xs font-extrabold bg-cyan-500 text-slate-950 hover:bg-cyan-400 rounded-xl shadow-lg shadow-cyan-500/20 flex items-center gap-2"
+                  className="px-5 py-2 text-xs font-extrabold bg-[#0b5d3b] text-white hover:bg-[#08422a] rounded-xl shadow-md flex items-center gap-2 transition-all"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
                   <span>{saving ? 'Saving...' : 'Save RVM Machine'}</span>

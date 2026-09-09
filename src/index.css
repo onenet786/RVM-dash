@@ -623,73 +623,95 @@ html[data-theme="isp-eco"] .bg-emerald-950\/20 {
 }
 
 /* BADGE RULE 1: Emerald/Green Badges -> Pale Green Background with DEEP Forest Green Text */
-html[data-theme="isp-eco"] [class*="bg-emerald-500/"],
-html[data-theme="isp-eco"] [class*="bg-emerald-50"] {
+html[data-theme="isp-eco"] span[class*="bg-emerald-500/"],
+html[data-theme="isp-eco"] span.bg-emerald-50,
+html[data-theme="isp-eco"] div.bg-emerald-50,
+html[data-theme="isp-eco"] div[class*="bg-emerald-500/"]:not(button *) {
   background-color: #f0fdf4 !important;
   color: #064e3b !important;
   border-color: #bbf7d0 !important;
 }
 
-html[data-theme="isp-eco"] [class*="bg-emerald-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-emerald-50"] * {
+html[data-theme="isp-eco"] span[class*="bg-emerald-500/"] > *,
+html[data-theme="isp-eco"] span.bg-emerald-50 > *,
+html[data-theme="isp-eco"] div.bg-emerald-50 > *,
+html[data-theme="isp-eco"] div[class*="bg-emerald-500/"]:not(button *) > * {
   color: #064e3b !important;
 }
 
-/* BADGE RULE 2: Amber/Yellow Badges -> Pale Amber Background with DEEP Amber Text (No yellow-on-yellow) */
-html[data-theme="isp-eco"] [class*="bg-amber-500/"],
-html[data-theme="isp-eco"] [class*="bg-amber-50"] {
+/* BADGE RULE 2: Amber/Yellow Badges -> Pale Amber Background with DEEP Amber Text */
+html[data-theme="isp-eco"] span[class*="bg-amber-500/"],
+html[data-theme="isp-eco"] span.bg-amber-50,
+html[data-theme="isp-eco"] div.bg-amber-50,
+html[data-theme="isp-eco"] div[class*="bg-amber-500/"]:not(button *) {
   background-color: #fffbeb !important;
   color: #78350f !important;
   border-color: #fde68a !important;
 }
 
-html[data-theme="isp-eco"] [class*="bg-amber-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-amber-50"] * {
+html[data-theme="isp-eco"] span[class*="bg-amber-500/"] > *,
+html[data-theme="isp-eco"] span.bg-amber-50 > *,
+html[data-theme="isp-eco"] div.bg-amber-50 > *,
+html[data-theme="isp-eco"] div[class*="bg-amber-500/"]:not(button *) > * {
   color: #78350f !important;
 }
 
-/* BADGE RULE 3: Cyan/Sky Badges -> Pale Sky Background with DEEP Navy/Sky Text (No cyan-on-cyan) */
-html[data-theme="isp-eco"] [class*="bg-cyan-500/"],
-html[data-theme="isp-eco"] [class*="bg-cyan-50"],
-html[data-theme="isp-eco"] [class*="bg-sky-500/"],
-html[data-theme="isp-eco"] [class*="bg-sky-50"],
-html[data-theme="isp-eco"] [class*="bg-blue-500/"] {
+/* BADGE RULE 3: Cyan/Sky Badges -> Pale Sky Background with DEEP Navy/Sky Text */
+html[data-theme="isp-eco"] span[class*="bg-cyan-500/"],
+html[data-theme="isp-eco"] span[class*="bg-sky-500/"],
+html[data-theme="isp-eco"] span.bg-sky-50,
+html[data-theme="isp-eco"] span.bg-cyan-50,
+html[data-theme="isp-eco"] div[class*="bg-cyan-500/"]:not(button *),
+html[data-theme="isp-eco"] div[class*="bg-sky-500/"]:not(button *),
+html[data-theme="isp-eco"] div.bg-sky-50,
+html[data-theme="isp-eco"] div.bg-cyan-50 {
   background-color: #f0f9ff !important;
   color: #075985 !important;
   border-color: #bae6fd !important;
 }
 
-html[data-theme="isp-eco"] [class*="bg-cyan-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-cyan-50"] *,
-html[data-theme="isp-eco"] [class*="bg-sky-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-sky-50"] *,
-html[data-theme="isp-eco"] [class*="bg-blue-500/"] * {
+html[data-theme="isp-eco"] span[class*="bg-cyan-500/"] > *,
+html[data-theme="isp-eco"] span[class*="bg-sky-500/"] > *,
+html[data-theme="isp-eco"] span.bg-sky-50 > *,
+html[data-theme="isp-eco"] span.bg-cyan-50 > *,
+html[data-theme="isp-eco"] div[class*="bg-cyan-500/"]:not(button *) > *,
+html[data-theme="isp-eco"] div[class*="bg-sky-500/"]:not(button *) > *,
+html[data-theme="isp-eco"] div.bg-sky-50 > *,
+html[data-theme="isp-eco"] div.bg-cyan-50 > * {
   color: #075985 !important;
 }
 
-/* BADGE RULE 4: Purple Badges -> Pale Purple Background with DEEP Violet Text (No purple-on-purple) */
-html[data-theme="isp-eco"] [class*="bg-purple-500/"],
-html[data-theme="isp-eco"] [class*="bg-purple-50"] {
+/* BADGE RULE 4: Purple Badges -> Pale Purple Background with DEEP Violet Text */
+html[data-theme="isp-eco"] span[class*="bg-purple-500/"],
+html[data-theme="isp-eco"] span.bg-purple-50,
+html[data-theme="isp-eco"] div[class*="bg-purple-500/"]:not(button *),
+html[data-theme="isp-eco"] div.bg-purple-50 {
   background-color: #faf5ff !important;
   color: #581c87 !important;
   border-color: #e9d5ff !important;
 }
 
-html[data-theme="isp-eco"] [class*="bg-purple-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-purple-50"] * {
+html[data-theme="isp-eco"] span[class*="bg-purple-500/"] > *,
+html[data-theme="isp-eco"] span.bg-purple-50 > *,
+html[data-theme="isp-eco"] div[class*="bg-purple-500/"]:not(button *) > *,
+html[data-theme="isp-eco"] div.bg-purple-50 > * {
   color: #581c87 !important;
 }
 
 /* BADGE RULE 5: Rose/Red Badges -> Pale Rose Background with DEEP Crimson Text */
-html[data-theme="isp-eco"] [class*="bg-rose-500/"],
-html[data-theme="isp-eco"] [class*="bg-rose-50"] {
+html[data-theme="isp-eco"] span[class*="bg-rose-500/"],
+html[data-theme="isp-eco"] span.bg-rose-50,
+html[data-theme="isp-eco"] div[class*="bg-rose-500/"]:not(button *),
+html[data-theme="isp-eco"] div.bg-rose-50 {
   background-color: #fef2f2 !important;
   color: #9f1239 !important;
   border-color: #fecdd3 !important;
 }
 
-html[data-theme="isp-eco"] [class*="bg-rose-500/"] *,
-html[data-theme="isp-eco"] [class*="bg-rose-50"] * {
+html[data-theme="isp-eco"] span[class*="bg-rose-500/"] > *,
+html[data-theme="isp-eco"] span.bg-rose-50 > *,
+html[data-theme="isp-eco"] div[class*="bg-rose-500/"]:not(button *) > *,
+html[data-theme="isp-eco"] div.bg-rose-50 > * {
   color: #9f1239 !important;
 }
 
@@ -854,5 +876,30 @@ html[data-theme="isp-eco"] .btn-outline-eco {
 html[data-theme="isp-eco"] .btn-secondary:hover,
 html[data-theme="isp-eco"] .btn-outline-eco:hover {
   background-color: #e6f3ec !important;
+}
+
+/* Ensure brand buttons are guaranteed high-contrast (never pale or muted) */
+html[data-theme="isp-eco"] .bg-\[\#e5a919\],
+html[data-theme="isp-eco"] button.bg-amber-500 {
+  background-color: #e5a919 !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+html[data-theme="isp-eco"] .bg-\[\#e5a919\] *,
+html[data-theme="isp-eco"] button.bg-amber-500 * {
+  color: #0f172a !important;
+}
+
+html[data-theme="isp-eco"] .bg-\[\#0b5d3b\],
+html[data-theme="isp-eco"] button.bg-emerald-600 {
+  background-color: #0b5d3b !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="isp-eco"] .bg-\[\#0b5d3b\] *,
+html[data-theme="isp-eco"] button.bg-emerald-600 * {
+  color: #ffffff !important;
 }
 
