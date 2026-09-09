@@ -72,71 +72,75 @@ export default function ReportingHubTab() {
   const renderPaperCalibrationReport = () => (
     <div className="space-y-6 animate-fade-in">
       {/* Overview Banner */}
-      <div className="p-5 rounded-2xl border border-purple-500/30 t-bg-sec flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-purple-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded bg-purple-500/20 text-purple-800 dark:text-purple-200 text-[10px] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-200 text-xs font-black uppercase tracking-wider border border-purple-300 dark:border-purple-700">
               PicoDrop Paper Specific
             </span>
-            <span className="text-xs text-purple-700 dark:text-purple-300 font-mono font-bold">Load Cell Telemetry Audit</span>
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+              Load Cell Telemetry Audit
+            </span>
           </div>
-          <h3 className="text-xl font-black t-text-primary">1. Load Scale & Paper Calibration Report</h3>
-          <p className="text-xs t-text-secondary mt-1 max-w-2xl leading-relaxed">
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+            1. Load Scale & Paper Calibration Report
+          </h3>
+          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Audit weight-based Paper intake, tare accuracy, zero-point drift tracking, paper weight anomalies, and weight-limit events.
           </p>
-          <div className="mt-2 text-[11px] text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg w-fit">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="mt-2.5 text-xs text-amber-950 dark:text-amber-200 font-bold flex items-center gap-2 bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-lg w-fit shadow-xs">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>Important: PET and Metal are not included as weight-based reward measurements in this report.</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl t-bg-card border border-purple-500/30 text-right shrink-0">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Total Paper Mass Collected</div>
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Paper Mass Collected</div>
           <div className="text-3xl font-black text-purple-700 dark:text-purple-300 mono mt-0.5">148.50 <span className="text-base text-purple-600 dark:text-purple-400 font-normal">kg</span></div>
-          <div className="text-[10px] text-[#0b5d3b] dark:text-emerald-400 font-bold mt-1">Verified Load Cell Net Intake</div>
+          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Verified Load Cell Net Intake</div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Total Paper Mass</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Paper Mass</div>
           <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">148.5 kg</div>
-          <div className="text-[10px] t-text-muted mt-1">Net paper from PicoDrop scales</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Net paper from PicoDrop scales</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Scale Tare Accuracy</div>
-          <div className="text-2xl font-black text-sky-800 dark:text-cyan-300 mono mt-1">99.82%</div>
-          <div className="text-[10px] text-[#0b5d3b] dark:text-emerald-400 mt-1 font-semibold">Within ±0.1g tare calibration</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Scale Tare Accuracy</div>
+          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">99.82%</div>
+          <div className="text-xs text-emerald-800 dark:text-emerald-400 mt-1 font-extrabold">Within ±0.1g tare calibration</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Zero-Point Drift Tracking</div>
-          <div className="text-2xl font-black text-amber-800 dark:text-amber-300 mono mt-1">4 Events</div>
-          <div className="text-[10px] text-amber-700 dark:text-amber-400 mt-1 font-semibold">3 Auto-zeroed, 1 Flagged</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Zero-Point Drift Tracking</div>
+          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">4 Events</div>
+          <div className="text-xs text-amber-800 dark:text-amber-400 mt-1 font-extrabold">3 Auto-zeroed, 1 Flagged</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-rose-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Weight-Limit Events</div>
-          <div className="text-2xl font-black text-rose-800 dark:text-rose-300 mono mt-1">2 Triggers</div>
-          <div className="text-[10px] text-rose-700 dark:text-rose-400 mt-1 font-semibold">Paper bin limit exceeded (&gt;15 kg)</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-rose-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Weight-Limit Events</div>
+          <div className="text-2xl font-black text-rose-700 dark:text-rose-300 mono mt-1">2 Triggers</div>
+          <div className="text-xs text-rose-800 dark:text-rose-400 mt-1 font-extrabold">Paper bin limit exceeded (&gt;15 kg)</div>
         </div>
       </div>
 
       {/* Scale Tare Calibration Log Table */}
-      <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
-        <div className="flex items-center justify-between border-b t-border pb-2.5">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2.5">
           <h4 className="text-xs font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
             <Sliders className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             Scale Tare Calibration Log
           </h4>
-          <span className="text-[10px] t-text-muted font-mono">PicoDrop Load Cell Calibration Ledger</span>
+          <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">PicoDrop Load Cell Calibration Ledger</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="t-bg-sec text-[10px] uppercase font-bold t-text-muted">
+            <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-black text-slate-700 dark:text-slate-300">
               <tr>
                 <th className="p-2.5">Log ID</th>
                 <th className="p-2.5">Hardware Device</th>
@@ -147,13 +151,13 @@ export default function ReportingHubTab() {
                 <th className="p-2.5">Audit Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y t-border font-mono">
+            <tbody className="divide-y border-slate-200 dark:border-slate-700 font-mono">
               {calibrationLogs.map(log => (
                 <tr key={log.id} className="hover:bg-slate-500/5">
                   <td className="p-2.5 font-bold text-sky-800 dark:text-cyan-300">{log.id}</td>
-                  <td className="p-2.5 t-text-primary font-bold">{log.unit}</td>
-                  <td className="p-2.5 t-text-muted text-[11px]">{log.timestamp}</td>
-                  <td className="p-2.5 t-text-primary">{log.tareOffset}</td>
+                  <td className="p-2.5 text-slate-900 dark:text-white font-bold">{log.unit}</td>
+                  <td className="p-2.5 text-slate-600 dark:text-slate-400 text-xs">{log.timestamp}</td>
+                  <td className="p-2.5 text-slate-900 dark:text-white">{log.tareOffset}</td>
                   <td className="p-2.5 font-bold text-amber-800 dark:text-amber-300">{log.zeroDrift}</td>
                   <td className="p-2.5">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -164,7 +168,7 @@ export default function ReportingHubTab() {
                       {log.status}
                     </span>
                   </td>
-                  <td className="p-2.5 t-text-secondary text-[11px]">{log.technician}</td>
+                  <td className="p-2.5 text-slate-700 dark:text-slate-300 text-xs">{log.technician}</td>
                 </tr>
               ))}
             </tbody>
@@ -173,26 +177,26 @@ export default function ReportingHubTab() {
       </div>
 
       {/* Paper Weight Anomalies & Limit Events */}
-      <div className="glass-panel p-5 rounded-2xl border border-amber-500/30 space-y-3">
-        <div className="flex items-center justify-between border-b t-border pb-2.5">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-300 dark:border-amber-700 shadow-sm space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2.5">
           <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             Paper Weight Anomalies & Limit Events
           </h4>
-          <span className="text-[10px] text-amber-700 dark:text-amber-400 font-mono font-bold">Strain Gauge Exception Feed</span>
+          <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300">Strain Gauge Exception Feed</span>
         </div>
 
         <div className="space-y-2">
           {scaleAnomalies.map(item => (
-            <div key={item.id} className="p-3 rounded-xl t-bg-sec border t-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div key={item.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2.5">
                 <span className="mono text-sky-800 dark:text-cyan-400 font-bold">[{item.id}]</span>
                 <span className="text-purple-800 dark:text-purple-300 font-bold">{item.unit}:</span>
-                <span className="t-text-primary font-medium">{item.event}</span>
+                <span className="text-slate-900 dark:text-white font-medium">{item.event}</span>
               </div>
-              <div className="flex items-center gap-3 text-[11px]">
-                <span className="text-[#0b5d3b] dark:text-emerald-400 font-semibold">{item.action}</span>
-                <span className="t-text-muted font-mono">{item.timestamp}</span>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-emerald-800 dark:text-emerald-400 font-bold">{item.action}</span>
+                <span className="text-slate-600 dark:text-slate-400 font-mono">{item.timestamp}</span>
               </div>
             </div>
           ))}
@@ -204,105 +208,109 @@ export default function ReportingHubTab() {
   // Report 2 Component: Fleet Efficiency & Capacity Report
   const renderFleetEfficiencyReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-cyan-500/30 t-bg-sec flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-cyan-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded bg-cyan-500/20 text-sky-800 dark:text-cyan-200 text-[10px] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-900 dark:text-sky-200 text-xs font-black uppercase tracking-wider border border-sky-300 dark:border-sky-700">
               Fleet Operations
             </span>
-            <span className="text-xs text-sky-700 dark:text-cyan-300 font-mono font-bold">Service Response Telemetry</span>
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+              Service Response Telemetry
+            </span>
           </div>
-          <h3 className="text-xl font-black t-text-primary">2. Fleet Efficiency & Capacity Report</h3>
-          <p className="text-xs t-text-secondary mt-1 max-w-2xl leading-relaxed">
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+            2. Fleet Efficiency & Capacity Report
+          </h3>
+          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Monitor machine uptime, collection patterns, bin clearing efficiency, and device performance across RVM and PicoDrop hardware.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl t-bg-card border border-cyan-500/30 text-right shrink-0">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Average Service Turnaround</div>
-          <div className="text-3xl font-black text-sky-800 dark:text-cyan-300 mono mt-0.5">34.2 <span className="text-base text-sky-600 dark:text-cyan-400 font-normal">mins</span></div>
-          <div className="text-[10px] text-[#0b5d3b] dark:text-emerald-400 font-bold mt-1">From "Limit Triggered" to "Cleared"</div>
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Average Service Turnaround</div>
+          <div className="text-3xl font-black text-sky-700 dark:text-cyan-300 mono mt-0.5">34.2 <span className="text-base text-sky-600 dark:text-cyan-400 font-normal">mins</span></div>
+          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">From "Limit Triggered" to "Cleared"</div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">RVM Bin Capacity Events</div>
-          <div className="text-2xl font-black text-sky-800 dark:text-cyan-300 mono mt-1">12 Events</div>
-          <div className="text-[10px] t-text-muted mt-1">Hopper volume 100% full</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">RVM Bin Capacity Events</div>
+          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">12 Events</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Hopper volume 100% full</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">PicoDrop Weight-Limit Events</div>
-          <div className="text-2xl font-black text-purple-800 dark:text-purple-300 mono mt-1">5 Events</div>
-          <div className="text-[10px] t-text-muted mt-1">Paper bin &gt; 15.0 kg limit</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">PicoDrop Weight-Limit Events</div>
+          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">5 Events</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Paper bin &gt; 15.0 kg limit</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">RVM Fleet Mean Uptime</div>
-          <div className="text-2xl font-black text-[#0b5d3b] dark:text-emerald-400 mono mt-1">98.7%</div>
-          <div className="text-[10px] t-text-muted mt-1">Optical recognition & motor uptime</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">RVM Fleet Mean Uptime</div>
+          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">98.7%</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Optical recognition & motor uptime</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">PicoDrop Mean Uptime</div>
-          <div className="text-2xl font-black text-amber-800 dark:text-amber-300 mono mt-1">98.3%</div>
-          <div className="text-[10px] t-text-muted mt-1">Counter & strain-gauge uptime</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">PicoDrop Mean Uptime</div>
+          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">98.3%</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Counter & strain-gauge uptime</div>
         </div>
       </div>
 
       {/* Hardware Failure Rate Comparison: RVM optical/motor vs PicoDrop counter/load-scale */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-sky-800 dark:text-cyan-300 flex items-center gap-1.5">
             <Cpu className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
             RVM Optical / Motor Fault Rates
           </h4>
           <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">Optical Chute Scanner Lens Smudge:</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">Optical Chute Scanner Lens Smudge:</span>
               <span className="font-bold text-amber-800 dark:text-amber-400 mono">0.38% sessions</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">Intake Motor Gate Jams:</span>
-              <span className="font-bold text-[#0b5d3b] dark:text-emerald-400 mono">0.05% sessions</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">Intake Motor Gate Jams:</span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.05% sessions</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">Conveyor Alignment Errors:</span>
-              <span className="font-bold text-[#0b5d3b] dark:text-emerald-400 mono">0.02% sessions</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">Conveyor Alignment Errors:</span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.02% sessions</span>
             </div>
           </div>
         </div>
 
-        <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
             <Scale className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             PicoDrop Counter / Load-Scale Fault Rates
           </h4>
           <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">Load Scale Zero Drift:</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">Load Scale Zero Drift:</span>
               <span className="font-bold text-amber-800 dark:text-amber-400 mono">0.28% sessions</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">PET / Can Optical Trigger Faults:</span>
-              <span className="font-bold text-[#0b5d3b] dark:text-emerald-400 mono">0.07% sessions</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">PET / Can Optical Trigger Faults:</span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.07% sessions</span>
             </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl t-bg-sec border t-border">
-              <span className="t-text-muted">Paper Bin Level Sensor Discrepancy:</span>
-              <span className="font-bold text-[#0b5d3b] dark:text-emerald-400 mono">0.11% sessions</span>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <span className="text-slate-700 dark:text-slate-300 font-semibold">Paper Bin Level Sensor Discrepancy:</span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.11% sessions</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Daily/Weekly Throughput per Location Table */}
-      <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
-        <h4 className="text-xs font-black uppercase tracking-wider t-text-primary">Daily & Weekly Throughput per Location</h4>
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Daily & Weekly Throughput per Location</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="t-bg-sec text-[10px] uppercase font-bold t-text-muted">
+            <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-black text-slate-700 dark:text-slate-300">
               <tr>
                 <th className="p-2.5">Location</th>
                 <th className="p-2.5">RVM Uptime</th>
@@ -311,14 +319,14 @@ export default function ReportingHubTab() {
                 <th className="p-2.5">Weekly Intake</th>
               </tr>
             </thead>
-            <tbody className="divide-y t-border">
+            <tbody className="divide-y border-slate-200 dark:border-slate-700">
               {fleetUptimeData.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-500/5">
-                  <td className="p-2.5 font-bold t-text-primary">{row.location}</td>
-                  <td className="p-2.5 text-sky-800 dark:text-cyan-300 font-mono font-semibold">{row.rvmUptime}%</td>
-                  <td className="p-2.5 text-purple-800 dark:text-purple-300 font-mono font-semibold">{row.picoUptime}%</td>
-                  <td className="p-2.5 font-mono text-[#0b5d3b] dark:text-emerald-400 font-bold">{row.avgTurnaroundMin} mins</td>
-                  <td className="p-2.5 t-text-secondary font-mono">~3,200 units / wk</td>
+                  <td className="p-2.5 font-bold text-slate-900 dark:text-white">{row.location}</td>
+                  <td className="p-2.5 text-sky-800 dark:text-cyan-300 font-mono font-bold">{row.rvmUptime}%</td>
+                  <td className="p-2.5 text-purple-800 dark:text-purple-300 font-mono font-bold">{row.picoUptime}%</td>
+                  <td className="p-2.5 font-mono text-emerald-800 dark:text-emerald-400 font-bold">{row.avgTurnaroundMin} mins</td>
+                  <td className="p-2.5 text-slate-700 dark:text-slate-300 font-mono">~3,200 units / wk</td>
                 </tr>
               ))}
             </tbody>
@@ -331,74 +339,78 @@ export default function ReportingHubTab() {
   // Report 3 Component: Material Diversion & ESG Report
   const renderESGReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-emerald-500/30 t-bg-sec flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-emerald-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 text-[10px] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-xs font-black uppercase tracking-wider border border-emerald-300 dark:border-emerald-700">
               ESG Compliance
             </span>
-            <span className="text-xs text-emerald-700 dark:text-emerald-300 font-mono font-bold">ISO 14064 Carbon Standard</span>
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+              ISO 14064 Carbon Standard
+            </span>
           </div>
-          <h3 className="text-xl font-black t-text-primary">3. Material Diversion & ESG Report</h3>
-          <p className="text-xs t-text-secondary mt-1 max-w-2xl leading-relaxed">
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+            3. Material Diversion & ESG Report
+          </h3>
+          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Executive and compliance reporting for environmental impact, distinguishing unit-counted materials from measured paper weight.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl t-bg-card border border-emerald-500/30 text-right shrink-0">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Estimated CO₂ Avoided</div>
-          <div className="text-3xl font-black text-[#0b5d3b] dark:text-emerald-400 mono mt-0.5">1,842.6 <span className="text-base text-emerald-700 dark:text-emerald-300 font-normal">kg CO₂e</span></div>
-          <div className="text-[10px] text-[#0b5d3b] dark:text-emerald-400 font-bold mt-1">Trees Conserved: ~2.5 Trees</div>
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Estimated CO₂ Avoided</div>
+          <div className="text-3xl font-black text-emerald-700 dark:text-emerald-400 mono mt-0.5">1,842.6 <span className="text-base text-emerald-600 dark:text-emerald-300 font-normal">kg CO₂e</span></div>
+          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Trees Conserved: ~2.5 Trees</div>
         </div>
       </div>
 
       {/* Distinct Unit-Counted vs Measured Weight Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Total PET Units Diverted</div>
-          <div className="text-2xl font-black text-[#0b5d3b] dark:text-emerald-400 mono mt-1">8,420 Units</div>
-          <div className="text-[10px] t-text-muted mt-1">Est. 252.6 kg plastic mass</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total PET Units Diverted</div>
+          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">8,420 Units</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 252.6 kg plastic mass</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Total Metal Units Diverted</div>
-          <div className="text-2xl font-black text-amber-800 dark:text-amber-300 mono mt-1">3,615 Units</div>
-          <div className="text-[10px] t-text-muted mt-1">Est. 54.2 kg aluminum mass</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Metal Units Diverted</div>
+          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">3,615 Units</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 54.2 kg aluminum mass</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Cardboard/TetraPak Units</div>
-          <div className="text-2xl font-black text-sky-800 dark:text-cyan-300 mono mt-1">1,240 Units</div>
-          <div className="text-[10px] t-text-muted mt-1">Est. 37.2 kg paperboard mass</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Cardboard/TetraPak Units</div>
+          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">1,240 Units</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 37.2 kg paperboard mass</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500 bg-purple-500/10 shadow-sm">
-          <div className="text-[10px] uppercase font-bold text-purple-800 dark:text-purple-300 font-black">Measured Paper Weight</div>
-          <div className="text-2xl font-black text-purple-800 dark:text-purple-300 mono mt-1">148.5 kg</div>
-          <div className="text-[10px] text-purple-700 dark:text-purple-300 mt-1 font-bold">100% Load-Cell Measured</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-purple-900 dark:text-purple-300 font-black">Measured Paper Weight</div>
+          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">148.5 kg</div>
+          <div className="text-xs text-purple-800 dark:text-purple-300 mt-1 font-bold">100% Load-Cell Measured</div>
         </div>
       </div>
 
       {/* Environmental Equivalents Breakdown */}
-      <div className="glass-panel p-6 rounded-2xl border t-border space-y-4">
-        <h4 className="text-xs font-black uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">Environmental Conservation Metrics</h4>
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+        <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">Environmental Conservation Metrics</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl t-bg-sec border t-border space-y-1">
-            <div className="text-xs t-text-muted font-bold">Tree Equivalents Saved</div>
-            <div className="text-2xl font-black text-purple-800 dark:text-purple-300 mono">2.52 Trees</div>
-            <p className="text-[10px] t-text-muted mt-1">Based on pure Paper mass collected through PicoDrop load scales.</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Tree Equivalents Saved</div>
+            <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono">2.52 Trees</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Based on pure Paper mass collected through PicoDrop load scales.</p>
           </div>
 
-          <div className="p-4 rounded-xl t-bg-sec border t-border space-y-1">
-            <div className="text-xs t-text-muted font-bold">Diverted Landfill Volume</div>
-            <div className="text-2xl font-black text-sky-800 dark:text-cyan-300 mono">4.82 m³</div>
-            <p className="text-[10px] t-text-muted mt-1">Compacted volume of recycled bottles, cans, cardboard, and paper.</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Diverted Landfill Volume</div>
+            <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono">4.82 m³</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Compacted volume of recycled bottles, cans, cardboard, and paper.</p>
           </div>
 
-          <div className="p-4 rounded-xl t-bg-sec border t-border space-y-1">
-            <div className="text-xs t-text-muted font-bold">Energy Conserved (kWh)</div>
-            <div className="text-2xl font-black text-[#0b5d3b] dark:text-emerald-400 mono">3,490 kWh</div>
-            <p className="text-[10px] t-text-muted mt-1">Energy saved vs virgin resource extraction & manufacturing.</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Energy Conserved (kWh)</div>
+            <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono">3,490 kWh</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Energy saved vs virgin resource extraction & manufacturing.</p>
           </div>
         </div>
       </div>
@@ -408,74 +420,78 @@ export default function ReportingHubTab() {
   // Report 4 Component: User Loyalty & Incentive Financial Audit
   const renderFinancialAuditReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-amber-500/30 t-bg-sec flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-amber-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 text-xs font-black uppercase tracking-wider border border-amber-300 dark:border-amber-700">
               Financial Audit
             </span>
-            <span className="text-xs text-amber-700 dark:text-amber-300 font-mono font-bold">Incentive Reconciliation</span>
+            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+              Incentive Reconciliation
+            </span>
           </div>
-          <h3 className="text-xl font-black t-text-primary">4. User Loyalty & Incentive Financial Audit</h3>
-          <p className="text-xs t-text-secondary mt-1 max-w-2xl leading-relaxed">
+          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+            4. User Loyalty & Incentive Financial Audit
+          </h3>
+          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Reconcile distributed loyalty points against raw material intake and audit acquisition costs.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl t-bg-card border border-amber-500/30 text-right shrink-0">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Total Points Issued</div>
-          <div className="text-3xl font-black text-amber-800 dark:text-amber-300 mono mt-0.5">142,850 <span className="text-base text-amber-700 dark:text-amber-400 font-normal">pts</span></div>
-          <div className="text-[10px] text-amber-800 dark:text-amber-300 font-bold mt-1">Financial Liability: PKR 14,285</div>
+        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Points Issued</div>
+          <div className="text-3xl font-black text-amber-700 dark:text-amber-300 mono mt-0.5">142,850 <span className="text-base text-amber-600 dark:text-amber-400 font-normal">pts</span></div>
+          <div className="text-xs text-amber-900 dark:text-amber-300 font-extrabold mt-1">Financial Liability: PKR 14,285</div>
         </div>
       </div>
 
       {/* Points Issued per Material Stream */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Points Issued per PET Unit</div>
-          <div className="text-xl font-black text-[#0b5d3b] dark:text-emerald-400 mono mt-1">10 - 15 pts / unit</div>
-          <div className="text-[10px] t-text-muted mt-1">Total: 84,200 pts issued</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Points Issued per PET Unit</div>
+          <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">10 - 15 pts / unit</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 84,200 pts issued</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Points Issued per Metal Unit</div>
-          <div className="text-xl font-black text-amber-800 dark:text-amber-300 mono mt-1">15 - 20 pts / unit</div>
-          <div className="text-[10px] t-text-muted mt-1">Total: 36,150 pts issued</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Points Issued per Metal Unit</div>
+          <div className="text-xl font-black text-amber-700 dark:text-amber-300 mono mt-1">15 - 20 pts / unit</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 36,150 pts issued</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-[10px] uppercase font-bold t-text-muted">Cardboard/TetraPak Unit Rate</div>
-          <div className="text-xl font-black text-sky-800 dark:text-cyan-300 mono mt-1">10 pts / unit</div>
-          <div className="text-[10px] t-text-muted mt-1">Total: 12,400 pts issued</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Cardboard/TetraPak Unit Rate</div>
+          <div className="text-xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">10 pts / unit</div>
+          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 12,400 pts issued</div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border-l-4 border-l-purple-500 bg-purple-500/10 shadow-sm">
-          <div className="text-[10px] uppercase font-bold text-purple-800 dark:text-purple-300 font-black">Points Issued per kg of Paper</div>
-          <div className="text-xl font-black text-purple-800 dark:text-purple-300 mono mt-1">100 pts / kg</div>
-          <div className="text-[10px] text-purple-700 dark:text-purple-300 mt-1 font-bold">Total: 14,850 pts (148.5 kg)</div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-purple-900 dark:text-purple-300 font-black">Points Issued per kg of Paper</div>
+          <div className="text-xl font-black text-purple-700 dark:text-purple-300 mono mt-1">100 pts / kg</div>
+          <div className="text-xs text-purple-800 dark:text-purple-300 mt-1 font-bold">Total: 14,850 pts (148.5 kg)</div>
         </div>
       </div>
 
       {/* Cost-per-kg vs Reward Payout Analysis */}
-      <div className="glass-panel p-5 rounded-2xl border t-border space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
         <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">Financial Audit & Acquisition Cost Metrics</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-bold">Cost-Per-Kg of Paper Acquired:</div>
-            <div className="text-2xl font-black text-purple-800 dark:text-purple-300 mono mt-1">PKR 10.00 / kg</div>
-            <p className="text-[10px] t-text-muted mt-1">Payout based on 100 points/kg (PKR 10.00 equivalent).</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Cost-Per-Kg of Paper Acquired:</div>
+            <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">PKR 10.00 / kg</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Payout based on 100 points/kg (PKR 10.00 equivalent).</p>
           </div>
 
-          <div className="p-4 rounded-xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-bold">Reward Cost for Unit-Based Materials:</div>
-            <div className="text-2xl font-black text-[#0b5d3b] dark:text-emerald-400 mono mt-1">PKR 1.15 / unit</div>
-            <p className="text-[10px] t-text-muted mt-1">Average weighted reward across PET, metal cans, and cardboard.</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Reward Cost for Unit-Based Materials:</div>
+            <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">PKR 1.15 / unit</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Average weighted reward across PET, metal cans, and cardboard.</p>
           </div>
 
-          <div className="p-4 rounded-xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-bold">Daily Active Recyclers & Peak Hours:</div>
-            <div className="text-2xl font-black text-sky-800 dark:text-cyan-300 mono mt-1">12:00 PM - 3:00 PM</div>
-            <p className="text-[10px] t-text-muted mt-1">342 active recyclers/hr during peak daily hours.</p>
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Daily Active Recyclers & Peak Hours:</div>
+            <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">12:00 PM - 3:00 PM</div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">342 active recyclers/hr during peak daily hours.</p>
           </div>
         </div>
       </div>
