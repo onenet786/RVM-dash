@@ -510,6 +510,12 @@ html[data-theme="isp-eco"] .theme-picker-menu .theme-option-btn.t-bg-sec .theme-
 }
 
 /* --- 3. SIDEBAR & NAVIGATION --- */
+aside nav button,
+aside nav button span,
+aside nav button div {
+  text-align: left !important;
+}
+
 html[data-theme="isp-eco"] aside.t-bg-surface {
   background-color: #ffffff !important;
   border-right-color: #e2e8f0 !important;
