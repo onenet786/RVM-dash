@@ -72,30 +72,30 @@ export default function ReportingHubTab() {
   const renderPaperCalibrationReport = () => (
     <div className="space-y-6 animate-fade-in">
       {/* Overview Banner */}
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-purple-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border-2 border-purple-300 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-950/40 border-l-8 border-l-purple-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-900 dark:text-purple-200 text-xs font-black uppercase tracking-wider border border-purple-300 dark:border-purple-700">
+            <span className="px-2.5 py-0.5 rounded bg-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
               PicoDrop Paper Specific
             </span>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+            <span className="text-xs font-mono font-bold text-purple-950 dark:text-purple-200 bg-white/90 dark:bg-purple-900/60 px-2.5 py-0.5 rounded border border-purple-300 dark:border-purple-700 shadow-xs">
               Load Cell Telemetry Audit
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
             1. Load Scale & Paper Calibration Report
           </h3>
-          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-purple-100 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Audit weight-based Paper intake, tare accuracy, zero-point drift tracking, paper weight anomalies, and weight-limit events.
           </p>
-          <div className="mt-2.5 text-xs text-amber-950 dark:text-amber-200 font-bold flex items-center gap-2 bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-lg w-fit shadow-xs">
+          <div className="mt-2.5 text-xs text-amber-950 dark:text-amber-200 font-bold flex items-center gap-2 bg-amber-100/95 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-lg w-fit shadow-xs">
             <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>Important: PET and Metal are not included as weight-based reward measurements in this report.</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Paper Mass Collected</div>
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 text-right shrink-0 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Total Paper Mass Collected</div>
           <div className="text-3xl font-black text-purple-700 dark:text-purple-300 mono mt-0.5">148.50 <span className="text-base text-purple-600 dark:text-purple-400 font-normal">kg</span></div>
           <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Verified Load Cell Net Intake</div>
         </div>
@@ -208,26 +208,26 @@ export default function ReportingHubTab() {
   // Report 2 Component: Fleet Efficiency & Capacity Report
   const renderFleetEfficiencyReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-cyan-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border-2 border-sky-300 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/40 border-l-8 border-l-sky-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-900 dark:text-sky-200 text-xs font-black uppercase tracking-wider border border-sky-300 dark:border-sky-700">
+            <span className="px-2.5 py-0.5 rounded bg-sky-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
               Fleet Operations
             </span>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+            <span className="text-xs font-mono font-bold text-sky-950 dark:text-sky-200 bg-white/90 dark:bg-sky-900/60 px-2.5 py-1 rounded border border-sky-300 dark:border-sky-700 shadow-xs">
               Service Response Telemetry
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
             2. Fleet Efficiency & Capacity Report
           </h3>
-          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-sky-100 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Monitor machine uptime, collection patterns, bin clearing efficiency, and device performance across RVM and PicoDrop hardware.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Average Service Turnaround</div>
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-700 text-right shrink-0 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Average Service Turnaround</div>
           <div className="text-3xl font-black text-sky-700 dark:text-cyan-300 mono mt-0.5">34.2 <span className="text-base text-sky-600 dark:text-cyan-400 font-normal">mins</span></div>
           <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">From "Limit Triggered" to "Cleared"</div>
         </div>
@@ -339,26 +339,26 @@ export default function ReportingHubTab() {
   // Report 3 Component: Material Diversion & ESG Report
   const renderESGReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-emerald-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 border-l-8 border-l-emerald-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-xs font-black uppercase tracking-wider border border-emerald-300 dark:border-emerald-700">
+            <span className="px-2.5 py-0.5 rounded bg-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-xs">
               ESG Compliance
             </span>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+            <span className="text-xs font-mono font-bold text-emerald-950 dark:text-emerald-200 bg-white/90 dark:bg-emerald-900/60 px-2.5 py-1 rounded border border-emerald-300 dark:border-emerald-700 shadow-xs">
               ISO 14064 Carbon Standard
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
             3. Material Diversion & ESG Report
           </h3>
-          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-emerald-100 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Executive and compliance reporting for environmental impact, distinguishing unit-counted materials from measured paper weight.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Estimated CO₂ Avoided</div>
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-right shrink-0 shadow-sm">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Estimated CO₂ Avoided</div>
           <div className="text-3xl font-black text-emerald-700 dark:text-emerald-400 mono mt-0.5">1,842.6 <span className="text-base text-emerald-600 dark:text-emerald-300 font-normal">kg CO₂e</span></div>
           <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Trees Conserved: ~2.5 Trees</div>
         </div>
@@ -420,28 +420,28 @@ export default function ReportingHubTab() {
   // Report 4 Component: User Loyalty & Incentive Financial Audit
   const renderFinancialAuditReport = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 border-l-4 border-l-amber-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl border-2 border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/40 border-l-8 border-l-amber-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 text-xs font-black uppercase tracking-wider border border-amber-300 dark:border-amber-700">
+            <span className="px-2.5 py-0.5 rounded bg-amber-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
               Financial Audit
             </span>
-            <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
+            <span className="text-xs font-mono font-bold text-amber-950 dark:text-amber-200 bg-white/90 dark:bg-amber-900/60 px-2.5 py-1 rounded border border-amber-300 dark:border-amber-700 shadow-xs">
               Incentive Reconciliation
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
             4. User Loyalty & Incentive Financial Audit
           </h3>
-          <p className="text-sm md:text-base font-semibold text-slate-800 dark:text-slate-200 mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-amber-100 mt-1.5 max-w-2xl leading-relaxed">
             Purpose: Reconcile distributed loyalty points against raw material intake and audit acquisition costs.
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-right shrink-0 shadow-xs">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Points Issued</div>
+        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-right shrink-0 shadow-xs">
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Total Points Issued</div>
           <div className="text-3xl font-black text-amber-700 dark:text-amber-300 mono mt-0.5">142,850 <span className="text-base text-amber-600 dark:text-amber-400 font-normal">pts</span></div>
-          <div className="text-xs text-amber-900 dark:text-amber-300 font-extrabold mt-1">Financial Liability: PKR 14,285</div>
+          <div className="text-xs text-amber-950 dark:text-amber-300 font-extrabold mt-1">Financial Liability: PKR 14,285</div>
         </div>
       </div>
 
@@ -542,32 +542,59 @@ export default function ReportingHubTab() {
           const Icon = rep.icon;
           const isSelected = activeReport === rep.id;
 
+          const themeStyles = {
+            paper_calibration: {
+              card: 'bg-purple-50/90 dark:bg-purple-950/40 border-purple-500 shadow-md ring-2 ring-purple-500/20',
+              icon: 'bg-purple-600 text-white shadow-xs',
+              badge: 'bg-purple-200/90 text-purple-950 dark:bg-purple-900/70 dark:text-purple-200 border border-purple-300 dark:border-purple-700',
+            },
+            fleet_efficiency: {
+              card: 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-500 shadow-md ring-2 ring-sky-500/20',
+              icon: 'bg-sky-600 text-white shadow-xs',
+              badge: 'bg-sky-200/90 text-sky-950 dark:bg-sky-900/70 dark:text-sky-200 border border-sky-300 dark:border-sky-700',
+            },
+            esg_diversion: {
+              card: 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/20',
+              icon: 'bg-emerald-600 text-white shadow-xs',
+              badge: 'bg-emerald-200/90 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700',
+            },
+            loyalty_audit: {
+              card: 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/20',
+              icon: 'bg-amber-600 text-white shadow-xs',
+              badge: 'bg-amber-200/90 text-amber-950 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-300 dark:border-amber-700',
+            },
+          };
+
+          const activeStyle = themeStyles[rep.id] || themeStyles.paper_calibration;
+
           return (
             <button
               key={rep.id}
               onClick={() => setActiveReport(rep.id)}
               className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                 isSelected 
-                  ? 'bg-cyan-500/20 border-cyan-400 shadow-lg shadow-cyan-950/30 ring-1 ring-cyan-400' 
-                  : 'glass-panel hover:border-white/20'
+                  ? activeStyle.card
+                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-3">
-                <div className={`p-2 rounded-xl ${isSelected ? 'bg-cyan-500 text-black' : 'bg-white/5 t-text-muted'}`}>
+                <div className={`p-2 rounded-xl transition-colors ${
+                  isSelected ? activeStyle.icon : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
-                  isSelected ? 'bg-cyan-400 text-black font-black' : 'bg-white/5 t-text-muted'
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                  isSelected ? activeStyle.badge : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
                 }`}>
                   {rep.badge}
                 </span>
               </div>
 
               <div>
-                <div className="text-xs font-black leading-tight t-text-primary">
+                <div className="text-xs font-black leading-tight text-slate-950 dark:text-white">
                   {rep.title}
                 </div>
-                <div className="text-[10px] t-text-muted mt-1 leading-snug">
+                <div className="text-[11px] text-slate-700 dark:text-slate-300 mt-1 leading-snug font-medium">
                   {rep.description}
                 </div>
               </div>
