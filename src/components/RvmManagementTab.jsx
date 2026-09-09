@@ -318,7 +318,7 @@ export default function RvmManagementTab({ currentUser }) {
                   disabled={!!editingMachine}
                   onChange={e => setMachineId(e.target.value)}
                   placeholder="e.g. RVM-001, RVM-RWP"
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm font-mono text-cyan-400 focus:outline-none focus:border-cyan-500 disabled:opacity-50"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-mono t-text-primary focus:outline-none focus:border-[#0b5d3b] disabled:opacity-50"
                   required
                 />
               </div>
@@ -332,7 +332,7 @@ export default function RvmManagementTab({ currentUser }) {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. ISP Main Entrance Unit #1"
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   required
                 />
               </div>
@@ -346,7 +346,7 @@ export default function RvmManagementTab({ currentUser }) {
                   value={location}
                   onChange={e => setLocation(e.target.value)}
                   placeholder="e.g. Sector H-8/4, Islamabad Campus"
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   required
                 />
               </div>
@@ -358,7 +358,7 @@ export default function RvmManagementTab({ currentUser }) {
                 <select
                   value={status}
                   onChange={e => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900/80 border t-border rounded-xl text-sm font-bold text-slate-200 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                 >
                   <option value="ONLINE">ONLINE (Active)</option>
                   <option value="MAINTENANCE">MAINTENANCE (Under Repair)</option>

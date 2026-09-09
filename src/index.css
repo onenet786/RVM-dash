@@ -595,16 +595,31 @@ html[data-theme="isp-eco"] .glass-panel .text-slate-400 {
 
 /* Hardcoded dark cards inside tabs (e.g. ReportingHub bg-black/40, bg-emerald-950) -> Clean light cards */
 html[data-theme="isp-eco"] .bg-black\/40,
-html[data-theme="isp-eco"] .bg-gray-800 {
+html[data-theme="isp-eco"] .bg-gray-800,
+html[data-theme="isp-eco"] [class*="bg-slate-900"],
+html[data-theme="isp-eco"] [class*="bg-slate-950"],
+html[data-theme="sleek-light"] [class*="bg-slate-900"],
+html[data-theme="sleek-light"] [class*="bg-slate-950"] {
   background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
+  border-color: #e2e8f0 !important;
   color: #1e293b !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
+/* Machine Health grid and IP capsule under ISP Eco */
+html[data-theme="isp-eco"] .glass-panel .grid.grid-cols-2.p-3 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme="isp-eco"] .glass-panel .grid.grid-cols-2.p-2\.5 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
 html[data-theme="isp-eco"] .bg-emerald-950\/20 {
   background-color: #f0fdf4 !important;
-  border: 1px solid #bbf7d0 !important;
+  border-color: #bbf7d0 !important;
 }
 
 /* BADGE RULE 1: Emerald/Green Badges -> Pale Green Background with DEEP Forest Green Text */
