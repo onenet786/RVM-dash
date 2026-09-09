@@ -532,23 +532,25 @@ export default function ReportingHubTab() {
               onClick={() => setActiveReport(rep.id)}
               className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                 isSelected 
-                  ? 'bg-cyan-500/20 border-cyan-400 shadow-lg shadow-cyan-950/30 ring-1 ring-cyan-400' 
-                  : 'glass-panel hover:border-white/20'
+                  ? 'glass-panel border-2 border-[#0b5d3b] dark:border-emerald-500 bg-[#f0f9f4]/60 dark:bg-emerald-950/20 shadow-md' 
+                  : 'glass-panel border t-border hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-3">
-                <div className={`p-2 rounded-xl ${isSelected ? 'bg-cyan-500 text-black' : 'bg-white/5 text-gray-400'}`}>
+                <div className={`p-2 rounded-xl border transition-all ${
+                  isSelected 
+                    ? 'bg-[#e6f3ec] text-[#0b5d3b] border-[#0b5d3b]/30 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-600/40' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                }`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
-                  isSelected ? 'bg-cyan-400 text-black font-black' : 'bg-white/5 t-text-muted'
-                }`}>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                   {rep.badge}
                 </span>
               </div>
 
               <div>
-                <div className={`text-xs font-black leading-tight ${isSelected ? 'text-white' : 't-text-primary'}`}>
+                <div className="text-xs font-black leading-tight t-text-primary">
                   {rep.title}
                 </div>
                 <div className="text-[10px] t-text-muted mt-1 leading-snug">
