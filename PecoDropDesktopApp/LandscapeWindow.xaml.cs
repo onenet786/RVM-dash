@@ -445,10 +445,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 OpenAdmin();
                 break;
 
-            case Key.D9:
-            case Key.NumPad9:
-                BrowseVideo();
-                break;
+            // Hotkey 9 disabled: do not open video file dialog on pressing key 9
         }
     }
 
