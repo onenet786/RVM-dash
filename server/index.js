@@ -6188,12 +6188,13 @@ app.post('/api/user/verify-qr', async (req, res) => {
 });
 
 // =============================================================================
-// DYNAMIC QR CLAIM ENGINE (WhatsApp-Web Architecture for RVM & PecoDrop)
+// DYNAMIC QR START & CLAIM HANDSHAKE ENGINE (Touchless WhatsApp-Web Architecture)
 // =============================================================================
 
 const activeClaimSessions = new Map();
+const activeStartHandshakes = new Map(); // machineId -> handshakeData
 
-// Periodic purge of expired sessions (every 30 seconds)
+// Periodic purge of expired sessions & idle handshakes (every 30 seconds)
 setInterval(() => {
   const now = Date.now();
   for (const [sessionId, session] of activeClaimSessions.entries()) {
@@ -6201,9 +6202,172 @@ setInterval(() => {
       activeClaimSessions.delete(sessionId);
     }
   }
+  for (const [machineId, handshake] of activeStartHandshakes.entries()) {
+    if (handshake.expiresAt && handshake.expiresAt < now && handshake.status !== 'STARTED') {
+      activeStartHandshakes.delete(machineId);
+    }
+  }
 }, 30000);
 
-// 1. Create a dynamic claim session from Kiosk
+// 1. Kiosk registers/refreshes its dynamic Start QR Code while idle
+app.post('/api/session/kiosk-handshake/register', async (req, res) => {
+  try {
+    const { machineId = 'RVM-001' } = req.body;
+    const cleanMachineId = String(machineId).trim();
+    const startToken = `start_${crypto.randomBytes(6).toString('hex')}`;
+    const expiresAt = Date.now() + (120 * 1000); // 2-minute lifespan
+
+    const host = req.get('host') || 'isprvm.binishaqsoft.com';
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const baseUrl = `${protocol}://${host}`;
+    const qrUrl = `${baseUrl}/claim?startToken=${encodeURIComponent(startToken)}&m=${encodeURIComponent(cleanMachineId)}`;
+
+    const handshakeData = {
+      machineId: cleanMachineId,
+      startToken,
+      qrUrl,
+      status: 'WAITING_FOR_SCAN', // WAITING_FOR_SCAN, STARTED, COMPLETED
+      user: null,
+      createdAt: Date.now(),
+      expiresAt
+    };
+
+    activeStartHandshakes.set(cleanMachineId, handshakeData);
+
+    res.json({
+      success: true,
+      machineId: cleanMachineId,
+      startToken,
+      qrUrl,
+      expiresInSeconds: 120
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Kiosk polls its Start Handshake status (<1ms in-memory query)
+app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
+  try {
+    const machineId = (req.params.machineId || '').trim();
+    const handshake = activeStartHandshakes.get(machineId);
+
+    if (!handshake) {
+      return res.json({
+        success: true,
+        status: 'IDLE',
+        message: 'No active start handshake registered'
+      });
+    }
+
+    if (Date.now() > handshake.expiresAt && handshake.status === 'WAITING_FOR_SCAN') {
+      activeStartHandshakes.delete(machineId);
+      return res.json({
+        success: true,
+        status: 'EXPIRED',
+        message: 'Start handshake token expired'
+      });
+    }
+
+    res.json({
+      success: true,
+      status: handshake.status,
+      machineId: handshake.machineId,
+      startToken: handshake.startToken,
+      user: handshake.user || null
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Mobile App or Web Claim scans Start QR and claims the kiosk session
+app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
+  try {
+    const { startToken, machineId, mobileNumber, phone, userId, fullName } = req.body;
+    const userPhone = (mobileNumber || phone || userId || '').toString().trim();
+
+    if (!startToken && !machineId) {
+      return res.status(400).json({ success: false, error: 'startToken or machineId is required' });
+    }
+    if (!userPhone) {
+      return res.status(400).json({ success: false, error: 'User mobile number is required' });
+    }
+
+    // Locate handshake by machineId or startToken
+    let targetHandshake = null;
+    let targetMachineKey = machineId;
+
+    if (machineId && activeStartHandshakes.has(machineId)) {
+      targetHandshake = activeStartHandshakes.get(machineId);
+    } else {
+      for (const [mId, h] of activeStartHandshakes.entries()) {
+        if (h.startToken === startToken) {
+          targetHandshake = h;
+          targetMachineKey = mId;
+          break;
+        }
+      }
+    }
+
+    if (!targetHandshake) {
+      return res.status(404).json({ success: false, error: 'Kiosk start session not found or expired. Please rescan.' });
+    }
+
+    if (targetHandshake.status === 'STARTED') {
+      return res.status(409).json({ success: false, error: 'Kiosk is already active in a session.' });
+    }
+
+    // Query user profile for points and accurate display name
+    let cleanName = fullName || userPhone;
+    let currentBalance = 0;
+    const pool = getPgPool();
+    if (pool) {
+      try {
+        const uRes = await pool.query(`
+          SELECT user_id, username, full_name, points_balance, mobile 
+          FROM users 
+          WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
+          LIMIT 1;
+        `, [userPhone]);
+        if (uRes.rows.length > 0) {
+          const row = uRes.rows[0];
+          cleanName = row.full_name || row.username || cleanName;
+          currentBalance = Number(row.points_balance) || 0;
+        }
+      } catch (dbErr) {}
+    }
+
+    targetHandshake.status = 'STARTED';
+    targetHandshake.user = {
+      phone: userPhone,
+      fullName: cleanName,
+      pointsBalance: currentBalance,
+      startedAt: new Date().toISOString()
+    };
+    targetHandshake.expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes max session
+
+    res.json({
+      success: true,
+      message: `Welcome ${cleanName}! Kiosk ${targetHandshake.machineId} is now starting.`,
+      machineId: targetHandshake.machineId,
+      user: targetHandshake.user
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Kiosk resets handshake back to IDLE when session ends or is cancelled
+app.post('/api/session/kiosk-handshake/reset', (req, res) => {
+  const { machineId } = req.body;
+  if (machineId && activeStartHandshakes.has(machineId)) {
+    activeStartHandshakes.delete(machineId);
+  }
+  res.json({ success: true, message: 'Handshake reset to IDLE' });
+});
+
+// 5. Create a dynamic claim session from Kiosk (Post-Session Claim)
 app.post('/api/session/create-claim', async (req, res) => {
   try {
     const {
@@ -6471,18 +6635,20 @@ app.post('/api/session/claim-points', async (req, res) => {
   }
 });
 
-// 4. Web Claim Mobile Page (Opens directly when scanned via smartphone camera)
+// 4. Web Claim & Start Mobile Page (Opens directly when scanned via smartphone camera)
 app.get('/claim', (req, res) => {
+  const startToken = req.query.startToken || '';
   const sessionId = req.query.session || '';
   const points = req.query.pts || '0';
   const machine = req.query.m || 'RVM-001';
+  const isStartMode = Boolean(startToken && !sessionId);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PecoDrop • Claim Eco Points</title>
+  <title>PecoDrop • ${isStartMode ? 'Start Recycling' : 'Claim Eco Points'}</title>
   <style>
     :root {
       --brand-dark: #073B28;
@@ -6522,14 +6688,14 @@ app.get('/claim', (req, res) => {
 <body>
   <div class="card">
     <div id="claimFormSection">
-      <div class="badge"><span class="badge-dot"></span> <span>REVERSE VENDING MACHINE</span></div>
-      <h1 class="title">Claim Eco Points</h1>
-      <p class="subtitle">ری سائیکلنگ انعامات حاصل کریں</p>
+      <div class="badge"><span class="badge-dot"></span> <span>REVERSE VENDING MACHINE • ${machine}</span></div>
+      <h1 class="title">${isStartMode ? 'Start Recycling' : 'Claim Eco Points'}</h1>
+      <p class="subtitle">${isStartMode ? 'مشین شروع کریں اور انعامات حاصل کریں' : 'ری سائیکلنگ انعامات حاصل کریں'}</p>
 
       <div class="reward-box">
-        <div class="points-val">+${points}</div>
-        <div class="points-lbl">ECO POINTS EARNED</div>
-        <div class="machine-info">Machine: ${machine} • Session: ${sessionId.slice(-8)}</div>
+        <div class="points-val">${isStartMode ? 'READY' : '+' + points}</div>
+        <div class="points-lbl">${isStartMode ? 'TOUCHLESS QR ACTIVATION' : 'ECO POINTS EARNED'}</div>
+        <div class="machine-info">Machine: ${machine} • ${isStartMode ? 'Scan to Start' : 'Session: ' + sessionId.slice(-8)}</div>
       </div>
 
       <div class="input-group">
@@ -6537,32 +6703,74 @@ app.get('/claim', (req, res) => {
         <input type="tel" id="phoneInput" class="phone-input" placeholder="0300 1234567" autocomplete="tel" maxlength="15" />
       </div>
 
-      <button id="claimBtn" class="btn" onclick="submitClaim()">
-        <span>CLAIM NOW • پوائنٹس کلیم کریں</span>
+      <button id="claimBtn" class="btn" onclick="${isStartMode ? 'submitStart()' : 'submitClaim()'}">
+        <span>${isStartMode ? 'START KIOSK NOW • مشین شروع کریں' : 'CLAIM NOW • پوائنٹس کلیم کریں'}</span>
       </button>
 
-      <p class="footer-note">Points will be credited instantly to your eco wallet and shown on the kiosk screen.</p>
+      <p class="footer-note">${isStartMode ? 'Once started, kiosk intake door will unlock. Items deposited will link directly to your wallet.' : 'Points will be credited instantly to your eco wallet and shown on the kiosk screen.'}</p>
     </div>
 
     <div id="successSection" class="success-panel">
-      <div class="success-icon">🎉</div>
-      <div class="success-title">Points Claimed!</div>
-      <p id="successMsg" class="success-msg">Your eco wallet has been credited.</p>
+      <div class="success-icon">${isStartMode ? '♻️' : '🎉'}</div>
+      <div class="success-title">${isStartMode ? 'Kiosk Started!' : 'Points Claimed!'}</div>
+      <p id="successMsg" class="success-msg">${isStartMode ? 'The machine intake door is now open. Drop your bottles and cans!' : 'Your eco wallet has been credited.'}</p>
       <div class="reward-box" style="margin-bottom: 0;">
-        <div id="creditedPts" class="points-val">+${points}</div>
-        <div class="points-lbl">ADDED TO YOUR WALLET</div>
+        <div id="creditedPts" class="points-val">${isStartMode ? 'ACTIVE' : '+' + points}</div>
+        <div class="points-lbl">${isStartMode ? 'INSERT CONTAINERS NOW' : 'ADDED TO YOUR WALLET'}</div>
       </div>
     </div>
   </div>
 
   <script>
+    const isStartMode = ${isStartMode ? 'true' : 'false'};
+    const startToken = "${startToken}";
     const sessionId = "${sessionId}";
+    const machine = "${machine}";
     const defaultPoints = "${points}";
 
-    // Auto-fill phone from previous claims
+    // Auto-fill phone from previous sessions
     const savedPhone = localStorage.getItem('peco_saved_phone');
     if (savedPhone) {
       document.getElementById('phoneInput').value = savedPhone;
+    }
+
+    async function submitStart() {
+      const phoneInput = document.getElementById('phoneInput');
+      const btn = document.getElementById('claimBtn');
+      const phone = phoneInput.value.trim();
+
+      if (!phone || phone.length < 9) {
+        alert('Please enter a valid mobile number (e.g. 03001234567)');
+        phoneInput.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Starting Kiosk...';
+
+      try {
+        const resp = await fetch('/api/session/kiosk-handshake/claim-start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ startToken: startToken, machineId: machine, mobileNumber: phone })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+          localStorage.setItem('peco_saved_phone', phone);
+          document.getElementById('claimFormSection').style.display = 'none';
+          document.getElementById('successSection').style.display = 'block';
+          document.getElementById('successMsg').innerText = data.message || 'Kiosk started! Please insert your containers.';
+        } else {
+          alert('Error: ' + (data.error || 'Could not start kiosk session.'));
+          btn.disabled = false;
+          btn.innerText = 'START KIOSK NOW • مشین شروع کریں';
+        }
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+        btn.disabled = false;
+        btn.innerText = 'START KIOSK NOW • مشین شروع کریں';
+      }
     }
 
     async function submitClaim() {

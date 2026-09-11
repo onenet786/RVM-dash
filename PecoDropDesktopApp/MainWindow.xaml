@@ -101,8 +101,9 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Row 0: Top Header -->
                         <RowDefinition Height="Auto"/> <!-- Row 1: Hardware Status Card Bar -->
-                        <RowDefinition Height="*"/>    <!-- Row 2: Center Section (Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers) -->
-                        <RowDefinition Height="Auto"/> <!-- Row 3: Bottom Cards (Side-by-Side: Your Environmental Impact & Your Reward Balance - Same Height!) -->
+                        <RowDefinition Height="Auto"/> <!-- Row 2: User Greeting Banner (Active Session) -->
+                        <RowDefinition Height="*"/>    <!-- Row 3: Center Section (Left: Insert Bottle + Live Breakdown; Right: How-To + Top 5 Recyclers) -->
+                        <RowDefinition Height="Auto"/> <!-- Row 4: Bottom Cards (Side-by-Side: Your Environmental Impact & Your Reward Balance - Same Height!) -->
                     </Grid.RowDefinitions>
 
                     <!-- ROW 0: TOP HEADER BAR -->
@@ -268,8 +269,19 @@
                         </Grid>
                     </Border>
 
-                    <!-- ROW 2: CENTER SECTION (LEFT: INSERT BOTTLE + LIVE BREAKDOWN; RIGHT: HOW-TO + TOP 5 RECYCLERS) -->
-                    <Grid Grid.Row="2" Margin="0,0,0,8">
+                    <!-- ROW 2: ACTIVE AUTHENTICATED USER GREETING BANNER -->
+                    <Border x:Name="UserGreetingBanner" Grid.Row="2" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" CornerRadius="10" Padding="14,6" HorizontalAlignment="Center" Margin="0,0,0,8" Visibility="Collapsed" Effect="{StaticResource CardShadow}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="👤 " FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="GreetingUserNameText" Text="Eco Citizen" FontSize="13.5" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <Border Background="#166534" CornerRadius="6" Padding="8,2" VerticalAlignment="Center">
+                                <TextBlock x:Name="GreetingPointsBalanceText" Text="Balance: 0 pts" FontSize="11" FontWeight="Bold" Foreground="#FDE047"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ROW 3: CENTER SECTION (LEFT: INSERT BOTTLE + LIVE BREAKDOWN; RIGHT: HOW-TO + TOP 5 RECYCLERS) -->
+                    <Grid Grid.Row="3" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/> <!-- Left: Insert Bottle + Live Container Breakdown -->
                             <ColumnDefinition Width="14"/>
@@ -295,29 +307,32 @@
                                         <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                             <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <Ellipse Width="310" Height="310" Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="4 4"/>
-                                                    <Ellipse Width="292" Height="292" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.8"/>
-                                                    <Ellipse Width="270" Height="270" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.5"/>
+                                                    <Ellipse Width="340" Height="340" Stroke="#CBD5E1" StrokeThickness="1.5" StrokeDashArray="4 4"/>
+                                                    <Ellipse Width="320" Height="320" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.8"/>
+                                                    <Ellipse Width="298" Height="298" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.5"/>
 
                                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Canvas Width="80" Height="46" Margin="0,0,0,6">
-                                                            <Path Data="M 12 12 L 12 5 L 18 5 L 18 12 L 23 17 L 23 41 L 5 41 L 5 17 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
-                                                            <Rectangle Canvas.Left="10" Canvas.Top="2.5" Width="11" Height="3" Stroke="#073B28" StrokeThickness="1.6" Fill="#073B28"/>
-                                                            <Path Data="M 28 20 L 42 20 L 42 41 L 28 41 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
-                                                            <Ellipse Canvas.Left="28" Canvas.Top="17.5" Width="15" Height="4.8" Stroke="#073B28" StrokeThickness="1.6" Fill="Transparent"/>
-                                                            <Path Data="M 48 15 L 62 15 L 59 41 L 50 41 Z" Stroke="#073B28" StrokeThickness="2.6" Fill="Transparent"/>
-                                                        </Canvas>
+                                                        <!-- Dynamic Touchless QR Start Card -->
+                                                        <Border x:Name="StartQrCard" Margin="0,0,0,6" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="12" Padding="5" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
+                                                            <StackPanel HorizontalAlignment="Center">
+                                                                <Image x:Name="StartQrImage" Width="120" Height="120" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3,0,0">
+                                                                    <TextBlock Text="📱 SCAN TO START • " FontSize="10" FontWeight="Black" Foreground="#15803D"/>
+                                                                    <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#15803D"/>
+                                                                </StackPanel>
+                                                            </StackPanel>
+                                                        </Border>
 
                                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                                            <TextBlock Text="INSERT  •  " FontSize="21" FontWeight="Black" Foreground="#073B28"/>
-                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="22.5" FontWeight="Black" Foreground="#073B28"/>
+                                                            <TextBlock Text="INSERT  •  " FontSize="18" FontWeight="Black" Foreground="#073B28"/>
+                                                            <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="19.5" FontWeight="Black" Foreground="#073B28"/>
                                                         </StackPanel>
-                                                        <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,8"/>
+                                                        <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="11" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,6"/>
                                                         
-                                                        <Border Background="#073B28" CornerRadius="16" Padding="20,6" HorizontalAlignment="Center">
+                                                        <Border Background="#073B28" CornerRadius="16" Padding="16,5" HorizontalAlignment="Center">
                                                             <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="TO START • " FontSize="12.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                                <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="OR PRESS [0] TO START • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                                <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </StackPanel>
@@ -785,8 +800,8 @@
                         </Grid>
                     </Grid>
 
-                    <!-- ROW 3: BOTTOM IMPACT & REWARD BALANCE CARDS (EXACT SAME WIDTH & ALIGNMENT AS ROW 2) -->
-                    <Grid Grid.Row="3" Margin="0,0,0,8" Height="260">
+                    <!-- ROW 4: BOTTOM IMPACT & REWARD BALANCE CARDS (EXACT SAME WIDTH & ALIGNMENT AS ROW 3) -->
+                    <Grid Grid.Row="4" Margin="0,0,0,8" Height="260">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/> <!-- Left: Your Environmental Impact Card (Exact Same Width as Live Breakdown Above) -->
                             <ColumnDefinition Width="14"/>

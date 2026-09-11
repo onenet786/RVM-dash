@@ -50,10 +50,105 @@ public class ClaimedUserInfo
     public string? ClaimedAt { get; set; }
 }
 
+public class KioskStartHandshakeResponse
+{
+    public bool Success { get; set; }
+    public string MachineId { get; set; } = string.Empty;
+    public string StartToken { get; set; } = string.Empty;
+    public string QrUrl { get; set; } = string.Empty;
+    public int ExpiresInSeconds { get; set; } = 120;
+}
+
+public class KioskStartStatusResponse
+{
+    public bool Success { get; set; }
+    public string Status { get; set; } = "IDLE"; // IDLE, WAITING_FOR_SCAN, STARTED, EXPIRED
+    public string MachineId { get; set; } = string.Empty;
+    public string StartToken { get; set; } = string.Empty;
+    public KioskUserInfo? User { get; set; }
+    public string? MobileNumber => User?.Phone;
+}
+
+public class KioskUserInfo
+{
+    public string Phone { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public int PointsBalance { get; set; }
+    public string? StartedAt { get; set; }
+
+    public string Username => FullName;
+    public int Balance => PointsBalance;
+}
+
 public static class CentralSyncService
 {
     private static readonly HttpClient _httpClient = new HttpClient();
     public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
+
+    /// <summary>
+    /// Registers a dynamic Touchless QR Start session for the Kiosk while idle.
+    /// </summary>
+    public static async Task<KioskStartHandshakeResponse?> RegisterKioskStartHandshakeAsync(string machineId)
+    {
+        try
+        {
+            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId };
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/register";
+            HttpResponseMessage response = await _httpClient.PostAsync(url, content);
+            if (response.IsSuccessStatusCode)
+            {
+                string respJson = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return System.Text.Json.JsonSerializer.Deserialize<KioskStartHandshakeResponse>(respJson, options);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Kiosk Handshake Register Error] {ex.Message}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Polls Central API to check if a mobile citizen has scanned the Kiosk Start QR Code.
+    /// </summary>
+    public static async Task<KioskStartStatusResponse?> CheckKioskStartStatusAsync(string machineId)
+    {
+        try
+        {
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/status/{Uri.EscapeDataString(machineId)}";
+            HttpResponseMessage response = await _httpClient.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                string respJson = await response.Content.ReadAsStringAsync();
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return System.Text.Json.JsonSerializer.Deserialize<KioskStartStatusResponse>(respJson, options);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Kiosk Handshake Status Error] {ex.Message}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Resets the Kiosk Start Handshake back to IDLE after session completion or cancellation.
+    /// </summary>
+    public static async Task ResetKioskStartHandshakeAsync(string machineId)
+    {
+        try
+        {
+            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId };
+            string json = System.Text.Json.JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync($"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/reset", content);
+        }
+        catch {}
+    }
 
     /// <summary>
     /// Registers a pending claim session on Central API for dynamic WhatsApp-style QR scanning.

@@ -85,6 +85,21 @@ export default function QrCode({ navigation }) {
     }
   };
 
+  // Helper to extract startToken from raw scanned URL or string
+  const parseStartToken = (scannedText) => {
+    if (!scannedText) return '';
+    try {
+      if (scannedText.includes('startToken=')) {
+        const urlObj = new URL(scannedText);
+        return urlObj.searchParams.get('startToken') || '';
+      }
+    } catch {
+      const match = scannedText.match(/[?&]startToken=([^&]+)/);
+      if (match && match[1]) return decodeURIComponent(match[1]);
+    }
+    return '';
+  };
+
   // Helper to extract session ID from raw scanned URL or string
   const parseSessionId = (scannedText) => {
     if (!scannedText) return '';
@@ -101,8 +116,48 @@ export default function QrCode({ navigation }) {
     return scannedText.trim();
   };
 
+  const handleStartKiosk = async (startToken) => {
+    const phoneToUse = manualPhone.trim() || currentUser?.mobile || currentUser?.phone || currentUser?.username;
+    if (!phoneToUse) {
+      Alert.alert('Phone Number Required', 'Please enter your mobile phone number or sign in to start recycling.');
+      return;
+    }
+
+    setClaiming(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/session/kiosk-handshake/claim-start`, {
+        startToken,
+        mobileNumber: phoneToUse,
+        fullName: currentUser?.fullName || currentUser?.username || 'Eco Citizen'
+      }, { timeout: 10000 });
+
+      if (res.data && res.data.success) {
+        setShowScannerModal(false);
+        setClaimSuccess({
+          points: 0,
+          newBalance: res.data.user?.balance ?? null,
+          message: '🚀 Kiosk Started! The machine is now ready. Simply insert your bottles and cans. Your points will be credited automatically when finished!'
+        });
+        ToastAndroid?.show('🚀 Kiosk Started! Insert containers now.', ToastAndroid.LONG);
+      } else {
+        Alert.alert('Activation Failed', res.data?.error || 'Could not start kiosk session. The QR code may be expired.');
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.error || err.message || 'Network error activating kiosk.';
+      Alert.alert('Activation Error', errMsg);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   const handleClaim = async (targetSessionId) => {
     const rawId = targetSessionId || sessionInput;
+    const token = parseStartToken(rawId);
+    if (token) {
+      handleStartKiosk(token);
+      return;
+    }
+
     const cleanSessionId = parseSessionId(rawId);
 
     if (!cleanSessionId) {

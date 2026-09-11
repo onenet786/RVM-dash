@@ -60,6 +60,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private int adPlaylistIndex;
     private string? currentPlayingAdPath;
 
+    // -------------------------------------------------------------
+    // DYNAMIC TOUCHLESS QR KIOSK START HANDSHAKE
+    // -------------------------------------------------------------
+    private readonly DispatcherTimer _startHandshakeTimer = new();
+    private string? _currentStartToken;
+    private DateTime _startTokenExpiresAt = DateTime.MinValue;
+    private bool _isRegisteringHandshake = false;
+
     public LandscapeWindow()
     {
         InitializeComponent();
@@ -103,6 +111,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         apiCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
         apiCheckTimer.Tick += async (s, args) => await CheckCentralApiConnectionAsync();
         apiCheckTimer.Start();
+
+        _startHandshakeTimer.Interval = TimeSpan.FromMilliseconds(1500);
+        _startHandshakeTimer.Tick += StartHandshakeTimer_Tick;
+        _startHandshakeTimer.Start();
+        _ = RegisterStartHandshakeAsync();
     }
 
     private void OnNetworkStatusChanged(NetworkStatus status, string? error)
@@ -192,6 +205,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void LandscapeWindow_Closed(object? sender, EventArgs e)
     {
+        _startHandshakeTimer.Stop();
         DisconnectHardwareOnExit();
     }
 
@@ -926,6 +940,85 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
     }
 
+    private async Task RegisterStartHandshakeAsync()
+    {
+        if (machineStarted || _isRegisteringHandshake) return;
+        _isRegisteringHandshake = true;
+        try
+        {
+            var resp = await CentralSyncService.RegisterKioskStartHandshakeAsync(settings.MachineId);
+            if (resp != null && resp.Success && !string.IsNullOrWhiteSpace(resp.QrUrl))
+            {
+                _currentStartToken = resp.StartToken;
+                _startTokenExpiresAt = DateTime.UtcNow.AddSeconds(110);
+                var qrBmp = QrCodeGenerator.GenerateQrCode(resp.QrUrl, 6);
+                if (StartQrImage != null)
+                {
+                    StartQrImage.Source = qrBmp;
+                }
+                if (StartQrCard != null)
+                {
+                    StartQrCard.Visibility = Visibility.Visible;
+                }
+                LogTelemetry($"[TOUCHLESS 📱] Dynamic start QR generated for kiosk {settings.MachineId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[TOUCHLESS WARN] QR registration: {ex.Message}");
+        }
+        finally
+        {
+            _isRegisteringHandshake = false;
+        }
+    }
+
+    private async void StartHandshakeTimer_Tick(object? sender, EventArgs e)
+    {
+        if (machineStarted)
+        {
+            _startHandshakeTimer.Stop();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_currentStartToken) || DateTime.UtcNow > _startTokenExpiresAt)
+        {
+            await RegisterStartHandshakeAsync();
+            return;
+        }
+
+        try
+        {
+            var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+            if (statusResp != null && statusResp.Success)
+            {
+                if (statusResp.Status == "STARTED" && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
+                {
+                    _startHandshakeTimer.Stop();
+                    activeUserMobile = statusResp.MobileNumber;
+
+                    string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? "Eco Citizen";
+                    int balance = statusResp.User?.Balance ?? 0;
+
+                    if (GreetingUserNameText != null) GreetingUserNameText.Text = userName;
+                    if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
+                    if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
+
+                    LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
+                    StartMachine();
+                }
+                else if (statusResp.Status == "EXPIRED")
+                {
+                    await RegisterStartHandshakeAsync();
+                }
+            }
+        }
+        catch
+        {
+            // Transient network hiccups ignored in poll
+        }
+    }
+
     public void StartMachine(bool forceSimulator = false)
     {
         if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
@@ -948,6 +1041,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
+        _startHandshakeTimer.Stop();
+        if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
+        {
+            UserGreetingBanner.Visibility = Visibility.Collapsed;
+        }
+
         StatusText.Text = (IsDemoMode || !serial.IsConnected) ? "Machine Started (Demo Mode)" : "Machine Started";
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = "Insert container • (Or use Demo Testing Panel)";
@@ -966,6 +1065,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = false;
         scanTimer.Stop();
+        activeUserMobile = null;
+        if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
+        _ = RegisterStartHandshakeAsync();
+        if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+
         StatusText.Text = "Ready";
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = "• Insert item";
@@ -1509,33 +1614,55 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         int canCount = cSmall + cMed + cLg;
         int paperCount = tpSmall + tpMed + tpLg;
 
-        var walletWindow = new WalletPhoneWindow(
-            totalItems,
-            totalPoints,
-            settings.MachineId,
-            currentSessionId,
-            plasticCount,
-            canCount,
-            paperCount)
-        {
-            Owner = this
-        };
+        string phoneNumber;
+        int userRating = 5;
+        string userFeedback = "";
+        bool feedbackSubmitted = false;
 
-        if (walletWindow.ShowDialog() is not true || string.IsNullOrWhiteSpace(walletWindow.PhoneNumber))
+        if (!string.IsNullOrWhiteSpace(activeUserMobile))
         {
-            StopMachine();
-            StatusText.Text = "Session closed without claiming";
-            StatusText.Foreground = Brushes.SlateGray;
-            BottleInfoText.Text = "Session ended without claiming points.";
-            return;
+            // Touchless flow: Citizen scanned QR to authenticate upfront!
+            phoneNumber = activeUserMobile;
+            var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
+            {
+                Owner = this
+            };
+            ratingWindow.ShowDialog();
+            userRating = ratingWindow.Rating;
+            userFeedback = ratingWindow.FeedbackText;
+            feedbackSubmitted = ratingWindow.FeedbackSubmitted;
+            LogTelemetry($"[TOUCHLESS 🚀] Auto-claiming session for QR user: {phoneNumber} (+{currentTotalPoints} pts)");
         }
+        else
+        {
+            // Manual Keypad flow (Key 0 or Guest)
+            var walletWindow = new WalletPhoneWindow(
+                totalItems,
+                totalPoints,
+                settings.MachineId,
+                currentSessionId,
+                plasticCount,
+                canCount,
+                paperCount)
+            {
+                Owner = this
+            };
 
-        string phoneNumber = walletWindow.PhoneNumber;
-        int userRating = walletWindow.Rating;
-        string userFeedback = walletWindow.FeedbackText;
-        bool feedbackSubmitted = walletWindow.FeedbackSubmitted;
+            if (walletWindow.ShowDialog() is not true || string.IsNullOrWhiteSpace(walletWindow.PhoneNumber))
+            {
+                StopMachine();
+                StatusText.Text = "Session closed without claiming";
+                StatusText.Foreground = Brushes.SlateGray;
+                BottleInfoText.Text = "Session ended without claiming points.";
+                return;
+            }
 
-        activeUserMobile = phoneNumber;
+            phoneNumber = walletWindow.PhoneNumber;
+            userRating = walletWindow.Rating;
+            userFeedback = walletWindow.FeedbackText;
+            feedbackSubmitted = walletWindow.FeedbackSubmitted;
+            activeUserMobile = phoneNumber;
+        }
 
         // 1. Credit Local SQL Database if available
         if (localDbOk)
@@ -1634,6 +1761,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     public void ResetSession()
     {
         activeUserMobile = null;
+        if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
+        _ = RegisterStartHandshakeAsync();
+        if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+
         sessionId = Guid.NewGuid();
         totalItems = totalPoints = plasticSmallCount = plasticMediumCount = plasticLargeCount =
             canSmallCount = canMediumCount = canLargeCount = tetraPakSmallCount = tetraPakMediumCount = tetraPakLargeCount = rejectedCount = 0;

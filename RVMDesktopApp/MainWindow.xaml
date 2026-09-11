@@ -273,26 +273,27 @@
                                                 <Ellipse Width="368" Height="368" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.8"/>
 
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <Viewbox Width="110" Height="62" Margin="0,0,0,10">
-                                                        <Canvas Width="105" Height="60">
-                                                            <Path Data="M 16 16 L 16 7 L 24 7 L 24 16 L 31 22 L 31 54 L 7 54 L 7 22 Z" Stroke="#073B28" StrokeThickness="3" Fill="Transparent"/>
-                                                            <Rectangle Canvas.Left="13" Canvas.Top="3.5" Width="15" Height="4" Stroke="#073B28" StrokeThickness="1.8" Fill="#073B28"/>
-                                                            <Path Data="M 38 26 L 56 26 L 56 54 L 38 54 Z" Stroke="#073B28" StrokeThickness="3" Fill="Transparent"/>
-                                                            <Ellipse Canvas.Left="38" Canvas.Top="22.5" Width="19" Height="6.2" Stroke="#073B28" StrokeThickness="1.8" Fill="Transparent"/>
-                                                            <Path Data="M 64 20 L 83 20 L 78 54 L 66 54 Z" Stroke="#073B28" StrokeThickness="3" Fill="Transparent"/>
-                                                        </Canvas>
-                                                    </Viewbox>
+                                                    <!-- Dynamic Touchless QR Start Card -->
+                                                    <Border x:Name="StartQrCard" Margin="0,0,0,8" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="6" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <Image x:Name="StartQrImage" Width="145" Height="145" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                                                <TextBlock Text="📱 SCAN TO START • " FontSize="11" FontWeight="Black" Foreground="#15803D"/>
+                                                                <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
 
-                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                                                        <TextBlock Text="INSERT  •  " FontSize="28" FontWeight="Black" Foreground="#073B28"/>
-                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="30" FontWeight="Black" Foreground="#073B28"/>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                                        <TextBlock Text="INSERT  •  " FontSize="22" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#073B28"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="15" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,10"/>
+                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,8"/>
                                                     
-                                                    <Border Background="#073B28" CornerRadius="20" Padding="28,8" HorizontalAlignment="Center">
+                                                    <Border Background="#073B28" CornerRadius="18" Padding="22,6" HorizontalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="TO START • " FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="17.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="OR PRESS [0] TO START • " FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
@@ -329,6 +330,17 @@
                                                         <TextBlock Text="PLEASE INSERT BOTTLE / CAN / UBC" FontSize="26" FontWeight="Black" Foreground="#4ADE80" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                     <TextBlock Text="برائے مہربانی بوتل، کین یا یو بی سی اندر داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="23" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+
+                                                    <!-- Active Authenticated User Greeting Badge -->
+                                                    <Border x:Name="UserGreetingBanner" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" CornerRadius="10" Padding="14,5" HorizontalAlignment="Center" Margin="0,5,0,0" Visibility="Collapsed">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="👤 " FontSize="13" VerticalAlignment="Center"/>
+                                                            <TextBlock x:Name="GreetingUserNameText" Text="Eco Citizen" FontSize="13.5" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                            <Border Background="#166534" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
+                                                                <TextBlock x:Name="GreetingPointsBalanceText" Text="Balance: 0 pts" FontSize="11" FontWeight="Bold" Foreground="#FDE047"/>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Border>
                                                 </StackPanel>
 
                                                 <!-- Center: Visual Guide & Target Deposit Port -->

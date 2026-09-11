@@ -236,6 +236,17 @@
                     </Grid>
                 </Border>
 
+                <!-- ACTIVE AUTHENTICATED USER GREETING BANNER -->
+                <Border x:Name="UserGreetingBanner" Grid.Row="1" VerticalAlignment="Bottom" Margin="0,0,0,-8" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" CornerRadius="8" Padding="12,3" HorizontalAlignment="Center" Visibility="Collapsed" Effect="{StaticResource CardShadow}" Panel.ZIndex="10">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="👤 " FontSize="11" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="GreetingUserNameText" Text="Eco Citizen" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Border Background="#166534" CornerRadius="5" Padding="6,1.5" VerticalAlignment="Center">
+                            <TextBlock x:Name="GreetingPointsBalanceText" Text="Balance: 0 pts" FontSize="10" FontWeight="Bold" Foreground="#FDE047"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
                 <!-- ROW 2: INSTRUCTIONAL VIDEO / DEPOSIT CENTERPIECE (EQUAL 1/3 HEIGHT) -->
                 <Border Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" CornerRadius="8" ClipToBounds="True" Background="#000000" BorderBrush="#E2EAE0" BorderThickness="1.2" Margin="0,0,0,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
                     <Grid>
@@ -244,19 +255,30 @@
                             <Button Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                 <Border Background="#FBFDF9" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                     <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <Ellipse Width="195" Height="195" Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
-                                        <Ellipse Width="180" Height="180" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.5"/>
-                                        <Ellipse Width="164" Height="164" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.2"/>
+                                        <Ellipse Width="240" Height="240" Stroke="#CBD5E1" StrokeThickness="1.2" StrokeDashArray="3 3"/>
+                                        <Ellipse Width="222" Height="222" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.5"/>
+                                        <Ellipse Width="204" Height="204" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.2"/>
                                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <!-- Dynamic Touchless QR Start Card -->
+                                            <Border x:Name="StartQrCard" Margin="0,0,0,4" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.5" CornerRadius="10" Padding="4" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <Image x:Name="StartQrImage" Width="92" Height="92" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                                                        <TextBlock Text="📱 SCAN TO START • " FontSize="9" FontWeight="Black" Foreground="#15803D"/>
+                                                        <TextBlock Text="اسکین کریں" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Bold" Foreground="#15803D"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <TextBlock Text="INSERT • " FontSize="14.5" FontWeight="Black" Foreground="#073B28"/>
-                                                <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="15" FontWeight="Black" Foreground="#073B28"/>
+                                                <TextBlock Text="INSERT • " FontSize="13" FontWeight="Black" Foreground="#073B28"/>
+                                                <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="14" FontWeight="Black" Foreground="#073B28"/>
                                             </StackPanel>
-                                            <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="9" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,5"/>
-                                            <Border Background="#073B28" CornerRadius="10" Padding="16,4" HorizontalAlignment="Center">
+                                            <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="8.5" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-1,0,4"/>
+                                            <Border Background="#073B28" CornerRadius="10" Padding="12,3" HorizontalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="START • " FontSize="10" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                    <TextBlock Text="شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    <TextBlock Text="OR PRESS [0] TO START • " FontSize="9" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                    <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="Black" Foreground="#FFFFFF"/>
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
