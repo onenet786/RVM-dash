@@ -19,9 +19,9 @@ public static class HeartbeatService
     private static Timer? _timer;
     private static string _machineId = "RVM-001";
     private static string _serverUrl = "https://isprvm.binishaqsoft.com";
-    private static string _location = "Islamabad Campus";
-    private static double? _latitude;
-    private static double? _longitude;
+    private static string _location = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
+    private static double? _latitude = 31.5826;
+    private static double? _longitude = 74.3276;
     private static bool _geoAttempted;
 
     public static NetworkStatus CurrentStatus { get; private set; } = NetworkStatus.Checking;
@@ -33,11 +33,11 @@ public static class HeartbeatService
         _machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId.Trim();
         _serverUrl = string.IsNullOrWhiteSpace(serverUrl) ? "https://isprvm.binishaqsoft.com" : serverUrl.Trim();
         if (!string.IsNullOrWhiteSpace(location)) _location = location.Trim();
-        _latitude = latitude;
-        _longitude = longitude;
+        if (latitude != null) _latitude = latitude;
+        if (longitude != null) _longitude = longitude;
 
-        // Auto-detect coordinates asynchronously if not specified
-        if ((_latitude == null || _longitude == null) && !_geoAttempted)
+        // Auto-detect coordinates asynchronously if not specified or incomplete
+        if ((_latitude == null || _longitude == null || _location == "Islamabad Campus" || _location == "Lahore, Pakistan") && !_geoAttempted)
         {
             _ = Task.Run(async () =>
             {
@@ -47,7 +47,7 @@ public static class HeartbeatService
                 {
                     _latitude ??= geo.Latitude;
                     _longitude ??= geo.Longitude;
-                    if (string.IsNullOrWhiteSpace(_location) || _location == "Islamabad Campus")
+                    if (string.IsNullOrWhiteSpace(_location) || _location == "Islamabad Campus" || _location == "Lahore, Pakistan")
                     {
                         _location = geo.FormattedLocation;
                     }

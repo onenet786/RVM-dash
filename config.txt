@@ -21,7 +21,7 @@ ModelPath=Models\rvm_classifier.onnx
 CaptureDirectory=Captures
 MachineId = RVM-RWP
 CentralApiUrl = https://isprvm.binishaqsoft.com
-Location = Rawalpindi Saddar Branch
-Latitude = 33.5973
-Longitude = 73.0479
+Location = Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan
+Latitude = 31.5826
+Longitude = 74.3276
 

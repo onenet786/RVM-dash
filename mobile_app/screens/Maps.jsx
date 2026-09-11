@@ -20,7 +20,26 @@ import { API_BASE_URL } from '../config/api';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.82;
 
+const formatGpsCoordinates = (lat, lng) => {
+  if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) return '';
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  const latDir = latNum >= 0 ? 'N' : 'S';
+  const lngDir = lngNum >= 0 ? 'E' : 'W';
+  return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
+};
+
 const DEFAULT_MACHINES = [
+  {
+    machineId: 'RVM-007',
+    name: 'Walled City Kiosk (RVM-007)',
+    location: 'Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan',
+    latitude: 31.5826,
+    longitude: 74.3276,
+    status: 'ONLINE',
+    isOnline: true,
+    binFillPercentage: 0,
+  },
   {
     machineId: 'peco001',
     name: 'Main Recycling Kiosk (peco001)',
@@ -231,6 +250,13 @@ const Maps = () => {
                     {m.location || 'Location Pending'}
                   </Text>
                 </View>
+
+                {m.latitude != null && m.longitude != null && (
+                  <View style={styles.coordBadge}>
+                    <MaterialCommunityIcons name="crosshairs-gps" size={13} color="#0284C7" />
+                    <Text style={styles.coordText}>{formatGpsCoordinates(m.latitude, m.longitude)}</Text>
+                  </View>
+                )}
 
                 <View style={styles.cardFooter}>
                   <View style={styles.fillInfo}>
@@ -454,6 +480,25 @@ const styles = StyleSheet.create({
     color: '#64748B',
     flex: 1,
     lineHeight: 16,
+  },
+  coordBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    gap: 4,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  coordText: {
+    fontSize: 11,
+    color: '#0284C7',
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   cardFooter: {
     flexDirection: 'row',

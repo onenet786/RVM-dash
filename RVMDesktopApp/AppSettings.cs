@@ -17,9 +17,9 @@ public sealed class AppSettings
     public string InstructionVideoFolder { get; init; } = @"Ads\Instructions";
     public string ModelPath { get; init; } = @"Models\rvm_classifier.onnx";
     public string CaptureDirectory { get; init; } = @"Captures";
-    public string Location { get; init; } = "Islamabad Campus";
-    public double? Latitude { get; init; } = null;
-    public double? Longitude { get; init; } = null;
+    public string Location { get; init; } = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
+    public double? Latitude { get; init; } = 31.5826;
+    public double? Longitude { get; init; } = 74.3276;
 
     public static AppSettings Load()
     {
@@ -30,9 +30,9 @@ public sealed class AppSettings
             ConnectionString = Get(values, "ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;"),
             MachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "RVM-001"),
             CentralApiUrl = NormalizeUrl(Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com")),
-            Location = GetFirst(values, ["Location", "MachineLocation", "Address", "RVM_Location", "Branch"], "Islamabad Campus"),
-            Latitude = GetDoubleOrNull(values, "Latitude"),
-            Longitude = GetDoubleOrNull(values, "Longitude"),
+            Location = GetFirst(values, ["Location", "MachineLocation", "Address", "RVM_Location", "Branch"], "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan"),
+            Latitude = GetDoubleOrNull(values, "Latitude") ?? 31.5826,
+            Longitude = GetDoubleOrNull(values, "Longitude") ?? 74.3276,
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
             ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
             CameraPort = Get(values, "CameraPort", "COM31"),

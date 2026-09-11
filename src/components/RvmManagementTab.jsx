@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi, Lock } from 'lucide-react';
 import DataTable from './DataTable';
 
+const formatGpsCoordinates = (lat, lng) => {
+  if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) return 'N/A';
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  const latDir = latNum >= 0 ? 'N' : 'S';
+  const lngDir = lngNum >= 0 ? 'E' : 'W';
+  return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
+};
+
 export default function RvmManagementTab({ currentUser }) {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -289,7 +298,7 @@ export default function RvmManagementTab({ currentUser }) {
                     className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-colors"
                     title="Open machine location in Google Maps"
                   >
-                    📍 {Number(m.latitude).toFixed(4)}, {Number(m.longitude).toFixed(4)} ↗
+                    📍 {formatGpsCoordinates(m.latitude, m.longitude)} ↗
                   </a>
                 )}
               </div>

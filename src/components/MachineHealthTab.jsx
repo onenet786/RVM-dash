@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server, Plus, MapPin, Edit3, X, Settings, Globe, Wifi } from 'lucide-react';
 import DataTable from './DataTable';
 
+const formatGpsCoordinates = (lat, lng) => {
+  if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) return 'N/A';
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  const latDir = latNum >= 0 ? 'N' : 'S';
+  const lngDir = lngNum >= 0 ? 'E' : 'W';
+  return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
+};
+
 export default function MachineHealthTab({ currentUser }) {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -424,7 +433,7 @@ export default function MachineHealthTab({ currentUser }) {
                             title="View exact machine location on Google Maps"
                           >
                             <Globe className="w-3 h-3" />
-                            {Number(m.latitude).toFixed(4)}, {Number(m.longitude).toFixed(4)} ↗
+                            {formatGpsCoordinates(m.latitude, m.longitude)} ↗
                           </a>
                         )}
                       </div>
@@ -576,7 +585,7 @@ export default function MachineHealthTab({ currentUser }) {
                       <div>
                         <span className="text-[10px] uppercase font-bold text-slate-500 block">GPS Coordinates</span>
                         <span className="font-mono text-cyan-400 font-bold">
-                          {hasCoordinates ? `${Number(m.latitude).toFixed(4)}, ${Number(m.longitude).toFixed(4)}` : 'Auto-resolving from IP...'}
+                          {hasCoordinates ? formatGpsCoordinates(m.latitude, m.longitude) : 'Auto-resolving from IP...'}
                         </span>
                       </div>
                       {hasCoordinates && (

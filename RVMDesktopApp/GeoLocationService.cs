@@ -7,14 +7,31 @@ namespace RVMDesktopApp;
 
 public sealed class GeoLocationResult
 {
-    public string City { get; set; } = string.Empty;
-    public string RegionName { get; set; } = string.Empty;
-    public string Country { get; set; } = string.Empty;
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-    public string FormattedLocation => !string.IsNullOrWhiteSpace(City) 
-        ? $"{City}, {Country}".Trim(',', ' ') 
-        : "Islamabad, Pakistan";
+    public string City { get; set; } = "Lahore";
+    public string RegionName { get; set; } = "Punjab";
+    public string Country { get; set; } = "Pakistan";
+    public double Latitude { get; set; } = 31.5826;
+    public double Longitude { get; set; } = 74.3276;
+
+    public string FormattedCoordinates => 
+        $"{Math.Abs(Latitude):F4}° {(Latitude >= 0 ? "N" : "S")}, {Math.Abs(Longitude):F4}° {(Longitude >= 0 ? "E" : "W")}";
+
+    public string FormattedLocation
+    {
+        get
+        {
+            if (Math.Abs(Latitude - 31.5826) < 0.05 && Math.Abs(Longitude - 74.3276) < 0.05)
+                return "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
+
+            if (!string.IsNullOrWhiteSpace(City))
+            {
+                if (!string.IsNullOrWhiteSpace(RegionName) && !City.Equals(RegionName, StringComparison.OrdinalIgnoreCase))
+                    return $"{City}, {RegionName}, {Country}".Trim(',', ' ');
+                return $"{City}, {Country}".Trim(',', ' ');
+            }
+            return "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
+        }
+    }
 }
 
 public static class GeoLocationService
@@ -33,13 +50,19 @@ public static class GeoLocationService
             var root = doc.RootElement;
             if (root.TryGetProperty("status", out var status) && status.GetString() == "success")
             {
+                double lat = root.TryGetProperty("lat", out var latVal) ? latVal.GetDouble() : 31.5826;
+                double lon = root.TryGetProperty("lon", out var lonVal) ? lonVal.GetDouble() : 74.3276;
+                string city = root.TryGetProperty("city", out var c) ? c.GetString() ?? "" : "Lahore";
+                string region = root.TryGetProperty("regionName", out var r) ? r.GetString() ?? "" : "Punjab";
+                string country = root.TryGetProperty("country", out var cntry) ? cntry.GetString() ?? "" : "Pakistan";
+
                 var result = new GeoLocationResult
                 {
-                    City = root.TryGetProperty("city", out var c) ? c.GetString() ?? "" : "",
-                    RegionName = root.TryGetProperty("regionName", out var r) ? r.GetString() ?? "" : "",
-                    Country = root.TryGetProperty("country", out var cntry) ? cntry.GetString() ?? "" : "",
-                    Latitude = root.TryGetProperty("lat", out var lat) ? lat.GetDouble() : 33.7294,
-                    Longitude = root.TryGetProperty("lon", out var lon) ? lon.GetDouble() : 73.0931
+                    City = city,
+                    RegionName = region,
+                    Country = country,
+                    Latitude = lat,
+                    Longitude = lon
                 };
                 _cachedResult = result;
                 return result;
@@ -50,6 +73,14 @@ public static class GeoLocationService
             Console.WriteLine($"[GeoLocation Detection Note] {ex.Message}");
         }
 
-        return null;
+        // Default to Lahore Walled City coordinates
+        return new GeoLocationResult
+        {
+            City = "Lahore",
+            RegionName = "Punjab",
+            Country = "Pakistan",
+            Latitude = 31.5826,
+            Longitude = 74.3276
+        };
     }
 }
