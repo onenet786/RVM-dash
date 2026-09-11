@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CaptureScreenshots")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a58c2a481c0be7f5d4e6f64151ef55e93e909b15")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+31da002e8b2ab6a9d0f83b1d514fd4c6ed5661bf")]
 [assembly: System.Reflection.AssemblyProductAttribute("CaptureScreenshots")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CaptureScreenshots")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -669,8 +669,8 @@
                                 </Grid>
                             </Border>
 
-                            <!-- TOP 5 RECYCLERS -->
-                            <Border Grid.Row="2" Background="#FFFFFF" CornerRadius="12" Padding="12,6" BorderBrush="#E5EAE1" BorderThickness="1" Effect="{StaticResource CardShadow}">
+                            <!-- TOP 5 RECYCLERS (DARK SLEEK GAME STYLE) -->
+                            <Border Grid.Row="2" Background="#12151E" CornerRadius="14" Padding="12,7" BorderBrush="#252E40" BorderThickness="1.2" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/> <!-- Header -->
@@ -679,14 +679,17 @@
                                     </Grid.RowDefinitions>
 
                                     <!-- Leaderboard Header with Trophy & Subtitle -->
-                                    <Grid Grid.Row="0" Margin="0,0,0,4">
+                                    <Grid Grid.Row="0" Margin="2,1,2,6">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="🏆 " FontSize="13"/>
-                                            <TextBlock Text="TOP 5 RECYCLERS • " FontSize="11.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
-                                            <TextBlock Text="بہترین ری سائیکلرز" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                            <TextBlock Text="🏆 " FontSize="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Leaderboard" FontSize="14" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="• لیڈر بورڈ" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="4" Padding="6,1.5" HorizontalAlignment="Right">
-                                            <TextBlock Text="LIVE RANKING" FontSize="8.5" FontWeight="Bold" Foreground="#166534"/>
+                                        <Border Background="#14532D" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="5" Height="5" Fill="#4ADE80" Margin="0,0,4,0"/>
+                                                <TextBlock Text="LIVE" FontSize="8.5" FontWeight="Black" Foreground="#4ADE80"/>
+                                            </StackPanel>
                                         </Border>
                                     </Grid>
 
@@ -695,41 +698,47 @@
                                         <ItemsControl x:Name="LeaderboardList">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12,7" Margin="0,2,0,3.5" MinHeight="56" Effect="{StaticResource SubtleItemShadow}">
-                                                        <Grid>
+                                                    <Border Background="#0DFFFFFF" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="8" Padding="8,5" Margin="0,1.5,0,3" MinHeight="48">
+                                                        <Grid VerticalAlignment="Center">
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto"/> <!-- Rank Badge -->
-                                                                <ColumnDefinition Width="Auto"/> <!-- Avatar -->
-                                                                <ColumnDefinition Width="*"/>    <!-- Name & Subtitle -->
-                                                                <ColumnDefinition Width="Auto"/> <!-- Points Chip -->
+                                                                <ColumnDefinition Width="28"/> <!-- Rank Number -->
+                                                                <ColumnDefinition Width="38"/> <!-- Avatar -->
+                                                                <ColumnDefinition Width="*"/>  <!-- Name & Progress Bar -->
+                                                                <ColumnDefinition Width="Auto"/> <!-- Points -->
                                                             </Grid.ColumnDefinitions>
 
-                                                            <!-- Rank Pill -->
-                                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="7" Background="#FEF3C7" BorderBrush="#FDE68A" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                    <TextBlock Text="#" FontSize="9.5" FontWeight="Bold" Foreground="#D97706"/>
-                                                                    <TextBlock Text="{Binding Rank}" FontSize="13" FontWeight="Black" Foreground="#B45309"/>
-                                                                </StackPanel>
+                                                            <!-- Rank Number -->
+                                                            <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="16.5" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                                            <!-- Avatar with Ring -->
+                                                            <Border Grid.Column="1" Width="33" Height="33" CornerRadius="16.5" BorderBrush="{Binding RingColor}" BorderThickness="1.8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Border.Background>
+                                                                    <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
+                                                                </Border.Background>
                                                             </Border>
 
-                                                            <!-- Avatar Icon -->
-                                                            <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                                <TextBlock Text="👤" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                            </Border>
-
-                                                            <!-- User Display Name & Badge -->
-                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                                <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                                <TextBlock Text="Eco Champion • ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="SemiBold" Foreground="#64748B"/>
+                                                            <!-- Name & Progress Bar -->
+                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="6,0,8,0">
+                                                                <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                                                
+                                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="5" Background="#242D3D" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,3.5,0,0">
+                                                                    <ProgressBar.Template>
+                                                                        <ControlTemplate TargetType="ProgressBar">
+                                                                            <Border Background="{TemplateBinding Background}" CornerRadius="2.5" ClipToBounds="True">
+                                                                                <Grid x:Name="PART_Track">
+                                                                                    <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="2.5"/>
+                                                                                </Grid>
+                                                                            </Border>
+                                                                        </ControlTemplate>
+                                                                    </ProgressBar.Template>
+                                                                </ProgressBar>
                                                             </StackPanel>
 
-                                                            <!-- Points Badge / Chip -->
-                                                            <Border Grid.Column="3" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="9,4" VerticalAlignment="Center">
-                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                                    <TextBlock Text="{Binding PointsBalance}" FontSize="13" FontWeight="Black" Foreground="#047857"/>
-                                                                    <TextBlock Text=" pts" FontSize="9.5" FontWeight="Bold" Foreground="#15803D" Margin="2,0,0,0" VerticalAlignment="Center"/>
-                                                                </StackPanel>
-                                                            </Border>
+                                                            <!-- Points -->
+                                                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                                <TextBlock Text="{Binding PointsBalance}" FontSize="15" FontWeight="Black" Foreground="{Binding PointsColor}" VerticalAlignment="Center"/>
+                                                                <TextBlock Text=" pts" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,1,0,0"/>
+                                                            </StackPanel>
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
@@ -737,22 +746,8 @@
                                         </ItemsControl>
                                     </ScrollViewer>
 
-                                    <!-- FLASHING LAST RECYCLER FOOTER CARD (35% TALLER: MinHeight=74) -->
-                                    <Border Grid.Row="2" Margin="0,4,0,0" CornerRadius="9" Padding="12,8" MinHeight="74" BorderThickness="1.2">
-                                        <Border.Background>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                <GradientStop Color="#FEFCE8" Offset="0.0"/>
-                                                <GradientStop Color="#F0FDF4" Offset="0.5"/>
-                                                <GradientStop Color="#ECFDF5" Offset="1.0"/>
-                                            </LinearGradientBrush>
-                                        </Border.Background>
-                                        <Border.BorderBrush>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                <GradientStop Color="#FDE047" Offset="0.0"/>
-                                                <GradientStop Color="#86EFAC" Offset="1.0"/>
-                                            </LinearGradientBrush>
-                                        </Border.BorderBrush>
-
+                                    <!-- FLASHING LAST RECYCLER FOOTER CARD -->
+                                    <Border Grid.Row="2" Margin="0,4,0,0" CornerRadius="8" Padding="10,5.5" MinHeight="50" Background="#141D1B" BorderBrush="#047857" BorderThickness="1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/> <!-- Flashing Live Badge -->
@@ -762,7 +757,7 @@
                                             </Grid.ColumnDefinitions>
 
                                             <!-- Flashing Pulse Badge -->
-                                            <Border Grid.Column="0" x:Name="FlashingLiveBadge" Background="#FEF08A" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" Margin="0,0,10,0">
+                                            <Border Grid.Column="0" x:Name="FlashingLiveBadge" Background="#14532D" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="4" Padding="6,2.5" VerticalAlignment="Center" Margin="0,0,6,0">
                                                 <Border.Triggers>
                                                     <EventTrigger RoutedEvent="Loaded">
                                                         <BeginStoryboard>
@@ -773,28 +768,28 @@
                                                     </EventTrigger>
                                                 </Border.Triggers>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Ellipse Width="6.5" Height="6.5" Fill="#CA8A04" Margin="0,0,3.5,0" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="⚡ RECENT" FontSize="9" FontWeight="Black" Foreground="#854D0E"/>
+                                                    <Ellipse Width="5" Height="5" Fill="#4ADE80" Margin="0,0,3.5,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="RECENT" FontSize="8" FontWeight="Black" Foreground="#86EFAC"/>
                                                 </StackPanel>
                                             </Border>
 
                                             <!-- Avatar Icon -->
-                                            <Border Grid.Column="1" Width="38" Height="38" CornerRadius="19" Background="#FEF9C3" BorderBrush="#FACC15" BorderThickness="1.2" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <TextBlock Text="♻️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Border Grid.Column="1" Width="28" Height="28" CornerRadius="14" Background="#064E3B" BorderBrush="#10B981" BorderThickness="1" VerticalAlignment="Center" Margin="0,0,7,0">
+                                                <TextBlock Text="♻️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Border>
 
                                             <!-- User Info -->
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="13.5" FontWeight="Black" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B" Margin="3,0,0,0" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="LastRecyclerNameText" Text="Eco Champion" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock x:Name="LastRecyclerTimeText" Text=" • Just now" FontSize="8.5" FontWeight="SemiBold" Foreground="#94A3B8" Margin="3,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="SemiBold" Foreground="#047857"/>
+                                                <TextBlock x:Name="LastRecyclerActivityText" Text="Recycled Container • آخری ری سائیکلر" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="SemiBold" Foreground="#34D399"/>
                                             </StackPanel>
 
                                             <!-- Points Chip -->
-                                            <Border Grid.Column="3" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="7" Padding="10,4.5" VerticalAlignment="Center">
-                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="13.5" FontWeight="Black" Foreground="#15803D"/>
+                                            <Border Grid.Column="3" Background="#064E3B" BorderBrush="#10B981" BorderThickness="1" CornerRadius="5" Padding="8,3" VerticalAlignment="Center">
+                                                <TextBlock x:Name="LastRecyclerPointsText" Text="+10 pts" FontSize="12" FontWeight="Black" Foreground="#4ADE80"/>
                                             </Border>
                                         </Grid>
                                     </Border>

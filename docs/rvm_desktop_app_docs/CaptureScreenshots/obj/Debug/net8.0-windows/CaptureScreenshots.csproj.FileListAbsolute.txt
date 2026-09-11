@@ -97,3 +97,11 @@ D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\obj\Debug\net8.
 D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\obj\Debug\net8.0-windows\ref\CaptureScreenshots.dll
 d:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\ItemRejected.mp4
 D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\QRCoder.dll
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Fonts\Jameel Noori Nastaleeq.ttf
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Fonts\NotoNastaliqUrdu-Bold.ttf
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Fonts\NotoNastaliqUrdu-Regular.ttf
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\Avatars\avatar1.png
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\Avatars\avatar2.png
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\Avatars\avatar3.png
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\Avatars\avatar4.png
+D:\GIT-HUB\RVM-dash\docs\rvm_desktop_app_docs\CaptureScreenshots\bin\Debug\net8.0-windows\Assets\Avatars\avatar5.png

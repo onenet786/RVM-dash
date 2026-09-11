@@ -34,6 +34,8 @@
     <Content Include="config.example.txt" CopyToOutputDirectory="PreserveNewest" />
     <Resource Include="Fonts\**\*" />
     <Content Include="Fonts\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\Avatars\**\*" />
+    <Content Include="Assets\Avatars\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
