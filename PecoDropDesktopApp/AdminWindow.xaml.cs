@@ -49,6 +49,9 @@ public partial class AdminWindow : Window
             CfgConnectionString.Text = raw.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;");
             CfgMachineId.Text = raw.GetValueOrDefault("MachineId", "RVM-RWP");
             CfgCentralApiUrl.Text = raw.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com");
+            CfgLocation.Text = raw.GetValueOrDefault("Location", "Islamabad Campus");
+            CfgLatitude.Text = raw.GetValueOrDefault("Latitude", "");
+            CfgLongitude.Text = raw.GetValueOrDefault("Longitude", "");
             CfgArduinoPort.Text = raw.GetValueOrDefault("ArduinoPort", "COM16");
             CfgArduinoBaud.Text = raw.GetValueOrDefault("ArduinoBaud", "9600");
             CfgCameraPort.Text = raw.GetValueOrDefault("CameraPort", "COM31");
@@ -61,6 +64,34 @@ public partial class AdminWindow : Window
         catch (Exception ex)
         {
             LogConsole($"[Config Load Notice] {ex.Message}");
+        }
+    }
+
+    private async void AutoDetectLocation_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            LogConsole("[GeoLocation] Detecting kiosk coordinates via public IP...");
+            var geo = await GeoLocationService.DetectAsync();
+            if (geo != null)
+            {
+                if (string.IsNullOrWhiteSpace(CfgLocation.Text) || CfgLocation.Text == "Islamabad Campus")
+                {
+                    CfgLocation.Text = geo.FormattedLocation;
+                }
+                CfgLatitude.Text = geo.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                CfgLongitude.Text = geo.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                LogConsole($"[GeoLocation] Detected: {geo.FormattedLocation} ({geo.Latitude:F4}, {geo.Longitude:F4})");
+                RvmMessageDialog.ShowSuccess("Auto-Detect Location", $"Detected Coordinates:\nLocation: {geo.FormattedLocation}\nLat: {geo.Latitude}\nLon: {geo.Longitude}", this);
+            }
+            else
+            {
+                RvmMessageDialog.ShowWarning("Auto-Detect Location", "Could not resolve public IP coordinates. Check internet connection.", this);
+            }
+        }
+        catch (Exception ex)
+        {
+            RvmMessageDialog.ShowError("Auto-Detect Error", ex.Message, this);
         }
     }
 
@@ -79,6 +110,9 @@ public partial class AdminWindow : Window
                 ["ConnectionString"] = CfgConnectionString.Text.Trim(),
                 ["MachineId"] = CfgMachineId.Text.Trim(),
                 ["CentralApiUrl"] = CfgCentralApiUrl.Text.Trim(),
+                ["Location"] = CfgLocation.Text.Trim(),
+                ["Latitude"] = CfgLatitude.Text.Trim(),
+                ["Longitude"] = CfgLongitude.Text.Trim(),
                 ["ArduinoPort"] = CfgArduinoPort.Text.Trim(),
                 ["ArduinoBaud"] = CfgArduinoBaud.Text.Trim(),
                 ["CameraPort"] = CfgCameraPort.Text.Trim(),
@@ -92,8 +126,11 @@ public partial class AdminWindow : Window
             AppSettings.SaveConfigToFile(dict);
             CentralSyncService.CentralApiUrl = dict["CentralApiUrl"];
 
-            // Restart background heartbeat with updated config
-            HeartbeatService.Start(dict["MachineId"], dict["CentralApiUrl"]);
+            double? lat = double.TryParse(CfgLatitude.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dLat) ? dLat : null;
+            double? lon = double.TryParse(CfgLongitude.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dLon) ? dLon : null;
+
+            // Restart background heartbeat with updated config including location
+            HeartbeatService.Start(dict["MachineId"], dict["CentralApiUrl"], dict["Location"], lat, lon);
 
             RvmMessageDialog.ShowSuccess("Save Config", "System & Hardware Configuration successfully saved to config.txt!", this);
             LogConsole("[System Config] Saved updated config.txt settings successfully.");

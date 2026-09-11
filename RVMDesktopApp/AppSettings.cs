@@ -17,6 +17,9 @@ public sealed class AppSettings
     public string InstructionVideoFolder { get; init; } = @"Ads\Instructions";
     public string ModelPath { get; init; } = @"Models\rvm_classifier.onnx";
     public string CaptureDirectory { get; init; } = @"Captures";
+    public string Location { get; init; } = "Islamabad Campus";
+    public double? Latitude { get; init; } = null;
+    public double? Longitude { get; init; } = null;
 
     public static AppSettings Load()
     {
@@ -27,6 +30,9 @@ public sealed class AppSettings
             ConnectionString = Get(values, "ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;"),
             MachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "RVM-001"),
             CentralApiUrl = NormalizeUrl(Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com")),
+            Location = GetFirst(values, ["Location", "MachineLocation", "Address", "RVM_Location", "Branch"], "Islamabad Campus"),
+            Latitude = GetDoubleOrNull(values, "Latitude"),
+            Longitude = GetDoubleOrNull(values, "Longitude"),
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
             ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
             CameraPort = Get(values, "CameraPort", "COM31"),
@@ -91,6 +97,11 @@ public sealed class AppSettings
         content.AppendLine($"CaptureDirectory={configValues.GetValueOrDefault("CaptureDirectory", "Captures")}");
         content.AppendLine($"MachineId = {configValues.GetValueOrDefault("MachineId", "RVM-RWP")}");
         content.AppendLine($"CentralApiUrl = {configValues.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com")}");
+        content.AppendLine($"Location = {configValues.GetValueOrDefault("Location", "Islamabad Campus")}");
+        if (configValues.TryGetValue("Latitude", out string? latVal) && !string.IsNullOrWhiteSpace(latVal))
+            content.AppendLine($"Latitude = {latVal}");
+        if (configValues.TryGetValue("Longitude", out string? lngVal) && !string.IsNullOrWhiteSpace(lngVal))
+            content.AppendLine($"Longitude = {lngVal}");
 
         string text = content.ToString();
         string baseFile = Path.Combine(AppContext.BaseDirectory, "config.txt");
@@ -106,6 +117,15 @@ public sealed class AppSettings
             }
         }
         catch {}
+    }
+
+    private static double? GetDoubleOrNull(Dictionary<string, string> values, string key)
+    {
+        if (values.TryGetValue(key, out string? str) && double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out double d))
+        {
+            return d;
+        }
+        return null;
     }
 
     private static string GetFirst(Dictionary<string, string> values, string[] keys, string fallback)

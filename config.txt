@@ -21,4 +21,7 @@ ModelPath=Models\rvm_classifier.onnx
 CaptureDirectory=Captures
 MachineId = RVM-RWP
 CentralApiUrl = https://isprvm.binishaqsoft.com
+Location = Rawalpindi Saddar Branch
+Latitude = 33.5973
+Longitude = 73.0479
 

@@ -395,7 +395,7 @@ public static class CentralSyncService
     /// <summary>
     /// Sends RVM Machine Heartbeat & Bin Level Status to Master Dashboard.
     /// </summary>
-    public static async Task<bool> SendHeartbeatAsync(string machineId, int binFillPercentage, string status = "active")
+    public static async Task<bool> SendHeartbeatAsync(string machineId, int binFillPercentage, string status = "active", string? location = null, double? latitude = null, double? longitude = null)
     {
         try
         {
@@ -404,7 +404,10 @@ public static class CentralSyncService
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
                 binFillPercentage = binFillPercentage,
                 status = status,
-                localIp = HeartbeatService.GetLocalIpAddress()
+                localIp = HeartbeatService.GetLocalIpAddress(),
+                location = location,
+                latitude = latitude,
+                longitude = longitude
             };
 
             string json = System.Text.Json.JsonSerializer.Serialize(payload);

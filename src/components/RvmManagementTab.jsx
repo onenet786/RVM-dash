@@ -12,6 +12,8 @@ export default function RvmManagementTab({ currentUser }) {
   const [machineId, setMachineId] = useState('');
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [status, setStatus] = useState('ONLINE');
 
   const [saving, setSaving] = useState(false);
@@ -32,15 +34,12 @@ export default function RvmManagementTab({ currentUser }) {
 
   const activeUser = getActiveUser();
 
-  const isSuperAdmin = (
-    activeUser?.username === 'onenet' ||
-    activeUser?.username === 'bilalaaqueel' ||
-    activeUser?.roleId === 'super_admin' ||
-    activeUser?.roleId === 'superadmin' ||
-    activeUser?.roleId === 'admin' ||
-    (activeUser?.roleName && activeUser.roleName.toLowerCase().includes('super admin')) ||
-    (Array.isArray(activeUser?.assignedMachines) && activeUser.assignedMachines.includes('*'))
-  );
+  const isSuperAdmin = useMemo(() => {
+    const u = getActiveUser();
+    const rawUser = String(u.username || '').toLowerCase();
+    const rawRole = String(u.roleId || u.userRole || u.role || '').toLowerCase();
+    return rawUser === 'onenet' || rawUser === 'bilalaaqueel' || rawRole === 'super_admin' || rawRole === 'superadmin' || rawRole === 'admin' || u.isSuperAdmin === true;
+  }, [currentUser]);
 
   // Extract authorized assigned machines list for the logged-in user
   const getAssignedList = () => {
@@ -58,20 +57,16 @@ export default function RvmManagementTab({ currentUser }) {
   const fetchMachines = async () => {
     try {
       setLoading(true);
-      const assigned = getAssignedList();
-      const queryParam = assigned && assigned.length > 0
-        ? `?assignedMachines=${encodeURIComponent(assigned.join(','))}`
-        : '';
-      const res = await fetch(`/api/analytics/machines${queryParam}`);
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const res = await fetch('/api/analytics/machines', {
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+      });
       if (res.ok) {
         const data = await res.json();
-        const filtered = assigned && assigned.length > 0
-          ? (data || []).filter(m => m.machineId && assigned.some(a => a.toUpperCase() === m.machineId.toUpperCase()))
-          : (data || []);
-        setMachines(filtered);
+        setMachines(Array.isArray(data) ? data : []);
       }
     } catch (err) {
-      console.error('Error fetching machines:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -90,6 +85,8 @@ export default function RvmManagementTab({ currentUser }) {
     setMachineId(`RVM-00${machines.length + 1}`);
     setName('');
     setLocation('');
+    setLatitude('');
+    setLongitude('');
     setStatus('ONLINE');
     setShowAddModal(true);
   };
@@ -99,6 +96,8 @@ export default function RvmManagementTab({ currentUser }) {
     setMachineId(m.machineId);
     setName(m.name || '');
     setLocation(m.location || '');
+    setLatitude(m.latitude != null ? String(m.latitude) : '');
+    setLongitude(m.longitude != null ? String(m.longitude) : '');
     setStatus(m.status || 'ONLINE');
     setShowAddModal(true);
   };
@@ -130,6 +129,8 @@ export default function RvmManagementTab({ currentUser }) {
           machineId: machineId.trim(),
           name: (name || `RVM Machine ${machineId}`).trim(),
           location: (location || 'Main Campus').trim(),
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null,
           status,
           username: user.username,
           roleId: user.roleId,
@@ -275,10 +276,23 @@ export default function RvmManagementTab({ currentUser }) {
             </div>
 
             <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800/80">
-              <span className="t-text-muted flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                {m.location || 'Location Not Set'}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="t-text-muted flex items-center gap-1 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                  {m.location || 'Location Not Set'}
+                </span>
+                {m.latitude != null && m.longitude != null && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${m.latitude},${m.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-colors"
+                    title="Open machine location in Google Maps"
+                  >
+                    📍 {Number(m.latitude).toFixed(4)}, {Number(m.longitude).toFixed(4)} ↗
+                  </a>
+                )}
+              </div>
               <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.status === 'ONLINE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                 }`}>
                 {m.status || 'ONLINE'}
@@ -301,21 +315,21 @@ export default function RvmManagementTab({ currentUser }) {
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1 t-text-muted hover:t-text-primary rounded-lg"
+                className="t-text-muted hover:t-text-primary p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveMachine} className="space-y-4">
+            <form onSubmit={handleSaveMachine} className="space-y-3">
               <div>
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
-                  Machine ID Code
+                  Machine ID
                 </label>
                 <input
                   type="text"
                   value={machineId}
-                  disabled={!!editingMachine}
+                  disabled={Boolean(editingMachine)}
                   onChange={e => setMachineId(e.target.value)}
                   placeholder="e.g. RVM-001, RVM-RWP"
                   className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-mono t-text-primary focus:outline-none focus:border-[#0b5d3b] disabled:opacity-50"
@@ -349,6 +363,35 @@ export default function RvmManagementTab({ currentUser }) {
                   className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   required
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={latitude}
+                    onChange={e => setLatitude(e.target.value)}
+                    placeholder="e.g. 33.7294"
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={longitude}
+                    onChange={e => setLongitude(e.target.value)}
+                    placeholder="e.g. 73.0931"
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
+                  />
+                </div>
               </div>
 
               <div>

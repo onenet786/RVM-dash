@@ -138,7 +138,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         UpdateRvmNameDisplay(settings.MachineId);
 
         HeartbeatService.StatusChanged += OnNetworkStatusChanged;
-        HeartbeatService.Start(settings.MachineId, settings.CentralApiUrl);
+        HeartbeatService.Start(settings.MachineId, settings.CentralApiUrl, settings.Location, settings.Latitude, settings.Longitude);
 
         StartInstructionVideo();
         StartAdvertisement();

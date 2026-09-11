@@ -323,7 +323,29 @@
                                             <TextBox x:Name="CfgMachineId" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
 
                                             <TextBlock Text="Central Dashboard Base URL:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
-                                            <TextBox x:Name="CfgCentralApiUrl" Height="32" Padding="8,4" Margin="0,0,0,6" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                            <TextBox x:Name="CfgCentralApiUrl" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+
+                                            <TextBlock Text="Installation Location / Address:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                            <TextBox x:Name="CfgLocation" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="8" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="Latitude:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgLatitude" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Longitude:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CfgLongitude" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="4" Content="📍 Auto-Detect" VerticalAlignment="Bottom" Height="32" Padding="8,0" Click="AutoDetectLocation_Click" Style="{StaticResource ModernButton}" ToolTip="Detect coordinates from public IP"/>
+                                            </Grid>
                                         </StackPanel>
                                     </Border>
 

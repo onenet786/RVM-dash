@@ -1471,7 +1471,7 @@ app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
       if (pool) {
         try {
           const metaRes = await pool.query(`
-            SELECT m.machine_id, m.name, m.location, m.status, m.last_ping_at, m.public_ip, m.local_ip,
+            SELECT m.machine_id, m.name, m.location, m.latitude, m.longitude, m.status, m.last_ping_at, m.public_ip, m.local_ip,
                    c.points_per_plastic, c.points_plastic_small, c.points_plastic_medium, c.points_plastic_large,
                    c.points_per_aluminium, c.points_can_small, c.points_can_medium, c.points_can_large,
                    c.points_per_paper_kg, c.points_per_glass, c.points_glass_small, c.points_glass_medium, c.points_glass_large,
@@ -1484,6 +1484,8 @@ app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
               machineId: r.machine_id,
               name: r.name || `RVM Machine ${r.machine_id}`,
               location: r.location || 'Islamabad Campus',
+              latitude: r.latitude != null ? parseFloat(r.latitude) : null,
+              longitude: r.longitude != null ? parseFloat(r.longitude) : null,
               status: r.status,
               lastPingAt: r.last_ping_at,
               publicIp: r.public_ip || 'N/A',
@@ -1520,6 +1522,8 @@ app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
           machineId: m.machineId,
           name: m.name,
           location: m.location,
+          latitude: m.latitude,
+          longitude: m.longitude,
           status: isOnline ? 'ONLINE' : 'OFFLINE',
           isOnline,
           lastPingAt: m.lastPingAt,
@@ -1749,6 +1753,8 @@ app.post('/api/machines', async (req, res) => {
       machineId, 
       name, 
       location, 
+      latitude,
+      longitude,
       status,
       pointsPerPlasticBottle = 10,
       pointsPerAluminiumCan = 20,
@@ -1841,6 +1847,10 @@ app.post('/api/machines', async (req, res) => {
 
     const machineName = name || `RVM Unit ${machineId}`;
     const machineLocation = location || 'Main Entrance / Campus';
+    let parsedLat = (latitude !== undefined && latitude !== null && latitude !== '') ? parseFloat(latitude) : null;
+    if (isNaN(parsedLat)) parsedLat = null;
+    let parsedLng = (longitude !== undefined && longitude !== null && longitude !== '') ? parseFloat(longitude) : null;
+    if (isNaN(parsedLng)) parsedLng = null;
     const machineStatus = status || 'ONLINE';
 
     // PostgreSQL ONLY Database Update
@@ -1851,6 +1861,8 @@ app.post('/api/machines', async (req, res) => {
             machine_id VARCHAR(100) PRIMARY KEY,
             name VARCHAR(255),
             location VARCHAR(255),
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION,
             status VARCHAR(50) DEFAULT 'ONLINE',
             last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
@@ -1858,15 +1870,22 @@ app.post('/api/machines', async (req, res) => {
 
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS name VARCHAR(255);`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ONLINE';`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
 
         await pool.query(`
-          INSERT INTO machines (machine_id, name, location, status, last_ping_at)
-          VALUES ($1, $2, $3, $4, NOW())
+          INSERT INTO machines (machine_id, name, location, latitude, longitude, status, last_ping_at)
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
           ON CONFLICT (machine_id)
-          DO UPDATE SET name = EXCLUDED.name, location = EXCLUDED.location, status = EXCLUDED.status, last_ping_at = NOW()
-        `, [machineId, machineName, machineLocation, machineStatus]);
+          DO UPDATE SET name = EXCLUDED.name, 
+                        location = EXCLUDED.location, 
+                        latitude = COALESCE(EXCLUDED.latitude, machines.latitude),
+                        longitude = COALESCE(EXCLUDED.longitude, machines.longitude),
+                        status = EXCLUDED.status, 
+                        last_ping_at = NOW()
+        `, [machineId, machineName, machineLocation, parsedLat, parsedLng, machineStatus]);
 
         await pool.query(`
           INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
@@ -1883,9 +1902,78 @@ app.post('/api/machines', async (req, res) => {
       }
     }
 
-    res.json({ message: 'Machine registered successfully', machineId, name: machineName, location: machineLocation, status: machineStatus });
+    res.json({ 
+      message: 'Machine registered successfully', 
+      machineId, 
+      name: machineName, 
+      location: machineLocation, 
+      latitude: parsedLat,
+      longitude: parsedLng,
+      status: machineStatus 
+    });
   } catch (err) {
     console.error('[POST /api/machines] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Dedicated Public & Mobile Endpoint for RVM Machine Locations & Status
+app.get(['/api/machines', '/api/mobile/machines', '/api/public/machines'], async (req, res) => {
+  try {
+    const ONLINE_THRESHOLD_MS = 60 * 1000; // 1 minute
+    const now = Date.now();
+    const pool = getPgPool();
+    let machines = [];
+
+    if (pool) {
+      try {
+        const queryRes = await pool.query(`
+          SELECT machine_id, name, location, latitude, longitude, status, bin_fill_percentage, last_ping_at
+          FROM machines
+          ORDER BY name ASC, machine_id ASC
+        `);
+        machines = queryRes.rows.map(r => {
+          const pingTime = r.last_ping_at ? new Date(r.last_ping_at).getTime() : 0;
+          const isOnline = pingTime > 0 && (now - pingTime <= ONLINE_THRESHOLD_MS);
+          const hasExact = r.latitude != null && r.longitude != null && !isNaN(parseFloat(r.latitude)) && !isNaN(parseFloat(r.longitude));
+          return {
+            machineId: r.machine_id,
+            name: r.name || `RVM ${r.machine_id}`,
+            location: r.location || 'Islamabad Campus',
+            latitude: hasExact ? parseFloat(r.latitude) : 31.5204,
+            longitude: hasExact ? parseFloat(r.longitude) : 74.3587,
+            hasExactCoordinates: hasExact,
+            status: isOnline ? 'ONLINE' : 'OFFLINE',
+            isOnline,
+            binFillPercentage: r.bin_fill_percentage != null ? parseInt(r.bin_fill_percentage) : 0,
+            lastPingAt: r.last_ping_at
+          };
+        });
+      } catch (e) {
+        console.error('[GET /api/machines] DB query notice:', e.message);
+      }
+    }
+
+    if (machines.length === 0) {
+      machines = [
+        {
+          machineId: 'peco001',
+          name: 'Main Recycling Kiosk (peco001)',
+          location: 'Main Entrance / Campus',
+          latitude: 31.5204,
+          longitude: 74.3587,
+          hasExactCoordinates: false,
+          status: 'ONLINE',
+          isOnline: true,
+          binFillPercentage: 0,
+          lastPingAt: new Date().toISOString()
+        }
+      ];
+    }
+
+    res.json(machines);
+  } catch (err) {
+    console.error('[GET /api/machines] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -5150,7 +5238,16 @@ function getClientIpInfo(req) {
 // Upstream Telemetry Heartbeat & Bin Level Alerts
 app.post('/api/machine/heartbeat', async (req, res) => {
   try {
-    const { machineId, binFillPercentage = 0, status = 'active', temperatureCelsius } = req.body;
+    const { 
+      machineId, 
+      binFillPercentage = 0, 
+      status = 'active', 
+      temperatureCelsius,
+      location,
+      latitude,
+      longitude,
+      address
+    } = req.body || {};
     if (!machineId) return res.status(400).json({ error: 'machineId is required' });
 
     const authCheck = await verifyAndAuthorizeMachine(machineId);
@@ -5160,17 +5257,34 @@ app.post('/api/machine/heartbeat', async (req, res) => {
 
     const { publicIp, localIp } = getClientIpInfo(req);
     const pool = getPgPool();
+
+    let parsedLat = (latitude !== undefined && latitude !== null && latitude !== '') ? parseFloat(latitude) : null;
+    if (isNaN(parsedLat)) parsedLat = null;
+    let parsedLng = (longitude !== undefined && longitude !== null && longitude !== '') ? parseFloat(longitude) : null;
+    if (isNaN(parsedLng)) parsedLng = null;
+    const cleanLocation = (location && String(location).trim()) ? String(location).trim() : null;
+
     if (pool) {
       await pool.query(`
-        INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip)
-        VALUES ($1, $1, $2, $3, NOW(), $4, $5)
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS address TEXT;
+      `).catch(() => {});
+
+      await pool.query(`
+        INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip, location, latitude, longitude)
+        VALUES ($1, $1, $2, $3, NOW(), $4, $5, $6, $7, $8)
         ON CONFLICT (machine_id) DO UPDATE 
         SET status = EXCLUDED.status, 
             bin_fill_percentage = EXCLUDED.bin_fill_percentage, 
             last_ping_at = NOW(),
             public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
-            local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
-      `, [machineId, status, binFillPercentage, publicIp, localIp]);
+            local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip),
+            location = COALESCE(NULLIF(EXCLUDED.location, ''), machines.location),
+            latitude = COALESCE(EXCLUDED.latitude, machines.latitude),
+            longitude = COALESCE(EXCLUDED.longitude, machines.longitude);
+      `, [machineId, status, binFillPercentage, publicIp, localIp, cleanLocation, parsedLat, parsedLng]);
     }
 
     if (binFillPercentage >= 80) {
@@ -5190,6 +5304,9 @@ app.post('/api/machine/heartbeat', async (req, res) => {
       status,
       publicIp,
       localIp,
+      location: cleanLocation,
+      latitude: parsedLat,
+      longitude: parsedLng,
       receivedAt: new Date().toISOString()
     });
   } catch (err) {
