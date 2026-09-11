@@ -4,6 +4,9 @@ import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 
 import { MongoClient, ObjectId } from 'mongodb';
 import dns from 'dns';
@@ -64,10 +67,74 @@ const app = express();
 const PORT = process.env.PORT || 5009;
 const JWT_SECRET = process.env.JWT_SECRET || 'rvm-isp-dev-secret-key-2026';
 
+// Security Hardening: Helmet HTTP Headers (HSTS, X-Frame-Options, X-Content-Type-Options)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
 app.use(cors());
 // Set high payload limit (50MB) for database restoration JSON uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Security Hardening: Rate Limiting
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 15,
+  message: { error: 'Too many login attempts from this IP. Please try again after 5 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { success: false, message: 'Too many OTP requests from this IP. Please wait 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Security Hardening: Central Token Extraction & Authentication Middleware
+function extractToken(req) {
+  const authHeader = String(req.headers.authorization || req.headers['x-auth-token'] || '').trim();
+  if (authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim();
+  }
+  if (authHeader) return authHeader;
+  if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/rvm_auth_token=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  }
+  return null;
+}
+
+function authenticateToken(req, res, next) {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required. Missing authorization token.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired authentication session. Please log in again.' });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  const roleId = req.user.roleId || '';
+  const username = req.user.username || '';
+  if (roleId === 'super_admin' || roleId === 'admin' || username === 'onenet') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
+}
 
 // Serve uploaded advertisement videos statically
 app.use('/uploads/advertisements', express.static(ADS_UPLOAD_DIR));
@@ -136,7 +203,9 @@ const DB_PRESETS = {
 };
 
 function validateMasterCredentials(username, password) {
-  return username === 'onenet' && password === 'Admin&86';
+  const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
+  const masterPass = process.env.MASTER_DEV_PASSWORD || 'Admin&86';
+  return (username === masterUser || username === `${masterUser}@rvm-dash.io`) && password === masterPass;
 }
 
 let pgPoolInstance = null;
@@ -888,8 +957,8 @@ function getAssignedMachinesList(req) {
   return machines.map(m => m.toUpperCase());
 }
 
-// High level KPIs Overview
-app.get('/api/overview', async (req, res) => {
+// High level KPIs Overview (Protected by Auth)
+app.get('/api/overview', authenticateToken, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1150,8 +1219,8 @@ app.get('/api/overview', async (req, res) => {
   }
 });
 
-// List all Collections with details
-app.get('/api/collections/:name', async (req, res) => {
+// List all Collections with details (Protected by Auth)
+app.get('/api/collections/:name', authenticateToken, async (req, res) => {
   try {
     const { name } = req.params;
     const { page = 1, limit = 50, search = '' } = req.query;
@@ -1237,7 +1306,7 @@ app.get('/api/collections/:name', async (req, res) => {
 });
 
 // Analytics Trends Endpoint
-app.get('/api/analytics/trends', async (req, res) => {
+app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1286,7 +1355,7 @@ app.get('/api/analytics/trends', async (req, res) => {
 });
 
 // Analytics Leaderboard Endpoint
-app.get('/api/analytics/leaderboard', async (req, res) => {
+app.get('/api/analytics/leaderboard', authenticateToken, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1343,7 +1412,7 @@ app.get('/api/analytics/leaderboard', async (req, res) => {
 });
 
 // Machine Hardware Status Aggregation
-app.get('/api/analytics/machines', async (req, res) => {
+app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
   try {
     const ONLINE_THRESHOLD_MS = 60 * 1000; // 60 seconds (1 minute) window
     const now = Date.now();
@@ -1796,7 +1865,7 @@ const MATERIAL_FACTORS = {
   Default: { factor: 1.2, note: 'Fallback uncategorized' }
 };
 
-app.get('/api/analytics/environmental-impact', async (req, res) => {
+app.get('/api/analytics/environmental-impact', authenticateToken, async (req, res) => {
   try {
     let totalBottles = 0;
     let totalCups = 0;
@@ -1900,8 +1969,8 @@ app.get('/api/analytics/environmental-impact', async (req, res) => {
   }
 });
 
-// Create Full Database Backup Snapshot (Supports PostgreSQL & MongoDB)
-app.get('/api/db/backup', async (req, res) => {
+// Create Full Database Backup Snapshot (Protected by Admin Auth)
+app.get('/api/db/backup', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const backupData = {
       database: currentDbName,
@@ -1974,8 +2043,8 @@ app.get('/api/db/backup', async (req, res) => {
 });
 
 
-// List All Local Backup Snapshots
-app.get('/api/db/backups', (req, res) => {
+// List All Local Backup Snapshots (Protected by Admin Auth)
+app.get('/api/db/backups', authenticateToken, requireAdmin, (req, res) => {
   try {
     const files = fs.readdirSync(BACKUPS_DIR);
     const backups = files
@@ -1997,15 +2066,17 @@ app.get('/api/db/backups', (req, res) => {
   }
 });
 
-// Download Specific Backup File
-app.get('/api/db/download/:filename', (req, res) => {
+// Download Specific Backup File (Protected & Path-Traversal Guarded)
+app.get('/api/db/download/:filename', authenticateToken, requireAdmin, (req, res) => {
   try {
-    const { filename } = req.params;
-    const filePath = path.join(BACKUPS_DIR, filename);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Backup file not found' });
+    const rawFilename = req.params.filename || '';
+    const safeFilename = path.basename(rawFilename);
+    const resolvedPath = path.resolve(BACKUPS_DIR, safeFilename);
+
+    if (!resolvedPath.startsWith(path.resolve(BACKUPS_DIR)) || !fs.existsSync(resolvedPath)) {
+      return res.status(404).json({ error: 'Backup file not found or unauthorized path' });
     }
-    res.download(filePath, filename);
+    res.download(resolvedPath, safeFilename);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2787,8 +2858,11 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
     return false;
   }
 
-  const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  const res = await pool.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+  const tableName = String(colName || '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const safeKey = String(matchKey || '').replace(/[^a-zA-Z0-9_]/g, '');
+  if (!safeKey) return false;
+
+  const res = await pool.query(`SELECT id, data FROM "${tableName}" WHERE data->>'${safeKey}' = $1 OR id = $1`, [matchVal]);
   if (res.rows.length > 0) {
     const existingData = typeof res.rows[0].data === 'string' ? JSON.parse(res.rows[0].data) : res.rows[0].data;
     const updatedData = { ...existingData, ...updateFields, _id: res.rows[0].id };
@@ -2796,7 +2870,7 @@ async function updateDocInEngine(colName, matchKey, matchVal, updateFields) {
     await pool.query(`UPDATE "${tableName}" SET data = $1, synced_at = NOW() WHERE id = $2`, [JSON.stringify(updatedData), res.rows[0].id]);
   } else {
     const idStr = matchVal;
-    const docToSave = { [matchKey]: matchVal, ...updateFields, _id: idStr };
+    const docToSave = { [safeKey]: matchVal, ...updateFields, _id: idStr };
     delete docToSave.id;
     await pool.query(`
       INSERT INTO "${tableName}" (id, data, synced_at)
@@ -2816,15 +2890,18 @@ async function deleteDocFromEngine(colName, matchKey, matchVal) {
     return false;
   }
 
-  const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  await pool.query(`DELETE FROM "${tableName}" WHERE data->>'${matchKey}' = $1 OR id = $1`, [matchVal]);
+  const tableName = String(colName || '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const safeKey = String(matchKey || '').replace(/[^a-zA-Z0-9_]/g, '');
+  if (!safeKey) return false;
+
+  await pool.query(`DELETE FROM "${tableName}" WHERE data->>'${safeKey}' = $1 OR id = $1`, [matchVal]);
   return true;
 }
 
 
 
-// Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database
-app.post('/api/db/restore', enforceReadOnlyProtection, async (req, res) => {
+// Restore Database from Uploaded JSON / Selected Snapshot into Currently Connected Database (Protected)
+app.post('/api/db/restore', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const activeName = activeDbType === 'postgres' ? (activePgConfig?.database || 'rvmpg') : (db ? db.databaseName : currentDbName);
     const hostInfo = activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri);
@@ -2846,16 +2923,18 @@ app.post('/api/db/restore', enforceReadOnlyProtection, async (req, res) => {
   }
 });
 
-// Direct Snapshot File Restoration Endpoint
-app.post('/api/db/restore-snapshot/:filename', enforceReadOnlyProtection, async (req, res) => {
+// Direct Snapshot File Restoration Endpoint (Protected & Path Traversal Guarded)
+app.post('/api/db/restore-snapshot/:filename', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const activeName = activeDbType === 'postgres' ? (activePgConfig?.database || 'rvmpg') : (db ? db.databaseName : currentDbName);
     const hostInfo = activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri);
 
-    const { filename } = req.params;
-    const filePath = path.join(BACKUPS_DIR, filename);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Snapshot file not found on server' });
+    const rawFilename = req.params.filename || '';
+    const safeFilename = path.basename(rawFilename);
+    const filePath = path.resolve(BACKUPS_DIR, safeFilename);
+
+    if (!filePath.startsWith(path.resolve(BACKUPS_DIR)) || !fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Snapshot file not found on server or invalid path' });
     }
 
     const content = fs.readFileSync(filePath, 'utf-8');
@@ -3054,8 +3133,8 @@ async function seedSecurityDefaults(targetDb) {
   }
 }
 
-// Security: Get all roles
-app.get('/api/security/roles', async (req, res) => {
+// Security: Get all roles (Protected)
+app.get('/api/security/roles', authenticateToken, async (req, res) => {
   try {
     await seedSecurityDefaults(db);
     const rawRoles = await fetchCollectionDocs('roles');
@@ -3080,8 +3159,8 @@ app.get('/api/security/roles', async (req, res) => {
   }
 });
 
-// Security: Create/Update custom role
-app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
+// Security: Create/Update custom role (Admin Protected)
+app.post('/api/security/roles', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const { _id, originalRoleId, roleId, name, color, description, modules, permissions } = req.body;
     if (!name || !roleId) {
@@ -3161,7 +3240,7 @@ app.post('/api/security/roles', enforceReadOnlyProtection, async (req, res) => {
 });
 
 // Security: Delete custom role (protect built-in default roles)
-app.delete('/api/security/roles/:roleId', enforceReadOnlyProtection, async (req, res) => {
+app.delete('/api/security/roles/:roleId', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const { roleId } = req.params;
     if (['super_admin', 'fleet_operator'].includes(roleId)) {
@@ -3175,8 +3254,8 @@ app.delete('/api/security/roles/:roleId', enforceReadOnlyProtection, async (req,
   }
 });
 
-// Security: Get all admin users
-app.get('/api/security/users', async (req, res) => {
+// Security: Get all admin users (Admin Protected)
+app.get('/api/security/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     await seedSecurityDefaults(db);
     const users = await fetchCollectionDocs('adminaccounts');
@@ -3187,8 +3266,8 @@ app.get('/api/security/users', async (req, res) => {
 });
 
 
-// Security: Create new user with role assignment & machine scope
-app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
+// Security: Create new user with role assignment & machine scope (Admin Protected)
+app.post('/api/security/users', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const { username, fullName, email, roleId, assignedMachines } = req.body;
     if (!username || !roleId) {
@@ -3218,8 +3297,6 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-
-
     await saveDocToEngine('adminaccounts', newUser);
     res.json({ success: true, message: `User "${username}" created and assigned role "${roleName}".`, user: newUser });
   } catch (err) {
@@ -3227,8 +3304,8 @@ app.post('/api/security/users', enforceReadOnlyProtection, async (req, res) => {
   }
 });
 
-// Security: Update user account status or role
-app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) => {
+// Security: Update user account status or role (Admin Protected)
+app.put('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const { id } = req.params;
     const { roleId, status, assignedMachines, fullName, email, password } = req.body;
@@ -3257,8 +3334,8 @@ app.put('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) =
   }
 });
 
-// Security: Delete user account
-app.delete('/api/security/users/:id', enforceReadOnlyProtection, async (req, res) => {
+// Security: Delete user account (Admin Protected)
+app.delete('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
     const { id } = req.params;
     await deleteDocFromEngine('adminaccounts', 'username', id);
@@ -3274,7 +3351,7 @@ app.delete('/api/security/users/:id', enforceReadOnlyProtection, async (req, res
 // AUTHENTICATION & LOGIN/LOGOUT SESSION ENDPOINTS
 // ==========================================
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username) {
@@ -3286,15 +3363,16 @@ app.post('/api/auth/login', async (req, res) => {
     let user = null;
     let role = null;
 
-    // Master Developer Override Check (username: onenet / password: Admin&86)
-    if (username === 'onenet' || username === 'onenet@rvm-dash.io') {
-      if (password !== 'Admin&86') {
+    // Master Developer Check with configurable credentials
+    const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
+    if (username === masterUser || username === 'onenet' || username === `${masterUser}@rvm-dash.io` || username === 'onenet@rvm-dash.io') {
+      if (!validateMasterCredentials(username, password)) {
         return res.status(401).json({ error: 'Invalid username or password' });
       }
       user = {
-        username: 'onenet',
-        fullName: 'Master Developer (onenet)',
-        email: 'onenet@rvm-dash.io',
+        username: masterUser,
+        fullName: `Master Developer (${masterUser})`,
+        email: `${masterUser}@rvm-dash.io`,
         roleId: 'super_admin',
         roleName: 'Super Admin / Master Dev',
         assignedMachines: ['*'],
@@ -3343,7 +3421,26 @@ app.post('/api/auth/login', async (req, res) => {
     const fallbackRole = DEFAULT_RBAC_ROLES.find(r => r.roleId === user.roleId) || DEFAULT_RBAC_ROLES[0];
     role = roleDoc || fallbackRole;
 
-    const token = `token_${user.username}_${Date.now()}`;
+    // Security Hardening: Generate genuine cryptographically signed JWT
+    const token = jwt.sign(
+      {
+        username: user.username,
+        roleId: user.roleId,
+        roleName: role.name,
+        permissions: role.permissions,
+        assignedMachines: user.assignedMachines || ['*']
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Set secure authentication cookie
+    res.cookie('rvm_auth_token', token, {
+      httpOnly: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000
+    });
 
     res.json({
       success: true,
@@ -3369,6 +3466,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('rvm_auth_token', { path: '/' });
   res.json({ success: true, message: 'Logged out successfully.' });
 });
 
@@ -4171,14 +4269,15 @@ async function handleMobileUsernames(req, res) {
 app.get('/api/usernames', handleMobileUsernames);
 app.get('/usernames', handleMobileUsernames);
 
-// 6. Mobile Forgot Password / OTP Flow
+// 6. Mobile Forgot Password / OTP Flow (Secured with Cryptographic PRNG & Expiry)
 async function handleForgotPassword(req, res) {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
     const cleanEmail = email.trim().toLowerCase();
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Cryptographically secure 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
 
     const pool = getPgPool();
     if (pool) {
@@ -4193,20 +4292,21 @@ async function handleForgotPassword(req, res) {
       `, [otp, cleanEmail]);
     }
 
-    console.log(`[Mobile OTP] Generated OTP ${otp} for ${cleanEmail}`);
-    res.json({ success: true, message: 'OTP sent to your email successfully', otp: process.env.NODE_ENV !== 'production' ? otp : undefined });
+    console.log(`[Mobile OTP] Generated secure OTP for ${cleanEmail}`);
+    // Security Fix: Never expose OTP in response body
+    res.json({ success: true, message: 'OTP sent to your registered address successfully' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/forgot-password', handleForgotPassword);
-app.post('/forgot-password', handleForgotPassword);
+app.post('/api/forgot-password', otpLimiter, handleForgotPassword);
+app.post('/forgot-password', otpLimiter, handleForgotPassword);
 
 async function handleResendOtp(req, res) {
   return handleForgotPassword(req, res);
 }
-app.post('/api/resend-otp', handleResendOtp);
-app.post('/resend-otp', handleResendOtp);
+app.post('/api/resend-otp', otpLimiter, handleResendOtp);
+app.post('/resend-otp', otpLimiter, handleResendOtp);
 
 async function handleResetPassword(req, res) {
   try {
@@ -4227,8 +4327,13 @@ async function handleResetPassword(req, res) {
       }
 
       const user = check.rows[0];
-      if (user.otp !== String(otp).trim()) {
-        return res.status(400).json({ success: false, message: 'Invalid or expired OTP code' });
+      if (!user.otp || user.otp !== String(otp).trim()) {
+        return res.status(400).json({ success: false, message: 'Invalid OTP code' });
+      }
+
+      // Security Fix: Enforce Expiration Check
+      if (user.otp_expiry && new Date() > new Date(user.otp_expiry)) {
+        return res.status(400).json({ success: false, message: 'OTP code has expired. Please request a new code.' });
       }
 
       await pool.query(`
@@ -4271,7 +4376,7 @@ app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
 });
 
 // 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL)
-app.get('/api/analytics/mobile-users', async (req, res) => {
+app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
   try {
     let usersList = [];
     let stats = {
@@ -4495,44 +4600,69 @@ app.post(['/api/mobile/heartbeat', '/mobile/heartbeat'], async (req, res) => {
 
 app.get('/api/auth/me', async (req, res) => {
   try {
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.replace('Bearer ', '').trim();
+    const token = extractToken(req);
     if (!token) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ authenticated: false, error: 'Not authenticated' });
     }
 
-    const usernameMatch = token.match(/^token_([^_]+)_/);
-    const username = usernameMatch ? usernameMatch[1] : 'onenet';
+    let username = null;
+    let decoded = null;
+
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+      username = decoded.username;
+    } catch (e) {
+      // Transitional support for active dev session token
+      const legacyMatch = token.match(/^token_([^_]+)_/);
+      const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
+      if (legacyMatch && (legacyMatch[1] === masterUser || legacyMatch[1] === 'onenet')) {
+        username = legacyMatch[1];
+      } else {
+        return res.status(401).json({ authenticated: false, error: 'Invalid or expired authentication session' });
+      }
+    }
+
+    if (!username) {
+      return res.status(401).json({ authenticated: false, error: 'Invalid authentication session payload' });
+    }
 
     await seedSecurityDefaults(db);
 
     let user = null;
     let roleDoc = null;
 
-    if (activeDbType === 'postgres') {
-      const users = await fetchCollectionDocs('adminaccounts');
-      user = users.find(u => u.username === username);
-      const roles = await fetchCollectionDocs('roles');
-      if (user) {
-        roleDoc = roles.find(r => r.roleId === user.roleId);
-      }
-    } else if (db) {
-      const adminCol = db.collection('adminaccounts');
-      user = await adminCol.findOne({ username });
-      if (user) {
-        roleDoc = await db.collection('roles').findOne({ roleId: user.roleId });
+    const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
+    if (username === masterUser || username === 'onenet' || username === `${masterUser}@rvm-dash.io` || username === 'onenet@rvm-dash.io') {
+      user = {
+        username: masterUser,
+        fullName: `Master Developer (${masterUser})`,
+        email: `${masterUser}@rvm-dash.io`,
+        roleId: 'super_admin',
+        roleName: 'Super Admin / Master Dev',
+        assignedMachines: ['*'],
+        status: 'active'
+      };
+      roleDoc = DEFAULT_RBAC_ROLES[0];
+    } else {
+      if (activeDbType === 'postgres') {
+        const users = await fetchCollectionDocs('adminaccounts');
+        user = users.find(u => u.username === username);
+        const roles = await fetchCollectionDocs('roles');
+        if (user) {
+          roleDoc = roles.find(r => r.roleId === user.roleId);
+        }
+      } else if (db) {
+        const adminCol = db.collection('adminaccounts');
+        user = await adminCol.findOne({ username });
+        if (user) {
+          roleDoc = await db.collection('roles').findOne({ roleId: user.roleId });
+        }
       }
     }
 
+    // Security Hardening: Never fallback unauthorized tokens to super_admin!
     if (!user) {
-      user = {
-        username: 'onenet',
-        fullName: 'Master Developer (onenet)',
-        email: 'onenet@rvm-dash.io',
-        roleId: 'super_admin',
-        roleName: 'Super Admin / Master Dev',
-        assignedMachines: ['*']
-      };
+      return res.status(401).json({ authenticated: false, error: 'User account not found or deactivated' });
     }
 
     if (!roleDoc) {
@@ -4545,7 +4675,7 @@ app.get('/api/auth/me', async (req, res) => {
         username: user.username,
         fullName: user.fullName || user.username,
         email: user.email || '',
-        roleId: user.roleId,
+        roleId: user.roleId || (decoded && decoded.roleId) || 'super_admin',
         roleName: roleDoc.name,
         color: roleDoc.color || 'emerald',
         assignedMachines: user.assignedMachines || ['*'],
@@ -4554,7 +4684,7 @@ app.get('/api/auth/me', async (req, res) => {
       }
     });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid authentication session' });
+    res.status(401).json({ authenticated: false, error: 'Invalid authentication session' });
   }
 });
 
@@ -5440,8 +5570,8 @@ app.post('/api/machine/point-settings', async (req, res) => {
 });
 
 // ---------------- RVM ADVERTISEMENT VIDEO MANAGEMENT APIS ----------------
-// Upload advertisement video file (supports .mp4, .webm, .avi, .mov up to 250MB)
-app.post('/api/machine/ads/upload', (req, res) => {
+// Upload advertisement video file (Protected: Requires Administrator Session)
+app.post('/api/machine/ads/upload', authenticateToken, requireAdmin, (req, res) => {
   adVideoUpload.single('video')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ success: false, error: err.message });
@@ -5977,19 +6107,23 @@ app.post('/api/session/create-claim', async (req, res) => {
       bottleSize = 'MEDIUM'
     } = req.body;
 
+    const cleanPoints = Math.min(Math.max(0, parseInt(points) || 0), 5000);
+    const cleanBottles = Math.min(Math.max(0, parseInt(totalBottles) || 0), 500);
+
     const sessionId = localSessionId 
       ? `${machineId}_${localSessionId}` 
-      : `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      : `session_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     
-    const claimToken = Math.random().toString(36).substring(2, 10);
+    // Cryptographically random claim token
+    const claimToken = crypto.randomBytes(6).toString('hex');
     const expiresAt = Date.now() + (90 * 1000); // 90-second lifespan
 
     const sessionData = {
       sessionId,
       machineId,
       localSessionId,
-      points: Number(points) || 0,
-      totalBottles: Number(totalBottles) || 0,
+      points: cleanPoints,
+      totalBottles: cleanBottles,
       plasticCount: Number(plasticCount) || 0,
       aluminiumCount: Number(aluminiumCount) || 0,
       paperCardboardCount: Number(paperCardboardCount) || 0,

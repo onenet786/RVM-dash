@@ -17,6 +17,39 @@ import LoginModal from './components/LoginModal';
 import ReportingHubTab from './components/ReportingHubTab';
 import FlyingLeavesWatermark from './components/FlyingLeavesWatermark';
 
+// Secure Fetch Interceptor: Automatically attaches Authorization: Bearer <token> to /api/ requests
+if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
+  window._rvm_fetch_intercepted = true;
+  const originalFetch = window.fetch;
+  window.fetch = async function (resource, init = {}) {
+    try {
+      const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+      if (url.startsWith('/api/')) {
+        const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
+        if (token) {
+          init = init || {};
+          init.headers = init.headers || {};
+          if (init.headers instanceof Headers) {
+            if (!init.headers.has('Authorization')) {
+              init.headers.set('Authorization', `Bearer ${token}`);
+            }
+          } else if (Array.isArray(init.headers)) {
+            const hasAuth = init.headers.some(([k]) => k.toLowerCase() === 'authorization');
+            if (!hasAuth) {
+              init.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!init.headers['Authorization'] && !init.headers['authorization']) {
+              init.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+      }
+    } catch (e) { }
+    return originalFetch.call(this, resource, init);
+  };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
