@@ -6274,6 +6274,7 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
       status: handshake.status,
       machineId: handshake.machineId,
       startToken: handshake.startToken,
+      finishRequested: Boolean(handshake.finishRequested),
       user: handshake.user || null
     });
   } catch (err) {
@@ -6339,6 +6340,7 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
     }
 
     targetHandshake.status = 'STARTED';
+    targetHandshake.finishRequested = false;
     targetHandshake.user = {
       phone: userPhone,
       fullName: cleanName,
@@ -6358,7 +6360,42 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
   }
 });
 
-// 4. Kiosk resets handshake back to IDLE when session ends or is cancelled
+// 4. Mobile App requests finish for an active Touchless session
+app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
+  try {
+    const { machineId, mobileNumber, startToken } = req.body;
+    let targetHandshake = null;
+
+    if (machineId && activeStartHandshakes.has(machineId)) {
+      targetHandshake = activeStartHandshakes.get(machineId);
+    } else {
+      for (const [mId, h] of activeStartHandshakes.entries()) {
+        if ((startToken && h.startToken === startToken) || 
+            (mobileNumber && h.user && h.user.phone === String(mobileNumber).trim())) {
+          targetHandshake = h;
+          break;
+        }
+      }
+    }
+
+    if (!targetHandshake) {
+      return res.status(404).json({ success: false, error: 'Active kiosk session not found' });
+    }
+
+    targetHandshake.finishRequested = true;
+    console.log(`[TOUCHLESS 📱] Mobile requested finish for kiosk: ${targetHandshake.machineId}`);
+
+    res.json({
+      success: true,
+      message: 'Finish signal sent to kiosk successfully',
+      machineId: targetHandshake.machineId
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Kiosk resets handshake back to IDLE when session ends or is cancelled
 app.post('/api/session/kiosk-handshake/reset', (req, res) => {
   const { machineId } = req.body;
   if (machineId && activeStartHandshakes.has(machineId)) {

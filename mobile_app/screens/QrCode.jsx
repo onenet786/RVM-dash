@@ -32,6 +32,7 @@ export default function QrCode({ navigation }) {
   const [claimSuccess, setClaimSuccess] = useState(null);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [manualPhone, setManualPhone] = useState('');
+  const [activeKioskSession, setActiveKioskSession] = useState(null);
   const webViewRef = useRef(null);
 
   const requestCameraPermission = async () => {
@@ -133,10 +134,11 @@ export default function QrCode({ navigation }) {
 
       if (res.data && res.data.success) {
         setShowScannerModal(false);
-        setClaimSuccess({
-          points: 0,
-          newBalance: res.data.user?.balance ?? null,
-          message: '🚀 Kiosk Started! The machine is now ready. Simply insert your bottles and cans. Your points will be credited automatically when finished!'
+        const machineKey = res.data.machineId || 'RVM-RWP-INIT';
+        setActiveKioskSession({
+          machineId: machineKey,
+          mobileNumber: phoneToUse,
+          startedAt: Date.now()
         });
         ToastAndroid?.show('🚀 Kiosk Started! Insert containers now.', ToastAndroid.LONG);
       } else {
@@ -145,6 +147,34 @@ export default function QrCode({ navigation }) {
     } catch (err) {
       const errMsg = err.response?.data?.error || err.message || 'Network error activating kiosk.';
       Alert.alert('Activation Error', errMsg);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  const handleRequestFinish = async () => {
+    if (!activeKioskSession) return;
+    setClaiming(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/session/kiosk-handshake/request-finish`, {
+        machineId: activeKioskSession.machineId,
+        mobileNumber: activeKioskSession.mobileNumber
+      }, { timeout: 10000 });
+
+      if (res.data && res.data.success) {
+        const finishedMachine = activeKioskSession.machineId;
+        setActiveKioskSession(null);
+        setClaimSuccess({
+          points: 0,
+          message: `🎉 Kiosk session finished! Machine ${finishedMachine} is saving your containers and crediting points to your wallet.`
+        });
+        ToastAndroid?.show('🎉 Kiosk session finished! Points credited.', ToastAndroid.LONG);
+      } else {
+        Alert.alert('Finish Request Failed', res.data?.error || 'Could not send finish signal to kiosk.');
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.error || err.message || 'Error finishing session.';
+      Alert.alert('Finish Error', errMsg);
     } finally {
       setClaiming(false);
     }
@@ -429,6 +459,35 @@ export default function QrCode({ navigation }) {
           </View>
         ) : (
           <>
+            {/* Active Touchless Kiosk Session Card */}
+            {activeKioskSession && (
+              <View style={styles.activeSessionCard}>
+                <View style={styles.activeHeaderRow}>
+                  <View style={styles.pulsingDot} />
+                  <Text style={styles.activeHeaderTitle}>KIOSK SESSION IN PROGRESS</Text>
+                </View>
+                <Text style={styles.activeMachineText}>Connected: {activeKioskSession.machineId}</Text>
+                <Text style={styles.activeInstructions}>
+                  The kiosk aperture is unlocked! Insert all your containers now. When done, tap below to finish without touching the keypad:
+                </Text>
+                <TouchableOpacity
+                  style={styles.finishBtn}
+                  onPress={handleRequestFinish}
+                  disabled={claiming}
+                  activeOpacity={0.85}
+                >
+                  {claiming ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <MaterialCommunityIcons name="check-circle" size={24} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.finishBtnText}>FINISH &amp; CLAIM POINTS</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Primary Action: Open Camera Scanner */}
             <View style={styles.mainCard}>
               <View style={styles.iconCircle}>
@@ -902,5 +961,66 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#94A3B8',
     textAlign: 'center',
+  },
+  activeSessionCard: {
+    backgroundColor: '#064E3B',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  activeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  pulsingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#34D399',
+    marginRight: 8,
+  },
+  activeHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#A7F3D0',
+    letterSpacing: 0.8,
+  },
+  activeMachineText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  activeInstructions: {
+    fontSize: 13,
+    color: '#D1FAE5',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  finishBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  finishBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

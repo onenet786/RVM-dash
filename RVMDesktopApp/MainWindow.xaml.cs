@@ -68,6 +68,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private string? _currentStartToken;
     private DateTime _startTokenExpiresAt = DateTime.MinValue;
     private bool _isRegisteringHandshake = false;
+    private readonly DispatcherTimer _inactivityCountdownTimer = new();
+    private int _inactivitySecondsRemaining = 0;
 
     // -------------------------------------------------------------
     // IDLE MODE EXPANSION (1-MINUTE TIMEOUT & ZOOM TRANSITION)
@@ -166,6 +168,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         _startHandshakeTimer.Interval = TimeSpan.FromMilliseconds(1500);
         _startHandshakeTimer.Tick += StartHandshakeTimer_Tick;
         _startHandshakeTimer.Start();
+        _inactivityCountdownTimer.Interval = TimeSpan.FromSeconds(1);
+        _inactivityCountdownTimer.Tick += InactivityCountdownTimer_Tick;
         _ = RegisterStartHandshakeAsync();
     }
 
@@ -1490,7 +1494,26 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     {
         if (machineStarted)
         {
-            _startHandshakeTimer.Stop();
+            if (!string.IsNullOrWhiteSpace(activeUserMobile))
+            {
+                try
+                {
+                    var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
+                    {
+                        _startHandshakeTimer.Stop();
+                        _inactivityCountdownTimer.Stop();
+                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
+                        CompleteSessionToWallet();
+                        return;
+                    }
+                }
+                catch { }
+            }
+            else
+            {
+                _startHandshakeTimer.Stop();
+            }
             return;
         }
 
@@ -1507,7 +1530,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             {
                 if (statusResp.Status == "STARTED" && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
                 {
-                    _startHandshakeTimer.Stop();
                     activeUserMobile = statusResp.MobileNumber;
 
                     string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? "Eco Citizen";
@@ -1529,6 +1551,38 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         catch
         {
             // Transient network hiccups ignored in poll
+        }
+    }
+
+    private void ResetInactivityCountdown()
+    {
+        if (!machineStarted || totalItems <= 0) return;
+        _inactivitySecondsRemaining = 15;
+        if (!_inactivityCountdownTimer.IsEnabled)
+        {
+            _inactivityCountdownTimer.Start();
+        }
+    }
+
+    private void InactivityCountdownTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!machineStarted || totalItems <= 0)
+        {
+            _inactivityCountdownTimer.Stop();
+            return;
+        }
+
+        _inactivitySecondsRemaining--;
+        if (_inactivitySecondsRemaining > 0 && _inactivitySecondsRemaining <= 10)
+        {
+            BottleInfoText.Text = $"Insert item • Auto-completing in {_inactivitySecondsRemaining}s";
+        }
+
+        if (_inactivitySecondsRemaining <= 0)
+        {
+            _inactivityCountdownTimer.Stop();
+            LogTelemetry($"[TOUCHLESS ⏱️] 15s Inactivity reached with {totalItems} items. Auto-completing session...");
+            CompleteSessionToWallet();
         }
     }
 
@@ -1629,7 +1683,14 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
-        _startHandshakeTimer.Stop();
+        if (string.IsNullOrWhiteSpace(activeUserMobile))
+        {
+            _startHandshakeTimer.Stop();
+        }
+        else
+        {
+            if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+        }
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
         {
             UserGreetingBanner.Visibility = Visibility.Collapsed;
@@ -1654,6 +1715,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         machineStarted = false;
         scanTimer.Stop();
+        _inactivityCountdownTimer.Stop();
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
@@ -1734,6 +1796,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
         ShowAcceptedState(result.Material, result.Size, points);
+        ResetInactivityCountdown();
 
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
@@ -2105,6 +2168,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
         ShowAcceptedState(result.Material, result.Size, points);
+        ResetInactivityCountdown();
 
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
@@ -2190,6 +2254,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
     public void CompleteSessionToWallet()
     {
+        _inactivityCountdownTimer.Stop();
+        _startHandshakeTimer.Stop();
+
         if (!machineStarted)
         {
             StatusText.Text = "Start recycling first";

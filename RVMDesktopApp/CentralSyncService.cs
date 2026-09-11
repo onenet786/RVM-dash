@@ -65,6 +65,7 @@ public class KioskStartStatusResponse
     public string Status { get; set; } = "IDLE"; // IDLE, WAITING_FOR_SCAN, STARTED, EXPIRED
     public string MachineId { get; set; } = string.Empty;
     public string StartToken { get; set; } = string.Empty;
+    public bool FinishRequested { get; set; } = false;
     public KioskUserInfo? User { get; set; }
     public string? MobileNumber => User?.Phone;
 }
