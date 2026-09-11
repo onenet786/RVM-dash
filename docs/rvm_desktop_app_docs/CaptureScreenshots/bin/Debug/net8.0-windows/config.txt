@@ -12,3 +12,6 @@ ModelPath=Models\rvm_classifier.onnx
 CaptureDirectory=Captures
 MachineId = RVM-007
 CentralApiUrl = https://isprvm.binishaqsoft.com
+Location = OneNet Solutions , Lahore, Punjab, Pakistan
+Latitude = 31.521420762784253
+Longitude = 74.32508558466046

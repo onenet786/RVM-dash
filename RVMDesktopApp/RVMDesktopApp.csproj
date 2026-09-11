@@ -35,6 +35,8 @@
     <Content Include="Ads\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="config.example.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Fonts\**\*" />
+    <Content Include="Fonts\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@
         PreviewKeyDown="Window_KeyDown">
 
     <Window.Resources>
-        <FontFamily x:Key="UrduFont">Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Tahoma, Segoe UI</FontFamily>
+        <FontFamily x:Key="UrduFont">./Fonts/#Jameel Noori Nastaleeq, pack://application:,,,/Fonts/#Jameel Noori Nastaleeq, ./Fonts/#Noto Nastaliq Urdu, pack://application:,,,/Fonts/#Noto Nastaliq Urdu, Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Tahoma, Segoe UI</FontFamily>
         <DropShadowEffect x:Key="GlowShadow" BlurRadius="20" ShadowDepth="0" Opacity="0.35" Color="#22C55E"/>
     </Window.Resources>
 

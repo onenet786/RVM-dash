@@ -15,7 +15,7 @@
         <SolidColorBrush x:Key="BorderSoft" Color="#E2EAE0"/>
 
         <!-- Authentic Urdu Nastaliq Font Stack -->
-        <FontFamily x:Key="UrduFont">Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Gulzar, Pak Nastaleeq, Nafees Nastaleeq, Segoe UI, Arial</FontFamily>
+        <FontFamily x:Key="UrduFont">./Fonts/#Jameel Noori Nastaleeq, pack://application:,,,/Fonts/#Jameel Noori Nastaleeq, ./Fonts/#Noto Nastaliq Urdu, pack://application:,,,/Fonts/#Noto Nastaliq Urdu, Jameel Noori Nastaleeq, Urdu Typesetting, Noto Nastaliq Urdu, Gulzar, Pak Nastaleeq, Nafees Nastaleeq, Segoe UI, Arial</FontFamily>
         
         <DropShadowEffect x:Key="CardShadow" BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#073B28"/>
         <DropShadowEffect x:Key="SubtleItemShadow" BlurRadius="6" ShadowDepth="1" Opacity="0.04" Color="#073B28"/>
