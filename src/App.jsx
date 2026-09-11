@@ -15,8 +15,6 @@ import MobileUsersTab from './components/MobileUsersTab';
 import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
 import ReportingHubTab from './components/ReportingHubTab';
-import { Leaf } from 'lucide-react';
-import ispLogo from './assets/isp_logo.png';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -28,7 +26,7 @@ export default function App() {
       if (explicit) {
         return localStorage.getItem('rvm_theme') || 'isp-eco';
       }
-    } catch (e) {}
+    } catch (e) { }
     return 'isp-eco';
   });
 
@@ -38,7 +36,7 @@ export default function App() {
     try {
       const savedUser = sessionStorage.getItem('rvm_auth_user');
       if (savedUser) return JSON.parse(savedUser);
-    } catch (e) {}
+    } catch (e) { }
     return null; // Force login modal on fresh browser session
   });
 
@@ -84,7 +82,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (e) {}
+    } catch (e) { }
     sessionStorage.removeItem('rvm_auth_token');
     sessionStorage.removeItem('rvm_auth_user');
     localStorage.removeItem('rvm_auth_token');
@@ -168,10 +166,10 @@ export default function App() {
       };
 
       return (
-        <DataTable 
-          key={colName} 
-          collectionName={colName} 
-          displayName={displayNames[colName] || `${colName} Table`} 
+        <DataTable
+          key={colName}
+          collectionName={colName}
+          displayName={displayNames[colName] || `${colName} Table`}
         />
       );
     }
@@ -181,16 +179,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen t-bg-app flex flex-col font-sans transition-colors duration-300">
-      
+
       {/* Login Portal Modal overlay when logged out */}
       {(isLoggedOut || !currentUser) && (
         <LoginModal onLoginSuccess={handleLoginSuccess} />
       )}
 
       {/* Top Navbar */}
-      <Navbar 
-        health={health} 
-        onRefresh={fetchHealth} 
+      <Navbar
+        health={health}
+        onRefresh={fetchHealth}
         theme={theme}
         setTheme={setTheme}
         currentUser={currentUser}
@@ -200,49 +198,20 @@ export default function App() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        
+
         {/* Navigation Sidebar */}
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          health={health} 
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          health={health}
           currentUser={currentUser}
           isMobileOpen={isMobileOpen}
           setIsMobileOpen={setIsMobileOpen}
         />
 
         {/* Main Content Area: Media Queries Full-Width Adaptive Utilization */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 xl:p-7 2xl:p-8 3xl:px-10 transition-all duration-200 relative">
-          
-          {/* Ambient Floating Top Gate Crest - Background Watermark Style */}
-          <div className="fixed inset-0 pointer-events-none select-none z-0 flex items-center justify-center overflow-hidden">
-            <div className="opacity-[0.03] dark:opacity-[0.045] flex flex-col items-center justify-center transform -rotate-12 scale-110 sm:scale-125 lg:scale-140 transition-transform duration-1000">
-              <img src={ispLogo} alt="ISP Watermark" className="w-[420px] h-[420px] object-contain filter grayscale" />
-              <div className="mt-3 text-center font-black tracking-[0.35em] uppercase text-slate-900 dark:text-emerald-100 text-base border-t-2 border-b-2 border-current py-1.5 px-8">
-                ISP Eco-Vanguard Secure Gateway
-              </div>
-              <div className="text-[10px] tracking-[0.25em] uppercase font-bold text-slate-700 dark:text-emerald-300 mt-1">
-                Official RVM Telemetry & Regulatory Compliance Network
-              </div>
-            </div>
-          </div>
-
-          {/* Floating Top Gate Badge - Watermark Style */}
-          <div className="sticky top-0 z-30 flex justify-center pointer-events-none select-none -mt-1 mb-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/75 dark:bg-[#051c14]/75 backdrop-blur-xl border border-emerald-600/25 dark:border-emerald-400/25 shadow-[0_4px_20px_-2px_rgba(11,93,59,0.12)] text-[#0b5d3b] dark:text-emerald-300 text-[11px] font-extrabold uppercase tracking-widest pointer-events-auto transition-all duration-300 hover:scale-[1.02] hover:bg-white/90 dark:hover:bg-[#051c14]/90">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <Leaf className="w-3.5 h-3.5 text-amber-500 dark:text-amber-300 animate-leaf-sway" />
-              <span>Eco-Vanguard Secure Gateway</span>
-              <span className="text-[9.5px] px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 font-mono font-bold tracking-normal">
-                ISO 14064
-              </span>
-            </div>
-          </div>
-
-          <div className="dashboard-viewport space-y-6 relative z-10">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 xl:p-7 2xl:p-8 3xl:px-10 transition-all duration-200">
+          <div className="dashboard-viewport space-y-6">
             {renderContent()}
           </div>
         </main>

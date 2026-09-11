@@ -34,10 +34,10 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   return (
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
       <div className="flex items-center justify-between gap-2">
-        
+
         {/* Left Brand & Server Host, DB, Location Info */}
         <div className="flex items-center gap-2.5">
-          
+
           {/* Mobile Hamburger Drawer Toggle Button */}
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -57,12 +57,8 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
               <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
                 PRO DEV
               </span>
-              <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-200 border border-emerald-400/25 shadow-xs backdrop-blur-sm">
-                <Leaf className="w-3 h-3 text-amber-300 animate-leaf-sway" />
-                <span>Eco-Vanguard Gateway</span>
-              </span>
             </div>
-            
+
             <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
               {isMasterDev ? (
                 <>
@@ -94,7 +90,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
 
         {/* Right Status Indicators, User Profile & Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          
+
           {/* DB Status Badge */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs text-white">
             <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-[#e5a919] animate-pulse' : 'bg-rose-500'}`} />
@@ -133,15 +129,14 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
                       <button
                         key={t.id}
                         onClick={() => {
-                          try { localStorage.setItem('rvm_theme_explicit', 'true'); } catch (e) {}
+                          try { localStorage.setItem('rvm_theme_explicit', 'true'); } catch (e) { }
                           setTheme(t.id);
                           setShowThemeMenu(false);
                         }}
-                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${
-                          isSelected
+                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${isSelected
                             ? 'bg-[#e6f3ec] text-[#0b5d3b] font-bold border border-[#0b5d3b]/40 shadow-sm'
                             : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         <div className={`w-3.5 h-3.5 rounded-full mt-0.5 shrink-0 ${t.color} border border-black/10`} />
                         <div className="flex-1">
