@@ -57,6 +57,10 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
               <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
                 PRO DEV
               </span>
+              <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-200 border border-emerald-400/25 shadow-xs backdrop-blur-sm">
+                <Leaf className="w-3 h-3 text-amber-300 animate-leaf-sway" />
+                <span>Eco-Vanguard Gateway</span>
+              </span>
             </div>
             
             <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
