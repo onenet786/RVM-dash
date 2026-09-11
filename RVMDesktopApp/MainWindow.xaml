@@ -273,27 +273,16 @@
                                                 <Ellipse Width="368" Height="368" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.8"/>
 
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <!-- Dynamic Touchless QR Start Card -->
-                                                    <Border x:Name="StartQrCard" Margin="0,0,0,8" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="6" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
-                                                        <StackPanel HorizontalAlignment="Center">
-                                                            <Image x:Name="StartQrImage" Width="145" Height="145" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
-                                                                <TextBlock Text="📱 SCAN TO START • " FontSize="11" FontWeight="Black" Foreground="#15803D"/>
-                                                                <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                    </Border>
-
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                                        <TextBlock Text="INSERT  •  " FontSize="22" FontWeight="Black" Foreground="#073B28"/>
-                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="INSERT  •  " FontSize="26" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="28" FontWeight="Black" Foreground="#073B28"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,8"/>
+                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="14" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,0,0,14"/>
                                                     
-                                                    <Border Background="#073B28" CornerRadius="18" Padding="22,6" HorizontalAlignment="Center">
+                                                    <Border Background="#073B28" CornerRadius="20" Padding="26,8" HorizontalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="OR PRESS [0] TO START • " FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="OR PRESS [0] TO START • " FontSize="15" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
@@ -301,6 +290,20 @@
                                         </Border>
                                     </Button>
                                 </Grid>
+
+                                <!-- Dynamic Touchless QR Start Floating Card (Visible on Idle on top of video or placeholder) -->
+                                <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,32,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2.5" CornerRadius="16" Padding="12,10" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <StackPanel HorizontalAlignment="Center" Width="170">
+                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="6,3" Margin="0,0,0,8" HorizontalAlignment="Center">
+                                            <TextBlock Text="📱 TOUCHLESS START" FontSize="10" FontWeight="Black" Foreground="#15803D"/>
+                                        </Border>
+                                        <Border Background="#FFFFFF" Padding="4" CornerRadius="10" HorizontalAlignment="Center">
+                                            <Image x:Name="StartQrImage" Width="145" Height="145" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        </Border>
+                                        <TextBlock Text="SCAN TO START" FontSize="13" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,6,0,1"/>
+                                        <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
 
                                 <!-- ========================================================================= -->
                                 <!-- 1. STATE: PLEASE INSERT BOTTLE / CAN / UBC (SHOWN WHEN USER PRESSES 0)    -->

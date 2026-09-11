@@ -1097,6 +1097,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         machineStarted = true;
         scanTimer.Stop();
         _startHandshakeTimer.Stop();
+        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
         {
             UserGreetingBanner.Visibility = Visibility.Collapsed;
@@ -1121,6 +1122,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         machineStarted = false;
         scanTimer.Stop();
         activeUserMobile = null;
+        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();

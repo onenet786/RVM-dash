@@ -229,26 +229,15 @@
                                                 <Ellipse Width="310" Height="310" Fill="#FFFFFF" Stroke="#E2ECE0" StrokeThickness="1.8"/>
                                                 <Ellipse Width="288" Height="288" Fill="#F8FCF7" Stroke="#CBE0CB" StrokeThickness="1.4"/>
                                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <!-- Dynamic Touchless QR Start Card -->
-                                                    <Border x:Name="StartQrCard" Margin="0,0,0,6" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="12" Padding="5" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
-                                                        <StackPanel HorizontalAlignment="Center">
-                                                            <Image x:Name="StartQrImage" Width="116" Height="116" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,3,0,0">
-                                                                <TextBlock Text="📱 SCAN TO START • " FontSize="10" FontWeight="Black" Foreground="#15803D"/>
-                                                                <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#15803D"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                    </Border>
-
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
-                                                        <TextBlock Text="INSERT • " FontSize="18" FontWeight="Black" Foreground="#073B28"/>
-                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="19.5" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="INSERT • " FontSize="22" FontWeight="Black" Foreground="#073B28"/>
+                                                        <TextBlock Text="داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#073B28"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="11" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,-2,0,6"/>
-                                                    <Border Background="#073B28" CornerRadius="16" Padding="16,5" HorizontalAlignment="Center">
+                                                    <TextBlock Text="BOTTLE / CAN / CUP / UBC" FontSize="12" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                                    <Border Background="#073B28" CornerRadius="18" Padding="20,6" HorizontalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="OR PRESS [0] TO START • " FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="OR PRESS [0] TO START • " FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
+                                                            <TextBlock Text="یا 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="14.5" FontWeight="Black" Foreground="#FFFFFF"/>
                                                         </StackPanel>
                                                     </Border>
                                                 </StackPanel>
@@ -256,6 +245,20 @@
                                         </Border>
                                     </Button>
                                 </Grid>
+
+                                <!-- Touchless QR Start Floating Card (Visible on idle over video or placeholder) -->
+                                <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <StackPanel HorizontalAlignment="Center" Width="140">
+                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="4,2" Margin="0,0,0,6" HorizontalAlignment="Center">
+                                            <TextBlock Text="📱 TOUCHLESS START" FontSize="9" FontWeight="Black" Foreground="#15803D"/>
+                                        </Border>
+                                        <Border Background="#FFFFFF" Padding="2" CornerRadius="6" HorizontalAlignment="Center">
+                                            <Image x:Name="StartQrImage" Width="110" Height="110" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        </Border>
+                                        <TextBlock Text="SCAN TO START" FontSize="11" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                                        <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </Border>
 

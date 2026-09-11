@@ -947,6 +947,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             InstructionPlayer.Visibility = Visibility.Collapsed;
         }
 
+        if (StartQrCard != null && !machineStarted) StartQrCard.Visibility = Visibility.Visible;
+
         LogTelemetry("[STATE] Instruction screen -> DEFAULT IDLE INSTRUCTION VIDEO");
     }
 
@@ -967,6 +969,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
+        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
         if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Visible;
 
         // Animate Arrow Bounce
