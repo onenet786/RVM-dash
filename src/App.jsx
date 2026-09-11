@@ -15,6 +15,7 @@ import MobileUsersTab from './components/MobileUsersTab';
 import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
 import ReportingHubTab from './components/ReportingHubTab';
+import FlyingLeavesWatermark from './components/FlyingLeavesWatermark';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -178,7 +179,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen t-bg-app flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-screen t-bg-app flex flex-col font-sans transition-colors duration-300 relative">
+
+      {/* Dynamic Flying Leaf Watermark across all Dashboard pages */}
+      <FlyingLeavesWatermark isWatermark={true} count={28} />
 
       {/* Login Portal Modal overlay when logged out */}
       {(isLoggedOut || !currentUser) && (

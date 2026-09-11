@@ -324,19 +324,6 @@ export default function LoginModal({ onLoginSuccess }) {
 
       {/* Main Executive Glassmorphic Login Card */}
       <div className="relative w-full max-w-[460px] z-10 animate-card-entrance">
-        
-        {/* Decorative Top Leaf Floating Pill Badge */}
-        <div className="flex justify-center -mb-4 relative z-20">
-          <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#0b5d3b] via-[#047857] to-[#0b5d3b] text-white text-[11px] font-extrabold uppercase tracking-widest border border-emerald-400/35 shadow-lg shadow-emerald-950/60 flex items-center gap-2 backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-            </span>
-            <Leaf className="w-3.5 h-3.5 text-amber-300 animate-leaf-sway" />
-            <span>Eco-Vanguard Secure Gateway</span>
-          </div>
-        </div>
-
         {/* Card Shell */}
         <div className="relative rounded-[32px] p-7 sm:p-9 space-y-6 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.8),0_0_55px_0_rgba(11,93,59,0.3)] border border-emerald-500/35 bg-[#051c14]/85 backdrop-blur-2xl overflow-hidden">
           
