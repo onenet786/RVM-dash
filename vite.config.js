@@ -14,6 +14,25 @@ export default defineConfig({
   },
   build: {
     emptyOutDir: false,
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 600,
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react') || id.includes('scheduler')) {
+              return 'vendor-framework';
+            }
+          }
+        }
+      }
+    }
   }
 });

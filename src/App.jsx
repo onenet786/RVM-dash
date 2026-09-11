@@ -1,21 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import OverviewTab from './components/OverviewTab';
-import AnalyticsTab from './components/AnalyticsTab';
-import MachineHealthTab from './components/MachineHealthTab';
-import MachineConfigsTab from './components/MachineConfigsTab';
-import AdvertisementsTab from './components/AdvertisementsTab';
-import RvmManagementTab from './components/RvmManagementTab';
-import DbBackupTab from './components/DbBackupTab';
-import DbSwitcherTab from './components/DbSwitcherTab';
-import SecurityTab from './components/SecurityTab';
-import EnvironmentalImpactTab from './components/EnvironmentalImpactTab';
-import MobileUsersTab from './components/MobileUsersTab';
-import DataTable from './components/DataTable';
 import LoginModal from './components/LoginModal';
-import ReportingHubTab from './components/ReportingHubTab';
 import FlyingLeavesWatermark from './components/FlyingLeavesWatermark';
+
+// Code-split dynamic tabs for instant initial web & mobile bundle load
+const AnalyticsTab = lazy(() => import('./components/AnalyticsTab'));
+const MachineHealthTab = lazy(() => import('./components/MachineHealthTab'));
+const MachineConfigsTab = lazy(() => import('./components/MachineConfigsTab'));
+const AdvertisementsTab = lazy(() => import('./components/AdvertisementsTab'));
+const RvmManagementTab = lazy(() => import('./components/RvmManagementTab'));
+const DbBackupTab = lazy(() => import('./components/DbBackupTab'));
+const DbSwitcherTab = lazy(() => import('./components/DbSwitcherTab'));
+const SecurityTab = lazy(() => import('./components/SecurityTab'));
+const EnvironmentalImpactTab = lazy(() => import('./components/EnvironmentalImpactTab'));
+const MobileUsersTab = lazy(() => import('./components/MobileUsersTab'));
+const DataTable = lazy(() => import('./components/DataTable'));
+const ReportingHubTab = lazy(() => import('./components/ReportingHubTab'));
 
 // Secure Fetch Interceptor: Automatically attaches Authorization: Bearer <token> to /api/ requests
 if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
@@ -249,7 +251,21 @@ export default function App() {
         {/* Main Content Area: Media Queries Full-Width Adaptive Utilization */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 xl:p-7 2xl:p-8 3xl:px-10 transition-all duration-200">
           <div className="dashboard-viewport space-y-6">
-            {renderContent()}
+            <Suspense fallback={
+              <div className="space-y-6 animate-pulse p-4">
+                <div className="h-24 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center px-6">
+                  <div className="h-6 w-48 bg-emerald-500/20 rounded-full" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="h-36 rounded-2xl bg-emerald-500/10 border border-emerald-500/15" />
+                  <div className="h-36 rounded-2xl bg-emerald-500/10 border border-emerald-500/15" />
+                  <div className="h-36 rounded-2xl bg-emerald-500/10 border border-emerald-500/15" />
+                </div>
+                <div className="h-80 rounded-2xl bg-emerald-500/10 border border-emerald-500/15" />
+              </div>
+            }>
+              {renderContent()}
+            </Suspense>
           </div>
         </main>
 

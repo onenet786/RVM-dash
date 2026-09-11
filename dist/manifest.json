@@ -1,0 +1,19 @@
+{
+  "short_name": "RVM Master",
+  "name": "ISP Environmental Solutions - RVM Master Dashboard",
+  "description": "Reverse Vending Machine (RVM) Fleet Telemetry, Monitoring and Compliance Dashboard.",
+  "icons": [
+    {
+      "src": "/isp_logo.png",
+      "type": "image/png",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b5d3b",
+  "theme_color": "#0b5d3b",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["utilities", "productivity", "business"]
+}

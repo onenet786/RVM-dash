@@ -3,8 +3,10 @@ import React, { useEffect, useRef } from 'react';
 /**
  * FlyingLeavesWatermark
  * High-performance 60FPS background flying leaves watermark engine.
- * Renders botanical leaves and eco-spores drifting across the background
- * in a true non-intrusive watermark style (pointer-events: none, subtle opacity).
+ * Optimized for mobile devices:
+ * - Automatically scales particle count down on mobile screens (< 768px).
+ * - Pauses animation loop when tab/screen is hidden (saves mobile battery and CPU).
+ * - Non-intrusive watermark style (pointer-events: none).
  */
 export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }) {
   const canvasRef = useRef(null);
@@ -16,8 +18,13 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
     if (!ctx) return;
 
     let animId;
+    let isPaused = false;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+
+    // Responsive particle density: mobile devices (< 768px) get fewer particles to save battery
+    const isMobile = width < 768;
+    const effectiveCount = isMobile ? Math.min(12, Math.floor(count * 0.4)) : count;
 
     const handleResize = () => {
       if (!canvas) return;
@@ -25,6 +32,18 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
       height = canvas.height = window.innerHeight;
     };
     window.addEventListener('resize', handleResize);
+
+    // Performance optimization: Pause render loop when document is hidden (background tab)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        if (animId) cancelAnimationFrame(animId);
+      } else {
+        isPaused = false;
+        animId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Leaf Color Palettes (ISP Brand Greens & Golds)
     const leafPalettes = [
@@ -35,12 +54,12 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
       { start: '#059669', end: '#10b981', vein: '#047857' }, // Classic Vanguard Green
     ];
 
-    const leafCount = Math.min(count, Math.max(16, Math.floor(width / 42)));
+    const leafCount = Math.min(effectiveCount, Math.max(isMobile ? 8 : 16, Math.floor(width / (isMobile ? 65 : 42))));
     const leaves = [];
 
     for (let i = 0; i < leafCount; i++) {
       const palette = leafPalettes[Math.floor(Math.random() * leafPalettes.length)];
-      const size = 12 + Math.random() * 16;
+      const size = (isMobile ? 9 : 12) + Math.random() * (isMobile ? 12 : 16);
       const depth = size / 28;
 
       leaves.push({
@@ -56,13 +75,13 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
         vWobble: 0.012 + Math.random() * 0.022,
         swayPhase: Math.random() * Math.PI * 2,
         palette,
-        leafType: Math.floor(Math.random() * 3), // 0: Oval/Eucalyptus, 1: Birch/Willow, 2: Heart/Ginkgo
+        leafType: Math.floor(Math.random() * 3),
         opacity: isWatermark ? (0.12 + depth * 0.16) : (0.35 + depth * 0.55),
       });
     }
 
     // Bioluminescent Eco-Spores
-    const sporeCount = isWatermark ? 18 : 32;
+    const sporeCount = isMobile ? 8 : (isWatermark ? 18 : 32);
     const spores = [];
     for (let i = 0; i < sporeCount; i++) {
       spores.push({
@@ -79,6 +98,7 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
 
     let tick = 0;
     const render = () => {
+      if (isPaused) return;
       tick++;
       ctx.clearRect(0, 0, width, height);
 
@@ -123,10 +143,8 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
         ctx.translate(l.x, l.y);
         ctx.rotate(l.angle);
 
-        // 3D tumble scale effect
         const scaleY = Math.cos(l.wobble);
         ctx.scale(1, scaleY);
-
         ctx.globalAlpha = Math.abs(scaleY) * l.opacity;
 
         const grad = ctx.createLinearGradient(0, -l.size, 0, l.size);
@@ -165,6 +183,7 @@ export default function FlyingLeavesWatermark({ isWatermark = true, count = 28 }
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animId);
     };
   }, [isWatermark, count]);

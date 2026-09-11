@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
+import compression from 'compression';
 
 import { MongoClient, ObjectId } from 'mongodb';
 import dns from 'dns';
@@ -74,6 +75,13 @@ app.use(helmet({
 }));
 
 app.use(cors());
+
+// Performance Optimization: High-ratio Gzip / Deflate compression for mobile API payloads & web assets
+app.use(compression({
+  threshold: 1024,
+  level: 6
+}));
+
 // Set high payload limit (50MB) for database restoration JSON uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -136,17 +144,36 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
 }
 
-// Serve uploaded advertisement videos statically
-app.use('/uploads/advertisements', express.static(ADS_UPLOAD_DIR));
+// Serve uploaded advertisement videos statically with 7-day browser caching
+app.use('/uploads/advertisements', express.static(ADS_UPLOAD_DIR, {
+  maxAge: '7d'
+}));
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR));
+  app.use(express.static(PUBLIC_DIR, {
+    maxAge: '1d',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 }
 
+// Performance Optimization: Cache-Control with 1-Year Immutable Caching for Fingerprinted Vite Bundles
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(DIST_DIR)) {
-  app.use(express.static(DIST_DIR));
+  app.use(express.static(DIST_DIR, {
+    maxAge: '1d',
+    setHeaders: (res, filePath) => {
+      if (filePath.includes('assets')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (filePath.endsWith('.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
 }
 
 
@@ -300,11 +327,11 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE recycling_sessions ADD COLUMN IF NOT EXISTS glass_large_count INT DEFAULT 0;
       CREATE INDEX IF NOT EXISTS idx_sessions_machine_date ON recycling_sessions (machine_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sessions_date ON recycling_sessions (created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON recycling_sessions (user_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON recycling_sessions (user_id, created_at DESC);
     `);
 
-
-
-    // 3. Users Table with Unique Constraints & Indexes
+    // 3. Users Table with Unique Constraints & Multi-column Query Indexes
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         user_id VARCHAR(255) PRIMARY KEY,
@@ -339,7 +366,22 @@ async function initProductionPostgresSchemas() {
       CREATE INDEX IF NOT EXISTS idx_users_username ON users (username);
       CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
       CREATE INDEX IF NOT EXISTS idx_users_mobile ON users (mobile);
+      CREATE INDEX IF NOT EXISTS idx_users_points ON users (points_balance DESC);
       CREATE INDEX IF NOT EXISTS idx_users_is_online ON users (is_online);
+      CREATE INDEX IF NOT EXISTS idx_users_lookup ON users (user_id, mobile, username, email);
+
+      CREATE TABLE IF NOT EXISTS machine_variant_settings (
+        id SERIAL PRIMARY KEY,
+        machine_id VARCHAR(100) NOT NULL DEFAULT '*',
+        material_type VARCHAR(50) NOT NULL,
+        bottle_size VARCHAR(50) NOT NULL,
+        points INT NOT NULL DEFAULT 10,
+        unit VARCHAR(20) NOT NULL DEFAULT 'per_piece',
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT uq_mvs UNIQUE (machine_id, material_type, bottle_size)
+      );
+      CREATE INDEX IF NOT EXISTS idx_mvs_machine ON machine_variant_settings (machine_id);
     `);
 
     // Reset online flags on server boot to ensure only actively connected mobile devices show online
@@ -3898,12 +3940,31 @@ app.post('/user/profile', handleUpdateProfile);
 app.put('/user/profile', handleUpdateProfile);
 app.post('/update-profile', handleUpdateProfile);
 
+// High-Speed In-Memory Cache for Mobile User Profile & Recycles (15-second TTL)
+const mobileUserPointsCache = new Map();
+const mobileUserRecycleCache = new Map();
+
+function invalidateMobileUserCaches(userId) {
+  if (!userId) return;
+  const key = String(userId).trim();
+  mobileUserPointsCache.delete(key);
+  mobileUserRecycleCache.delete(key);
+}
+
 // 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {
   try {
     const phone = (req.body.phoneNumber || req.body.phone || req.body.userId || '').trim();
     if (!phone || phone === 'anonymous') {
       return res.status(400).json({ success: false, message: 'Valid user phoneNumber or userId is required' });
+    }
+
+    const now = Date.now();
+    if (mobileUserPointsCache.has(phone)) {
+      const cached = mobileUserPointsCache.get(phone);
+      if (now < cached.expiresAt) {
+        return res.json(cached.payload);
+      }
     }
 
     let points = 0;
@@ -4046,7 +4107,7 @@ async function handleMobileGetPoints(req, res) {
 
     const totalRecovered = bottles + cups + glass + paper;
 
-    return res.json({
+    const pointsPayload = {
       success: true,
       points,
       currentBalance: points,
@@ -4072,7 +4133,10 @@ async function handleMobileGetPoints(req, res) {
       },
       recentSessions,
       recycledAt: lastRecycled || new Date().toISOString()
-    });
+    };
+
+    mobileUserPointsCache.set(phone, { payload: pointsPayload, expiresAt: now + (15 * 1000) });
+    return res.json(pointsPayload);
   } catch (err) {
     console.error('[Mobile Get Points Error]', err);
     res.status(500).json({ success: false, message: err.message });
@@ -4081,11 +4145,20 @@ async function handleMobileGetPoints(req, res) {
 app.post('/api/get-points', handleMobileGetPoints);
 app.post('/get-points', handleMobileGetPoints);
 
-// 4. Mobile Get Recycle History (Exclusively from PostgreSQL)
+// 4. Mobile Get Recycle History (Exclusively from PostgreSQL with TTL Caching)
 async function handleMobileGetRecycle(req, res) {
   try {
     const { userId } = req.params;
     if (!userId || userId === 'anonymous') return res.status(400).json({ success: false, error: 'Valid userId is required' });
+
+    const now = Date.now();
+    const cacheKey = String(userId).trim();
+    if (mobileUserRecycleCache.has(cacheKey)) {
+      const cached = mobileUserRecycleCache.get(cacheKey);
+      if (now < cached.expiresAt) {
+        return res.json(cached.payload);
+      }
+    }
 
     let history = [];
     const pool = getPgPool();
@@ -4211,12 +4284,14 @@ async function handleMobileGetRecycle(req, res) {
       }
     }
 
-    res.json({
+    const recyclePayload = {
       success: true,
       userId,
       totalSessions: history.length,
       history
-    });
+    };
+    mobileUserRecycleCache.set(cacheKey, { payload: recyclePayload, expiresAt: now + (15 * 1000) });
+    res.json(recyclePayload);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -4224,9 +4299,18 @@ async function handleMobileGetRecycle(req, res) {
 app.get('/api/getrecycle/:userId', handleMobileGetRecycle);
 app.get('/getrecycle/:userId', handleMobileGetRecycle);
 
-// 5. Mobile Usernames / Leaderboard (Exclusively from PostgreSQL)
+// High-Speed In-Memory Cache for Mobile Leaderboard (30-second TTL)
+let cachedLeaderboardPayload = null;
+let cachedLeaderboardExpiresAt = 0;
+
+// 5. Mobile Usernames / Leaderboard (Exclusively from PostgreSQL with TTL Caching)
 async function handleMobileUsernames(req, res) {
   try {
+    const now = Date.now();
+    if (cachedLeaderboardPayload && now < cachedLeaderboardExpiresAt) {
+      return res.json(cachedLeaderboardPayload);
+    }
+
     let usersList = [];
     const pool = getPgPool();
     if (pool) {
@@ -4258,10 +4342,15 @@ async function handleMobileUsernames(req, res) {
       }));
     }
 
-    res.json({
+    const payload = {
       success: true,
       users: usersList
-    });
+    };
+
+    cachedLeaderboardPayload = payload;
+    cachedLeaderboardExpiresAt = now + (30 * 1000); // 30s cache
+
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -5388,19 +5477,6 @@ app.get('/api/machine/point-settings', async (req, res) => {
     const pool = getPgPool();
     if (pool) {
       try {
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS machine_variant_settings (
-            id SERIAL PRIMARY KEY,
-            machine_id VARCHAR(100) NOT NULL DEFAULT '*',
-            material_type VARCHAR(50) NOT NULL,
-            bottle_size VARCHAR(50) NOT NULL,
-            points INT NOT NULL DEFAULT 10,
-            unit VARCHAR(20) NOT NULL DEFAULT 'per_piece',
-            is_active BOOLEAN NOT NULL DEFAULT true,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT uq_mvs UNIQUE (machine_id, material_type, bottle_size)
-          );
-        `);
         const pgRes = await pool.query(
           `SELECT id, machine_id, material_type, bottle_size, points, unit, is_active 
            FROM machine_variant_settings 
@@ -5568,6 +5644,15 @@ app.post('/api/machine/point-settings', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// High-Speed In-Memory Cache for RVM Active Ads & Playlists (30-second TTL)
+const cachedActiveAds = new Map();
+const cachedAdsPlaylists = new Map();
+
+function invalidateAdsCache() {
+  cachedActiveAds.clear();
+  cachedAdsPlaylists.clear();
+}
 
 // ---------------- RVM ADVERTISEMENT VIDEO MANAGEMENT APIS ----------------
 // Upload advertisement video file (Protected: Requires Administrator Session)
@@ -5778,6 +5863,7 @@ app.post('/api/machine/ads', async (req, res) => {
       savedAd = insertRes.rows[0];
     }
 
+    invalidateAdsCache();
     res.json({
       success: true,
       message: `Advertisement '${title}' saved successfully! RVMDesktopApp will automatically download and start playing this video.`,
@@ -5804,6 +5890,7 @@ app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
       `, [parseInt(id)]);
 
       if (result.rowCount > 0) {
+        invalidateAdsCache();
         return res.json({
           success: true,
           ad: result.rows[0],
@@ -5812,6 +5899,7 @@ app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
       }
     }
 
+    invalidateAdsCache();
     res.json({ success: true, message: 'Status updated' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -5880,6 +5968,7 @@ app.delete('/api/machine/ads/:id', async (req, res) => {
       } catch (e) {}
     }
 
+    invalidateAdsCache();
     res.json({
       success: true,
       message: `Advertisement '${deletedTitle}' deleted successfully (${deletedCount} record(s)/file(s) removed)`
@@ -5893,6 +5982,16 @@ app.delete('/api/machine/ads/:id', async (req, res) => {
 app.get('/api/machine/ads/active', async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
+    const now = Date.now();
+    const cacheKey = String(machineId || '*').trim();
+    if (cachedActiveAds.has(cacheKey)) {
+      const entry = cachedActiveAds.get(cacheKey);
+      if (now < entry.expiresAt) {
+        res.setHeader('Cache-Control', 'public, max-age=15');
+        return res.json(entry.payload);
+      }
+    }
+
     const pool = getPgPool();
     let activeAd = null;
 
@@ -5934,12 +6033,16 @@ app.get('/api/machine/ads/active', async (req, res) => {
       }
     }
 
-    res.json({
+    const payload = {
       success: true,
       machineId,
       hasActiveVideo: activeAd !== null,
       activeVideo: activeAd
-    });
+    };
+
+    cachedActiveAds.set(cacheKey, { payload, expiresAt: now + (30 * 1000) });
+    res.setHeader('Cache-Control', 'public, max-age=15');
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -5949,6 +6052,16 @@ app.get('/api/machine/ads/active', async (req, res) => {
 app.get('/api/machine/ads/playlist', async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
+    const now = Date.now();
+    const cacheKey = String(machineId || '*').trim();
+    if (cachedAdsPlaylists.has(cacheKey)) {
+      const entry = cachedAdsPlaylists.get(cacheKey);
+      if (now < entry.expiresAt) {
+        res.setHeader('Cache-Control', 'public, max-age=15');
+        return res.json(entry.payload);
+      }
+    }
+
     const pool = getPgPool();
     let playlist = [];
 
@@ -5988,12 +6101,16 @@ app.get('/api/machine/ads/playlist', async (req, res) => {
       }
     }
 
-    res.json({
+    const payload = {
       success: true,
       machineId,
       totalCount: playlist.length,
       playlist
-    });
+    };
+
+    cachedAdsPlaylists.set(cacheKey, { payload, expiresAt: now + (30 * 1000) });
+    res.setHeader('Cache-Control', 'public, max-age=15');
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -6018,6 +6135,7 @@ app.post('/api/machine/ads/playlist/reorder', async (req, res) => {
       `, [i + 1, orderedIds[i]]);
     }
 
+    invalidateAdsCache();
     res.json({
       success: true,
       message: `Updated rotation playlist order (${orderedIds.length} video(s)) for machine ${machineId}.`
@@ -6335,6 +6453,10 @@ app.post('/api/session/claim-points', async (req, res) => {
       newPointsBalance: newBalance,
       claimedAt: new Date().toISOString()
     };
+
+    invalidateMobileUserCaches(cleanUserIdentifier);
+    invalidateMobileUserCaches(userIdentifier);
+    cachedLeaderboardPayload = null;
 
     res.json({
       success: true,
