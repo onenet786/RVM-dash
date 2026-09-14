@@ -3,6 +3,13 @@ import base64
 import subprocess
 from generate_sop_doc import generate_sop_html
 
+def get_base64_font(font_path):
+    if not os.path.exists(font_path):
+        return ""
+    with open(font_path, "rb") as f:
+        data = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:font/truetype;charset=utf-8;base64,{data}"
+
 def get_base64_img(img_path):
     if not os.path.exists(img_path):
         return ""
@@ -49,6 +56,7 @@ def print_to_pdf(html_path, pdf_path):
 # DOCUMENT 1: RVM KIOSK USER MANUAL GENERATOR
 # ==============================================================================
 def generate_user_manual_html(html_path, snapshots_dir):
+    fonts_dir = r"d:\GIT-HUB\RVM-dash\RVMDesktopApp\Fonts"
     img_splash = get_base64_img(os.path.join(snapshots_dir, "screen_01_splash.png"))
     img_home = get_base64_img(os.path.join(snapshots_dir, "screen_02_home_page.png"))
     img_step01 = get_base64_img(os.path.join(snapshots_dir, "screen_03_step_01.png"))
@@ -67,11 +75,14 @@ def generate_user_manual_html(html_path, snapshots_dir):
         isp_src = os.path.join(snapshots_dir, "isp.jpg")
     img_logo_isp = get_base64_img(isp_src)
 
+    font_urdu_bold = get_base64_font(os.path.join(fonts_dir, "NotoNastaliqUrdu-Bold.ttf"))
+    font_urdu_reg = get_base64_font(os.path.join(fonts_dir, "NotoNastaliqUrdu-Regular.ttf"))
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>RVM Kiosk Citizen & User Operation Manual — Version 3.2</title>
+<title>RVM Kiosk Citizen & User Operation Manual — Version 3.5</title>
 <style>
   @page {{
     size: A4 portrait;
@@ -81,11 +92,28 @@ def generate_user_manual_html(html_path, snapshots_dir):
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   }}
+  @font-face {{
+    font-family: 'TrueNastaliq';
+    src: url('{font_urdu_bold}') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+  }}
+  @font-face {{
+    font-family: 'TrueNastaliq';
+    src: url('{font_urdu_reg}') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }}
+  @font-face {{
+    font-family: 'JameelNastaleeq';
+    src: url('file:///d:/GIT-HUB/RVM-dash/RVMDesktopApp/Fonts/Jameel%20Noori%20Nastaleeq.ttf') format('truetype');
+  }}
+
   body {{
     background: #FFFFFF;
     color: #0F172A;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }}
@@ -187,7 +215,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     border-radius: 6px;
   }}
   .cover-body {{
-    margin-top: 15mm;
+    margin-top: 12mm;
   }}
   .cover-tag {{
     display: inline-block;
@@ -200,7 +228,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     border-radius: 20px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    margin-bottom: 6mm;
+    margin-bottom: 5mm;
   }}
   .cover-title {{
     font-size: 32pt;
@@ -211,25 +239,26 @@ def generate_user_manual_html(html_path, snapshots_dir):
     letter-spacing: -0.5px;
   }}
   .cover-urdu-title {{
-    font-family: 'Tahoma', 'Noto Nastaliq Urdu', serif;
-    font-size: 24pt;
+    font-family: 'JameelNastaleeq', 'TrueNastaliq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif !important;
+    font-size: 26pt;
     font-weight: 700;
     color: #86EFAC;
-    margin-bottom: 6mm;
+    margin-bottom: 5mm;
     direction: rtl;
+    line-height: 1.6;
   }}
   .cover-subtitle {{
-    font-size: 12.5pt;
+    font-size: 12pt;
     color: #E2E8F0;
     line-height: 1.5;
-    max-width: 90%;
-    margin-bottom: 8mm;
+    max-width: 92%;
+    margin-bottom: 7mm;
   }}
   .cover-feature-grid {{
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-top: 8mm;
+    margin-top: 6mm;
   }}
   .cover-feature-card {{
     background: rgba(255, 255, 255, 0.08);
@@ -249,7 +278,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
-    margin-top: 10mm;
+    margin-top: 8mm;
   }}
   .cover-meta-item {{ display: flex; flex-direction: column; }}
   .cover-meta-label {{ font-size: 7pt; color: #86EFAC; text-transform: uppercase; font-weight: 800; }}
@@ -273,8 +302,9 @@ def generate_user_manual_html(html_path, snapshots_dir):
     line-height: 1.4;
   }}
   .urdu-text {{
-    font-family: 'Tahoma', 'Noto Nastaliq Urdu', serif;
+    font-family: 'JameelNastaleeq', 'TrueNastaliq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif !important;
     direction: rtl;
+    line-height: 1.5;
   }}
 
   /* Walkthrough Step Card */
@@ -305,7 +335,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
   .step-content {{
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 9px;
   }}
   .step-pill {{
     display: inline-flex;
@@ -321,26 +351,30 @@ def generate_user_manual_html(html_path, snapshots_dir):
     width: fit-content;
   }}
   .step-heading {{
-    font-size: 15pt;
+    font-size: 14pt;
     font-weight: 900;
     color: #0F172A;
     line-height: 1.2;
   }}
   .step-urdu-heading {{
-    font-size: 14pt;
+    font-family: 'JameelNastaleeq', 'TrueNastaliq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif !important;
+    font-size: 15pt;
     font-weight: 700;
     color: #047857;
-    margin-top: -4px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    direction: rtl;
+    line-height: 1.5;
   }}
   .step-narrative {{
-    font-size: 8.8pt;
+    font-size: 8.6pt;
     color: #334155;
-    line-height: 1.45;
+    line-height: 1.42;
   }}
   .action-callout {{
     background: #FEFCE8;
     border-left: 4px solid #EAB308;
-    padding: 8px 12px;
+    padding: 7px 11px;
     border-radius: 0 6px 6px 0;
   }}
   .action-title {{
@@ -352,15 +386,16 @@ def generate_user_manual_html(html_path, snapshots_dir):
     margin-bottom: 2px;
   }}
   .action-desc {{
-    font-size: 8.5pt;
+    font-size: 8.3pt;
     font-weight: 700;
     color: #713F12;
+    line-height: 1.35;
   }}
   .specs-table {{
     width: 100%;
     border-collapse: collapse;
     font-size: 7.8pt;
-    margin-top: 4px;
+    margin-top: 3px;
   }}
   .specs-table th {{
     background: #F1F5F9;
@@ -371,7 +406,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     border: 1px solid #E2E8F0;
   }}
   .specs-table td {{
-    padding: 5px 8px;
+    padding: 4.5px 8px;
     border: 1px solid #E2E8F0;
     color: #0F172A;
   }}
@@ -381,7 +416,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
   .specs-table td:first-child {{
     font-weight: 700;
     color: #047857;
-    width: 42%;
+    width: 38%;
   }}
 
   /* Callout Card */
@@ -389,8 +424,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
     background: #F0FDF4;
     border: 1.5px solid #BBF7D0;
     border-radius: 8px;
-    padding: 10px 14px;
-    margin-top: 4px;
+    padding: 9px 13px;
+    margin-top: 3px;
   }}
   .info-box-title {{
     font-size: 8.5pt;
@@ -401,7 +436,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
   .info-box-desc {{
     font-size: 8pt;
     color: #15803D;
-    line-height: 1.4;
+    line-height: 1.38;
   }}
 
   /* Table of Contents */
@@ -432,9 +467,9 @@ def generate_user_manual_html(html_path, snapshots_dir):
   }}
   .toc-list {{
     list-style: none;
-    font-size: 8pt;
+    font-size: 8.2pt;
     color: #475569;
-    line-height: 1.6;
+    line-height: 1.65;
   }}
   .toc-list li {{
     display: flex;
@@ -462,35 +497,35 @@ def generate_user_manual_html(html_path, snapshots_dir):
   <div class="cover-page">
     <div class="cover-top">
       <div class="cover-logo-group">
-        <div class="cover-rvm-badge">RVM-001</div>
+        <div class="cover-rvm-badge">RVM-2026</div>
         <div style="font-size: 10pt; font-weight: 800; color: #86EFAC;">REVERSE VENDING KIOSK</div>
       </div>
       <img src="{img_logo_isp}" class="cover-partner-logo" alt="ISP Logo"/>
     </div>
 
     <div class="cover-body">
-      <div class="cover-tag">Official Citizen & Operator Documentation</div>
+      <div class="cover-tag">HYBRID TOUCHLESS & KEYPAD CITIZEN MANUAL</div>
       <div class="cover-title">USER OPERATION<br>MANUAL</div>
       <div class="cover-urdu-title">صارفین اور شہریوں کیلئے معلوماتی رہنما</div>
       <div class="cover-subtitle">
-        Comprehensive guide for public recycling, interactive screen navigation, multi-sensor deposit validation, points redemption, and intelligent kiosk display features.
+        Comprehensive guide for public recycling, hybrid touchless QR scan and tactile keypad operation, multi-sensor deposit validation, instant digital rewards, and dual-screen kiosk displays.
       </div>
 
       <div class="cover-feature-grid">
         <div class="cover-feature-card">
-          <div class="cover-feature-icon">♻️</div>
-          <div class="cover-feature-title">7-Step Flow</div>
-          <div class="cover-feature-desc">Frictionless deposit from Key 0 trigger to wallet credit and live rating.</div>
+          <div class="cover-feature-icon">📱</div>
+          <div class="cover-feature-title">Hybrid Start</div>
+          <div class="cover-feature-desc">Scan on-screen QR with RVM Mobile App or press Key 0 on tactile keypad.</div>
         </div>
         <div class="cover-feature-card">
           <div class="cover-feature-icon">📺</div>
           <div class="cover-feature-title">Idle Expansion</div>
-          <div class="cover-feature-desc">50% screen instructional expansion with active digital signage playback.</div>
+          <div class="cover-feature-desc">50% screen instructional expansion attracting citizens with instant wake-up.</div>
         </div>
         <div class="cover-feature-card">
           <div class="cover-feature-icon">🎁</div>
-          <div class="cover-feature-title">Instant Rewards</div>
-          <div class="cover-feature-desc">Real-time mobile wallet sync with Central Cloud and SQL Server ledger.</div>
+          <div class="cover-feature-title">Touchless Rewards</div>
+          <div class="cover-feature-desc">Zero-contact mobile wallet sync via dynamic QR scan or 11-digit mobile entry.</div>
         </div>
       </div>
     </div>
@@ -498,7 +533,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="cover-meta-box">
       <div class="cover-meta-item">
         <span class="cover-meta-label">DOCUMENT ID</span>
-        <span class="cover-meta-val">DOC-RVM-UM-2026-V3.2</span>
+        <span class="cover-meta-val">DOC-RVM-UM-2026-V3.5</span>
       </div>
       <div class="cover-meta-item">
         <span class="cover-meta-label">DATE / RELEASE</span>
@@ -506,11 +541,11 @@ def generate_user_manual_html(html_path, snapshots_dir):
       </div>
       <div class="cover-meta-item">
         <span class="cover-meta-label">APPLICABILITY</span>
-        <span class="cover-meta-val">RVM Kiosk Model RVM-001</span>
+        <span class="cover-meta-val">RVMDesktopApp Platform</span>
       </div>
       <div class="cover-meta-item">
-        <span class="cover-meta-label">CLASSIFICATION</span>
-        <span class="cover-meta-val">Public / User Manual</span>
+        <span class="cover-meta-label">KIOSK LOCATION & GPS</span>
+        <span class="cover-meta-val" style="font-size: 7.6pt;">Katra Neem Wala, Lahore (31.5826° N, 74.3276° E)</span>
       </div>
     </div>
   </div>
@@ -522,7 +557,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">TABLE OF CONTENTS</div>
@@ -538,7 +573,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <ul class="toc-list">
         <li><span>1.1 Purpose & Environmental Mission</span><span>Page 3</span></li>
         <li><span>1.2 Dual-Screen Layout Concept</span><span>Page 3</span></li>
-        <li><span>1.3 Hardware Safety Features</span><span>Page 3</span></li>
+        <li><span>1.3 Hybrid Touchless & Keypad Touchpoints</span><span>Page 3</span></li>
       </ul>
     </div>
 
@@ -546,9 +581,9 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <div class="toc-chapter">Chapter 2</div>
       <div class="toc-title">Standby & Idle Modes</div>
       <ul class="toc-list">
-        <li><span>2.1 Default Welcome Screen & Live Dashboard</span><span>Page 4</span></li>
+        <li><span>2.1 Welcome Screen & Touchless QR Card</span><span>Page 4</span></li>
         <li><span>2.2 1-Minute Inactivity Idle Screen (50% Expansion)</span><span>Page 5</span></li>
-        <li><span>2.3 Instant Wake-up via Key 0 Trigger</span><span>Page 5</span></li>
+        <li><span>2.3 Instant Wake-up via QR Scan or Key 0</span><span>Page 5</span></li>
       </ul>
     </div>
 
@@ -557,13 +592,13 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <div class="toc-title">The 7-Step Recycling Journey</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
         <ul class="toc-list">
-          <li><span>Step 1: Session Initiation (Key 0)</span><span>Page 6</span></li>
+          <li><span>Step 1: Session Initiation (Touchless QR or Key 0)</span><span>Page 6</span></li>
           <li><span>Step 2: Container Insertion & Sizing</span><span>Page 7</span></li>
           <li><span>Step 3: Interactive Sensing States & Overlays</span><span>Page 8</span></li>
         </ul>
         <ul class="toc-list">
           <li><span>Step 4: Drop Confirmation & Anti-Cheat</span><span>Page 9</span></li>
-          <li><span>Steps 5 & 6: QR Scan & Mobile Wallet Sync</span><span>Page 10</span></li>
+          <li><span>Steps 5 & 6: Touchless QR Scan & Wallet Sync</span><span>Page 10</span></li>
           <li><span>Step 7: Citizen Feedback & Completion</span><span>Page 11</span></li>
         </ul>
       </div>
@@ -571,34 +606,35 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
     <div class="toc-card">
       <div class="toc-chapter">Chapter 4</div>
-      <div class="toc-title">Hardware Keypad Reference</div>
+      <div class="toc-title">Landscape Display & Signage</div>
       <ul class="toc-list">
-        <li><span>4.1 Keypad Mapping Matrix</span><span>Page 12</span></li>
-        <li><span>4.2 Key 0 Session Trigger & Keypad Operations</span><span>Page 12</span></li>
+        <li><span>4.1 Dual-Screen Landscape Kiosk View</span><span>Page 12</span></li>
+        <li><span>4.2 Arcade Leaderboard & Signage Video</span><span>Page 12</span></li>
       </ul>
     </div>
 
     <div class="toc-card">
       <div class="toc-chapter">Chapter 5</div>
-      <div class="toc-title">FAQ & Citizen Troubleshooting</div>
+      <div class="toc-title">Input Matrix & Citizen FAQ</div>
       <ul class="toc-list">
-        <li><span>5.1 Item Rejection Causes</span><span>Page 13</span></li>
-        <li><span>5.2 Offline Resiliency & Points Safety FAQ</span><span>Page 13</span></li>
+        <li><span>5.1 Hardware Keypad & Touchless Input Matrix</span><span>Page 13</span></li>
+        <li><span>5.2 Citizen Troubleshooting & Points FAQ</span><span>Page 14</span></li>
       </ul>
     </div>
   </div>
 
   <div class="info-box" style="margin-top: 6mm;">
-    <div class="info-box-title">⚡ QUICK START FOR CITIZENS</div>
+    <div class="info-box-title">⚡ HYBRID RECYCLING FOR CITIZENS: TOUCHLESS OR KEYPAD</div>
     <div class="info-box-desc">
-      To recycle: Walk up to the RVM kiosk &rarr; <strong>Press '0' on the keypad</strong> &rarr; Insert your empty bottle/can bottom-first &rarr; Wait for the green checkmark &rarr; <strong>Press Enter</strong> &rarr; Scan on-screen QR code with RVM Mobile App or type 11-digit mobile number &rarr; Rate your experience &rarr; Collect your reward points!
+      <strong>Option 1 (100% Touchless):</strong> Open RVM Mobile App &rarr; Scan the on-screen <strong>'SCAN TO START' QR Code</strong> &rarr; Safety gate opens automatically &rarr; Insert empty container &rarr; Press Enter or finish via app &rarr; Scan dynamic wallet QR code &rarr; Collect instant reward points!<br>
+      <strong>Option 2 (Tactile Keypad):</strong> Walk up to kiosk &rarr; <strong>Press '0' on keypad</strong> &rarr; Insert containers bottom-first &rarr; Wait for green checkmark &rarr; <strong>Press Enter</strong> &rarr; Type 11-digit mobile number &rarr; Rate your experience &rarr; Collect points!
     </div>
   </div>
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 2</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 2 of 14</span>
   </div>
 </div>
 
@@ -608,7 +644,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">1. KIOSK ARCHITECTURE OVERVIEW</div>
@@ -619,28 +655,33 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="two-col-grid">
     <div>
-      <div style="font-size: 10pt; font-weight: 800; color: #047857; margin-bottom: 4px;">DUAL-DISPLAY KIOSK DESIGN</div>
+      <div style="font-size: 10pt; font-weight: 800; color: #047857; margin-bottom: 4px;">HYBRID CITIZEN TOUCHPOINTS</div>
       <p style="font-size: 8.5pt; color: #334155; line-height: 1.45; margin-bottom: 8px;">
-        The RVM Kiosk employs a dual-display architecture engineered for maximum citizen engagement and continuous environmental education:
+        The RVM Kiosk combines tactile physical inputs with state-of-the-art mobile touchless scanning for maximum convenience and hygienic public safety:
       </p>
       <ul style="font-size: 8.2pt; color: #334155; line-height: 1.5; margin-left: 14px; margin-bottom: 8px;">
-        <li><strong>Interactive Portrait Kiosk Display (Screen 1 - 1080x1920):</strong> The primary operational interface where citizens view animated instructions, live telemetry, sensor sizing results, point balances, and leaderboard standings.</li>
-        <li><strong>Digital Signage Video Screen (Screen 0 / Lower Display):</strong> Continuously loops high-definition environmental public service announcements (PSAs), commercial partner advertisements, and sustainability metrics without disrupting the active recycling transaction.</li>
+        <li><strong>Touchless QR Code Interaction:</strong> Citizens can authenticate and start recycling without touching the machine by scanning the dynamic on-screen QR code using their smartphone.</li>
+        <li><strong>Interactive Portrait Kiosk Display (1080x1920):</strong> Primary touch interaction showing bilingual animations, live sensor results, and points balance.</li>
+        <li><strong>Digital Signage Display (Secondary Screen):</strong> Loops continuous environmental public service announcements and partner sustainability media.</li>
       </ul>
       <div class="info-box">
         <div class="info-box-title">🌱 SUSTAINABILITY MISSION</div>
         <div class="info-box-desc">
-          Every container deposited into the RVM directly prevents municipal landfill overflow and saves precious natural resources: <strong>+0.15 kg CO2</strong> emission prevented and <strong>+0.75 Liters</strong> of clean water conserved per verified container.
+          Every container deposited directly prevents landfill dumping: <strong>+0.15 kg CO2</strong> emission prevented and <strong>+0.75 Liters</strong> of clean water conserved per verified container.
         </div>
       </div>
     </div>
 
     <div>
-      <div style="font-size: 10pt; font-weight: 800; color: #047857; margin-bottom: 4px;">KEY CITIZEN TOUCHPOINTS</div>
+      <div style="font-size: 10pt; font-weight: 800; color: #047857; margin-bottom: 4px;">KEY HARDWARE TOUCHPOINTS</div>
       <table class="specs-table">
         <tr>
           <th>Touchpoint Component</th>
           <th>Citizen Function</th>
+        </tr>
+        <tr>
+          <td>Touchless QR Card</td>
+          <td>High-contrast on-screen QR badge for camera scan session initiation.</td>
         </tr>
         <tr>
           <td>Illuminated Aperture</td>
@@ -648,19 +689,19 @@ def generate_user_manual_html(html_path, snapshots_dir):
         </tr>
         <tr>
           <td>Motorized Safety Gate</td>
-          <td>Anti-pinch protective door opens only when the citizen indicates readiness by pressing 0.</td>
+          <td>Anti-pinch protective door opens automatically when QR is scanned or 0 is pressed.</td>
         </tr>
         <tr>
           <td>Physical Matrix Keypad</td>
-          <td>12-key tactile keypad mounted at ergonomic height. Resistant to rain, dust, and direct sunlight.</td>
+          <td>12-key tactile keypad mounted at ergonomic height. Resistant to rain, dust, and sunlight.</td>
         </tr>
         <tr>
           <td>Instructional Container</td>
-          <td>High-visibility animated display showing real-time feedback, sensor diagnostics, and celebration animations.</td>
+          <td>High-visibility animated display showing real-time feedback and celebration animations.</td>
         </tr>
         <tr>
           <td>Reward Balance Display</td>
-          <td>Instant point tracker displaying accumulated session points in 56pt high-contrast bold digits.</td>
+          <td>Instant point tracker displaying accumulated session points in large bold digits.</td>
         </tr>
       </table>
 
@@ -693,8 +734,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 3</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 3 of 14</span>
   </div>
 </div>
 
@@ -704,7 +745,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">2. STANDBY: DEFAULT SCREEN</div>
@@ -718,15 +759,18 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="step-content">
       <div class="step-pill">STANDBY SCREEN · SCREEN 02</div>
       <div class="step-heading">Home Page & Citizen Dashboard</div>
-      <div class="step-urdu-heading urdu-text">مرکزی اسکرین اور طریقہ کار</div>
+      <div class="step-urdu-heading">مرکزی اسکرین اور طریقہ کار</div>
 
       <div class="step-narrative">
-        When the RVM is in its ready standby state, it presents the primary welcome screen. The interface is meticulously balanced with high-contrast typography, emerald eco-card containers, and bilingual Urdu and English text.
+        When the RVM is in its ready standby state, it presents the primary welcome screen. The interface is meticulously balanced with high-contrast typography, emerald eco-card containers, bilingual Urdu and English text, and a prominent <strong>Touchless Start QR Card</strong>.
       </div>
 
       <div class="action-callout">
-        <div class="action-title">HOW TO BEGIN</div>
-        <div class="action-desc">Press the '0' key on the keypad or tap the glowing green button on the screen.</div>
+        <div class="action-title">TWO WAYS TO BEGIN</div>
+        <div class="action-desc">
+          <strong>1. Touchless:</strong> Scan the on-screen 'TOUCHLESS SCAN TO START' QR code with the RVM Mobile App.<br>
+          <strong>2. Keypad:</strong> Press the '0' key on the physical keypad or tap the on-screen start button.
+        </div>
       </div>
 
       <table class="specs-table">
@@ -735,16 +779,20 @@ def generate_user_manual_html(html_path, snapshots_dir):
           <th>Citizen Feature & Information</th>
         </tr>
         <tr>
+          <td>Touchless QR Card</td>
+          <td>Glowing card on the centerpiece displaying dynamic QR code for zero-contact smartphone initiation.</td>
+        </tr>
+        <tr>
           <td>Top Header Bar</td>
-          <td>Machine ID (RVM-001), Real-time Live Status badge, and current Pakistan Standard Time.</td>
+          <td>Machine ID (RVM-2026), Real-time Live Status badge, and current Pakistan Standard Time.</td>
         </tr>
         <tr>
           <td>Hardware Diagnostics</td>
-          <td>Green status dots confirming Serial connection, Local Database (OK), and Central Cloud API (ONLINE).</td>
+          <td>Green status dots confirming Serial connection (COM3), Local Database (OK), and Central Cloud API (ONLINE).</td>
         </tr>
         <tr>
           <td>Instructional Player</td>
-          <td>16:9 high-definition video widget running bilingual instructional motion guides.</td>
+          <td>16:9 video widget running bilingual instructional motion guides and material animations.</td>
         </tr>
         <tr>
           <td>How to Use RVM Bar</td>
@@ -752,18 +800,14 @@ def generate_user_manual_html(html_path, snapshots_dir):
         </tr>
         <tr>
           <td>Session Breakdown</td>
-          <td>Live material tallies (Plastic, Cans, UBC, Rejected) and large 56pt Reward Balance.</td>
-        </tr>
-        <tr>
-          <td>Top 5 Eco Champions</td>
-          <td>Live community leaderboard celebrating top campus recyclers and recent recycling activity.</td>
+          <td>Live material tallies (Plastic, Cans, UBC, Rejected) and large Reward Balance banner.</td>
         </tr>
       </table>
 
       <div class="info-box">
         <div class="info-box-title">🏆 COMMUNITY RECOGNITION</div>
         <div class="info-box-desc">
-          Top campus recyclers are automatically ranked on the right-hand leaderboard. Your name and reward points will be showcased to motivate the community!
+          Top campus recyclers are ranked live on the kiosk system. Your username and reward points will be showcased to motivate the entire community!
         </div>
       </div>
     </div>
@@ -771,8 +815,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 4</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 4 of 14</span>
   </div>
 </div>
 
@@ -782,7 +826,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">2. STANDBY: 1-MINUTE IDLE SCREEN</div>
@@ -799,10 +843,10 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="step-content">
       <div class="step-pill">STANDBY MODE · 60s INACTIVITY</div>
       <div class="step-heading">1-Minute Inactivity Idle Screen</div>
-      <div class="step-urdu-heading urdu-text">ایک منٹ بعد اسکرین کی خودکار توسیع</div>
+      <div class="step-urdu-heading">ایک منٹ بعد اسکرین کی خودکار توسیع</div>
 
       <div class="step-narrative">
-        When no citizen interacts with the kiosk for over <strong>1 minute (60 seconds)</strong>, the application automatically transitions into cinematic standby mode:
+        When no citizen interacts with the kiosk for over <strong>1 minute (60 seconds)</strong>, the application automatically transitions into cinematic standby mode while maintaining complete touchless readiness:
       </div>
 
       <table class="specs-table">
@@ -815,20 +859,16 @@ def generate_user_manual_html(html_path, snapshots_dir):
           <td><strong>Expands to 50% of screen height</strong> (960px) with smooth zoom-in styling inside container.</td>
         </tr>
         <tr>
+          <td>Touchless QR Access</td>
+          <td>Remains active and scanned by mobile app to trigger instant session wake-up.</td>
+        </tr>
+        <tr>
           <td>How to Use RVM Card</td>
           <td><strong>Stays 100% visible</strong> with all 7 step cards and Urdu text clearly legible below the video.</td>
         </tr>
         <tr>
           <td>Ad Video Section</td>
-          <td><strong>Stays 100% visible & playing</strong> in the remaining lower 740px screen area.</td>
-        </tr>
-        <tr>
-          <td>Header & Status Bar</td>
-          <td>Automatically fade out and collapse to 0 height for clean visual immersion.</td>
-        </tr>
-        <tr>
-          <td>Lower Dashboard</td>
-          <td>Live session breakdown & leaderboard collapse to 0 height.</td>
+          <td><strong>Stays 100% visible & playing</strong> in the remaining lower screen area.</td>
         </tr>
         <tr>
           <td>Zero Overlap Geometry</td>
@@ -837,14 +877,16 @@ def generate_user_manual_html(html_path, snapshots_dir):
       </table>
 
       <div class="action-callout">
-        <div class="action-title">HOW TO RETURN TO DEFAULT SCREEN</div>
-        <div class="action-desc">Press the '0' key on the keypad to start recycling. The kiosk instantly wakes up, exits idle mode, and prepares the intake chamber!</div>
+        <div class="action-title">HOW TO RETURN & START RECYCLING</div>
+        <div class="action-desc">
+          Scan the on-screen Touchless QR Code with your RVM Mobile App OR press Key '0' on the keypad. The kiosk instantly wakes up, exits idle mode, and opens the intake gate!
+        </div>
       </div>
 
       <div class="info-box">
         <div class="info-box-title">🌿 ECO-FRIENDLY STANDBY MODE</div>
         <div class="info-box-desc">
-          The 1-minute idle mode automatically expands instructional visuals to welcome new citizens while optimizing kiosk power efficiency.
+          The 1-minute idle mode automatically expands instructional visuals to welcome new citizens while optimizing kiosk power efficiency and component longevity.
         </div>
       </div>
     </div>
@@ -852,8 +894,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 5</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 5 of 14</span>
   </div>
 </div>
 
@@ -863,7 +905,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: STEP 1</div>
@@ -875,17 +917,17 @@ def generate_user_manual_html(html_path, snapshots_dir):
     </div>
 
     <div class="step-content">
-      <div class="step-pill">STEP 1 OF 7 · KEYPAD KEY '0'</div>
+      <div class="step-pill">STEP 1 OF 7 · TOUCHLESS QR OR KEY '0'</div>
       <div class="step-heading">Starting Your Recycling Session</div>
-      <div class="step-urdu-heading urdu-text">پہلا مرحلہ: سیشن کا آغاز اور تیاری</div>
+      <div class="step-urdu-heading">پہلا مرحلہ: سیشن کا آغاز (کیو آر اسکین یا بٹن 0)</div>
 
       <div class="step-narrative">
-        To start a recycling session, press the <strong>'0'</strong> key on the physical hardware keypad or touch the circular start button. The RVM acknowledges citizen presence immediately: the motorized entrance gate opens, internal chamber lights turn on, and sensors arm for container entry.
+        To start a recycling session, citizens have two flexible options: scan the <strong>Touchless QR Code</strong> with the RVM Mobile App for a 100% contactless experience, OR press <strong>'0'</strong> on the tactile hardware keypad. The motorized gate opens, chamber lights turn on, and deposit sensors arm ready for container entry.
       </div>
 
       <div class="action-callout">
         <div class="action-title">CITIZEN ACTION REQUIRED</div>
-        <div class="action-desc">Ensure your bottle or can is completely empty. Insert container bottom-first into the illuminated circular aperture.</div>
+        <div class="action-desc">Ensure container is empty of liquids. Insert bottle or can bottom-first into the illuminated circular aperture.</div>
       </div>
 
       <table class="specs-table">
@@ -918,7 +960,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <div class="info-box">
         <div class="info-box-title">💡 TIP FOR OPTIMAL RECYCLING</div>
         <div class="info-box-desc">
-          Always insert bottles bottom-first with the cap facing toward you. Keep barcodes visible if present to assist high-speed classification.
+          Always insert bottles bottom-first with the cap facing toward you. Keep barcodes visible if present to assist high-speed optical classification.
         </div>
       </div>
     </div>
@@ -926,8 +968,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 6</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 6 of 14</span>
   </div>
 </div>
 
@@ -937,7 +979,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: STEP 2</div>
@@ -951,7 +993,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="step-content">
       <div class="step-pill">STEP 2 OF 7 · DETECTION & SIZING</div>
       <div class="step-heading">Real-Time Sensor Scanning</div>
-      <div class="step-urdu-heading urdu-text">دوسرا مرحلہ: اسکیننگ اور پیمائش</div>
+      <div class="step-urdu-heading">دوسرا مرحلہ: اسکیننگ اور پیمائش</div>
 
       <div class="step-narrative">
         As the container settles inside the chamber, the RVM executes a sub-second multi-sensor sweep. The system cross-references optical height beams, inductive metallic response, and ultrasonic distance to classify material and calculate dimensions.
@@ -1000,8 +1042,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 7</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 7 of 14</span>
   </div>
 </div>
 
@@ -1011,7 +1053,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: SENSING STATES</div>
@@ -1028,7 +1070,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
         <span style="font-size:8pt; color:#166534; font-weight:700;">Please Insert Item</span>
       </div>
       <div style="font-size:11pt; font-weight:900; color:#073B28;">PLEASE INSERT BOTTLE / CAN</div>
-      <div style="font-size:10pt; font-weight:700; color:#15803D;" class="urdu-text">برائے مہربانی خالی بوتل یا کین ڈالیں</div>
+      <div style="font-size:11pt; font-weight:700; color:#15803D;" class="urdu-text">برائے مہربانی خالی بوتل یا کین ڈالیں</div>
       <p style="font-size:7.8pt; color:#334155; margin-top:4px; line-height:1.35;">
         Displays an animated pulsating circular aperture showing bottles entering smoothly. Reassures citizens that the machine is armed and awaiting container deposit.
       </p>
@@ -1041,7 +1083,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
         <span style="font-size:8pt; color:#854D0E; font-weight:700;">Detecting & Sizing</span>
       </div>
       <div style="font-size:11pt; font-weight:900; color:#713F12;">DETECTING & SIZING ITEM...</div>
-      <div style="font-size:10pt; font-weight:700; color:#854D0E;" class="urdu-text">بوتل کی شناخت اور پیمائش ہو رہی ہے</div>
+      <div style="font-size:11pt; font-weight:700; color:#854D0E;" class="urdu-text">بوتل کی شناخت اور پیمائش ہو رہی ہے</div>
       <p style="font-size:7.8pt; color:#334155; margin-top:4px; line-height:1.35;">
         Features a simulated bidirectional laser beam scanning vertically across the container. Confirms to the citizen that sensors are measuring material dimensions in real-time.
       </p>
@@ -1054,7 +1096,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
         <span style="font-size:8pt; color:#0F766E; font-weight:700;">Accepted + Points</span>
       </div>
       <div style="font-size:11pt; font-weight:900; color:#042E2B;">ITEM ACCEPTED! +10 PTS</div>
-      <div style="font-size:10pt; font-weight:700; color:#0F766E;" class="urdu-text">بوتل قبول! پوائنٹس کا اندراج ہو گیا</div>
+      <div style="font-size:11pt; font-weight:700; color:#0F766E;" class="urdu-text">بوتل قبول! پوائنٹس کا اندراج ہو گیا</div>
       <p style="font-size:7.8pt; color:#334155; margin-top:4px; line-height:1.35;">
         Celebratory green notification with confetti graphics. Automatically plays material dancing animation (Plastic, Can, or TetraPak) matching the recognized item.
       </p>
@@ -1067,7 +1109,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
         <span style="font-size:8pt; color:#B91C1C; font-weight:700;">Item Rejected</span>
       </div>
       <div style="font-size:11pt; font-weight:900; color:#7F1D1D;">ITEM REJECTED! PLEASE RETRIEVE</div>
-      <div style="font-size:10pt; font-weight:700; color:#B91C1C;" class="urdu-text">آئٹم نامنظور! برائے مہربانی واپس نکال لیں</div>
+      <div style="font-size:11pt; font-weight:700; color:#B91C1C;" class="urdu-text">آئٹم نامنظور! برائے مہربانی واپس نکال لیں</div>
       <p style="font-size:7.8pt; color:#334155; margin-top:4px; line-height:1.35;">
         Clear safety warning with gentle audio alert. Gate unlocks to allow retrieval of non-recyclable garbage, glass, or containers with remaining liquid.
       </p>
@@ -1085,8 +1127,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 8</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 8 of 14</span>
   </div>
 </div>
 
@@ -1096,7 +1138,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: STEP 4</div>
@@ -1110,7 +1152,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="step-content">
       <div class="step-pill">STEP 4 OF 7 · ANTI-CHEAT VALIDATION</div>
       <div class="step-heading">Drop Confirmation & Claiming Rewards</div>
-      <div class="step-urdu-heading urdu-text">چوتھا مرحلہ: بوتل چیمبر میں گرنے کی تصدیق</div>
+      <div class="step-urdu-heading">چوتھا مرحلہ: بوتل چیمبر میں گرنے کی تصدیق</div>
 
       <div class="step-narrative">
         To maintain reward integrity, points are only awarded after the anti-cheat drop gate actuates 180° and the ultrasonic sensor verifies the physical fall of the container into the internal bin. Once confirmed, the citizen can insert another item or press <strong>Enter</strong> to proceed to wallet credit.
@@ -1155,8 +1197,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 9</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 9 of 14</span>
   </div>
 </div>
 
@@ -1166,7 +1208,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: WALLET SYNC</div>
@@ -1178,9 +1220,9 @@ def generate_user_manual_html(html_path, snapshots_dir):
     </div>
 
     <div class="step-content">
-      <div class="step-pill">STEPS 5 & 6 · QR SCAN & WALLET CLAIM</div>
+      <div class="step-pill">STEPS 5 & 6 · TOUCHLESS QR OR MOBILE ENTRY</div>
       <div class="step-heading">Claiming Points via QR Code Scan or Mobile Entry</div>
-      <div class="step-urdu-heading urdu-text">پانچواں مرحلہ: کیو آر کوڈ اسکین یا موبائل نمبر سے انعام کا حصول</div>
+      <div class="step-urdu-heading">پانچواں مرحلہ: کیو آر کوڈ اسکین یا موبائل نمبر سے انعام کا حصول</div>
 
       <div class="step-narrative">
         After pressing <strong>Enter</strong> to conclude container deposits, the kiosk displays the Points Claim modal. Citizens can claim points in two convenient ways: instantly scan the on-screen dynamic QR Code using the RVM Mobile App, or type their 11-digit mobile number using the physical keypad.
@@ -1235,8 +1277,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 10</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 10 of 14</span>
   </div>
 </div>
 
@@ -1246,7 +1288,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
     <div class="header-right">3. RECYCLING JOURNEY: STEP 7</div>
@@ -1261,7 +1303,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
     <div class="step-content">
       <div class="step-pill">STEP 7 OF 7 · CITIZEN EXPERIENCE RATING</div>
       <div class="step-heading">Rating Your Recycling Experience</div>
-      <div class="step-urdu-heading urdu-text">ساتواں مرحلہ: تجربے کی درجہ بندی اور رائے</div>
+      <div class="step-urdu-heading">ساتواں مرحلہ: تجربے کی درجہ بندی اور رائے</div>
 
       <div class="step-narrative">
         Following point crediting, the kiosk presents a 1-to-5 star experience rating screen. Citizens can touch the stars to submit their rating and tap quick feedback tag chips ("Fast & Easy", "Clean Machine", "Great Rewards").
@@ -1310,31 +1352,136 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 11</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 11 of 14</span>
   </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- PAGE 12: KEYPAD MATRIX & CITIZEN INPUT QUICK REFERENCE                    -->
+<!-- PAGE 12: DUAL-SCREEN LANDSCAPE DISPLAY & PUBLIC SIGNAGE                   -->
 <!-- ========================================================================= -->
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
-    <div class="header-right">4. KEYPAD REFERENCE MATRIX</div>
+    <div class="header-right">4. LANDSCAPE DISPLAY & SIGNAGE</div>
   </div>
 
-  <div class="section-title">4. Keypad & Input Quick Reference</div>
-  <div class="section-subtitle">Comprehensive guide to all tactile keypad inputs, QR claim options, and citizen commands.</div>
+  <div class="section-title">4. Dual-Screen Landscape Display Mode</div>
+  <div class="section-subtitle">Wide-screen interactive layout combining kiosk deposit controls (56%), live community leaderboard, and commercial signage video (44%).</div>
+
+  <div style="margin-top: 2mm;">
+    <div class="snapshot-frame" style="max-height: 95mm; border-radius: 8px;">
+      <img src="{img_landscape}" class="snapshot-img" alt="Landscape Kiosk Display"/>
+    </div>
+    <div style="font-size: 7.5pt; color: #64748B; text-align: center; margin-top: 2mm; margin-bottom: 3mm;">
+      Figure 12.1: Secondary Public Kiosk Interface (1920×1080) running live in Metro Terminals and Shopping Atriums.
+    </div>
+  </div>
+
+  <div class="two-col-grid" style="margin-top: 1mm;">
+    <div>
+      <div style="font-size: 9.5pt; font-weight: 800; color: #073B28; margin-bottom: 3px;">LEFT INTERACTION TIER (56% WIDTH)</div>
+      <table class="specs-table">
+        <tr>
+          <th>Component</th>
+          <th>Function & Specification</th>
+        </tr>
+        <tr>
+          <td>Header Ribbon</td>
+          <td>Machine status badge, live clock, and partner branding card.</td>
+        </tr>
+        <tr>
+          <td>Diagnostics Strip</td>
+          <td>Green indicators for Serial COM3, SQL Database, and Cloud API.</td>
+        </tr>
+        <tr>
+          <td>How-To Centerpiece</td>
+          <td>Animated 7-step guide + Touchless QR code for mobile start.</td>
+        </tr>
+        <tr>
+          <td>Live Breakdown</td>
+          <td>Categorized counts for Plastic, Cans, UBC cartons, and Rejections.</td>
+        </tr>
+        <tr>
+          <td>Reward Points</td>
+          <td>Session points tally with instant Redeem voucher button.</td>
+        </tr>
+      </table>
+    </div>
+
+    <div>
+      <div style="font-size: 9.5pt; font-weight: 800; color: #073B28; margin-bottom: 3px;">SIGNAGE & LEADERBOARD (44% WIDTH)</div>
+      <table class="specs-table">
+        <tr>
+          <th>Component</th>
+          <th>Function & Specification</th>
+        </tr>
+        <tr>
+          <td>Eco Champions</td>
+          <td>Dark arcade-style leaderboard ranking top 5 community recyclers.</td>
+        </tr>
+        <tr>
+          <td>Recycler Avatars</td>
+          <td>Custom visual identity avatars with dynamic progress bars.</td>
+        </tr>
+        <tr>
+          <td>Live Ticker</td>
+          <td>Recent activity ticker showcasing latest container deposits.</td>
+        </tr>
+        <tr>
+          <td>Signage Player</td>
+          <td>Loops 1080p commercial ads and environmental awareness videos.</td>
+        </tr>
+        <tr>
+          <td>Multi-Monitor Sync</td>
+          <td>Auto-routed to secondary HDMI LED screen via PowerShell launcher.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="info-box" style="margin-top: 3mm;">
+    <div class="info-box-title">🖥️ MULTI-MONITOR KIOSK DEPLOYMENT</div>
+    <div class="info-box-desc">
+      In dual-monitor installations, Screen 0 (Primary 1080x1920) is dedicated to citizen touch interaction, while Screen 1 (Secondary 1920x1080) faces the pedestrian concourse for high-visibility public engagement and commercial revenue generation.
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 12 of 14</span>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- PAGE 13: KEYPAD MATRIX & CITIZEN INPUT QUICK REFERENCE                    -->
+<!-- ========================================================================= -->
+<div class="pdf-page">
+  <div class="page-header">
+    <div class="header-left">
+      <span class="badge-app">RVM-2026</span>
+      <span class="header-title">Citizen & User Operation Manual</span>
+    </div>
+    <div class="header-right">5. INPUT MATRIX & KEYPAD</div>
+  </div>
+
+  <div class="section-title">5. Hybrid Input & Keypad Quick Reference</div>
+  <div class="section-subtitle">Comprehensive guide to all tactile keypad inputs, touchless QR start triggers, and citizen commands.</div>
 
   <table class="specs-table" style="margin-top: 4mm;">
     <tr>
-      <th style="width: 22%;">Input Method</th>
-      <th style="width: 26%;">Screen State</th>
+      <th style="width: 24%;">Input Method</th>
+      <th style="width: 24%;">Screen State</th>
       <th>Function & Kiosk Response</th>
+    </tr>
+    <tr>
+      <td><strong>Touchless QR Scan</strong></td>
+      <td>Standby / Idle Mode</td>
+      <td><strong>Touchless Session Trigger:</strong> Scan on-screen 'SCAN TO START' QR code with RVM Mobile App. Opens door without touching machine!</td>
     </tr>
     <tr>
       <td><strong>Key 0</strong></td>
@@ -1347,7 +1494,7 @@ def generate_user_manual_html(html_path, snapshots_dir):
       <td><strong>Finalize & Proceed:</strong> Concludes container intake and opens the points claim dialog.</td>
     </tr>
     <tr>
-      <td><strong>QR Code Scan</strong></td>
+      <td><strong>Wallet QR Scan</strong></td>
       <td>Wallet Claim Screen</td>
       <td><strong>Touchless Points Claim:</strong> Scan the dynamic on-screen QR code with RVM Mobile App or phone camera for instant wallet crediting.</td>
     </tr>
@@ -1385,9 +1532,9 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="two-col-grid" style="margin-top: 6mm;">
     <div class="info-box">
-      <div class="info-box-title">🔑 KEY 0 SESSION INITIATION</div>
+      <div class="info-box-title">📱 HYBRID CITIZEN ACCESSIBILITY</div>
       <div class="info-box-desc">
-        Pressing <strong>Key 0</strong> on the tactile keypad immediately initiates your recycling journey: the motorized safety gate opens, internal chamber lights activate, and deposit sensors arm ready for your containers.
+        Citizens can choose whichever method they prefer: 100% touchless mobile app interaction for hygiene, OR the tactile physical keypad for instant walk-up accessibility.
       </div>
     </div>
     <div class="action-callout">
@@ -1400,57 +1547,64 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 12</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 13 of 14</span>
   </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- PAGE 13: FAQ & CITIZEN TROUBLESHOOTING                                    -->
+<!-- PAGE 14: FAQ & CITIZEN TROUBLESHOOTING                                    -->
 <!-- ========================================================================= -->
 <div class="pdf-page">
   <div class="page-header">
     <div class="header-left">
-      <span class="badge-app">RVM-001</span>
+      <span class="badge-app">RVM-2026</span>
       <span class="header-title">Citizen & User Operation Manual</span>
     </div>
-    <div class="header-right">5. FAQ & CITIZEN TROUBLESHOOTING</div>
+    <div class="header-right">6. FAQ & CITIZEN TROUBLESHOOTING</div>
   </div>
 
-  <div class="section-title">5. Frequently Asked Questions & Troubleshooting</div>
+  <div class="section-title">6. Frequently Asked Questions & Troubleshooting</div>
   <div class="section-subtitle">Common questions regarding recycling rewards, container acceptance, and citizen assistance.</div>
 
-  <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4mm;">
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
-      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q1: Why did the machine reject my plastic bottle?</div>
+  <div style="display: flex; flex-direction: column; gap: 9px; margin-top: 4mm;">
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q1: How does the Touchless Hybrid mode work?</div>
+      <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
+        <strong>Answer:</strong> You can use the RVM kiosk without touching a single button! Simply open the <strong>RVM Mobile App</strong> and point your camera at the <strong>'TOUCHLESS SCAN TO START'</strong> QR code on the kiosk screen. The entrance gate opens automatically. After inserting your bottles/cans, scan the on-screen wallet QR code to receive your reward points directly into your digital wallet.
+      </div>
+    </div>
+
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q2: Why did the machine reject my plastic bottle?</div>
       <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
         <strong>Answer:</strong> The most common cause is residual liquid inside the bottle. Optical sensors detect liquid refraction and reject the bottle to prevent sticky contamination inside the bin. Please empty all liquids completely before inserting. Rejection can also occur if the bottle is severely crushed or is an unsupported plastic type (e.g. PVC or HDPE detergent jugs).
       </div>
     </div>
 
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
-      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q2: What happens if the internet connection is temporarily offline?</div>
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q3: What happens if the internet connection is temporarily offline?</div>
       <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
         <strong>Answer:</strong> Your points are 100% safe! The RVM kiosk operates a resilient local Microsoft SQL Server database. When the cloud connection is offline, points are saved locally in an offline queue and automatically synchronized to the Central Cloud server as soon as the network reconnects.
       </div>
     </div>
 
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
-      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q3: How many containers can I deposit in a single session?</div>
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q4: How many containers can I deposit in a single session?</div>
       <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
         <strong>Answer:</strong> There is no limit! You can insert as many bottles, cans, and cartons as you wish during one session. The live counter tracks every accepted container. When you are finished, press <strong>Enter</strong> to claim all points together.
       </div>
     </div>
 
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
-      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q4: How do I redeem my points for balance or gifts?</div>
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q5: How do I redeem my points for balance or gifts?</div>
       <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
         <strong>Answer:</strong> Visit the official web portal at <strong>isprvm.binishaqsoft.com</strong> or visit the campus partner desk. Enter your registered 11-digit mobile number to view balance vouchers, mobile recharge codes, and gift rewards.
       </div>
     </div>
 
-    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:10px;">
-      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q5: How do I scan the QR code to claim my points?</div>
+    <div style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:6px; padding:9px;">
+      <div style="font-size:9pt; font-weight:800; color:#073B28;">Q6: How do I scan the QR code to claim my points?</div>
       <div style="font-size:8.2pt; color:#334155; margin-top:3px; line-height:1.4;">
         <strong>Answer:</strong> Open the <strong>RVM Mobile App</strong> on your smartphone, tap the <strong>Scan QR</strong> tab, and point your camera at the kiosk screen. Your points will be credited immediately to your account. Alternatively, you can type the 6-character session code shown below the QR code into the app.
       </div>
@@ -1459,8 +1613,8 @@ def generate_user_manual_html(html_path, snapshots_dir):
 
   <div class="page-footer">
     <span class="footer-left">ENVIRONMENTAL SOLUTIONS PVT. LTD</span>
-    <span class="footer-center">DOC-RVM-UM-2026-V3.2</span>
-    <span class="footer-right">Page 13</span>
+    <span class="footer-center">DOC-RVM-UM-2026-V3.5</span>
+    <span class="footer-right">Page 14 of 14</span>
   </div>
 </div>
 

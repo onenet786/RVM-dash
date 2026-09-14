@@ -69,10 +69,10 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <!-- 50% LEFT: DETAILS & KIOSK INTERACTION (BEST FIT) -->
-            <ColumnDefinition Width="*"/>
-            <!-- 50% RIGHT: LEADERBOARD (BEST FIT) -->
-            <ColumnDefinition Width="*"/>
+            <!-- LEFT: DETAILS & KIOSK INTERACTION (REDUCED WIDTH) -->
+            <ColumnDefinition Width="0.85*"/>
+            <!-- RIGHT: LEADERBOARD (+15% WIDER) -->
+            <ColumnDefinition Width="1.15*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ============================================================== -->
@@ -89,7 +89,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- ROW 0: TOP HEADER BAR -->
-                <Grid Grid.Row="0" Margin="0,0,0,8" MinHeight="56">
+                <Grid Grid.Row="0" Margin="0,0,0,8" MinHeight="50">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -97,7 +97,7 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Viewbox Width="56" Height="56" Margin="0,0,10,0">
+                        <Viewbox Width="44" Height="44" Margin="0,0,8,0">
                             <Grid Width="38" Height="38">
                                 <Ellipse Stroke="#073B28" StrokeThickness="2.2" Fill="Transparent"/>
                                 <Path Data="M 17 11 L 17 7 L 23 7 L 23 11 L 27 15 L 27 32 L 13 32 L 13 15 Z" Fill="#073B28"/>
@@ -106,37 +106,37 @@
                         </Viewbox>
                         <StackPanel VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="PECO DROP" FontSize="26" FontWeight="Black" Foreground="#073B28"/>
-                                <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="5" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="10.5" FontWeight="Bold" Foreground="#15803D"/>
+                                <TextBlock Text="PECO DROP" FontSize="19" FontWeight="Black" Foreground="#073B28"/>
+                                <Border x:Name="LiveBadgeBorder" Background="#DCFCE7" CornerRadius="4" Padding="5,1.5" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LiveBadgeText" Text="LIVE 🟢" FontSize="9.5" FontWeight="Bold" Foreground="#15803D"/>
                                 </Border>
-                                <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="5" Padding="6,2" Margin="5,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="10.5" FontWeight="Bold" Foreground="#0369A1"/>
+                                <Border x:Name="RvmNameChipBorder" Background="#E0F2FE" CornerRadius="4" Padding="5,1.5" Margin="4,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="HeaderRvmNameText" Text="RVM-001" FontSize="9.5" FontWeight="Bold" Foreground="#0369A1"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="REVERSE VENDING MACHINE" FontSize="10" FontWeight="Bold" Foreground="#073B28" Margin="0,1,0,0"/>
+                            <TextBlock Text="REVERSE VENDING MACHINE" FontSize="8.5" FontWeight="Bold" Foreground="#073B28" Margin="0,1,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="WELCOME • " FontSize="22" FontWeight="Black" Foreground="#073B28"/>
-                            <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#073B28"/>
+                            <TextBlock Text="WELCOME • " FontSize="16" FontWeight="Black" Foreground="#073B28"/>
+                            <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="18" FontWeight="Black" Foreground="#073B28"/>
                         </StackPanel>
-                        <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="13" Foreground="#64748B" Margin="0,2,0,0"/>
+                        <TextBlock Text="Recycle Today for a Better Tomorrow" FontSize="10.5" Foreground="#64748B" HorizontalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Header Right: Date, Time & ISPP Logo Card -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
-                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="12,4" Margin="0,0,8,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,0,6,0" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="13" FontWeight="SemiBold" Foreground="#334155" Margin="0,0,8,0"/>
-                                <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="15" FontWeight="Bold" Foreground="#073B28"/>
+                                <TextBlock x:Name="LiveDateText" Text="14 May 2025" FontSize="11" FontWeight="SemiBold" Foreground="#334155" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="LiveTimeText" Text="10:30 AM" FontSize="12.5" FontWeight="Bold" Foreground="#073B28"/>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="8" Padding="3" Height="54" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
-                            <Image Source="pack://application:,,,/PecoDropDesktopApp;component/Assets/ispp.jpg" Height="46" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <Border Background="#FFFFFF" BorderBrush="#E5EAE1" BorderThickness="1" CornerRadius="6" Padding="2" Height="44" Effect="{StaticResource CardShadow}" VerticalAlignment="Center">
+                            <Image Source="pack://application:,,,/PecoDropDesktopApp;component/Assets/ispp.jpg" Height="38" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Border>
                     </StackPanel>
 

@@ -1,0 +1,23 @@
+========================================================================
+PECODROP / PLEASEISP - GOOGLE PLAY STORE RELEASE SIGNING DETAILS
+========================================================================
+
+Keystore File: my-upload-key.keystore
+Key Alias: my-key-alias
+Keystore Password: musab42401
+Key Password: musab42401
+Key Type: RSA 2048-bit (PKCS12)
+Certificate DN: CN=PecoDrop, OU=OneNet, O=OneNet, L=Lahore, ST=Punjab, C=PK
+Validity: Valid until Jan 30, 2054 (10,000 days)
+
+CERTIFICATE FINGERPRINTS:
+-------------------------
+SHA1:   A9:49:98:AB:88:D7:9E:CA:E3:FE:1F:A7:5B:CD:01:C7:3C:CD:E0:38
+SHA256: AC:D6:E8:BC:3F:F8:6F:7C:16:9B:43:17:35:86:84:76:62:D5:D5:E8:1A:41:6E:5F:2B:38:43:9E:69:41:28:2C
+
+GOOGLE PLAY APP SIGNING NOTE:
+-----------------------------
+When uploading the Android App Bundle (.aab) to Google Play Console:
+1. Under "App Signing", select "Use Google Play App Signing" (or provide this upload key).
+2. The fingerprints above are your Official Upload Key fingerprints.
+3. If Google Play or Google Cloud API Console (e.g. Google Maps API) requests the SHA-1 or SHA-256 fingerprint, use the SHA-1 and SHA-256 digests listed above.

@@ -246,6 +246,12 @@ public static class Program
                 landWin.DbDot.Fill = Brushes.LightGreen;
                 landWin.ApiStatusText.Text = "API: ONLINE 🟢";
                 landWin.ApiDot.Fill = Brushes.LightGreen;
+                if (landWin.HardwareErrorBanner != null) landWin.HardwareErrorBanner.Visibility = Visibility.Collapsed;
+                if (landWin.MachineStateText != null)
+                {
+                    landWin.MachineStateText.Text = "MACHINE: READY 🟢";
+                    landWin.MachineStateText.Foreground = Brushes.LightGreen;
+                }
             }
             catch { }
 
@@ -279,6 +285,12 @@ public static class Program
 
             win.ApiStatusText.Text = "API: ONLINE 🟢";
             win.ApiDot.Fill = Brushes.LightGreen;
+
+            if (win.MachineStateText != null)
+            {
+                win.MachineStateText.Text = "MACHINE: READY 🟢";
+                win.MachineStateText.Foreground = Brushes.LightGreen;
+            }
 
             if (win.LiveBadgeBorder != null)
             {
