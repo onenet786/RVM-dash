@@ -5422,17 +5422,24 @@ app.post('/api/machine/sync-session', async (req, res) => {
       console.warn('[PostgreSQL Machine Sync Warning]', pgSyncErr.message);
     }
 
-    // Attach completed session info to active kiosk handshake so mobile app receives exact points
-    if (machineId && activeStartHandshakes.has(machineId)) {
-      const h = activeStartHandshakes.get(machineId);
-      h.completedSession = {
-        sessionId,
-        pointsEarned,
-        totalBottles,
-        completedAt: new Date().toISOString()
-      };
-      h.livePoints = pointsEarned;
-      h.liveItems = totalBottles;
+    // Attach completed session info to active kiosk handshake and persistent machine cache so mobile app receives exact points
+    const cleanMachineId = String(machineId || '').trim();
+    const completedInfo = {
+      sessionId: sessionId || localSessionId,
+      pointsEarned: Number(pointsEarned) || 0,
+      totalBottles: Number(totalBottles) || 0,
+      userPhone: String(cleanUserId || '').trim(),
+      completedAt: Date.now()
+    };
+    if (cleanMachineId) {
+      lastCompletedSessionsByMachine.set(cleanMachineId, completedInfo);
+      if (activeStartHandshakes.has(cleanMachineId)) {
+        const h = activeStartHandshakes.get(cleanMachineId);
+        h.completedSession = completedInfo;
+        h.lastCompletedSession = completedInfo;
+        h.livePoints = pointsEarned;
+        h.liveItems = totalBottles;
+      }
     }
 
     res.json({
@@ -6613,6 +6620,7 @@ app.post('/api/user/verify-qr', async (req, res) => {
 
 const activeClaimSessions = new Map();
 const activeStartHandshakes = new Map(); // machineId -> handshakeData
+const lastCompletedSessionsByMachine = new Map(); // machineId -> { sessionId, pointsEarned, totalBottles, userPhone, completedAt }
 
 // Periodic purge of expired sessions & idle handshakes (every 30 seconds)
 setInterval(() => {
@@ -6625,6 +6633,11 @@ setInterval(() => {
   for (const [machineId, handshake] of activeStartHandshakes.entries()) {
     if (handshake.expiresAt && handshake.expiresAt < now && handshake.status !== 'STARTED') {
       activeStartHandshakes.delete(machineId);
+    }
+  }
+  for (const [machineId, sess] of lastCompletedSessionsByMachine.entries()) {
+    if (sess.completedAt && (now - sess.completedAt > 600000)) {
+      lastCompletedSessionsByMachine.delete(machineId);
     }
   }
 }, 30000);
@@ -6642,6 +6655,12 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
     const baseUrl = `${protocol}://${host}`;
     const qrUrl = `${baseUrl}/claim?startToken=${encodeURIComponent(startToken)}&m=${encodeURIComponent(cleanMachineId)}`;
 
+    const prevHandshake = activeStartHandshakes.get(cleanMachineId);
+    const lastCompleted = prevHandshake?.completedSession 
+      || prevHandshake?.lastCompletedSession 
+      || lastCompletedSessionsByMachine.get(cleanMachineId) 
+      || null;
+
     const handshakeData = {
       machineId: cleanMachineId,
       startToken,
@@ -6650,7 +6669,8 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
       finishRequested: false,
       user: null,
       createdAt: Date.now(),
-      expiresAt
+      expiresAt,
+      lastCompletedSession: lastCompleted
     };
 
     activeStartHandshakes.set(cleanMachineId, handshakeData);
@@ -6672,12 +6692,16 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
   try {
     const machineId = (req.params.machineId || '').trim();
     const handshake = activeStartHandshakes.get(machineId);
+    const lastCompleted = (handshake && (handshake.completedSession || handshake.lastCompletedSession))
+      || lastCompletedSessionsByMachine.get(machineId)
+      || null;
 
     if (!handshake) {
       return res.json({
         success: true,
         status: 'IDLE',
-        message: 'No active start handshake registered'
+        message: 'No active start handshake registered',
+        completedSession: lastCompleted
       });
     }
 
@@ -6686,7 +6710,8 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
       return res.json({
         success: true,
         status: 'EXPIRED',
-        message: 'Start handshake token expired'
+        message: 'Start handshake token expired',
+        completedSession: lastCompleted
       });
     }
 
@@ -6716,11 +6741,11 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
       startToken: handshake.startToken,
       finishRequested: Boolean(handshake.finishRequested),
       user: handshake.user || null,
-      livePoints: handshake.livePoints || 0,
-      liveItems: handshake.liveItems || 0,
+      livePoints: handshake.livePoints || (lastCompleted ? lastCompleted.pointsEarned : 0),
+      liveItems: handshake.liveItems || (lastCompleted ? lastCompleted.totalBottles : 0),
       liveBottles: handshake.liveBottles || 0,
       liveCans: handshake.liveCans || 0,
-      completedSession: handshake.completedSession || null
+      completedSession: lastCompleted
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
