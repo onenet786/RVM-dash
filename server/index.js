@@ -6344,6 +6344,7 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
       startToken,
       qrUrl,
       status: 'WAITING_FOR_SCAN', // WAITING_FOR_SCAN, STARTED, COMPLETED
+      finishRequested: false,
       user: null,
       createdAt: Date.now(),
       expiresAt
@@ -6453,7 +6454,25 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
     }
 
     if (targetHandshake.status === 'STARTED') {
-      return res.status(409).json({ success: false, error: 'Kiosk is already active in a session.' });
+      if (targetHandshake.finishRequested) {
+        console.log(`[TOUCHLESS 📱] Previous session had finishRequested=true for kiosk ${targetMachineKey}. Re-opening for new scan.`);
+        targetHandshake.status = 'WAITING_FOR_SCAN';
+        targetHandshake.finishRequested = false;
+        targetHandshake.user = null;
+      } else if (startToken && targetHandshake.startToken && startToken !== targetHandshake.startToken) {
+        console.log(`[TOUCHLESS 📱] New startToken scanned (${startToken}) differing from active (${targetHandshake.startToken}). Re-opening kiosk ${targetMachineKey}.`);
+        targetHandshake.status = 'WAITING_FOR_SCAN';
+        targetHandshake.finishRequested = false;
+        targetHandshake.user = null;
+        targetHandshake.startToken = startToken;
+      } else if ((Date.now() - (targetHandshake.startedAt || targetHandshake.createdAt || 0)) > 3 * 60 * 1000) {
+        console.log(`[TOUCHLESS 📱] Stale session on kiosk ${targetMachineKey} timed out (> 3 min). Freeing for new scan.`);
+        targetHandshake.status = 'WAITING_FOR_SCAN';
+        targetHandshake.finishRequested = false;
+        targetHandshake.user = null;
+      } else {
+        return res.status(409).json({ success: false, error: 'Kiosk is already active in a session.' });
+      }
     }
 
     // Query user profile for points and accurate display name

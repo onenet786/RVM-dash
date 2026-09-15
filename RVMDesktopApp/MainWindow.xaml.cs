@@ -2489,7 +2489,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _currentStartToken = null;
         _startTokenExpiresAt = DateTime.MinValue;
-        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
+        _isRegisteringHandshake = false;
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
