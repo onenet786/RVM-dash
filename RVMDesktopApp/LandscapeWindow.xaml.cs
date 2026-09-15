@@ -1029,8 +1029,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
                     StartMachine();
                 }
-                else if (statusResp.Status == "EXPIRED")
+                else if (statusResp.Status == "EXPIRED" || statusResp.Status == "IDLE")
                 {
+                    _currentStartToken = null;
+                    _startTokenExpiresAt = DateTime.MinValue;
                     await RegisterStartHandshakeAsync();
                 }
             }
@@ -1131,7 +1133,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         activeUserMobile = null;
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
+        _currentStartToken = null;
+        _startTokenExpiresAt = DateTime.MinValue;
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
@@ -1831,7 +1834,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
+        _currentStartToken = null;
+        _startTokenExpiresAt = DateTime.MinValue;
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 

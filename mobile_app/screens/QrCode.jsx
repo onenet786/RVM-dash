@@ -101,6 +101,21 @@ export default function QrCode({ navigation }) {
     return '';
   };
 
+  // Helper to extract machineId from raw scanned URL or string
+  const parseMachineId = (scannedText) => {
+    if (!scannedText) return '';
+    try {
+      if (scannedText.includes('m=')) {
+        const urlObj = new URL(scannedText);
+        return urlObj.searchParams.get('m') || '';
+      }
+    } catch {
+      const match = scannedText.match(/[?&]m=([^&]+)/);
+      if (match && match[1]) return decodeURIComponent(match[1]);
+    }
+    return '';
+  };
+
   // Helper to extract session ID from raw scanned URL or string
   const parseSessionId = (scannedText) => {
     if (!scannedText) return '';
@@ -117,7 +132,7 @@ export default function QrCode({ navigation }) {
     return scannedText.trim();
   };
 
-  const handleStartKiosk = async (startToken) => {
+  const handleStartKiosk = async (startToken, machineId = '') => {
     const phoneToUse = manualPhone.trim() || currentUser?.mobile || currentUser?.phone || currentUser?.username;
     if (!phoneToUse) {
       Alert.alert('Phone Number Required', 'Please enter your mobile phone number or sign in to start recycling.');
@@ -127,7 +142,8 @@ export default function QrCode({ navigation }) {
     setClaiming(true);
     try {
       const res = await axios.post(`${API_BASE_URL}/session/kiosk-handshake/claim-start`, {
-        startToken,
+        startToken: startToken || '',
+        machineId: machineId || '',
         mobileNumber: phoneToUse,
         fullName: currentUser?.fullName || currentUser?.username || 'Eco Citizen'
       }, { timeout: 10000 });
@@ -181,10 +197,22 @@ export default function QrCode({ navigation }) {
   };
 
   const handleClaim = async (targetSessionId) => {
-    const rawId = targetSessionId || sessionInput;
+    const rawId = (targetSessionId || sessionInput || '').trim();
     const token = parseStartToken(rawId);
+    const scannedMachine = parseMachineId(rawId);
+
     if (token) {
-      handleStartKiosk(token);
+      handleStartKiosk(token, scannedMachine);
+      return;
+    }
+
+    if (rawId.startsWith('start_')) {
+      handleStartKiosk(rawId, scannedMachine);
+      return;
+    }
+
+    if (/^RVM[-_:]/i.test(rawId)) {
+      handleStartKiosk('', rawId.toUpperCase());
       return;
     }
 

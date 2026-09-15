@@ -6331,7 +6331,7 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
   try {
     const { machineId = 'RVM-001' } = req.body;
     const cleanMachineId = String(machineId).trim();
-    const startToken = `start_${crypto.randomBytes(6).toString('hex')}`;
+    const startToken = `start_${cleanMachineId}_${crypto.randomBytes(4).toString('hex')}`;
     const expiresAt = Date.now() + (120 * 1000); // 2-minute lifespan
 
     const host = req.get('host') || 'isprvm.binishaqsoft.com';
@@ -6414,10 +6414,17 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
 
     // Locate handshake by machineId or startToken
     let targetHandshake = null;
-    let targetMachineKey = machineId;
+    let targetMachineKey = machineId ? String(machineId).trim() : null;
 
-    if (machineId && activeStartHandshakes.has(machineId)) {
-      targetHandshake = activeStartHandshakes.get(machineId);
+    if (!targetMachineKey && startToken && startToken.startsWith('start_')) {
+      const parts = startToken.split('_');
+      if (parts.length >= 3) {
+        targetMachineKey = parts.slice(1, -1).join('_');
+      }
+    }
+
+    if (targetMachineKey && activeStartHandshakes.has(targetMachineKey)) {
+      targetHandshake = activeStartHandshakes.get(targetMachineKey);
     } else {
       for (const [mId, h] of activeStartHandshakes.entries()) {
         if (h.startToken === startToken) {
@@ -6426,6 +6433,19 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
           break;
         }
       }
+    }
+
+    // Auto-heal: If handshake was purged/expired but machine is known, auto-create active handshake
+    if (!targetHandshake && targetMachineKey) {
+      targetHandshake = {
+        machineId: targetMachineKey,
+        startToken: startToken || `start_${targetMachineKey}_${crypto.randomBytes(4).toString('hex')}`,
+        status: 'WAITING_FOR_SCAN',
+        user: null,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + (10 * 60 * 1000)
+      };
+      activeStartHandshakes.set(targetMachineKey, targetHandshake);
     }
 
     if (!targetHandshake) {
