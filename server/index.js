@@ -3748,6 +3748,7 @@ async function handleMobileLogin(req, res) {
     let recentSessions = [];
     let earnedPoints = 0;
     let redeemedPoints = 0;
+    let userRedemptions = [];
 
     // Helper: Build strict, isolated identifier list for logged-in user
     const validUserIds = Array.from(new Set([
@@ -3821,7 +3822,7 @@ async function handleMobileLogin(req, res) {
         } catch (e) {}
       }
 
-      let userRedemptions = [];
+      userRedemptions = [];
       try {
         const redRes = await pool.query(`
           SELECT redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
@@ -4171,6 +4172,7 @@ async function handleMobileGetPoints(req, res) {
     let recentSessions = [];
     let earnedPoints = 0;
     let redeemedPoints = 0;
+    let userRedemptions = [];
 
     const pool = getPgPool();
     if (pool) {
@@ -4255,7 +4257,7 @@ async function handleMobileGetPoints(req, res) {
         } catch (e) {}
       }
 
-      let userRedemptions = [];
+      userRedemptions = [];
       try {
         const redRes = await pool.query(`
           SELECT redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
