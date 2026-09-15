@@ -6692,9 +6692,16 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
   try {
     const machineId = (req.params.machineId || '').trim();
     const handshake = activeStartHandshakes.get(machineId);
-    const lastCompleted = (handshake && (handshake.completedSession || handshake.lastCompletedSession))
-      || lastCompletedSessionsByMachine.get(machineId)
-      || null;
+
+    // During active STARTED state, do NOT return a completed session from a previous user/session
+    let lastCompleted = null;
+    if (handshake && handshake.status === 'STARTED') {
+      lastCompleted = handshake.completedSession || null;
+    } else if (handshake) {
+      lastCompleted = handshake.completedSession || handshake.lastCompletedSession || lastCompletedSessionsByMachine.get(machineId) || null;
+    } else {
+      lastCompleted = lastCompletedSessionsByMachine.get(machineId) || null;
+    }
 
     if (!handshake) {
       return res.json({
@@ -6741,8 +6748,8 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
       startToken: handshake.startToken,
       finishRequested: Boolean(handshake.finishRequested),
       user: handshake.user || null,
-      livePoints: handshake.livePoints || (lastCompleted ? lastCompleted.pointsEarned : 0),
-      liveItems: handshake.liveItems || (lastCompleted ? lastCompleted.totalBottles : 0),
+      livePoints: handshake.livePoints || (handshake.status !== 'STARTED' && lastCompleted ? lastCompleted.pointsEarned : 0),
+      liveItems: handshake.liveItems || (handshake.status !== 'STARTED' && lastCompleted ? lastCompleted.totalBottles : 0),
       liveBottles: handshake.liveBottles || 0,
       liveCans: handshake.liveCans || 0,
       completedSession: lastCompleted
@@ -6849,6 +6856,12 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
 
     targetHandshake.status = 'STARTED';
     targetHandshake.finishRequested = false;
+    targetHandshake.completedSession = null;
+    targetHandshake.lastCompletedSession = null;
+    targetHandshake.livePoints = 0;
+    targetHandshake.liveItems = 0;
+    targetHandshake.liveBottles = 0;
+    targetHandshake.liveCans = 0;
     targetHandshake.user = {
       phone: userPhone,
       fullName: cleanName,
@@ -6856,6 +6869,13 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
       startedAt: new Date().toISOString()
     };
     targetHandshake.expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes max session
+
+    if (targetMachineKey) {
+      lastCompletedSessionsByMachine.delete(targetMachineKey);
+    }
+    if (targetHandshake.machineId) {
+      lastCompletedSessionsByMachine.delete(targetHandshake.machineId);
+    }
 
     res.json({
       success: true,

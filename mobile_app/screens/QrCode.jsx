@@ -36,11 +36,13 @@ export default function QrCode({ navigation }) {
   const [liveSessionStats, setLiveSessionStats] = useState({ points: 0, items: 0 });
   const liveStatsRef = useRef({ points: 0, items: 0 });
   const isFinishingRef = useRef(false);
+  const hasSeenStartedRef = useRef(false);
   const webViewRef = useRef(null);
 
   useEffect(() => {
     let interval = null;
     let isHandlingFinish = false;
+    hasSeenStartedRef.current = false;
 
     if (activeKioskSession && activeKioskSession.machineId) {
       const targetMachine = activeKioskSession.machineId;
@@ -58,18 +60,20 @@ export default function QrCode({ navigation }) {
 
           if (!res.data || !res.data.success) return;
 
+          // 1. If kiosk is in STARTED state, session is actively in progress!
+          if (res.data.status === 'STARTED') {
+            hasSeenStartedRef.current = true;
+            const p = res.data.livePoints || 0;
+            const itm = res.data.liveItems || 0;
+            setLiveSessionStats({ points: p, items: itm });
+            liveStatsRef.current = { points: p, items: itm };
+            return; // NEVER close the active session card while kiosk status is STARTED!
+          }
+
+          // 2. Kiosk is no longer in STARTED state (citizen pressed Enter on kiosk keypad or kiosk reset)
           const timeSinceStart = Date.now() - sessionStartedAt;
           const compSess = res.data.completedSession;
-          const isCompletedMatching = compSess && (
-            (compSess.completedAt && compSess.completedAt >= sessionStartedAt - 5000) ||
-            (compSess.userPhone && targetPhone && (
-              compSess.userPhone === targetPhone ||
-              compSess.userPhone.replace(/^0+/, '') === targetPhone.replace(/^0+/, '')
-            ))
-          );
-
-          // Session ended on kiosk (by pressing Enter, manual finish, or reset)
-          const isKioskEnded = (res.data.status !== 'STARTED' && timeSinceStart > 1500) || isCompletedMatching;
+          const isKioskEnded = (hasSeenStartedRef.current && res.data.status !== 'STARTED') || (timeSinceStart > 3000 && res.data.status !== 'STARTED');
 
           if (isKioskEnded) {
             isHandlingFinish = true;
