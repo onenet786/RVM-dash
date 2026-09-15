@@ -4146,7 +4146,7 @@ function invalidateMobileUserCaches(userId) {
 // 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {
   try {
-    const phone = (req.body.phoneNumber || req.body.phone || req.body.userId || '').trim();
+    const phone = (req.body?.phoneNumber || req.body?.phone || req.body?.userId || req.query?.userId || req.query?.phoneNumber || req.query?.phone || '').toString().trim();
     if (!phone || phone === 'anonymous') {
       return res.status(400).json({ success: false, message: 'Valid user phoneNumber or userId is required' });
     }
@@ -4348,6 +4348,8 @@ async function handleMobileGetPoints(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
+app.get('/api/get-points', handleMobileGetPoints);
+app.get('/get-points', handleMobileGetPoints);
 app.post('/api/get-points', handleMobileGetPoints);
 app.post('/get-points', handleMobileGetPoints);
 
