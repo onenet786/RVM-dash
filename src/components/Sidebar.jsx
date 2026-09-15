@@ -62,6 +62,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'col_machines', name: 'machines', label: 'RVMs', icon: Cpu },
     { id: 'col_users', name: 'users', label: 'users', icon: Users },
     { id: 'col_machine_configs', name: 'machine_configs', label: 'RVM Configurations', icon: Settings },
+    { id: 'col_redemptions', name: 'redemptions', label: 'redemptions', icon: Trophy },
   ];
 
   // MongoDB Legacy / rvmapp Collections

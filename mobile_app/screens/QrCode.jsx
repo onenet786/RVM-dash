@@ -33,7 +33,37 @@ export default function QrCode({ navigation }) {
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [manualPhone, setManualPhone] = useState('');
   const [activeKioskSession, setActiveKioskSession] = useState(null);
+  const [liveSessionStats, setLiveSessionStats] = useState({ points: 0, items: 0 });
   const webViewRef = useRef(null);
+
+  useEffect(() => {
+    let interval = null;
+    if (activeKioskSession && activeKioskSession.machineId) {
+      const pollLiveStats = async () => {
+        try {
+          const res = await axios.get(
+            `${API_BASE_URL}/session/kiosk-handshake/status/${encodeURIComponent(activeKioskSession.machineId)}`,
+            { timeout: 4000 }
+          );
+          if (res.data && res.data.success) {
+            setLiveSessionStats({
+              points: res.data.livePoints || res.data.completedSession?.pointsEarned || 0,
+              items: res.data.liveItems || res.data.completedSession?.totalBottles || 0,
+            });
+          }
+        } catch (e) {}
+      };
+
+      pollLiveStats();
+      interval = setInterval(pollLiveStats, 1500);
+    } else {
+      setLiveSessionStats({ points: 0, items: 0 });
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeKioskSession]);
 
   const requestCameraPermission = async () => {
     if (Platform.OS === 'android') {
@@ -172,22 +202,65 @@ export default function QrCode({ navigation }) {
     if (!activeKioskSession) return;
     setClaiming(true);
     try {
+      const targetMachine = activeKioskSession.machineId;
+      const targetPhone = activeKioskSession.mobileNumber;
+
+      // 1. Send finish signal to kiosk
       const res = await axios.post(`${API_BASE_URL}/session/kiosk-handshake/request-finish`, {
-        machineId: activeKioskSession.machineId,
-        mobileNumber: activeKioskSession.mobileNumber
+        machineId: targetMachine,
+        mobileNumber: targetPhone
       }, { timeout: 10000 });
 
-      if (res.data && res.data.success) {
-        const finishedMachine = activeKioskSession.machineId;
-        setActiveKioskSession(null);
-        setClaimSuccess({
-          points: 0,
-          message: `🎉 Kiosk session finished! Machine ${finishedMachine} is saving your containers and crediting points to your wallet.`
-        });
-        ToastAndroid?.show('🎉 Kiosk session finished! Points credited.', ToastAndroid.LONG);
-      } else {
-        Alert.alert('Finish Request Failed', res.data?.error || 'Could not send finish signal to kiosk.');
+      let pointsEarned = res.data?.points || liveSessionStats.points || 0;
+      let newBalance = undefined;
+
+      // 2. Poll for session sync completion (give kiosk 3-4s to complete deposit & sync to wallet)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise(r => setTimeout(r, 1200));
+        try {
+          const statRes = await axios.get(
+            `${API_BASE_URL}/session/kiosk-handshake/status/${encodeURIComponent(targetMachine)}`,
+            { timeout: 4000 }
+          );
+          if (statRes.data?.completedSession?.pointsEarned) {
+            pointsEarned = statRes.data.completedSession.pointsEarned;
+          } else if (statRes.data?.livePoints) {
+            pointsEarned = Math.max(pointsEarned, statRes.data.livePoints);
+          }
+
+          const ptsRes = await axios.get(
+            `${API_BASE_URL}/get-points?userId=${encodeURIComponent(targetPhone)}`,
+            { timeout: 4000 }
+          );
+          if (ptsRes.data && ptsRes.data.points !== undefined) {
+            newBalance = ptsRes.data.points;
+            if (ptsRes.data.latestSessionPoints && !pointsEarned) {
+              pointsEarned = ptsRes.data.latestSessionPoints;
+            }
+            if (pointsEarned > 0) {
+              break; // Got verified points from kiosk sync
+            }
+          }
+        } catch (pollErr) {}
       }
+
+      if (!pointsEarned && liveSessionStats.points > 0) {
+        pointsEarned = liveSessionStats.points;
+      }
+
+      setActiveKioskSession(null);
+      setLiveSessionStats({ points: 0, items: 0 });
+
+      const msg = pointsEarned > 0
+        ? `🎉 Kiosk session finished! Machine ${targetMachine} saved your containers and credited ${pointsEarned} points to your eco wallet.`
+        : `🎉 Kiosk session finished! Machine ${targetMachine} closed cleanly.`;
+
+      setClaimSuccess({
+        points: pointsEarned,
+        newBalance: newBalance,
+        message: msg
+      });
+      ToastAndroid?.show(`🎉 ${pointsEarned > 0 ? `+${pointsEarned} points claimed!` : 'Session closed!'}`, ToastAndroid.LONG);
     } catch (err) {
       const errMsg = err.response?.data?.error || err.message || 'Error finishing session.';
       Alert.alert('Finish Error', errMsg);
@@ -462,7 +535,9 @@ export default function QrCode({ navigation }) {
           <View style={styles.successCard}>
             <MaterialCommunityIcons name="check-decagram" size={64} color="#10B981" />
             <Text style={styles.successTitle}>Points Claimed!</Text>
-            <Text style={styles.successPts}>+{claimSuccess.points} PTS</Text>
+            <Text style={styles.successPts}>
+              {claimSuccess.points > 0 ? `+${claimSuccess.points} PTS` : '0 PTS'}
+            </Text>
             <Text style={styles.successDesc}>{claimSuccess.message}</Text>
             {claimSuccess.newBalance !== undefined && (
               <Text style={styles.newBalanceText}>New Balance: {claimSuccess.newBalance} pts</Text>
@@ -495,6 +570,20 @@ export default function QrCode({ navigation }) {
                   <Text style={styles.activeHeaderTitle}>KIOSK SESSION IN PROGRESS</Text>
                 </View>
                 <Text style={styles.activeMachineText}>Connected: {activeKioskSession.machineId}</Text>
+                
+                {/* Live Containers & Points Tracker */}
+                <View style={styles.liveStatsRow}>
+                  <View style={styles.liveStatBox}>
+                    <Text style={styles.liveStatLabel}>Containers</Text>
+                    <Text style={styles.liveStatVal}>{liveSessionStats.items || 0} 🍾</Text>
+                  </View>
+                  <View style={styles.liveStatDivider} />
+                  <View style={styles.liveStatBox}>
+                    <Text style={styles.liveStatLabel}>Points Earned</Text>
+                    <Text style={styles.liveStatVal}>+{liveSessionStats.points || 0} PTS ⭐</Text>
+                  </View>
+                </View>
+
                 <Text style={styles.activeInstructions}>
                   The kiosk aperture is unlocked! Insert all your containers now. When done, tap below to finish without touching the keypad:
                 </Text>
@@ -1050,5 +1139,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  liveStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.3)',
+  },
+  liveStatBox: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  liveStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(52, 211, 153, 0.25)',
+  },
+  liveStatLabel: {
+    fontSize: 10.5,
+    color: '#A7F3D0',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  liveStatVal: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontWeight: '900',
   },
 });

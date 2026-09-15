@@ -419,8 +419,8 @@ const DashboardScreen = ({ route }) => {
 
   // Calculated recovery and variant stats
   const currentBalance = parseInt(localHistory?.currentBalance ?? localHistory?.points ?? localUser?.points ?? 0);
-  const totalEarned = parseInt(localHistory?.totalEarnedPoints ?? localHistory?.earnedPoints ?? currentBalance);
-  const totalRedeemed = parseInt(localHistory?.totalRedeemedPoints ?? localHistory?.redeemedPoints ?? Math.max(0, totalEarned - currentBalance));
+  const totalRedeemed = parseInt(localHistory?.totalRedeemedPoints ?? localHistory?.redeemedPoints ?? 0);
+  const totalEarned = parseInt(localHistory?.totalEarnedPoints ?? localHistory?.earnedPoints ?? (currentBalance + totalRedeemed));
 
   const plasticCount = parseInt(localHistory?.plasticCount || localHistory?.bottles || 0);
   const aluminiumCount = parseInt(localHistory?.aluminiumCount || localHistory?.cups || 0);

@@ -114,13 +114,19 @@ public static class CentralSyncService
     }
 
     /// <summary>
-    /// Polls Central API to check if a mobile citizen has scanned the Kiosk Start QR Code.
+    /// Polls Central API to check if a mobile citizen has scanned the Kiosk Start QR Code, and syncs live session progress.
     /// </summary>
-    public static async Task<KioskStartStatusResponse?> CheckKioskStartStatusAsync(string machineId)
+    public static async Task<KioskStartStatusResponse?> CheckKioskStartStatusAsync(
+        string machineId,
+        int totalItems = 0,
+        int totalPoints = 0,
+        int bottles = 0,
+        int cans = 0)
     {
         try
         {
-            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/status/{Uri.EscapeDataString(machineId)}";
+            string query = $"?items={totalItems}&points={totalPoints}&bottles={bottles}&cans={cans}";
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/status/{Uri.EscapeDataString(machineId)}{query}";
             HttpResponseMessage response = await _httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {

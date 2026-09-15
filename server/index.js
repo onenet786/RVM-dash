@@ -483,7 +483,55 @@ async function initProductionPostgresSchemas() {
       CREATE INDEX IF NOT EXISTS idx_machine_ads_target ON machine_advertisements (machine_id, is_active, display_order ASC);
     `);
 
-    console.log('[PostgreSQL Schemas] Production relational tables, ad media schemas and indexes initialized successfully.');
+    // 6. Citizen Loyalty Redemptions Table (for Voucher & Reward History)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS redemptions (
+        id SERIAL PRIMARY KEY,
+        redemption_id VARCHAR(100) UNIQUE,
+        user_id VARCHAR(100) NOT NULL,
+        username VARCHAR(100),
+        mobile VARCHAR(50),
+        item_name VARCHAR(200) NOT NULL DEFAULT 'Reward Voucher',
+        points_redeemed INT NOT NULL DEFAULT 0,
+        voucher_code VARCHAR(100),
+        note TEXT,
+        status VARCHAR(50) DEFAULT 'completed',
+        category VARCHAR(50) DEFAULT 'voucher',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_redemptions_user_id ON redemptions (user_id);
+      CREATE INDEX IF NOT EXISTS idx_redemptions_mobile ON redemptions (mobile);
+      CREATE INDEX IF NOT EXISTS idx_redemptions_date ON redemptions (created_at DESC);
+    `);
+
+    // Auto-migrate existing redemptions from MongoDB if redemptions table is empty
+    const redCountRes = await pool.query(`SELECT COUNT(*) FROM redemptions;`).catch(() => ({ rows: [{ count: '0' }] }));
+    if (parseInt(redCountRes.rows[0].count || '0') === 0) {
+      try {
+        if (!db) await connectDB();
+        if (db) {
+          const mDocs = await db.collection('redemptions').find({}).toArray();
+          for (const doc of mDocs) {
+            const phone = doc.phoneNumber || doc.phone || doc.mobile || doc.userId || doc.username || '';
+            const pts = parseInt(doc.points || doc.pointsRedeemed || doc.points_redeemed || 0);
+            const rId = String(doc._id || `red_${Date.now()}_${Math.random().toString(36).substring(7)}`);
+            const note = doc.note || '';
+            const cAt = doc.redeemedAt || doc.createdAt || doc.created_at || new Date().toISOString();
+            if (phone && pts > 0) {
+              await pool.query(`
+                INSERT INTO redemptions (redemption_id, user_id, mobile, item_name, points_redeemed, note, status, created_at)
+                VALUES ($1, $2, $2, 'Reward Voucher', $3, $4, 'completed', $5)
+                ON CONFLICT (redemption_id) DO NOTHING;
+              `, [rId, phone, pts, note, cAt]).catch(() => {});
+            }
+          }
+        }
+      } catch (mErr) {
+        console.warn('[Redemptions Init Migration Notice]', mErr.message);
+      }
+    }
+
+    console.log('[PostgreSQL Schemas] Production relational tables, redemptions schemas and indexes initialized successfully.');
   } catch (err) {
     console.warn('[PostgreSQL Schemas Init Warning]', err.message);
   }
@@ -2909,7 +2957,40 @@ async function fetchCollectionDocs(colName) {
       }
     }
 
-    // 7. General Tables (Inspect column structure: JSONB vs Relational)
+    // 7. Relational Table: redemptions
+    if (tableName === 'redemptions') {
+      try {
+        const relRes = await pool.query(`SELECT * FROM redemptions ORDER BY created_at DESC;`).catch(() => ({ rows: [] }));
+        if (relRes.rows.length > 0) {
+          return relRes.rows.map(r => ({
+            _id: r.redemption_id || String(r.id),
+            id: r.id,
+            redemption_id: r.redemption_id,
+            userId: r.user_id,
+            user_id: r.user_id,
+            phoneNumber: r.mobile || r.user_id,
+            mobile: r.mobile || r.user_id,
+            username: r.username,
+            userName: r.username,
+            itemName: r.item_name || 'Reward Voucher',
+            item_name: r.item_name || 'Reward Voucher',
+            points: parseInt(r.points_redeemed || 0),
+            points_redeemed: parseInt(r.points_redeemed || 0),
+            pointsRedeemed: parseInt(r.points_redeemed || 0),
+            voucherCode: r.voucher_code || '-',
+            voucher_code: r.voucher_code || '-',
+            status: r.status || 'completed',
+            category: r.category || 'voucher',
+            note: r.note || '',
+            redeemedAt: r.created_at,
+            createdAt: r.created_at,
+            created_at: r.created_at
+          }));
+        }
+      } catch (e) {}
+    }
+
+    // 8. General Tables (Inspect column structure: JSONB vs Relational)
     try {
       const colCheck = await pool.query(`
         SELECT column_name 
@@ -3740,7 +3821,19 @@ async function handleMobileLogin(req, res) {
         } catch (e) {}
       }
 
-      redeemedPoints = Math.max(0, earnedPoints - points);
+      let userRedemptions = [];
+      try {
+        const redRes = await pool.query(`
+          SELECT redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
+          FROM redemptions
+          WHERE user_id = ANY($1::text[]) OR mobile = ANY($1::text[]) OR username = ANY($1::text[])
+          ORDER BY created_at DESC;
+        `, [validUserIds]);
+        if (redRes.rows.length > 0) {
+          userRedemptions = redRes.rows;
+          redeemedPoints = redRes.rows.reduce((sum, r) => sum + parseInt(r.points_redeemed || 0), 0);
+        }
+      } catch (e) {}
 
       const recentRes = await pool.query(`
         SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -3840,6 +3933,7 @@ async function handleMobileLogin(req, res) {
               paperCartons: paper
             },
             recentSessions,
+            redemptions: userRedemptions,
             recycledAt: latestRecycle || new Date().toISOString()
           }
         });
@@ -4034,9 +4128,19 @@ const mobileUserRecycleCache = new Map();
 
 function invalidateMobileUserCaches(userId) {
   if (!userId) return;
-  const key = String(userId).trim();
-  mobileUserPointsCache.delete(key);
-  mobileUserRecycleCache.delete(key);
+  const raw = String(userId).trim();
+  const clean = raw.replace(/[^0-9a-zA-Z]/g, '');
+  const noZero = clean.replace(/^0+/, '');
+  const withZero = '0' + noZero;
+  const keys = new Set([raw, clean, noZero, withZero, raw.toLowerCase(), clean.toLowerCase()]);
+  for (const k of keys) {
+    if (k) {
+      mobileUserPointsCache.delete(k);
+      mobileUserRecycleCache.delete(k);
+    }
+  }
+  cachedLeaderboardPayload = null;
+  cachedLeaderboardExpiresAt = 0;
 }
 
 // 3. Mobile Get Points & Stats for User
@@ -4151,7 +4255,19 @@ async function handleMobileGetPoints(req, res) {
         } catch (e) {}
       }
 
-      redeemedPoints = Math.max(0, earnedPoints - points);
+      let userRedemptions = [];
+      try {
+        const redRes = await pool.query(`
+          SELECT redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
+          FROM redemptions
+          WHERE user_id = ANY($1::text[]) OR mobile = ANY($1::text[]) OR username = ANY($1::text[])
+          ORDER BY created_at DESC;
+        `, [validUserIds]);
+        if (redRes.rows.length > 0) {
+          userRedemptions = redRes.rows;
+          redeemedPoints = redRes.rows.reduce((sum, r) => sum + parseInt(r.points_redeemed || 0), 0);
+        }
+      } catch (e) {}
 
       const recentRes = await pool.query(`
         SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -4220,6 +4336,8 @@ async function handleMobileGetPoints(req, res) {
         paperCartons: paper
       },
       recentSessions,
+      latestSessionPoints: (recentSessions && recentSessions.length > 0) ? (recentSessions[0].points_earned || recentSessions[0].points || 0) : 0,
+      redemptions: userRedemptions,
       recycledAt: lastRecycled || new Date().toISOString()
     };
 
@@ -4370,13 +4488,76 @@ async function handleMobileGetRecycle(req, res) {
           }
         } catch (e) {}
       }
+      // Query citizen redemptions
+      let redemptionsList = [];
+      try {
+        const redRes = await pool.query(`
+          SELECT 
+            redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
+          FROM redemptions
+          WHERE user_id = ANY($1::text[]) OR mobile = ANY($1::text[]) OR username = ANY($1::text[])
+          ORDER BY created_at DESC;
+        `, [validUserIds]);
+        redemptionsList = redRes.rows.map(r => ({
+          redemption_id: r.redemption_id || `RED-${r.id}`,
+          id: r.id,
+          user_id: r.user_id,
+          mobile: r.mobile || r.user_id,
+          username: r.username,
+          item_name: r.item_name || 'Reward Voucher',
+          points_redeemed: parseInt(r.points_redeemed || 0),
+          points: parseInt(r.points_redeemed || 0),
+          voucher_code: r.voucher_code || '-',
+          note: r.note || '',
+          status: r.status || 'completed',
+          category: r.category || 'voucher',
+          created_at: r.created_at,
+          redeemedAt: r.created_at
+        }));
+      } catch (e) {}
+
+      // Fallback to MongoDB redemptions if empty
+      if (redemptionsList.length === 0 && db) {
+        try {
+          const mDocs = await db.collection('redemptions').find({
+            $or: [
+              { phoneNumber: { $in: validUserIds } },
+              { userId: { $in: validUserIds } },
+              { user_id: { $in: validUserIds } }
+            ]
+          }).sort({ redeemedAt: -1 }).toArray();
+          if (mDocs.length > 0) {
+            redemptionsList = mDocs.map(d => ({
+              redemption_id: String(d._id),
+              id: String(d._id),
+              user_id: d.phoneNumber || d.userId || userId,
+              mobile: d.phoneNumber || d.mobile || userId,
+              username: d.username || d.userName || '',
+              item_name: d.itemName || d.item_name || 'Reward Voucher',
+              points_redeemed: parseInt(d.points || d.pointsRedeemed || 0),
+              points: parseInt(d.points || d.pointsRedeemed || 0),
+              voucher_code: d.voucherCode || d.voucher_code || '-',
+              note: d.note || '',
+              status: d.status || 'completed',
+              category: d.category || 'voucher',
+              created_at: d.redeemedAt || d.createdAt || new Date().toISOString(),
+              redeemedAt: d.redeemedAt || d.createdAt || new Date().toISOString()
+            }));
+          }
+        } catch (e) {}
+      }
     }
+
+    const totalRedeemedPoints = redemptionsList.reduce((acc, r) => acc + (r.points_redeemed || 0), 0);
 
     const recyclePayload = {
       success: true,
       userId,
       totalSessions: history.length,
-      history
+      totalRedemptions: redemptionsList.length,
+      totalRedeemedPoints,
+      history,
+      redemptions: redemptionsList
     };
     mobileUserRecycleCache.set(cacheKey, { payload: recyclePayload, expiresAt: now + (15 * 1000) });
     res.json(recyclePayload);
@@ -4661,6 +4842,27 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
       relSessions.rows.forEach(r => addStats(r.user_id, r.bottles, r.cups, r.glass, r.paper, r.paper_grams, r.tetra_grams, r.points, r.sessions));
       jsonSessions.rows.forEach(r => addStats(r.user_key, r.bottles, r.cups, r.glass, r.paper, r.paper_grams, r.tetra_grams, r.points, r.sessions));
 
+      // 4. Fetch redemptions from relational table: redemptions
+      const relRedemptions = await pool.query(`
+        SELECT 
+          COALESCE(user_id, mobile, username) AS red_key,
+          COALESCE(SUM(points_redeemed), 0) AS total_redeemed_points,
+          COUNT(id) AS total_redemptions
+        FROM redemptions
+        WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
+        GROUP BY COALESCE(user_id, mobile, username);
+      `).catch(() => ({ rows: [] }));
+
+      const userRedemptionMap = {};
+      relRedemptions.rows.forEach(r => {
+        const norm = String(r.red_key || '').trim().toLowerCase().replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
+        if (norm) {
+          if (!userRedemptionMap[norm]) userRedemptionMap[norm] = { points: 0, count: 0 };
+          userRedemptionMap[norm].points += parseInt(r.total_redeemed_points || 0);
+          userRedemptionMap[norm].count += parseInt(r.total_redemptions || 0);
+        }
+      });
+
       usersList = uRes.rows.map(u => {
         const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
         const isOnline = Boolean(u.is_online && hasRecentHeartbeat);
@@ -4681,6 +4883,8 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
         let userTetraGrams = 0;
         let userSessionPoints = 0;
         let userSessions = 0;
+        let userRedeemedPoints = 0;
+        let userRedemptionsCount = 0;
 
         for (const k of keysToCheck) {
           const norm = String(k).trim().toLowerCase().replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
@@ -4695,6 +4899,11 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
             userSessionPoints += userSessionMap[norm].points;
             userSessions += userSessionMap[norm].sessions;
             delete userSessionMap[norm];
+          }
+          if (norm && userRedemptionMap[norm]) {
+            userRedeemedPoints += userRedemptionMap[norm].points;
+            userRedemptionsCount += userRedemptionMap[norm].count;
+            delete userRedemptionMap[norm];
           }
         }
 
@@ -4716,6 +4925,9 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
           nic: u.nic || '-',
           gender: u.gender || 'male',
           points: effectivePoints,
+          redeemedPoints: userRedeemedPoints,
+          totalRedeemedPoints: userRedeemedPoints,
+          redemptionsCount: userRedemptionsCount,
           bottles: userBottles,
           cups: userCups, // UBC / Aluminium Cans
           glass: userGlass,
@@ -4734,6 +4946,7 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
       stats.totalUsers = usersList.length;
       stats.onlineNow = usersList.filter(u => u.isOnline).length;
       stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
+      stats.totalRedeemed = usersList.reduce((acc, u) => acc + (u.totalRedeemedPoints || 0), 0);
       stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
       stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
       stats.totalGlass = usersList.reduce((acc, u) => acc + (u.glass || 0), 0);
@@ -4748,6 +4961,81 @@ app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error('[Get Mobile Users Error]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Citizen Loyalty Redemption Endpoint (Spend Points for Rewards & Vouchers)
+app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-points'], async (req, res) => {
+  try {
+    const { userId, mobile, phoneNumber, username, itemName, points, voucherCode, note } = req.body;
+    const targetId = (userId || mobile || phoneNumber || username || '').trim();
+    const pts = parseInt(points || 0);
+
+    if (!targetId || targetId === 'anonymous') {
+      return res.status(400).json({ success: false, error: 'Valid citizen userId or mobile number is required' });
+    }
+    if (!pts || pts <= 0) {
+      return res.status(400).json({ success: false, error: 'Points to redeem must be greater than 0' });
+    }
+
+    const pool = getPgPool();
+    if (!pool) {
+      return res.status(500).json({ success: false, error: 'Database connection unavailable' });
+    }
+
+    const uRes = await pool.query(`
+      SELECT user_id, username, mobile, points_balance, full_name
+      FROM users
+      WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
+      LIMIT 1;
+    `, [targetId]);
+
+    if (uRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Citizen account not found' });
+    }
+
+    const user = uRes.rows[0];
+    const currentBal = parseInt(user.points_balance || 0);
+    if (currentBal < pts) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Insufficient points balance. Citizen has ${currentBal} pts available, but ${pts} pts required.` 
+      });
+    }
+
+    const newBal = currentBal - pts;
+    await pool.query(`
+      UPDATE users 
+      SET points_balance = $1, last_active = NOW()
+      WHERE user_id = $2;
+    `, [newBal, user.user_id]);
+
+    const redemptionId = `RED_${Date.now()}_${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const code = voucherCode || `VOUCH-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const item = itemName || 'Reward Voucher';
+    const cleanNote = note || 'Redeemed via RVM Platform';
+
+    const insertRes = await pool.query(`
+      INSERT INTO redemptions (
+        redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', NOW())
+      RETURNING *;
+    `, [redemptionId, user.user_id, user.username, user.mobile, item, pts, code, cleanNote]);
+
+    invalidateMobileUserCaches(user.user_id);
+    if (user.mobile) invalidateMobileUserCaches(user.mobile);
+    if (user.username) invalidateMobileUserCaches(user.username);
+
+    res.json({
+      success: true,
+      message: `Successfully redeemed ${pts} points for "${item}". New balance: ${newBal} pts.`,
+      newBalance: newBal,
+      redemption: insertRes.rows[0]
+    });
+  } catch (err) {
+    console.error('[Redemption Error]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -5122,15 +5410,26 @@ app.post('/api/machine/sync-session', async (req, res) => {
             `, [cleanUserId, fullName, email, pointsEarned]);
           }
         }
+        if (cleanUserId && cleanUserId !== 'anonymous') {
+          invalidateMobileUserCaches(cleanUserId);
+        }
       }
     } catch (pgSyncErr) {
       console.warn('[PostgreSQL Machine Sync Warning]', pgSyncErr.message);
     }
 
-
-
-
-
+    // Attach completed session info to active kiosk handshake so mobile app receives exact points
+    if (machineId && activeStartHandshakes.has(machineId)) {
+      const h = activeStartHandshakes.get(machineId);
+      h.completedSession = {
+        sessionId,
+        pointsEarned,
+        totalBottles,
+        completedAt: new Date().toISOString()
+      };
+      h.livePoints = pointsEarned;
+      h.liveItems = totalBottles;
+    }
 
     res.json({
       success: true,
@@ -6387,13 +6686,37 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
       });
     }
 
+    if (handshake && handshake.status === 'STARTED') {
+      if (req.query.points !== undefined && req.query.points !== '') {
+        const p = parseInt(req.query.points);
+        if (!isNaN(p)) handshake.livePoints = p;
+      }
+      if (req.query.items !== undefined && req.query.items !== '') {
+        const itm = parseInt(req.query.items);
+        if (!isNaN(itm)) handshake.liveItems = itm;
+      }
+      if (req.query.bottles !== undefined && req.query.bottles !== '') {
+        const b = parseInt(req.query.bottles);
+        if (!isNaN(b)) handshake.liveBottles = b;
+      }
+      if (req.query.cans !== undefined && req.query.cans !== '') {
+        const c = parseInt(req.query.cans);
+        if (!isNaN(c)) handshake.liveCans = c;
+      }
+    }
+
     res.json({
       success: true,
       status: handshake.status,
       machineId: handshake.machineId,
       startToken: handshake.startToken,
       finishRequested: Boolean(handshake.finishRequested),
-      user: handshake.user || null
+      user: handshake.user || null,
+      livePoints: handshake.livePoints || 0,
+      liveItems: handshake.liveItems || 0,
+      liveBottles: handshake.liveBottles || 0,
+      liveCans: handshake.liveCans || 0,
+      completedSession: handshake.completedSession || null
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -6544,11 +6867,19 @@ app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
       targetHandshake.user.phone = String(mobileNumber).trim();
     }
     console.log(`[TOUCHLESS 📱] Mobile requested finish for kiosk: ${targetHandshake.machineId}`);
+    if (mobileNumber) invalidateMobileUserCaches(mobileNumber);
+    if (targetHandshake.user && targetHandshake.user.phone) invalidateMobileUserCaches(targetHandshake.user.phone);
+
+    const pointsClaimed = targetHandshake.completedSession?.pointsEarned ?? targetHandshake.livePoints ?? 0;
+    const itemsCount = targetHandshake.completedSession?.totalBottles ?? targetHandshake.liveItems ?? 0;
 
     res.json({
       success: true,
       message: 'Finish signal sent to kiosk successfully',
-      machineId: targetHandshake.machineId
+      machineId: targetHandshake.machineId,
+      points: pointsClaimed,
+      items: itemsCount,
+      completedSession: targetHandshake.completedSession || null
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -7153,6 +7484,7 @@ if (fs.existsSync(DIST_DIR)) {
 app.listen(PORT, async () => {
   console.log(`[RVM Master Dashboard Backend] Running on http://localhost:${PORT}`);
   if (activeDbType === 'postgres') {
+    await ensurePostgresDatabase(activePgConfig).catch(() => {});
     await initProductionPostgresSchemas();
   }
 });

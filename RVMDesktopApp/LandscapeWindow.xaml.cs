@@ -983,7 +983,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         {
             try
             {
-                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                int currentPCount = plasticSmallCount + plasticMediumCount + plasticLargeCount;
+                int currentCCount = canSmallCount + canMediumCount + canLargeCount;
+                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId, totalItems, totalPoints, currentPCount, currentCCount);
                 if (statusResp != null)
                 {
                     if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
