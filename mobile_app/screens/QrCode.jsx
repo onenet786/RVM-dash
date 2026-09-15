@@ -34,23 +34,98 @@ export default function QrCode({ navigation }) {
   const [manualPhone, setManualPhone] = useState('');
   const [activeKioskSession, setActiveKioskSession] = useState(null);
   const [liveSessionStats, setLiveSessionStats] = useState({ points: 0, items: 0 });
+  const liveStatsRef = useRef({ points: 0, items: 0 });
+  const isFinishingRef = useRef(false);
   const webViewRef = useRef(null);
 
   useEffect(() => {
     let interval = null;
+    let isHandlingFinish = false;
+
     if (activeKioskSession && activeKioskSession.machineId) {
+      const targetMachine = activeKioskSession.machineId;
+      const targetPhone = activeKioskSession.mobileNumber;
+      const sessionStartedAt = activeKioskSession.startedAt || Date.now();
+
       const pollLiveStats = async () => {
+        if (isHandlingFinish || isFinishingRef.current) return;
+
         try {
           const res = await axios.get(
-            `${API_BASE_URL}/session/kiosk-handshake/status/${encodeURIComponent(activeKioskSession.machineId)}`,
+            `${API_BASE_URL}/session/kiosk-handshake/status/${encodeURIComponent(targetMachine)}`,
             { timeout: 4000 }
           );
-          if (res.data && res.data.success) {
-            setLiveSessionStats({
-              points: res.data.livePoints || res.data.completedSession?.pointsEarned || 0,
-              items: res.data.liveItems || res.data.completedSession?.totalBottles || 0,
+
+          if (!res.data || !res.data.success) return;
+
+          const timeSinceStart = Date.now() - sessionStartedAt;
+          const compSess = res.data.completedSession;
+          const isCompletedMatching = compSess && (
+            (compSess.completedAt && compSess.completedAt >= sessionStartedAt - 5000) ||
+            (compSess.userPhone && targetPhone && (
+              compSess.userPhone === targetPhone ||
+              compSess.userPhone.replace(/^0+/, '') === targetPhone.replace(/^0+/, '')
+            ))
+          );
+
+          // Session ended on kiosk (by pressing Enter, manual finish, or reset)
+          const isKioskEnded = (res.data.status !== 'STARTED' && timeSinceStart > 1500) || isCompletedMatching;
+
+          if (isKioskEnded) {
+            isHandlingFinish = true;
+            isFinishingRef.current = true;
+            if (interval) clearInterval(interval);
+
+            // Determine final points earned
+            let pointsEarned = compSess?.pointsEarned ?? res.data.livePoints ?? liveStatsRef.current.points ?? 0;
+            let newBalance = undefined;
+
+            // Fetch latest user points & balance from server to guarantee sync
+            for (let attempt = 0; attempt < 3; attempt++) {
+              try {
+                const ptsRes = await axios.get(
+                  `${API_BASE_URL}/get-points?userId=${encodeURIComponent(targetPhone)}`,
+                  { timeout: 3500 }
+                );
+                if (ptsRes.data && ptsRes.data.points !== undefined) {
+                  newBalance = ptsRes.data.points;
+                  if ((!pointsEarned || pointsEarned === 0) && ptsRes.data.latestSessionPoints) {
+                    pointsEarned = ptsRes.data.latestSessionPoints;
+                  }
+                  if (pointsEarned > 0) break;
+                }
+              } catch (e) {}
+              await new Promise(r => setTimeout(r, 800));
+            }
+
+            if (!pointsEarned && liveStatsRef.current.points > 0) {
+              pointsEarned = liveStatsRef.current.points;
+            }
+            if (!pointsEarned) pointsEarned = 0;
+
+            setActiveKioskSession(null);
+            setLiveSessionStats({ points: 0, items: 0 });
+            liveStatsRef.current = { points: 0, items: 0 };
+            isFinishingRef.current = false;
+
+            const msg = pointsEarned > 0
+              ? `🎉 Kiosk session finished! Machine ${targetMachine} saved your containers and credited ${pointsEarned} points to your eco wallet.`
+              : `🎉 Kiosk session finished! Machine ${targetMachine} closed cleanly.`;
+
+            setClaimSuccess({
+              points: pointsEarned,
+              newBalance: newBalance,
+              message: msg
             });
+            ToastAndroid?.show(`🎉 ${pointsEarned > 0 ? `+${pointsEarned} points claimed!` : 'Session closed!'}`, ToastAndroid.LONG);
+            return;
           }
+
+          // Session still running on kiosk: update live numbers
+          const p = res.data.livePoints || 0;
+          const itm = res.data.liveItems || 0;
+          setLiveSessionStats({ points: p, items: itm });
+          liveStatsRef.current = { points: p, items: itm };
         } catch (e) {}
       };
 
@@ -58,6 +133,8 @@ export default function QrCode({ navigation }) {
       interval = setInterval(pollLiveStats, 1500);
     } else {
       setLiveSessionStats({ points: 0, items: 0 });
+      liveStatsRef.current = { points: 0, items: 0 };
+      isFinishingRef.current = false;
     }
 
     return () => {
@@ -201,6 +278,7 @@ export default function QrCode({ navigation }) {
   const handleRequestFinish = async () => {
     if (!activeKioskSession) return;
     setClaiming(true);
+    isFinishingRef.current = true;
     try {
       const targetMachine = activeKioskSession.machineId;
       const targetPhone = activeKioskSession.mobileNumber;
@@ -211,7 +289,7 @@ export default function QrCode({ navigation }) {
         mobileNumber: targetPhone
       }, { timeout: 10000 });
 
-      let pointsEarned = res.data?.points || liveSessionStats.points || 0;
+      let pointsEarned = res.data?.points || liveStatsRef.current.points || liveSessionStats.points || 0;
       let newBalance = undefined;
 
       // 2. Poll for session sync completion (give kiosk 3-4s to complete deposit & sync to wallet)
@@ -244,12 +322,14 @@ export default function QrCode({ navigation }) {
         } catch (pollErr) {}
       }
 
-      if (!pointsEarned && liveSessionStats.points > 0) {
-        pointsEarned = liveSessionStats.points;
+      if (!pointsEarned && (liveStatsRef.current.points > 0 || liveSessionStats.points > 0)) {
+        pointsEarned = liveStatsRef.current.points || liveSessionStats.points;
       }
+      if (!pointsEarned) pointsEarned = 0;
 
       setActiveKioskSession(null);
       setLiveSessionStats({ points: 0, items: 0 });
+      liveStatsRef.current = { points: 0, items: 0 };
 
       const msg = pointsEarned > 0
         ? `🎉 Kiosk session finished! Machine ${targetMachine} saved your containers and credited ${pointsEarned} points to your eco wallet.`
@@ -266,6 +346,7 @@ export default function QrCode({ navigation }) {
       Alert.alert('Finish Error', errMsg);
     } finally {
       setClaiming(false);
+      isFinishingRef.current = false;
     }
   };
 
