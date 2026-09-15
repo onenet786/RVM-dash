@@ -6520,6 +6520,10 @@ app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
     }
 
     targetHandshake.finishRequested = true;
+    if (mobileNumber && (!targetHandshake.user || !targetHandshake.user.phone)) {
+      targetHandshake.user = targetHandshake.user || {};
+      targetHandshake.user.phone = String(mobileNumber).trim();
+    }
     console.log(`[TOUCHLESS 📱] Mobile requested finish for kiosk: ${targetHandshake.machineId}`);
 
     res.json({

@@ -981,25 +981,52 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         if (machineStarted)
         {
-            if (!string.IsNullOrWhiteSpace(activeUserMobile))
+            try
             {
-                try
+                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                if (statusResp != null)
                 {
-                    var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
-                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
+                    if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
+                    {
+                        activeUserMobile = statusResp.MobileNumber;
+                        string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? "Eco Citizen";
+                        int balance = statusResp.User?.Balance ?? 0;
+                        if (GreetingUserNameText != null) GreetingUserNameText.Text = userName;
+                        if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
+                        if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
+                    }
+
+                    if (statusResp.FinishRequested)
                     {
                         _startHandshakeTimer.Stop();
                         _inactivityCountdownTimer.Stop();
-                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
-                        CompleteSessionToWallet();
+
+                        if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
+                        {
+                            activeUserMobile = statusResp.MobileNumber;
+                        }
+
+                        if (totalItems > 0)
+                        {
+                            LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish ({totalItems} items)! Completing session...");
+                            CompleteSessionToWallet(skipRatingDialog: true);
+                        }
+                        else
+                        {
+                            LogTelemetry("[TOUCHLESS 📱] Mobile requested session finish (0 items). Closing session cleanly...");
+                            StopMachine();
+                            StatusText.Text = "Session closed from mobile";
+                            StatusText.Foreground = Brushes.SlateGray;
+                            BottleInfoText.Text = "Session ended without any items deposited.";
+                            ResetSession();
+                        }
                         return;
                     }
                 }
-                catch { }
             }
-            else
+            catch
             {
-                _startHandshakeTimer.Stop();
+                // Transient network hiccups ignored in poll
             }
             return;
         }
@@ -1097,13 +1124,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
-        if (string.IsNullOrWhiteSpace(activeUserMobile))
+        if (!_startHandshakeTimer.IsEnabled)
         {
-            _startHandshakeTimer.Stop();
-        }
-        else
-        {
-            if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+            _startHandshakeTimer.Start();
         }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
@@ -1636,7 +1659,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         };
     }
 
-    public void CompleteSessionToWallet()
+    public void CompleteSessionToWallet() => CompleteSessionToWallet(false);
+
+    public void CompleteSessionToWallet(bool skipRatingDialog)
     {
         _inactivityCountdownTimer.Stop();
         _startHandshakeTimer.Stop();
@@ -1695,14 +1720,23 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         {
             // Touchless flow: Citizen scanned QR to authenticate upfront!
             phoneNumber = activeUserMobile;
-            var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
+            if (!skipRatingDialog)
             {
-                Owner = this
-            };
-            ratingWindow.ShowDialog();
-            userRating = ratingWindow.Rating;
-            userFeedback = ratingWindow.FeedbackText;
-            feedbackSubmitted = ratingWindow.FeedbackSubmitted;
+                var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
+                {
+                    Owner = this
+                };
+                ratingWindow.ShowDialog();
+                userRating = ratingWindow.Rating;
+                userFeedback = ratingWindow.FeedbackText;
+                feedbackSubmitted = ratingWindow.FeedbackSubmitted;
+            }
+            else
+            {
+                userRating = 5;
+                userFeedback = "Touchless Mobile App";
+                feedbackSubmitted = true;
+            }
             LogTelemetry($"[TOUCHLESS 🚀] Auto-claiming session for QR user: {phoneNumber} (+{currentTotalPoints} pts)");
         }
         else
@@ -1836,6 +1870,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _currentStartToken = null;
         _startTokenExpiresAt = DateTime.MinValue;
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
