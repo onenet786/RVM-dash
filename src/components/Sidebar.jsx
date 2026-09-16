@@ -26,7 +26,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     return col ? col.count : 0;
   };
 
-  const isSuperAdmin = isMasterDev || currentUser?.roleId === 'super_admin';
+  const isSuperAdmin = isMasterDev || 
+    currentUser?.roleId === 'super_admin' || 
+    currentUser?.roleId === 'superadmin' || 
+    currentUser?.username === 'onenet' || 
+    currentUser?.username === 'bilalaaqueel' || 
+    currentUser?.isSuperAdmin === true;
   const userModules = currentUser?.modules;
 
   const isModuleAllowed = (moduleId) => {
@@ -268,7 +273,11 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-left mt-auto">
         <div className="text-[11px] font-bold t-text-primary">ISP Smart Recycling Hub</div>
         <div className="text-[10px] t-text-muted truncate">
-          {isPostgres ? `PG Host: ${health?.serverHost || '127.0.0.1:5432'}` : (isMasterDev ? `MongoDB Atlas (${health?.serverHost || 'cluster0.ktted0m.mongodb.net'})` : `Database: ${health?.database || 'ONS-RVM'}`)}
+          {isSuperAdmin ? (
+            isPostgres ? `PG Host: ${health?.serverHost || '127.0.0.1:5432'}` : (isMasterDev ? `MongoDB Atlas (${health?.serverHost || 'cluster0.ktted0m.mongodb.net'})` : `Database: ${health?.database || 'ONS-RVM'}`)
+          ) : (
+            <span className="text-emerald-500 font-semibold">Active &amp; Operational</span>
+          )}
         </div>
       </div>
     </div>

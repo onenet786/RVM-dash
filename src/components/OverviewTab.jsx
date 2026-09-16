@@ -63,48 +63,56 @@ export default function OverviewTab({ currentUser }) {
   const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
   const dbName = health?.database || (isPostgres ? 'rvmpg' : 'ONS-RVM');
   const isMasterDev = currentUser?.username === 'onenet';
+  const isSuperUser = isMasterDev || 
+    currentUser?.roleId === 'super_admin' || 
+    currentUser?.roleId === 'superadmin' || 
+    currentUser?.username === 'onenet' || 
+    currentUser?.username === 'bilalaaqueel' || 
+    currentUser?.isSuperAdmin === true;
   const locationDisplay = health?.serverLocation?.display || (isPostgres ? 'Ubuntu Dedicated Server (Localhost)' : 'Paris, France (AWS EU_WEST_3)');
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Connected Server & DB Info Banner */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200 dark:border-cyan-500/30">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 rounded-xl border border-emerald-200 dark:border-cyan-500/30">
-            <Server className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-300">Active Database Connection</div>
-            <div className="text-sm font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
-              {isMasterDev ? (
-                <>
-                  <span>Host: <span className="text-[#0b5d3b] dark:text-cyan-300 font-bold">{serverHost}</span></span>
-                  <span>•</span>
-                  <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
-                  <span>•</span>
-                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span></span>
-                  <span>•</span>
-                  <span>Location: <span className="text-amber-800 dark:text-amber-300 font-bold">{locationDisplay}</span></span>
-                </>
-              ) : (
-                <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
-              )}
+      {/* Connected Server & DB Info Banner (Super Users / Dev Only) */}
+      {isSuperUser && (
+        <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200 dark:border-cyan-500/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 rounded-xl border border-emerald-200 dark:border-cyan-500/30">
+              <Server className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-300">Active Database Connection</div>
+              <div className="text-sm font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
+                {isMasterDev ? (
+                  <>
+                    <span>Host: <span className="text-[#0b5d3b] dark:text-cyan-300 font-bold">{serverHost}</span></span>
+                    <span>•</span>
+                    <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
+                    <span>•</span>
+                    <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span></span>
+                    <span>•</span>
+                    <span>Location: <span className="text-amber-800 dark:text-amber-300 font-bold">{locationDisplay}</span></span>
+                  </>
+                ) : (
+                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          {isMasterDev && (
-            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-sm">
-              📍 {locationDisplay}
+          <div className="flex items-center gap-2 text-xs">
+            {isMasterDev && (
+              <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-sm">
+                📍 {locationDisplay}
+              </span>
+            )}
+            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-sm">
+              🟢 Active ({isPostgres ? 'PostgreSQL: ' : 'MongoDB: '}{dbName})
             </span>
-          )}
-          <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-sm">
-            🟢 Active ({isPostgres ? 'PostgreSQL: ' : 'MongoDB: '}{dbName})
-          </span>
+          </div>
         </div>
-      </div>
+      )}
 
 
       {/* Main Header Banner (Enhanced with ISP Enterprise Portal Styling) */}

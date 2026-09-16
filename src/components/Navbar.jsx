@@ -30,6 +30,12 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   const currentThemeObj = themesList.find(t => t.id === theme) || themesList[0];
 
   const isMasterDev = currentUser?.username === 'onenet';
+  const isSuperUser = isMasterDev || 
+    currentUser?.roleId === 'super_admin' || 
+    currentUser?.roleId === 'superadmin' || 
+    currentUser?.username === 'onenet' || 
+    currentUser?.username === 'bilalaaqueel' || 
+    currentUser?.isSuperAdmin === true;
 
   return (
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
@@ -54,36 +60,40 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">ISP SMART RECYCLING DASHBOARD</h1>
-              <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
-                PRO DEV
-              </span>
-            </div>
-
-            <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
-              {isMasterDev ? (
-                <>
-                  <span className="flex items-center gap-1 nav-server-host text-cyan-400 font-semibold">
-                    <Server className="w-3 h-3" />
-                    {serverHost}
-                  </span>
-                  <span className="nav-divider">•</span>
-                  <span className="flex items-center gap-1 nav-server-db text-indigo-400 font-bold">
-                    <HardDrive className="w-3 h-3" />
-                    {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
-                  </span>
-                  <span className="nav-divider">•</span>
-                  <span className="flex items-center gap-1 nav-server-loc text-amber-400 font-bold">
-                    <MapPin className="w-3 h-3 text-amber-400" />
-                    Region: {health?.serverLocation?.display || (health?.databaseType === 'postgres' ? 'Ubuntu Dedicated Server' : serverLoc)}
-                  </span>
-                </>
-              ) : (
-                <span className="flex items-center gap-1 nav-server-db text-emerald-400 font-bold">
-                  <HardDrive className="w-3 h-3" />
-                  {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
+              {isSuperUser && (
+                <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
+                  PRO DEV
                 </span>
               )}
             </div>
+
+            {isSuperUser && (
+              <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
+                {isMasterDev ? (
+                  <>
+                    <span className="flex items-center gap-1 nav-server-host text-cyan-400 font-semibold">
+                      <Server className="w-3 h-3" />
+                      {serverHost}
+                    </span>
+                    <span className="nav-divider">•</span>
+                    <span className="flex items-center gap-1 nav-server-db text-indigo-400 font-bold">
+                      <HardDrive className="w-3 h-3" />
+                      {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
+                    </span>
+                    <span className="nav-divider">•</span>
+                    <span className="flex items-center gap-1 nav-server-loc text-amber-400 font-bold">
+                      <MapPin className="w-3 h-3 text-amber-400" />
+                      Region: {health?.serverLocation?.display || (health?.databaseType === 'postgres' ? 'Ubuntu Dedicated Server' : serverLoc)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex items-center gap-1 nav-server-db text-emerald-400 font-bold">
+                    <HardDrive className="w-3 h-3" />
+                    {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -95,8 +105,14 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs text-white">
             <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-[#e5a919] animate-pulse' : 'bg-rose-500'}`} />
             <div className="flex items-center gap-1.5 font-semibold text-white">
-              <span>{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
-              <span className="text-[#fde68a] font-bold">({dbName})</span>
+              {isSuperUser ? (
+                <>
+                  <span>{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
+                  <span className="text-[#fde68a] font-bold">({dbName})</span>
+                </>
+              ) : (
+                <span>{isOnline ? 'System Online' : 'Offline'}</span>
+              )}
             </div>
           </div>
 
