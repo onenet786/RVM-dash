@@ -156,7 +156,7 @@ export default function MachineConfigsTab() {
 
       if (res.ok) {
         const data = await res.json();
-        setSuccessMessage(data.message || `Point Settings table updated & synced for ${targetMachine === 'ALL' ? 'ALL RVM Machines' : targetMachine}!`);
+        setSuccessMessage(data.message || `Point Settings table updated & synced for ${targetMachine === 'ALL' ? 'ALL Smart Recycling Machines' : targetMachine}!`);
         setTimeout(() => setSuccessMessage(''), 7000);
       }
     } catch (err) {
@@ -198,9 +198,9 @@ export default function MachineConfigsTab() {
             <Sliders className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Master Point Settings Control Panel</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">Dynamic RVM Point Settings Table</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">Dynamic Smart Recycling Point Settings Table</h2>
           <p className="text-xs t-text-secondary mt-1">
-            Manage, edit, and dynamically add new item variants & point values. Sync rules instantly across ALL RVMs or target a selected RVM kiosk.
+            Manage, edit, and dynamically add new item variants &amp; point values. Sync rules instantly across ALL Smart Recycling Machines or target a selected Smart Recycling kiosk.
           </p>
         </div>
 
@@ -220,7 +220,7 @@ export default function MachineConfigsTab() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b t-border pb-5">
           <div className="w-full sm:w-80">
             <label className="block text-xs font-bold t-text-muted mb-1.5 uppercase tracking-wider">
-              🎯 Target RVM Machine / Fleet Scope
+              🎯 Target Smart Recycling Machine / Fleet Scope
             </label>
             <select
               value={targetMachine}
@@ -230,7 +230,7 @@ export default function MachineConfigsTab() {
               <option value="ALL">🌟 ALL MACHINES (Fleet Global Rule Sync)</option>
               {machines.map(m => (
                 <option key={m.machineId} value={m.machineId}>
-                  🖥️ {m.machineId} — {m.name || 'RVM Kiosk'} ({m.location || 'Location'})
+                  🖥️ {m.machineId} — {m.name || 'Smart Recycling Kiosk'} ({m.location || 'Location'})
                 </option>
               ))}
             </select>
@@ -253,7 +253,7 @@ export default function MachineConfigsTab() {
               className="px-6 py-2.5 text-xs font-extrabold bg-[#0b5d3b] text-white hover:bg-[#08422a] rounded-xl shadow-md flex items-center gap-2 transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
-              <span>{saving ? 'Pushing Rules...' : '🚀 Save & Push Point Settings to RVMs'}</span>
+              <span>{saving ? 'Pushing Rules...' : '🚀 Save & Push Point Settings to Smart Recycling Machines'}</span>
             </button>
           </div>
         </div>
@@ -476,7 +476,7 @@ export default function MachineConfigsTab() {
             Raw Relational Table View: machine_variant_settings
           </h3>
         </div>
-        <DataTable collectionName="machine_configs" displayName="RVM Relational Table" />
+        <DataTable collectionName="machine_configs" displayName="Smart Recycling Relational Table" />
       </div>
 
     </div>

@@ -149,7 +149,7 @@ export default function AdvertisementsTab() {
         throw new Error(errData.error || 'Failed to save advertisement entry.');
       }
 
-      setSuccessMsg(`🚀 Advertisement "${adTitle}" saved & deployed! RVMDesktopApp will automatically download and start playback.`);
+      setSuccessMsg(`🚀 Advertisement "${adTitle}" saved & deployed! Smart Recycling app will automatically download and start playback.`);
       setShowUploadModal(false);
       setAdTitle('');
       setAdVideoUrl('');
@@ -184,13 +184,13 @@ export default function AdvertisementsTab() {
         body: JSON.stringify({ id: adId, machineId: targetMachine })
       });
       if (res.ok) {
-        setSuccessMsg(`🚀 Successfully deployed "${title}" to the active playlist! The RVM machine will now play this video.`);
+        setSuccessMsg(`🚀 Successfully deployed "${title}" to the active playlist! The Smart Recycling machine will now play this video.`);
         fetchAds();
         setTimeout(() => setSuccessMsg(''), 5000);
       }
     } catch (err) {
       console.error(err);
-      setErrorMsg('Failed to set active video on RVM.');
+      setErrorMsg('Failed to set active video on Smart Recycling machine.');
     }
   };
 
@@ -261,14 +261,14 @@ export default function AdvertisementsTab() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-950 dark:text-white tracking-tight">
-                  RVM Digital Signage & Advertisement Manager
+                  Smart Recycling Digital Signage & Advertisement Manager
                 </h1>
                 <span className="px-2.5 py-0.5 text-xs font-black uppercase tracking-wider bg-emerald-200/90 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-200 border border-emerald-400 dark:border-emerald-700 rounded-full shadow-xs">
                   Live Sync
                 </span>
               </div>
               <p className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">
-                Upload and configure promotional videos that play on RVM Desktop Screens across your fleet.
+                Upload and configure promotional videos that play on Smart Recycling Desktop Screens across your fleet.
               </p>
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function AdvertisementsTab() {
           <div>
             <div className="text-xs font-extrabold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Target Scope</div>
             <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-0.5">
-              {targetMachine === 'ALL' ? 'All RVMs' : targetMachine}
+              {targetMachine === 'ALL' ? 'All Smart Recycling Machines' : targetMachine}
             </div>
           </div>
         </div>
@@ -394,7 +394,7 @@ export default function AdvertisementsTab() {
                   body: JSON.stringify({ orderedIds: activeOrderedIds, machineId: targetMachine })
                 });
                 if (res.ok) {
-                  setSuccessMsg(`🚀 Successfully synced rotation of ${activeOrderedIds.length} video(s) to RVM machine!`);
+                  setSuccessMsg(`🚀 Successfully synced rotation of ${activeOrderedIds.length} video(s) to Smart Recycling machine!`);
                   fetchAds();
                   setTimeout(() => setSuccessMsg(''), 4000);
                 }
@@ -405,7 +405,7 @@ export default function AdvertisementsTab() {
             className="px-4 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md border border-emerald-400/40 transition-all active:scale-95 flex items-center gap-1.5"
           >
             <Monitor className="w-4 h-4" />
-            Sync Rotation to RVM
+            Sync Rotation to Smart Recycling
           </button>
         </div>
       </div>
@@ -420,7 +420,7 @@ export default function AdvertisementsTab() {
             onChange={(e) => setTargetMachine(e.target.value)}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
           >
-            <option value="ALL">🌐 ALL RVM Machines (Global Fleet)</option>
+            <option value="ALL">🌐 ALL Smart Recycling Machines (Global Fleet)</option>
             {machines.map(m => (
               <option key={m.machineId} value={m.machineId}>
                 🤖 {m.name || m.machineId} ({m.machineId})
@@ -445,7 +445,7 @@ export default function AdvertisementsTab() {
           <Tv className="w-12 h-12 text-slate-400 dark:text-slate-600" />
           <div className="text-base font-black text-slate-900 dark:text-white">No Advertisement Videos Found</div>
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md font-medium">
-            Click the "Upload New Ad Video" button above to upload an MP4/video file or link a video URL to play on RVM screens.
+            Click the "Upload New Ad Video" button above to upload an MP4/video file or link a video URL to play on Smart Recycling screens.
           </p>
           <button
             onClick={() => setShowUploadModal(true)}
@@ -563,7 +563,7 @@ export default function AdvertisementsTab() {
                   <button
                     onClick={() => handleSetActiveVideo(ad.id, ad.title)}
                     className="text-xs font-black text-sky-700 hover:text-sky-800 dark:text-cyan-400 dark:hover:text-cyan-300 py-1 transition-colors"
-                    title="Play this video as first priority on RVM screen"
+                    title="Play this video as first priority on Smart Recycling screen"
                   >
                     ▶ Play Immediately
                   </button>
@@ -603,7 +603,7 @@ export default function AdvertisementsTab() {
                 </div>
                 <div>
                   <h2 className="text-lg font-black text-slate-950 dark:text-white">Add Advertisement Video</h2>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Deploy digital promo video to RVM Desktop App</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Deploy digital promo video to Smart Recycling Desktop App</p>
                 </div>
               </div>
               <button 
@@ -656,13 +656,13 @@ export default function AdvertisementsTab() {
 
               {/* Target Machine */}
               <div className="space-y-1.5">
-                <label className="text-xs font-black text-slate-800 dark:text-slate-200">Target RVM Machine</label>
+                <label className="text-xs font-black text-slate-800 dark:text-slate-200">Target Smart Recycling Machine</label>
                 <select
                   value={formMachine}
                   onChange={(e) => setFormMachine(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
                 >
-                  <option value="ALL">🌐 ALL RVM Machines (Global Fleet)</option>
+                  <option value="ALL">🌐 ALL Smart Recycling Machines (Global Fleet)</option>
                   {machines.map(m => (
                     <option key={m.machineId} value={m.machineId}>
                       🤖 {m.name || m.machineId} ({m.machineId})
@@ -720,7 +720,7 @@ export default function AdvertisementsTab() {
               <div className="space-y-2 p-3.5 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-slate-800 dark:text-gray-200">Playlist Rotation &amp; Storage Action</label>
-                  <span className="text-[10px] text-sky-700 dark:text-cyan-400 font-black uppercase">Auto-Sync to RVM</span>
+                  <span className="text-[10px] text-sky-700 dark:text-cyan-400 font-black uppercase">Auto-Sync to Smart Recycling</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <label className={`flex items-start gap-2.5 p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -753,7 +753,7 @@ export default function AdvertisementsTab() {
                     />
                     <div>
                       <div className="text-xs font-black text-rose-800 dark:text-rose-300">Delete Old Videos</div>
-                      <div className="text-[10px] text-slate-600 dark:text-gray-400 font-medium">Replace all previous videos on RVM</div>
+                      <div className="text-[10px] text-slate-600 dark:text-gray-400 font-medium">Replace all previous videos on Smart Recycling</div>
                     </div>
                   </label>
                 </div>

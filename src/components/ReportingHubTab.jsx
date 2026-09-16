@@ -223,7 +223,7 @@ export default function ReportingHubTab() {
             2. Fleet Efficiency & Capacity Report
           </h3>
           <p className="text-sm md:text-base font-bold text-slate-900 dark:text-sky-100 mt-1.5 max-w-2xl leading-relaxed">
-            Purpose: Monitor machine uptime, collection patterns, bin clearing efficiency, and device performance across RVM and PicoDrop hardware.
+            Purpose: Monitor machine uptime, collection patterns, bin clearing efficiency, and device performance across Smart Recycling and PicoDrop hardware.
           </p>
         </div>
 
@@ -237,7 +237,7 @@ export default function ReportingHubTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">RVM Bin Capacity Events</div>
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Smart Recycling Bin Capacity Events</div>
           <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">12 Events</div>
           <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Hopper volume 100% full</div>
         </div>
@@ -249,7 +249,7 @@ export default function ReportingHubTab() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">RVM Fleet Mean Uptime</div>
+          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Smart Recycling Fleet Mean Uptime</div>
           <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">98.7%</div>
           <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Optical recognition & motor uptime</div>
         </div>
@@ -261,12 +261,12 @@ export default function ReportingHubTab() {
         </div>
       </div>
 
-      {/* Hardware Failure Rate Comparison: RVM optical/motor vs PicoDrop counter/load-scale */}
+      {/* Hardware Failure Rate Comparison: Smart Recycling optical/motor vs PicoDrop counter/load-scale */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-sky-800 dark:text-cyan-300 flex items-center gap-1.5">
             <Cpu className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
-            RVM Optical / Motor Fault Rates
+            Smart Recycling Optical / Motor Fault Rates
           </h4>
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -314,7 +314,7 @@ export default function ReportingHubTab() {
             <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-black text-slate-700 dark:text-slate-300">
               <tr>
                 <th className="p-2.5">Location</th>
-                <th className="p-2.5">RVM Uptime</th>
+                <th className="p-2.5">Smart Recycling Uptime</th>
                 <th className="p-2.5">PicoDrop Uptime</th>
                 <th className="p-2.5">Avg Service Turnaround</th>
                 <th className="p-2.5">Weekly Intake</th>
@@ -597,7 +597,7 @@ export default function ReportingHubTab() {
               <div class="kpi-sub">Trigger to Cleared turnaround</div>
             </div>
             <div class="kpi-card green">
-              <div class="kpi-title">RVM Fleet Mean Uptime</div>
+              <div class="kpi-title">Smart Recycling Fleet Mean Uptime</div>
               <div class="kpi-val">98.7%</div>
               <div class="kpi-sub">Optical recognition & motor uptime</div>
             </div>
@@ -618,7 +618,7 @@ export default function ReportingHubTab() {
             <thead>
               <tr>
                 <th>Location / Facility</th>
-                <th>RVM Uptime</th>
+                <th>Smart Recycling Uptime</th>
                 <th>PicoDrop Uptime</th>
                 <th>Avg Turnaround</th>
                 <th>Weekly Intake Throughput</th>
@@ -649,13 +649,13 @@ export default function ReportingHubTab() {
             </thead>
             <tbody>
               <tr>
-                <td class="font-bold">RVM Optical Chute</td>
+                <td class="font-bold">Smart Recycling Optical Chute</td>
                 <td>Scanner Lens Smudge / Foreign Matter</td>
                 <td class="mono font-bold">0.38%</td>
                 <td><span class="badge optimal">High (99.6%)</span></td>
               </tr>
               <tr>
-                <td class="font-bold">RVM Intake Motor</td>
+                <td class="font-bold">Smart Recycling Intake Motor</td>
                 <td>Gate Jam Auto-Clear Trigger</td>
                 <td class="mono font-bold">0.05%</td>
                 <td><span class="badge optimal">Ultra-Reliable</span></td>
@@ -714,21 +714,21 @@ export default function ReportingHubTab() {
             <tbody>
               <tr>
                 <td class="font-bold">PET Plastic Bottles</td>
-                <td>Unit Count (RVM + PicoDrop)</td>
+                <td>Unit Count (Smart Recycling + PicoDrop)</td>
                 <td class="mono font-bold">8,420 Units</td>
                 <td class="mono">252.6 kg</td>
                 <td class="mono font-bold text-green">690.4 kg CO₂e</td>
               </tr>
               <tr>
                 <td class="font-bold">Aluminium Cans</td>
-                <td>Unit Count (RVM + PicoDrop)</td>
+                <td>Unit Count (Smart Recycling + PicoDrop)</td>
                 <td class="mono font-bold">3,615 Units</td>
                 <td class="mono">54.2 kg</td>
                 <td class="mono font-bold text-green">515.0 kg CO₂e</td>
               </tr>
               <tr>
                 <td class="font-bold">Cardboard / TetraPak</td>
-                <td>Unit Count (RVM Hopper)</td>
+                <td>Unit Count (Smart Recycling Hopper)</td>
                 <td class="mono font-bold">1,240 Units</td>
                 <td class="mono">37.2 kg</td>
                 <td class="mono font-bold text-green">148.8 kg CO₂e</td>
@@ -1030,7 +1030,7 @@ export default function ReportingHubTab() {
       <img src="/isp_logo.png" class="brand-logo-img" alt="ISP Environmental Logo" />
       <div>
         <div class="brand-title">ISP Environmental Solutions Pvt. Ltd.</div>
-        <div class="brand-sub">Regulatory & Operations Audit • Smart RVM Telemetry Network</div>
+        <div class="brand-sub">Regulatory & Operations Audit • Smart Recycling Telemetry Network</div>
         <div class="report-title-main">${activeObj.title}</div>
       </div>
     </div>
@@ -1231,8 +1231,8 @@ export default function ReportingHubTab() {
                             │
              ┌──────────────┴──────────────┐
              │                             │
-            RVM                         PICODROP
-       Single Hopper                 Three Inputs
+      SMART RECYCLING                   PICODROP
+       Single Hopper                  Three Inputs
              │                             │
       ┌──────┼──────┐             ┌───────┼────────┐
       │      │      │             │       │        │

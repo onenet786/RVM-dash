@@ -661,7 +661,7 @@ export default function MobileUsersTab() {
                   <div className="py-12 text-center text-xs t-bg-sec rounded-2xl border t-border p-6 space-y-2">
                     <Recycle className="w-8 h-8 mx-auto text-emerald-400/40" />
                     <p className="font-bold t-text-primary text-sm">No Recycling Sessions Recorded</p>
-                    <p className="t-text-muted">This citizen has not completed any reverse vending machine deposits yet.</p>
+                    <p className="t-text-muted">This citizen has not completed any smart recycling deposits yet.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto border t-border rounded-2xl">

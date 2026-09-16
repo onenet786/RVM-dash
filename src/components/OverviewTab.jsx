@@ -203,7 +203,7 @@ export default function OverviewTab({ currentUser }) {
           <div className="mt-3">
             <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalSessions ?? 0}</div>
             <p className="text-xs text-purple-800 dark:text-purple-400 flex items-center gap-1 mt-1 font-bold">
-              <Activity className="w-3.5 h-3.5" /> Active RVM Transactions
+              <Activity className="w-3.5 h-3.5" /> Active Smart Recycling Transactions
             </p>
           </div>
         </div>

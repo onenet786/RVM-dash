@@ -70,7 +70,7 @@ export default function EnvironmentalImpactTab() {
             <Leaf className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Audited ESG Reporting</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">RVM Environmental Impact & Carbon Math</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">Smart Recycling Environmental Impact & Carbon Math</h2>
           <p className="text-xs t-text-secondary mt-1 flex flex-wrap items-center gap-2">
             <span>Audited, Corrected, And Reconciled With The Reward System PRD</span>
             <span className="px-2 py-0.5 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase">

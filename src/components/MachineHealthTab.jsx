@@ -121,7 +121,7 @@ export default function MachineHealthTab({ currentUser }) {
 
     const isExisting = machines.some(m => m.machineId?.toUpperCase() === newMachineId.trim().toUpperCase());
     if (!isExisting && !isSuperAdmin) {
-      setSuccessMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      setSuccessMessage('⚠️ Permission Denied: Only Super Admin accounts can register new Smart Recycling units.');
       return;
     }
 
@@ -140,7 +140,7 @@ export default function MachineHealthTab({ currentUser }) {
         },
         body: JSON.stringify({
           machineId: newMachineId.trim(),
-          name: (newMachineName || `RVM Machine ${newMachineId}`).trim(),
+          name: (newMachineName || `Smart Recycling Machine ${newMachineId}`).trim(),
           location: (newMachineLocation || 'Main Campus').trim(),
           username: user.username,
           roleId: user.roleId,
@@ -207,7 +207,7 @@ export default function MachineHealthTab({ currentUser }) {
       if (res.ok) {
         setShowConfigModal(false);
         const data = await res.json();
-        setSuccessMessage(data.message || 'Points rules successfully synced to RVMs!');
+        setSuccessMessage(data.message || 'Points rules successfully synced to Smart Recycling machines!');
         fetchMachines();
         setTimeout(() => setSuccessMessage(''), 5000);
       }
@@ -301,7 +301,7 @@ export default function MachineHealthTab({ currentUser }) {
             <Cpu className="w-4 h-4 text-cyan-400" />
             <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Hardware Fleet Monitoring</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">Reverse Vending Machine Status</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">Smart Recycling Machine Status</h2>
           <p className="text-xs t-text-secondary mt-1">Real-time operational health, live heartbeat pings, and machine location tags.</p>
         </div>
 
@@ -328,7 +328,7 @@ export default function MachineHealthTab({ currentUser }) {
         <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 flex items-center justify-between text-xs font-bold animate-fade-in shadow-md">
           <div className="flex items-center gap-2.5">
             <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>Assigned RVM Fleet Scope Active: Displaying telemetry and status for ({assignedList.join(', ')}) only</span>
+            <span>Assigned Smart Recycling Fleet Scope Active: Displaying telemetry and status for ({assignedList.join(', ')}) only</span>
           </div>
           <span className="text-[10px] px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-200 uppercase font-mono font-bold shrink-0 border border-cyan-500/30">
             {assignedList.length} Machine{assignedList.length > 1 ? 's' : ''} Scoped
@@ -343,7 +343,7 @@ export default function MachineHealthTab({ currentUser }) {
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured RVMs</span>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured Smart Recycling Machines</span>
             <span className="text-xl font-extrabold t-text-primary mono">{machines.length}</span>
           </div>
         </div>
@@ -418,7 +418,7 @@ export default function MachineHealthTab({ currentUser }) {
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="text-sm font-bold text-slate-800 dark:text-cyan-300">{m.name || `RVM Unit ${m.machineId}`}</div>
+                      <div className="text-sm font-bold text-slate-800 dark:text-cyan-300">{m.name || `Smart Recycling Unit ${m.machineId}`}</div>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-[#0b5d3b]" />
@@ -544,7 +544,7 @@ export default function MachineHealthTab({ currentUser }) {
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-cyan-400" />
                 <h3 className="text-base font-extrabold t-text-primary">
-                  Live RVM Fleet Geographic Locations &amp; Coordinates
+                  Live Smart Recycling Fleet Geographic Locations &amp; Coordinates
                 </h3>
               </div>
               <button
@@ -575,7 +575,7 @@ export default function MachineHealthTab({ currentUser }) {
                       </span>
                     </div>
 
-                    <div className="font-extrabold text-sm t-text-primary">{m.name || `RVM ${m.machineId}`}</div>
+                    <div className="font-extrabold text-sm t-text-primary">{m.name || `Smart Recycling ${m.machineId}`}</div>
                     <div className="text-xs text-slate-400 flex items-center gap-1 mt-1">
                       <MapPin className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
                       <span>{m.location || 'Location Pending'}</span>

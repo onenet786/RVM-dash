@@ -87,7 +87,7 @@ export default function RvmManagementTab({ currentUser }) {
 
   const handleOpenAddModal = () => {
     if (!isSuperAdmin) {
-      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new Smart Recycling units.');
       return;
     }
     setEditingMachine(null);
@@ -116,7 +116,7 @@ export default function RvmManagementTab({ currentUser }) {
     if (!machineId.trim()) return;
 
     if (!editingMachine && !isSuperAdmin) {
-      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new RVM units.');
+      setMessage('⚠️ Permission Denied: Only Super Admin accounts can register new Smart Recycling units.');
       setShowAddModal(false);
       return;
     }
@@ -136,7 +136,7 @@ export default function RvmManagementTab({ currentUser }) {
         },
         body: JSON.stringify({
           machineId: machineId.trim(),
-          name: (name || `RVM Machine ${machineId}`).trim(),
+          name: (name || `Smart Recycling Machine ${machineId}`).trim(),
           location: (location || 'Main Campus').trim(),
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
@@ -151,7 +151,7 @@ export default function RvmManagementTab({ currentUser }) {
       const json = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        setMessage(`✅ RVM Machine '${machineId.trim()}' saved successfully!`);
+        setMessage(`✅ Smart Recycling Machine '${machineId.trim()}' saved successfully!`);
         setShowAddModal(false);
         fetchMachines();
         setTimeout(() => setMessage(''), 5000);
@@ -187,11 +187,11 @@ export default function RvmManagementTab({ currentUser }) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Cpu className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">RVM Management & Fleet Setup</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">Smart Recycling Management &amp; Fleet Setup</span>
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">RVM Fleet Registration & Editor</h2>
+          <h2 className="text-2xl font-extrabold t-text-primary">Smart Recycling Fleet Registration &amp; Editor</h2>
           <p className="text-xs t-text-secondary mt-1">
-            Add new RVM units, update machine display names, assign installation locations, and manage fleet configuration.
+            Add new Smart Recycling units, update machine display names, assign installation locations, and manage fleet configuration.
           </p>
         </div>
 
@@ -202,7 +202,7 @@ export default function RvmManagementTab({ currentUser }) {
               className="flex items-center gap-2 px-4 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] font-extrabold text-xs rounded-xl transition-all shadow-md"
             >
               <Plus className="w-4 h-4" />
-              <span>+ Register New RVM Machine</span>
+              <span>+ Register New Smart Recycling Machine</span>
             </button>
           )}
 
@@ -220,7 +220,7 @@ export default function RvmManagementTab({ currentUser }) {
         <div className="p-4 rounded-2xl bg-[#e6f3ec] dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 text-[#0b5d3b] dark:text-emerald-300 flex items-center justify-between text-xs font-bold animate-fade-in shadow-sm">
           <div className="flex items-center gap-2.5">
             <MapPin className="w-4 h-4 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
-            <span>Assigned RVM Fleet Scope Active: Managing ({assignedList.join(', ')}) only</span>
+            <span>Assigned Smart Recycling Fleet Scope Active: Managing ({assignedList.join(', ')}) only</span>
           </div>
           <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-[#0b5d3b] dark:text-emerald-200 uppercase font-mono font-bold shrink-0 border border-emerald-300 dark:border-emerald-700">
             {assignedList.length} Machine{assignedList.length > 1 ? 's' : ''} Scoped
@@ -242,7 +242,7 @@ export default function RvmManagementTab({ currentUser }) {
                 </div>
                 <div>
                   <h3 className="font-extrabold t-text-primary text-base flex items-center gap-2">
-                    {m.name || `RVM ${m.machineId}`}
+                    {m.name || `Machine ${m.machineId}`}
                   </h3>
                   <span className="text-xs font-mono t-text-muted">ID: {m.machineId}</span>
                 </div>
@@ -253,7 +253,7 @@ export default function RvmManagementTab({ currentUser }) {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 hover:bg-[#e6f3ec] text-[#0b5d3b] dark:text-cyan-400 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold transition-all"
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit RVM</span>
+                <span>Edit Machine</span>
               </button>
             </div>
 
@@ -319,7 +319,7 @@ export default function RvmManagementTab({ currentUser }) {
               <div className="flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-cyan-400" />
                 <h3 className="text-base font-extrabold t-text-primary">
-                  {editingMachine ? `Edit RVM Machine (${machineId})` : 'Register New RVM Machine'}
+                  {editingMachine ? `Edit Smart Recycling Machine (${machineId})` : 'Register New Smart Recycling Machine'}
                 </h3>
               </div>
               <button
@@ -354,15 +354,14 @@ export default function RvmManagementTab({ currentUser }) {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. ISP Main Entrance Unit #1"
+                  placeholder="e.g. Walled City Smart Kiosk"
                   className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
-                  required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
-                  Installation Location / Address
+                  Physical Installation Location
                 </label>
                 <input
                   type="text"
@@ -432,7 +431,7 @@ export default function RvmManagementTab({ currentUser }) {
                   className="px-5 py-2 text-xs font-extrabold bg-[#0b5d3b] text-white hover:bg-[#08422a] rounded-xl shadow-md flex items-center gap-2 transition-all"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
-                  <span>{saving ? 'Saving...' : 'Save RVM Machine'}</span>
+                  <span>{saving ? 'Saving...' : 'Save Smart Recycling Machine'}</span>
                 </button>
               </div>
             </form>
@@ -445,7 +444,7 @@ export default function RvmManagementTab({ currentUser }) {
         <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
           All Registered Fleet Machines (Relational Master Table)
         </h3>
-        <DataTable collectionName="machines" displayName="RVM Relational Database Table" />
+        <DataTable collectionName="machines" displayName="Smart Recycling Relational Database Table" />
       </div>
 
     </div>

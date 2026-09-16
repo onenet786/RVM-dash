@@ -53,7 +53,7 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
 
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">ISP RVM DASHBOARD</h1>
+              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">ISP SMART RECYCLING DASHBOARD</h1>
               <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
                 PRO DEV
               </span>

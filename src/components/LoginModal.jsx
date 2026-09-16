@@ -363,7 +363,7 @@ export default function LoginModal({ onLoginSuccess }) {
               </div>
 
               <div className="text-[11px] font-bold text-[#e5a919] uppercase tracking-wider mt-0.5">
-                Reverse Vending Machine (RVM) Portal
+                Smart Recycling Portal
               </div>
             </div>
           </div>

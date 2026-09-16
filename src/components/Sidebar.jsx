@@ -43,7 +43,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
-    { id: 'machines', label: 'RVM Fleet Health', icon: Cpu },
+    { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu },
     { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
     ...((isMasterDev || isModuleAllowed('security')) ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
@@ -59,9 +59,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Primary PostgreSQL Relational Tables
   const postgresTables = [
     { id: 'col_recycling_sessions', name: 'recycling_sessions', label: 'recycling_sessions', icon: Recycle },
-    { id: 'col_machines', name: 'machines', label: 'RVMs', icon: Cpu },
+    { id: 'col_machines', name: 'machines', label: 'Smart Recycling Machines', icon: Cpu },
     { id: 'col_users', name: 'users', label: 'users', icon: Users },
-    { id: 'col_machine_configs', name: 'machine_configs', label: 'RVM Configurations', icon: Settings },
+    { id: 'col_machine_configs', name: 'machine_configs', label: 'Smart Recycling Configurations', icon: Settings },
     { id: 'col_redemptions', name: 'redemptions', label: 'redemptions', icon: Trophy },
   ];
 
@@ -266,7 +266,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
       {/* Footer Info */}
       <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-left mt-auto">
-        <div className="text-[11px] font-bold t-text-primary">ISP RVM Master Hub</div>
+        <div className="text-[11px] font-bold t-text-primary">ISP Smart Recycling Hub</div>
         <div className="text-[10px] t-text-muted truncate">
           {isPostgres ? `PG Host: ${health?.serverHost || '127.0.0.1:5432'}` : (isMasterDev ? `MongoDB Atlas (${health?.serverHost || 'cluster0.ktted0m.mongodb.net'})` : `Database: ${health?.database || 'ONS-RVM'}`)}
         </div>
@@ -292,7 +292,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
           <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-5 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
             <div className="flex items-center justify-between border-b t-border pb-3 mb-2">
-              <span className="font-extrabold text-sm text-emerald-400">RVM Navigation</span>
+              <span className="font-extrabold text-sm text-emerald-400">Smart Recycling Navigation</span>
               <button 
                 onClick={() => setIsMobileOpen(false)}
                 className="p-1.5 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary"

@@ -16,7 +16,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
       { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone, desc: 'Citizen profiles, registered user balances & mobile registration logs' },
       { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf, desc: 'CO₂ emission offsets, diverted landfill volume & tree equivalents' },
       { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
-      { id: 'machines', label: 'RVM Fleet Health', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
+      { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
       { id: 'advertisements', label: 'Ad Video Signage', icon: Tv, desc: 'Digital signage playlists & promotional kiosk video manager' },
     ]
   },
@@ -35,7 +35,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
     items: [
       { id: 'col_recycling_sessions', label: 'Recycling Sessions Table', icon: Recycle, desc: 'Granular deposit session records (PET, cans, cardboard, paper)' },
       { id: 'col_machines', label: 'Fleet Machines Table', icon: Cpu, desc: 'Registered hardware machines in database' },
-      { id: 'col_machine_configs', label: 'RVM Configurations Table', icon: Settings, desc: 'Points per unit, tare weights & optical hardware settings' },
+      { id: 'col_machine_configs', label: 'Smart Recycling Configurations Table', icon: Settings, desc: 'Points per unit, tare weights & optical hardware settings' },
       { id: 'col_users', label: 'Registered Users Table', icon: Users, desc: 'Citizen account records & contact details' },
       { id: 'col_feedbacks', label: 'User Feedbacks Log', icon: MessageSquare, desc: 'Citizen support tickets & machine feedback logs' },
       { id: 'col_binfullnotifications', label: 'Bin Full Alerts Table', icon: AlertTriangle, desc: 'Operational capacity & paper weight limit alarms' },
@@ -589,7 +589,7 @@ export default function SecurityTab() {
                 <tr className="border-b t-border t-text-muted uppercase tracking-wider font-bold">
                   <th className="py-3 px-4">User Account</th>
                   <th className="py-3 px-4">Assigned Role</th>
-                  <th className="py-3 px-4">Assigned RVM Machines Scope</th>
+                  <th className="py-3 px-4">Assigned Smart Recycling Machines Scope</th>
                   <th className="py-3 px-4">Accessible Modules</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -615,7 +615,7 @@ export default function SecurityTab() {
                       <div className="flex flex-wrap gap-1">
                         {Array.isArray(u.assignedMachines) && u.assignedMachines.includes('*') ? (
                           <span className="mono text-xs font-semibold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
-                            🌟 All RVM Fleet (*)
+                            🌟 All Smart Recycling Fleet (*)
                           </span>
                         ) : (
                           (Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines]).map(m => (
@@ -877,7 +877,7 @@ export default function SecurityTab() {
                   type="text"
                   value={roleForm.description}
                   onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
-                  placeholder="e.g. Access limited to RVM Hardware Fleet Health, Machine Alerts, and Optical Diagnostics"
+                  placeholder="e.g. Access limited to Smart Recycling Hardware Fleet Health, Machine Alerts, and Optical Diagnostics"
                   className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary focus:border-cyan-500 focus:outline-none"
                 />
               </div>
@@ -1146,12 +1146,12 @@ export default function SecurityTab() {
                 </select>
               </div>
 
-              {/* RVM Machine Dropdown & Multi-Select Badge Picker */}
+              {/* Smart Recycling Machine Dropdown & Multi-Select Badge Picker */}
               <div className="space-y-2">
                 <label className="text-xs font-bold t-text-muted uppercase flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                    Assigned RVM Machines Scope
+                    Assigned Smart Recycling Machines Scope
                   </span>
                   <button
                     type="button"
@@ -1170,7 +1170,7 @@ export default function SecurityTab() {
                   className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary font-bold focus:border-cyan-500 focus:outline-none"
                   defaultValue=""
                 >
-                  <option value="" disabled>-- Dropdown Select RVM Machine to Add --</option>
+                  <option value="" disabled>-- Dropdown Select Smart Recycling Machine to Add --</option>
                   <option value="*">🌟 All Fleet Machines (*)</option>
                   {availableMachines.map(mId => (
                     <option key={mId} value={mId}>🤖 {mId}</option>
@@ -1296,12 +1296,12 @@ export default function SecurityTab() {
                 </div>
               </div>
 
-              {/* RVM Machine Dropdown & Multi-Select Badge Picker */}
+              {/* Smart Recycling Machine Dropdown & Multi-Select Badge Picker */}
               <div className="space-y-2">
                 <label className="text-xs font-bold t-text-muted uppercase flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                    Assigned RVM Machines Scope
+                    Assigned Smart Recycling Machines Scope
                   </span>
                   <button
                     type="button"
@@ -1320,7 +1320,7 @@ export default function SecurityTab() {
                   className="w-full t-bg-sec border t-border rounded-xl px-3.5 py-2.5 t-text-primary font-bold focus:border-cyan-500 focus:outline-none"
                   defaultValue=""
                 >
-                  <option value="" disabled>-- Dropdown Select RVM Machine to Add --</option>
+                  <option value="" disabled>-- Dropdown Select Smart Recycling Machine to Add --</option>
                   <option value="*">🌟 All Fleet Machines (*)</option>
                   {availableMachines.map(mId => (
                     <option key={mId} value={mId}>🤖 {mId}</option>
