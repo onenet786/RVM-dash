@@ -312,40 +312,57 @@ export default function LoginModal({ onLoginSuccess }) {
         </svg>
       </div>
 
+      {/* Chrome Autofill Style Fix */}
+      <style>{`
+        .login-input:-webkit-autofill,
+        .login-input:-webkit-autofill:hover, 
+        .login-input:-webkit-autofill:focus,
+        .login-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #03130d inset !important;
+          -webkit-text-fill-color: #ffffff !important;
+          caret-color: #ffffff !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+
       {/* Main Executive Glassmorphic Login Card */}
-      <div className="relative w-full max-w-[440px] z-10 animate-card-entrance">
-        <div className="relative rounded-[32px] p-7 sm:p-9 space-y-6 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.8),0_0_55px_0_rgba(11,93,59,0.3)] border border-emerald-500/35 bg-[#051c14]/85 backdrop-blur-2xl overflow-hidden">
+      <div className="relative w-full max-w-[420px] z-10 animate-card-entrance">
+        <div className="relative rounded-[32px] p-7 sm:p-8 space-y-6 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.8),0_0_55px_0_rgba(11,93,59,0.3)] border border-emerald-500/35 bg-[#051c14]/85 backdrop-blur-2xl overflow-hidden">
           
           {/* Subtle Inner Glass Highlights */}
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
 
           {/* Header Branding with Official ISP Logo */}
-          <div className="text-center space-y-3 pt-2">
-            <div className="relative w-22 h-22 mx-auto flex items-center justify-center">
+          <div className="text-center space-y-3 pt-1">
+            <div className="relative mx-auto flex items-center justify-center" style={{ width: '82px', height: '82px' }}>
               {/* Rotating Eco Halo Rings */}
-              <div className="absolute inset-0 rounded-3xl border border-dashed border-emerald-400/40 animate-halo-spin pointer-events-none" />
-              <div className="absolute -inset-1 rounded-[26px] border border-dotted border-amber-400/30 animate-halo-spin-rev pointer-events-none" />
+              <div className="absolute inset-0 rounded-2xl border border-dashed border-emerald-400/40 animate-halo-spin pointer-events-none" />
+              <div className="absolute -inset-1 rounded-2xl border border-dotted border-amber-400/30 animate-halo-spin-rev pointer-events-none" />
 
               {/* Official Logo Container */}
-              <div className="w-18 h-18 rounded-2xl bg-white p-2 flex items-center justify-center shadow-xl shadow-emerald-950/50 border-2 border-emerald-400/60 relative z-10">
+              <div 
+                className="rounded-xl bg-white p-1.5 flex items-center justify-center shadow-lg shadow-emerald-950/50 border border-emerald-400/50 relative z-10 overflow-hidden"
+                style={{ width: '64px', height: '64px' }}
+              >
                 <img 
                   src={ispLogo} 
                   alt="ISP Environmental Solutions" 
-                  className="w-full h-full object-contain"
+                  className="object-contain"
+                  style={{ width: '100%', height: '100%', maxHeight: '52px', maxWidth: '52px' }}
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-center gap-1.5">
-                <h2 className="text-2xl font-black text-white tracking-tight">
+                <h2 className="text-xl font-black text-white tracking-tight">
                   ISP Environmental Solutions
                 </h2>
                 <Sparkles className="w-4 h-4 text-[#e5a919] shrink-0" />
               </div>
 
-              <div className="text-xs font-bold text-[#e5a919] uppercase tracking-widest mt-1">
+              <div className="text-[11px] font-bold text-[#e5a919] uppercase tracking-wider mt-0.5">
                 Reverse Vending Machine (RVM) Portal
               </div>
             </div>
@@ -378,7 +395,7 @@ export default function LoginModal({ onLoginSuccess }) {
                   placeholder="Enter your username or email"
                   autoComplete="username"
                   required
-                  className="w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 text-white font-mono text-xs focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
+                  className="login-input w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 text-white font-mono text-xs focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -399,7 +416,7 @@ export default function LoginModal({ onLoginSuccess }) {
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
-                  className="w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 pr-11 text-white font-mono text-xs focus:border-[#e5a919] focus:ring-2 focus:ring-[#e5a919]/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
+                  className="login-input w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 pr-11 text-white font-mono text-xs focus:border-[#e5a919] focus:ring-2 focus:ring-[#e5a919]/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
                 />
                 <button
                   type="button"
