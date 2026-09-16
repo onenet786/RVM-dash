@@ -504,33 +504,6 @@ async function initProductionPostgresSchemas() {
       CREATE INDEX IF NOT EXISTS idx_redemptions_date ON redemptions (created_at DESC);
     `);
 
-    // Auto-migrate existing redemptions from MongoDB if redemptions table is empty
-    const redCountRes = await pool.query(`SELECT COUNT(*) FROM redemptions;`).catch(() => ({ rows: [{ count: '0' }] }));
-    if (parseInt(redCountRes.rows[0].count || '0') === 0) {
-      try {
-        if (!db) await connectDB();
-        if (db) {
-          const mDocs = await db.collection('redemptions').find({}).toArray();
-          for (const doc of mDocs) {
-            const phone = doc.phoneNumber || doc.phone || doc.mobile || doc.userId || doc.username || '';
-            const pts = parseInt(doc.points || doc.pointsRedeemed || doc.points_redeemed || 0);
-            const rId = String(doc._id || `red_${Date.now()}_${Math.random().toString(36).substring(7)}`);
-            const note = doc.note || '';
-            const cAt = doc.redeemedAt || doc.createdAt || doc.created_at || new Date().toISOString();
-            if (phone && pts > 0) {
-              await pool.query(`
-                INSERT INTO redemptions (redemption_id, user_id, mobile, item_name, points_redeemed, note, status, created_at)
-                VALUES ($1, $2, $2, 'Reward Voucher', $3, $4, 'completed', $5)
-                ON CONFLICT (redemption_id) DO NOTHING;
-              `, [rId, phone, pts, note, cAt]).catch(() => {});
-            }
-          }
-        }
-      } catch (mErr) {
-        console.warn('[Redemptions Init Migration Notice]', mErr.message);
-      }
-    }
-
     console.log('[PostgreSQL Schemas] Production relational tables, redemptions schemas and indexes initialized successfully.');
   } catch (err) {
     console.warn('[PostgreSQL Schemas Init Warning]', err.message);
@@ -4355,45 +4328,84 @@ app.get('/get-points', handleMobileGetPoints);
 app.post('/api/get-points', handleMobileGetPoints);
 app.post('/get-points', handleMobileGetPoints);
 
-// 4. Mobile Get Recycle History (Exclusively from PostgreSQL with TTL Caching)
+// 4. Mobile Get Recycle History (Exclusively from PostgreSQL)
 async function handleMobileGetRecycle(req, res) {
   try {
     const { userId } = req.params;
+    const { mobile, username, phone, userId: qUserId } = req.query;
     if (!userId || userId === 'anonymous') return res.status(400).json({ success: false, error: 'Valid userId is required' });
 
-    const now = Date.now();
-    const cacheKey = String(userId).trim();
-    if (mobileUserRecycleCache.has(cacheKey)) {
-      const cached = mobileUserRecycleCache.get(cacheKey);
-      if (now < cached.expiresAt) {
-        return res.json(cached.payload);
-      }
-    }
-
     let history = [];
+    let redemptionsList = [];
     const pool = getPgPool();
     if (pool) {
-      const uRes = await pool.query(`
-        SELECT user_id, username, mobile FROM users
-        WHERE user_id = $1 OR mobile = $1 OR username = $1 OR email = $1
-        LIMIT 1;
-      `, [userId]);
+      // 1. Gather all candidate identifiers
+      const rawCandidates = [userId, mobile, username, phone, qUserId].filter(Boolean);
+      const exactCandidates = new Set(rawCandidates.map(c => String(c).trim()));
 
-      let validUserIds = [userId];
-      if (uRes.rows.length > 0) {
-        const u = uRes.rows[0];
-        validUserIds = Array.from(new Set([
-          u.user_id,
-          u.username,
-          u.mobile,
-          userId,
-          u.mobile ? u.mobile.replace(/[^0-9]/g, '') : null,
-          userId ? userId.replace(/[^0-9]/g, '') : null,
-          u.mobile && u.mobile.startsWith('0') ? u.mobile.substring(1) : null,
-          userId && userId.startsWith('0') ? userId.substring(1) : null
-        ])).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined' && id.trim().length > 0);
+      const core10Numbers = new Set();
+      const cleanVariations = new Set();
+
+      rawCandidates.forEach(cand => {
+        const str = String(cand).trim();
+        const digits = str.replace(/[^0-9]/g, '');
+        if (digits) {
+          cleanVariations.add(digits);
+          cleanVariations.add(digits.replace(/^0+/, ''));
+          if (digits.length >= 10) {
+            const c10 = digits.slice(-10);
+            core10Numbers.add(c10);
+            exactCandidates.add(c10);
+            exactCandidates.add('0' + c10);
+            exactCandidates.add('92' + c10);
+            exactCandidates.add('+92' + c10);
+            exactCandidates.add('0092' + c10);
+          }
+        }
+      });
+
+      // 2. Query users table in PostgreSQL to find all linked citizen credentials
+      try {
+        const uRes = await pool.query(`
+          SELECT user_id, username, mobile, email FROM users
+          WHERE user_id = ANY($1::text[]) 
+             OR mobile = ANY($1::text[]) 
+             OR username = ANY($1::text[]) 
+             OR email = ANY($1::text[])
+             OR (mobile IS NOT NULL AND ltrim(regexp_replace(mobile, '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+             OR (user_id IS NOT NULL AND ltrim(regexp_replace(user_id, '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+          LIMIT 10;
+        `, [Array.from(exactCandidates), Array.from(core10Numbers).length > 0 ? Array.from(core10Numbers) : Array.from(exactCandidates)]);
+
+        uRes.rows.forEach(u => {
+          [u.user_id, u.username, u.mobile, u.email].filter(Boolean).forEach(idStr => {
+            const s = String(idStr).trim();
+            exactCandidates.add(s);
+            const d = s.replace(/[^0-9]/g, '');
+            if (d) {
+              cleanVariations.add(d);
+              cleanVariations.add(d.replace(/^0+/, ''));
+              if (d.length >= 10) {
+                const c10 = d.slice(-10);
+                core10Numbers.add(c10);
+                exactCandidates.add(c10);
+                exactCandidates.add('0' + c10);
+                exactCandidates.add('92' + c10);
+                exactCandidates.add('+92' + c10);
+                exactCandidates.add('0092' + c10);
+              }
+            }
+          });
+        });
+      } catch (uErr) {
+        console.warn('[GetRecycle Users Lookup Warning]', uErr.message);
       }
 
+      const validUserIds = Array.from(exactCandidates).filter(id => id && id !== 'anonymous' && id !== 'null' && id !== 'undefined');
+      const validCore10 = Array.from(core10Numbers).filter(Boolean);
+      const validClean = Array.from(cleanVariations).filter(Boolean);
+
+      // 3. Query PostgreSQL relational table: recycling_sessions
       const sRes = await pool.query(`
         SELECT session_id, machine_id, user_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
                paper_weight_grams, tetrapak_weight_grams,
@@ -4401,12 +4413,22 @@ async function handleMobileGetRecycle(req, res) {
                can_small_count, can_medium_count, can_large_count,
                item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
         FROM recycling_sessions
-        WHERE user_id = ANY($1::text[])
-          AND user_id NOT IN ('anonymous', '', 'null')
+        WHERE (
+          user_id = ANY($1::text[])
+          OR (user_id IS NOT NULL AND ltrim(regexp_replace(user_id, '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+          OR (user_id IS NOT NULL AND regexp_replace(user_id, '[^0-9]', '', 'g') = ANY($3::text[]))
+        )
+        AND user_id NOT IN ('anonymous', '', 'null')
         ORDER BY created_at DESC
         LIMIT 100;
-      `, [validUserIds]);
+      `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds]).catch(err => {
+        console.warn('[GetRecycle Relational Query Warning]', err.message);
+        return { rows: [] };
+      });
+
+      const seenSessionIds = new Set();
       history = (sRes.rows || []).map(s => {
+        seenSessionIds.add(s.session_id);
         let pts = parseInt(s.points_earned || 0);
         const bottles = parseInt(s.plastic_count || 0);
         const cans = parseInt(s.aluminium_count || 0);
@@ -4438,70 +4460,85 @@ async function handleMobileGetRecycle(req, res) {
         };
       });
 
-      if (history.length === 0) {
-        try {
-          const jsonRes = await pool.query(`
-            SELECT id, data, synced_at 
-            FROM recyclingsessions 
-            WHERE (data->>'phoneNumber' = ANY($1::text[]) 
-               OR data->>'userId' = ANY($1::text[]) 
-               OR data->>'user_id' = ANY($1::text[])
-               OR data->>'userName' = ANY($1::text[]))
-            ORDER BY synced_at DESC LIMIT 100;
-          `, [validUserIds]).catch(() => ({ rows: [] }));
-          if (jsonRes.rows.length > 0) {
-            history = jsonRes.rows.map(r => {
-              const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-              const b = parseInt(d.bottles || d.plasticCount || d.plastic_count || 0);
-              const c = parseInt(d.cups || d.aluminiumCount || d.aluminium_count || d.cans || 0);
-              const g = parseInt(d.glassCount || d.glass_count || d.glass || 0);
-              let p = parseInt(d.paperCount || d.paper_count || d.paperCardboardCount || d.paper_cardboard_count || 0);
-              const pWeight = parseInt(d.paperWeightGrams || d.paper_weight_grams || 0);
-              if (p === 0 && pWeight > 0) p = Math.max(1, Math.round(pWeight / 50));
-              if (p === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('paper')) p = 1;
+      // 4. Query PostgreSQL JSONB table: recyclingsessions (for any sessions not yet in recycling_sessions)
+      try {
+        const jsonRes = await pool.query(`
+          SELECT id, data, synced_at 
+          FROM recyclingsessions 
+          WHERE (
+            data->>'phoneNumber' = ANY($1::text[]) 
+            OR data->>'userId' = ANY($1::text[]) 
+            OR data->>'user_id' = ANY($1::text[])
+            OR data->>'userName' = ANY($1::text[])
+            OR (data->>'phoneNumber' IS NOT NULL AND ltrim(regexp_replace(data->>'phoneNumber', '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+            OR (data->>'userId' IS NOT NULL AND ltrim(regexp_replace(data->>'userId', '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+            OR (data->>'phoneNumber' IS NOT NULL AND regexp_replace(data->>'phoneNumber', '[^0-9]', '', 'g') = ANY($3::text[]))
+          )
+          ORDER BY synced_at DESC LIMIT 100;
+        `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds]).catch(() => ({ rows: [] }));
 
-              const tWeight = parseInt(d.tetrapakWeightGrams || d.tetrapak_weight_grams || 0);
-              let tetra = parseInt(d.tetraCount || d.tetra_count || d.tetrapakCount || 0);
-              if (tetra === 0 && tWeight > 0) tetra = Math.max(1, Math.round(tWeight / 25));
-              if (tetra === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('tetra')) tetra = 1;
+        if (jsonRes.rows.length > 0) {
+          jsonRes.rows.forEach(r => {
+            const sid = r.id;
+            if (sid && seenSessionIds.has(sid)) return;
+            seenSessionIds.add(sid);
 
-              let pts = parseInt(d.points || d.pointsEarned || d.points_earned || 0);
-              if (pts <= 0 && (b > 0 || c > 0 || p > 0 || tetra > 0 || g > 0)) {
-                pts = (b * 5) + (c * 10) + (tetra * 10) + (p * 15) + (g * 10);
-              }
-              return {
-                session_id: r.id || d._id,
-                machine_id: d.machineId || d.machine_id || 'RVM-01',
-                user_id: d.phoneNumber || d.userId || d.user_id || userId,
-                plastic_count: b,
-                aluminium_count: c,
-                glass_count: g,
-                paper_cardboard_count: p,
-                paper_count: p,
-                tetrapak_count: tetra,
-                tetra_count: tetra,
-                paper_weight_grams: pWeight,
-                tetrapak_weight_grams: tWeight,
-                item_variant: d.itemVariant || d.variant || 'RECYCLABLE ITEM',
-                total_weight_kg: parseFloat(d.totalWeightKg || d.weight || 0),
-                points_earned: pts,
-                session_status: 'completed',
-                created_at: d.recycledAt || d.timestamp || r.synced_at
-              };
+            const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+            const b = parseInt(d.bottles || d.plasticCount || d.plastic_count || 0);
+            const c = parseInt(d.cups || d.aluminiumCount || d.aluminium_count || d.cans || 0);
+            const g = parseInt(d.glassCount || d.glass_count || d.glass || 0);
+            let p = parseInt(d.paperCount || d.paper_count || d.paperCardboardCount || d.paper_cardboard_count || 0);
+            const pWeight = parseInt(d.paperWeightGrams || d.paper_weight_grams || 0);
+            if (p === 0 && pWeight > 0) p = Math.max(1, Math.round(pWeight / 50));
+            if (p === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('paper')) p = 1;
+
+            const tWeight = parseInt(d.tetrapakWeightGrams || d.tetrapak_weight_grams || 0);
+            let tetra = parseInt(d.tetraCount || d.tetra_count || d.tetrapakCount || 0);
+            if (tetra === 0 && tWeight > 0) tetra = Math.max(1, Math.round(tWeight / 25));
+            if (tetra === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('tetra')) tetra = 1;
+
+            let pts = parseInt(d.points || d.pointsEarned || d.points_earned || 0);
+            if (pts <= 0 && (b > 0 || c > 0 || p > 0 || tetra > 0 || g > 0)) {
+              pts = (b * 5) + (c * 10) + (tetra * 10) + (p * 15) + (g * 10);
+            }
+
+            history.push({
+              session_id: sid || d._id,
+              machine_id: d.machineId || d.machine_id || 'RVM-01',
+              user_id: d.phoneNumber || d.userId || d.user_id || userId,
+              plastic_count: b,
+              aluminium_count: c,
+              glass_count: g,
+              paper_cardboard_count: p,
+              paper_count: p,
+              tetrapak_count: tetra,
+              tetra_count: tetra,
+              paper_weight_grams: pWeight,
+              tetrapak_weight_grams: tWeight,
+              item_variant: d.itemVariant || d.variant || 'RECYCLABLE ITEM',
+              total_weight_kg: parseFloat(d.totalWeightKg || d.weight || 0),
+              points_earned: pts,
+              session_status: 'completed',
+              created_at: d.recycledAt || d.timestamp || r.synced_at
             });
-          }
-        } catch (e) {}
-      }
-      // Query citizen redemptions
-      let redemptionsList = [];
+          });
+        }
+      } catch (e) {}
+
+      // 5. Query citizen redemptions exclusively from PostgreSQL
       try {
         const redRes = await pool.query(`
           SELECT 
             redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
           FROM redemptions
-          WHERE user_id = ANY($1::text[]) OR mobile = ANY($1::text[]) OR username = ANY($1::text[])
+          WHERE user_id = ANY($1::text[]) 
+             OR mobile = ANY($1::text[]) 
+             OR username = ANY($1::text[])
+             OR (mobile IS NOT NULL AND ltrim(regexp_replace(mobile, '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
+             OR (user_id IS NOT NULL AND ltrim(regexp_replace(user_id, '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
           ORDER BY created_at DESC;
-        `, [validUserIds]);
+        `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds]).catch(() => ({ rows: [] }));
+
         redemptionsList = redRes.rows.map(r => ({
           redemption_id: r.redemption_id || `RED-${r.id}`,
           id: r.id,
@@ -4519,40 +4556,12 @@ async function handleMobileGetRecycle(req, res) {
           redeemedAt: r.created_at
         }));
       } catch (e) {}
-
-      // Fallback to MongoDB redemptions if empty
-      if (redemptionsList.length === 0 && db) {
-        try {
-          const mDocs = await db.collection('redemptions').find({
-            $or: [
-              { phoneNumber: { $in: validUserIds } },
-              { userId: { $in: validUserIds } },
-              { user_id: { $in: validUserIds } }
-            ]
-          }).sort({ redeemedAt: -1 }).toArray();
-          if (mDocs.length > 0) {
-            redemptionsList = mDocs.map(d => ({
-              redemption_id: String(d._id),
-              id: String(d._id),
-              user_id: d.phoneNumber || d.userId || userId,
-              mobile: d.phoneNumber || d.mobile || userId,
-              username: d.username || d.userName || '',
-              item_name: d.itemName || d.item_name || 'Reward Voucher',
-              points_redeemed: parseInt(d.points || d.pointsRedeemed || 0),
-              points: parseInt(d.points || d.pointsRedeemed || 0),
-              voucher_code: d.voucherCode || d.voucher_code || '-',
-              note: d.note || '',
-              status: d.status || 'completed',
-              category: d.category || 'voucher',
-              created_at: d.redeemedAt || d.createdAt || new Date().toISOString(),
-              redeemedAt: d.redeemedAt || d.createdAt || new Date().toISOString()
-            }));
-          }
-        } catch (e) {}
-      }
     }
 
     const totalRedeemedPoints = redemptionsList.reduce((acc, r) => acc + (r.points_redeemed || 0), 0);
+
+    // Sort history by date descending
+    history.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     const recyclePayload = {
       success: true,
@@ -4563,9 +4572,10 @@ async function handleMobileGetRecycle(req, res) {
       history,
       redemptions: redemptionsList
     };
-    mobileUserRecycleCache.set(cacheKey, { payload: recyclePayload, expiresAt: now + (15 * 1000) });
-    res.json(recyclePayload);
+
+    return res.json(recyclePayload);
   } catch (err) {
+    console.error('[GetRecycle Error]', err);
     res.status(500).json({ success: false, error: err.message });
   }
 }

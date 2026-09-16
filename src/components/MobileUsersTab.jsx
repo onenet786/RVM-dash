@@ -59,7 +59,13 @@ export default function MobileUsersTab() {
     setActiveModalTab('recycling');
     setLoadingHistory(true);
     try {
-      const res = await fetch(`/api/getrecycle/${encodeURIComponent(user.id || user.mobile || user.username)}`);
+      const queryParams = new URLSearchParams();
+      if (user.id) queryParams.append('userId', user.id);
+      if (user.mobile && user.mobile !== '-') queryParams.append('mobile', user.mobile);
+      if (user.username) queryParams.append('username', user.username);
+      if (user.email) queryParams.append('email', user.email);
+      const target = user.id || user.mobile || user.username;
+      const res = await fetch(`/api/getrecycle/${encodeURIComponent(target)}?${queryParams.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setUserHistory(data.history || []);
