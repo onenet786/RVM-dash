@@ -130,8 +130,27 @@ export default function App() {
 
   const renderContent = () => {
     const isMasterDev = currentUser?.username === 'onenet';
-    const isSuperAdmin = isMasterDev || currentUser?.roleId === 'super_admin';
-    const userModules = currentUser?.modules || [];
+    const isSuperAdmin = isMasterDev || 
+      currentUser?.roleId === 'super_admin' || 
+      currentUser?.roleId === 'superadmin' || 
+      currentUser?.username === 'onenet' || 
+      currentUser?.username === 'bilalaaqueel' || 
+      currentUser?.isSuperAdmin === true;
+
+    const getUserAllowedModules = () => {
+      if (isSuperAdmin) return ['*'];
+      if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
+        return currentUser.modules;
+      }
+      const roleId = currentUser?.roleId;
+      if (roleId === 'fleet_operator') return ['overview', 'machines'];
+      if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
+      if (roleId === 'support_specialist') return ['overview', 'mobile_users', 'feedbacks', 'users'];
+      return ['overview'];
+    };
+
+    const userModules = getUserAllowedModules();
+
     const isAllowedTab = (tab) => {
       if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
@@ -139,8 +158,8 @@ export default function App() {
       return userModules.includes(tab) || userModules.includes(clean) || userModules.includes(`col_${clean}`);
     };
 
-    // Block unauthorized users from master administrative tabs
-    if (!isSuperAdmin && ['security', 'db_switcher', 'db_backup', 'col_adminaccounts'].includes(activeTab) && !isAllowedTab(activeTab)) {
+    // Block unauthorized users from any un-allowed tabs
+    if (!isAllowedTab(activeTab)) {
       return <OverviewTab currentUser={currentUser} />;
     }
 

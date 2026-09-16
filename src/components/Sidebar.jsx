@@ -32,14 +32,27 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     currentUser?.username === 'onenet' || 
     currentUser?.username === 'bilalaaqueel' || 
     currentUser?.isSuperAdmin === true;
-  const userModules = currentUser?.modules;
+
+  // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
+  const getUserAllowedModules = () => {
+    if (isSuperAdmin) return ['*'];
+    if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
+      return currentUser.modules;
+    }
+    const roleId = currentUser?.roleId;
+    if (roleId === 'fleet_operator') return ['overview', 'machines'];
+    if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
+    if (roleId === 'support_specialist') return ['overview', 'mobile_users', 'feedbacks', 'users'];
+    return ['overview'];
+  };
+
+  const allowedModules = getUserAllowedModules();
 
   const isModuleAllowed = (moduleId) => {
     if (isSuperAdmin) return true;
-    if (!userModules || !Array.isArray(userModules) || userModules.length === 0) return true;
-    if (userModules.includes('*') || userModules.includes('all')) return true;
+    if (allowedModules.includes('*') || allowedModules.includes('all')) return true;
     const cleanId = moduleId.replace('col_', '');
-    return userModules.includes(moduleId) || userModules.includes(cleanId) || userModules.includes(`col_${cleanId}`);
+    return allowedModules.includes(moduleId) || allowedModules.includes(cleanId) || allowedModules.includes(`col_${cleanId}`);
   };
 
   const navItems = [
@@ -96,6 +109,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const mongoCollectionItems = [...defaultMongoCollections, ...dynamicCollections];
 
+  const allowedPgTables = postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name));
+  const allowedMongoCollections = mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name));
+
   const handleTabClick = (id) => {
     setActiveTab(id);
     if (setIsMobileOpen) setIsMobileOpen(false);
@@ -124,13 +140,15 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
         <div>
           <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
             <span>Core Dashboards</span>
-            <span className={`px-2.5 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
-              isPostgres 
-                ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
-                : 'bg-emerald-50 text-[#0b5d3b] border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-            }`}>
-              {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
-            </span>
+            {isSuperAdmin && (
+              <span className={`px-2.5 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
+                isPostgres 
+                  ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
+                  : 'bg-emerald-50 text-[#0b5d3b] border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+              }`}>
+                {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
+              </span>
+            )}
           </div>
 
           <nav className="space-y-1">
@@ -158,8 +176,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </nav>
         </div>
 
-        {/* PostgreSQL Relational Tables (Shown when in Postgres Mode) */}
-        {isPostgres && (
+        {/* PostgreSQL Relational Tables (Only shown when in Postgres Mode AND allowed for user) */}
+        {isPostgres && allowedPgTables.length > 0 && (
           <div>
             <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-3 text-left">
               <span className="flex items-center gap-1.5">
@@ -167,12 +185,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 PostgreSQL Relational Tables
               </span>
               <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
-                {postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length} Tables
+                {allowedPgTables.length} Tables
               </span>
             </div>
 
             <nav className="space-y-1">
-              {postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).map(item => {
+              {allowedPgTables.map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 const count = getCollectionCount(item.name);
@@ -204,68 +222,70 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </div>
         )}
 
-        {/* MongoDB rvmapp Tables Browser (Collapsible in Postgres Mode) */}
-        <div>
-          <button
-            onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
-            className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group text-left"
-            title={isMongoCollapsed ? "Click to expand MongoDB rvmapp collections to sync data" : "Click to collapse MongoDB collections"}
-          >
-            <span className="flex items-center gap-1.5 text-left">
-              <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
-              <span className="text-left">MongoDB rvmapp Collections</span>
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-emerald-800 dark:text-emerald-400 mono text-xs bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
-                {mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).length}
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
-            </div>
-          </button>
-
-          {isPostgres && isMongoCollapsed && (
-            <div 
-              onClick={() => setIsMongoCollapsed(false)}
-              className="mx-3 p-2.5 text-xs font-bold bg-amber-50 dark:bg-amber-950/30 border border-amber-400/40 rounded-xl text-amber-800 dark:text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-100 transition-all shadow-sm text-left"
+        {/* MongoDB rvmapp Tables Browser (Only shown when allowed for user) */}
+        {allowedMongoCollections.length > 0 && (
+          <div>
+            <button
+              onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
+              className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group text-left"
+              title={isMongoCollapsed ? "Click to expand MongoDB rvmapp collections to sync data" : "Click to collapse MongoDB collections"}
             >
-              <span>📁 Collapsed (Connected to PostgreSQL)</span>
-              <span className="text-xs underline font-extrabold text-amber-900 dark:text-amber-200">Sync Data</span>
-            </div>
-          )}
+              <span className="flex items-center gap-1.5 text-left">
+                <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
+                <span className="text-left">MongoDB rvmapp Collections</span>
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-emerald-800 dark:text-emerald-400 mono text-xs bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
+                  {allowedMongoCollections.length}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+              </div>
+            </button>
 
-          {!isMongoCollapsed && (
-            <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto mt-1 animate-fade-in">
-              {mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name)).map(item => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                const count = getCollectionCount(item.name);
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left ${
-                      isActive 
-                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
-                        : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
-                      <span className="truncate text-xs text-left leading-snug">{item.label}</span>
-                    </div>
-                    {count !== null && (
-                      <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md mono shrink-0 ml-1.5 ${
-                        isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
-                      }`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-          )}
-        </div>
+            {isPostgres && isMongoCollapsed && (
+              <div 
+                onClick={() => setIsMongoCollapsed(false)}
+                className="mx-3 p-2.5 text-xs font-bold bg-amber-50 dark:bg-amber-950/30 border border-amber-400/40 rounded-xl text-amber-800 dark:text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-100 transition-all shadow-sm text-left"
+              >
+                <span>📁 Collapsed (Connected to PostgreSQL)</span>
+                <span className="text-xs underline font-extrabold text-amber-900 dark:text-amber-200">Sync Data</span>
+              </div>
+            )}
+
+            {!isMongoCollapsed && (
+              <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto mt-1 animate-fade-in">
+                {allowedMongoCollections.map(item => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  const count = getCollectionCount(item.name);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleTabClick(item.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left ${
+                        isActive 
+                          ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
+                          : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
+                        <span className="truncate text-xs text-left leading-snug">{item.label}</span>
+                      </div>
+                      {count !== null && (
+                        <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md mono shrink-0 ml-1.5 ${
+                          isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
+          </div>
+        )}
 
       </div>
 
