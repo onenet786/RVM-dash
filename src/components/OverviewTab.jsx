@@ -29,6 +29,7 @@ export default function OverviewTab({ currentUser }) {
   const fetchOverview = async () => {
     try {
       setLoading(true);
+      const query = getMachinesQuery();
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const [ovRes, trRes, hlRes] = await Promise.all([
