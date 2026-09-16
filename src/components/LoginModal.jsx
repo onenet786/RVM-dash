@@ -1,6 +1,220 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, Shield } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShieldCheck, Lock, User, Eye, EyeOff, LogIn, AlertTriangle, Sparkles } from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
+
+/**
+ * High-performance 60FPS Flying Leaf & Eco-Particle Canvas Engine
+ * Simulates multi-species botanical leaves drifting on natural sinusoidal wind curves
+ * with genuine 3D tumbling physics and golden bioluminescent pollen spores.
+ */
+function FlyingLeavesCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Mouse wind interaction
+    let mouse = { x: width / 2, y: height / 2, active: false };
+    const handleMouseMove = (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
+    // Leaf Color Palettes (Realistic ISP Brand Greens & Golds)
+    const leafPalettes = [
+      { start: '#0b5d3b', end: '#047857', vein: '#064e3b' }, // Deep Forest Emerald
+      { start: '#10b981', end: '#34d399', vein: '#059669' }, // Spring Mint Jade
+      { start: '#84cc16', end: '#a3e635', vein: '#65a30d' }, // Sunlit Fresh Lime
+      { start: '#e5a919', end: '#f59e0b', vein: '#b45309' }, // Warm Radiant Gold
+      { start: '#059669', end: '#10b981', vein: '#047857' }, // Classic Vanguard Green
+    ];
+
+    // Create Leaf Particles
+    const leafCount = Math.min(46, Math.floor(width / 32));
+    const leaves = [];
+
+    for (let i = 0; i < leafCount; i++) {
+      const palette = leafPalettes[Math.floor(Math.random() * leafPalettes.length)];
+      const size = 11 + Math.random() * 18; // Varied sizes for depth
+      const depth = size / 29; // 0.3 to 1.0 (parallax depth)
+
+      leaves.push({
+        x: Math.random() * width,
+        y: Math.random() * height - height,
+        vx: 0.6 + Math.random() * 1.4 * depth,
+        vy: 0.9 + Math.random() * 1.8 * depth,
+        size,
+        depth,
+        angle: Math.random() * Math.PI * 2,
+        vAngle: (Math.random() - 0.5) * 0.035,
+        wobble: Math.random() * Math.PI * 2,
+        vWobble: 0.02 + Math.random() * 0.035,
+        swayPhase: Math.random() * Math.PI * 2,
+        palette,
+        leafType: Math.floor(Math.random() * 3), // 0: Oval/Eucalyptus, 1: Classic Birch, 2: Ginkgo/Heart
+        opacity: 0.35 + depth * 0.55,
+      });
+    }
+
+    // Golden Eco-Spores (Bioluminescent Micro-Particles)
+    const sporeCount = 32;
+    const spores = [];
+    for (let i = 0; i < sporeCount; i++) {
+      spores.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: 0.8 + Math.random() * 2.2,
+        vy: -(0.3 + Math.random() * 0.7),
+        vx: (Math.random() - 0.5) * 0.5,
+        pulse: Math.random() * Math.PI * 2,
+        opacity: 0.2 + Math.random() * 0.5,
+        color: Math.random() > 0.4 ? 'rgba(229, 169, 25,' : 'rgba(52, 211, 153,',
+      });
+    }
+
+    // High performance render loop
+    let tick = 0;
+    const render = () => {
+      tick++;
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Draw Golden Bioluminescent Spores
+      for (let i = 0; i < spores.length; i++) {
+        const s = spores[i];
+        s.y += s.vy;
+        s.x += s.vx + Math.sin(tick * 0.02 + s.pulse) * 0.3;
+        s.pulse += 0.04;
+
+        if (s.y < -10) {
+          s.y = height + 10;
+          s.x = Math.random() * width;
+        }
+
+        const currentOpacity = s.opacity * (0.6 + Math.sin(s.pulse) * 0.4);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `${s.color}${currentOpacity})`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = s.color === 'rgba(229, 169, 25,' ? '#e5a919' : '#34d399';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // 2. Draw Realistic 3D Drifting Leaves
+      for (let i = 0; i < leaves.length; i++) {
+        const l = leaves[i];
+
+        // Natural Sinusoidal Wind Physics + Mouse interaction
+        l.swayPhase += 0.025;
+        const windX = Math.sin(l.swayPhase) * 1.1 + Math.cos(tick * 0.015) * 0.5;
+        l.x += l.vx + windX;
+        l.y += l.vy;
+        l.angle += l.vAngle;
+        l.wobble += l.vWobble;
+
+        // Subtle mouse push
+        if (mouse.active) {
+          const dx = l.x - mouse.x;
+          const dy = l.y - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            const force = (140 - dist) / 140;
+            l.x += (dx / dist) * force * 3;
+            l.y += (dy / dist) * force * 3;
+          }
+        }
+
+        // Screen wrap-around
+        if (l.y > height + 40) {
+          l.y = -40;
+          l.x = Math.random() * width;
+        }
+        if (l.x > width + 40) l.x = -40;
+        if (l.x < -40) l.x = width + 40;
+
+        // 3D Tumbling Scale Factor
+        const scaleX = Math.cos(l.wobble) * 0.85 + 0.15;
+        const scaleY = Math.sin(l.wobble * 0.7) * 0.35 + 0.9;
+
+        ctx.save();
+        ctx.translate(l.x, l.y);
+        ctx.rotate(l.angle);
+        ctx.scale(scaleX, scaleY);
+        ctx.globalAlpha = l.opacity;
+
+        // Create Leaf Linear Gradient
+        const grad = ctx.createLinearGradient(-l.size / 2, -l.size, l.size / 2, l.size);
+        grad.addColorStop(0, l.palette.start);
+        grad.addColorStop(1, l.palette.end);
+
+        // Draw Botanical Leaf Geometry
+        ctx.beginPath();
+        if (l.leafType === 0) {
+          // Oval Eucalyptus leaf
+          ctx.moveTo(0, -l.size);
+          ctx.bezierCurveTo(l.size * 0.7, -l.size * 0.5, l.size * 0.7, l.size * 0.5, 0, l.size);
+          ctx.bezierCurveTo(-l.size * 0.7, l.size * 0.5, -l.size * 0.7, -l.size * 0.5, 0, -l.size);
+        } else if (l.leafType === 1) {
+          // Classic Pointed Birch leaf
+          ctx.moveTo(0, -l.size * 1.1);
+          ctx.bezierCurveTo(l.size * 0.8, -l.size * 0.3, l.size * 0.6, l.size * 0.7, 0, l.size);
+          ctx.bezierCurveTo(-l.size * 0.6, l.size * 0.7, -l.size * 0.8, -l.size * 0.3, 0, -l.size * 1.1);
+        } else {
+          // Ginkgo / Heart Fan leaf
+          ctx.moveTo(0, l.size);
+          ctx.bezierCurveTo(l.size * 0.9, l.size * 0.2, l.size * 0.9, -l.size * 0.8, 0, -l.size);
+          ctx.bezierCurveTo(-l.size * 0.9, -l.size * 0.8, -l.size * 0.9, l.size * 0.2, 0, l.size);
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Elegant Central Vein
+        ctx.beginPath();
+        ctx.moveTo(0, -l.size * 0.85);
+        ctx.quadraticCurveTo(l.size * 0.1, 0, 0, l.size * 0.95);
+        ctx.strokeStyle = l.palette.vein;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 pointer-events-none z-0"
+      style={{ opacity: 0.92 }}
+    />
+  );
+}
 
 export default function LoginModal({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -61,77 +275,122 @@ export default function LoginModal({ onLoginSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md">
-      {/* Subtle Ambient Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[350px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-hidden select-none bg-[#03150e]/90 backdrop-blur-xl">
+      
+      {/* Dynamic 60FPS Flying Leaf & Spore Canvas Background */}
+      <FlyingLeavesCanvas />
 
-      {/* Main Login Card */}
-      <div className="relative w-full max-w-[420px] z-10">
-        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/90 shadow-2xl shadow-black/80 backdrop-blur-xl p-8 space-y-6">
+      {/* Radiant Environmental Ambient Glow Halos */}
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500/15 rounded-full blur-[110px] pointer-events-none animate-pulse" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-amber-500/10 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-emerald-600/10 rounded-full blur-[140px] pointer-events-none" />
+
+      {/* Layered Botanical SVG Accents floating around card */}
+      <div className="absolute top-12 left-14 pointer-events-none hidden md:block animate-leaf-1 opacity-75">
+        <svg width="68" height="68" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 52C12 52 14 30 36 16C58 2 54 22 42 38C30 54 12 52 12 52Z" fill="url(#leafGrad1)" fillOpacity="0.8" />
+          <path d="M12 52C22 40 32 30 46 22" stroke="#047857" strokeWidth="1.5" strokeLinecap="round" />
+          <defs>
+            <linearGradient id="leafGrad1" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#10b981" />
+              <stop offset="1" stopColor="#0b5d3b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div className="absolute bottom-16 right-16 pointer-events-none hidden md:block animate-leaf-2 opacity-75">
+        <svg width="76" height="76" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M52 12C52 12 46 38 24 48C2 58 10 38 24 24C38 10 52 12 52 12Z" fill="url(#leafGrad2)" fillOpacity="0.75" />
+          <path d="M52 12C38 24 28 36 14 46" stroke="#b45309" strokeWidth="1.5" strokeLinecap="round" />
+          <defs>
+            <linearGradient id="leafGrad2" x1="14" y1="14" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#f59e0b" />
+              <stop offset="1" stopColor="#0b5d3b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      {/* Main Executive Glassmorphic Login Card */}
+      <div className="relative w-full max-w-[440px] z-10 animate-card-entrance">
+        <div className="relative rounded-[32px] p-7 sm:p-9 space-y-6 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.8),0_0_55px_0_rgba(11,93,59,0.3)] border border-emerald-500/35 bg-[#051c14]/85 backdrop-blur-2xl overflow-hidden">
           
-          {/* Header & Brand Identity */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex p-2.5 rounded-2xl bg-white shadow-md border border-slate-200/80 mx-auto">
-              <img 
-                src={ispLogo} 
-                alt="ISP Environmental Solutions" 
-                className="w-14 h-14 object-contain"
-              />
+          {/* Subtle Inner Glass Highlights */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
+
+          {/* Header Branding with Official ISP Logo */}
+          <div className="text-center space-y-3 pt-2">
+            <div className="relative w-22 h-22 mx-auto flex items-center justify-center">
+              {/* Rotating Eco Halo Rings */}
+              <div className="absolute inset-0 rounded-3xl border border-dashed border-emerald-400/40 animate-halo-spin pointer-events-none" />
+              <div className="absolute -inset-1 rounded-[26px] border border-dotted border-amber-400/30 animate-halo-spin-rev pointer-events-none" />
+
+              {/* Official Logo Container */}
+              <div className="w-18 h-18 rounded-2xl bg-white p-2 flex items-center justify-center shadow-xl shadow-emerald-950/50 border-2 border-emerald-400/60 relative z-10">
+                <img 
+                  src={ispLogo} 
+                  alt="ISP Environmental Solutions" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
 
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                Sign in to RVM Portal
-              </h1>
-              <p className="text-xs text-slate-400 mt-1">
-                ISP Environmental Solutions Management Console
-              </p>
+              <div className="flex items-center justify-center gap-1.5">
+                <h2 className="text-2xl font-black text-white tracking-tight">
+                  ISP Environmental Solutions
+                </h2>
+                <Sparkles className="w-4 h-4 text-[#e5a919] shrink-0" />
+              </div>
+
+              <div className="text-xs font-bold text-[#e5a919] uppercase tracking-widest mt-1">
+                Reverse Vending Machine (RVM) Portal
+              </div>
             </div>
           </div>
 
-          {/* Error Message */}
+          {/* Error Alert */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-start gap-2.5 text-xs">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span className="leading-relaxed">{error}</span>
+            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 flex items-center gap-2.5 text-xs font-bold animate-shake">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{error}</span>
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
-            {/* Username / Email */}
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} autoComplete="on" className="space-y-4 text-xs">
+            
+            {/* Username / Email Field */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300 block">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-200/90 block flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-emerald-400" />
                 Username or Email
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <User className="w-4 h-4" />
-                </div>
+
+              <div className="relative group">
                 <input
                   type="text"
                   name="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  placeholder="Enter your username or email"
                   autoComplete="username"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/60 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+                  className="w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 text-white font-mono text-xs focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password Field */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300">
-                  Password
-                </label>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-200/90 block flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                Password
+              </label>
+
+              <div className="relative group">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
@@ -140,69 +399,73 @@ export default function LoginModal({ onLoginSuccess }) {
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   required
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/60 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+                  className="w-full bg-[#03130d]/80 border border-emerald-500/30 group-hover:border-emerald-400/50 rounded-2xl px-4 py-3 pr-11 text-white font-mono text-xs focus:border-[#e5a919] focus:ring-2 focus:ring-[#e5a919]/20 focus:outline-none transition-all shadow-inner placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3.5 top-3.5 text-emerald-400/70 hover:text-emerald-300 transition-colors p-0.5 rounded-lg cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center justify-between text-xs pt-0.5">
-              <label className="flex items-center gap-2 text-slate-400 hover:text-slate-300 cursor-pointer select-none">
+            {/* Remember Me & Support */}
+            <div className="flex items-center justify-between text-[11px] pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-emerald-200/80 hover:text-emerald-100">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer"
+                  className="rounded bg-emerald-950/60 border-emerald-500/40 text-emerald-500 focus:ring-emerald-400 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
                 />
                 <span>Remember me</span>
               </label>
 
               <span 
-                className="text-xs text-slate-400 hover:text-emerald-400 cursor-pointer transition-colors"
+                className="text-emerald-400/70 font-semibold cursor-pointer hover:text-emerald-300"
                 title="Please contact system administrator to reset credentials"
               >
                 Forgot password?
               </span>
             </div>
 
-            {/* Submit Button */}
+            {/* High-Impact Gold Eco-Action Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-sm rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full relative overflow-hidden py-3.5 px-6 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-950 bg-gradient-to-r from-[#e5a919] via-amber-400 to-[#e5a919] hover:from-amber-300 hover:to-amber-400 transition-all duration-300 shadow-[0_8px_25px_-5px_rgba(229,169,25,0.5)] flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             >
+              {/* Shimmer Light Beam Effect */}
+              <div className="absolute inset-0 w-1/3 bg-white/30 transform -skew-x-12 animate-shimmer pointer-events-none" />
+
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
                   <span>Signing in...</span>
                 </>
               ) : (
                 <>
+                  <LogIn className="w-4 h-4 text-slate-950 stroke-[2.5]" />
                   <span>Sign In</span>
-                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
           {/* Clean Security Footer */}
-          <div className="pt-2 border-t border-slate-800/60 text-center">
-            <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-slate-400" />
+          <div className="pt-2 border-t border-emerald-500/20 text-center">
+            <p className="text-[10px] text-emerald-300/60 flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Authorized Administrative Personnel Only</span>
             </p>
           </div>
 
         </div>
       </div>
+
     </div>
   );
 }
