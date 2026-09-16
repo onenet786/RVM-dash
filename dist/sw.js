@@ -7,7 +7,7 @@
  * - Instant sub-50ms repeat load time on mobile devices and browsers
  */
 
-const CACHE_NAME = 'rvm-shell-v2';
+const CACHE_NAME = 'rvm-shell-v3';
 const STATIC_SHELL = [
   '/',
   '/index.html',
@@ -88,7 +88,8 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse.clone()));
+          const resClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, resClone)).catch(() => {});
         }
         return networkResponse;
       }).catch(() => cached);

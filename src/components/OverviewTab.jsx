@@ -29,16 +29,17 @@ export default function OverviewTab({ currentUser }) {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const query = getMachinesQuery();
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const [ovRes, trRes, hlRes] = await Promise.all([
-        fetch(`/api/overview${query}`),
-        fetch(`/api/analytics/trends${query}`),
-        fetch('/api/health')
+        fetch(`/api/overview${query}`, { headers }),
+        fetch(`/api/analytics/trends${query}`, { headers }),
+        fetch('/api/health', { headers })
       ]);
 
-      if (ovRes.ok) setOverview(await ovRes.json());
-      if (trRes.ok) setTrends(await trRes.json());
-      if (hlRes.ok) setHealth(await hlRes.json());
+      if (ovRes.ok) setOverview(await ovRes.json().catch(() => null));
+      if (trRes.ok) setTrends(await trRes.json().catch(() => []));
+      if (hlRes.ok) setHealth(await hlRes.json().catch(() => null));
     } catch (err) {
       console.error('Error fetching overview', err);
     } finally {

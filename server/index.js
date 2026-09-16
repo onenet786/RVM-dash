@@ -1378,13 +1378,24 @@ app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
       }
       const grouped = {};
       sessions.forEach(s => {
-        const dateKey = (s.recycledAt || s.timestamp || new Date().toISOString()).substring(0, 10);
+        const rawDate = s.recycledAt || s.timestamp || s.created_at;
+        let dateKey = '';
+        if (rawDate instanceof Date) {
+          dateKey = rawDate.toISOString().substring(0, 10);
+        } else if (typeof rawDate === 'string') {
+          dateKey = rawDate.substring(0, 10);
+        } else if (typeof rawDate === 'number') {
+          dateKey = new Date(rawDate).toISOString().substring(0, 10);
+        } else {
+          dateKey = new Date().toISOString().substring(0, 10);
+        }
+
         if (!grouped[dateKey]) {
           grouped[dateKey] = { _id: dateKey, bottles: 0, cups: 0, points: 0, count: 0 };
         }
-        grouped[dateKey].bottles += parseInt(s.bottles || s.totalBottles || 0);
-        grouped[dateKey].cups += parseInt(s.cups || s.totalCups || 0);
-        grouped[dateKey].points += parseInt(s.points || s.totalPoints || 0);
+        grouped[dateKey].bottles += parseInt(s.bottles || s.totalBottles || s.plasticCount || 0) || 0;
+        grouped[dateKey].cups += parseInt(s.cups || s.totalCups || s.aluminiumCount || 0) || 0;
+        grouped[dateKey].points += parseInt(s.points || s.totalPoints || 0) || 0;
         grouped[dateKey].count += 1;
       });
       const trends = Object.values(grouped).sort((a, b) => a._id.localeCompare(b._id)).slice(0, 30);
@@ -1394,26 +1405,35 @@ app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
     const sessionCol = db.collection('recyclingsessions');
     const machineQuery = getMachineScopeQuery(req, 'machineId');
 
-    const pipeline = [];
-    if (Object.keys(machineQuery).length > 0) pipeline.push({ $match: machineQuery });
-    pipeline.push(
-      {
-        $group: {
-          _id: { $substr: ['$recycledAt', 0, 10] },
-          bottles: { $sum: '$bottles' },
-          cups: { $sum: '$cups' },
-          points: { $sum: '$points' },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } },
-      { $limit: 30 }
-    );
+    const sessions = await sessionCol.find(machineQuery || {}).sort({ recycledAt: -1 }).limit(1000).toArray();
+    const grouped = {};
+    sessions.forEach(s => {
+      const rawDate = s.recycledAt || s.timestamp || s.createdAt || s.created_at;
+      let dateKey = '';
+      if (rawDate instanceof Date) {
+        dateKey = rawDate.toISOString().substring(0, 10);
+      } else if (typeof rawDate === 'string') {
+        dateKey = rawDate.substring(0, 10);
+      } else if (typeof rawDate === 'number') {
+        dateKey = new Date(rawDate).toISOString().substring(0, 10);
+      } else {
+        dateKey = new Date().toISOString().substring(0, 10);
+      }
 
-    const trends = await sessionCol.aggregate(pipeline).toArray();
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = { _id: dateKey, bottles: 0, cups: 0, points: 0, count: 0 };
+      }
+      grouped[dateKey].bottles += parseInt(s.bottles || s.plasticCount || 0) || 0;
+      grouped[dateKey].cups += parseInt(s.cups || s.aluminiumCount || 0) || 0;
+      grouped[dateKey].points += parseInt(s.points || s.pointsEarned || 0) || 0;
+      grouped[dateKey].count += 1;
+    });
+
+    const trends = Object.values(grouped).sort((a, b) => a._id.localeCompare(b._id)).slice(0, 30);
     res.json(trends);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Analytics trends error:', err);
+    res.status(200).json([]);
   }
 });
 

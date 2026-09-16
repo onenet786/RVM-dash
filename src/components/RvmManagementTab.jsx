@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Cpu, Plus, RefreshCw, Edit3, MapPin, CheckCircle2, Server, X, Globe, Wifi, Lock } from 'lucide-react';
 import DataTable from './DataTable';
 
