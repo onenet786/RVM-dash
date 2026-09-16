@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PecoDrop Reverse Vending Machine — Operator & Customer User Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.5;
+      font-size: 10pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Cover / Header Section */
+    .header-banner {
+      background: linear-gradient(135deg, #070a14 0%, #0f172a 60%, #0284c7 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 18pt;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-size: 9pt;
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    .meta-badge {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 8pt;
+      font-family: 'JetBrains Mono', monospace;
+      text-align: right;
+      line-height: 1.5;
+    }
+
+    .doc-version-tag {
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
+    /* Section Headings */
+    h2 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      page-break-after: avoid;
+    }
+
+    h2 .section-num {
+      background: #0284c7;
+      color: #fff;
+      font-size: 9pt;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 800;
+    }
+
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 14px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    /* Images & Figures */
+    .figure-container {
+      margin: 14px 0;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+
+    .figure-container img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .figure-caption {
+      font-size: 8pt;
+      color: #64748b;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* Architectural Highlights Box */
+    .highlights-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 12px 0 16px 0;
+      page-break-inside: avoid;
+    }
+
+    .highlight-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 8.5pt;
+    }
+
+    .card-plastic { border-top: 3px solid #0284c7; }
+    .card-can { border-top: 3px solid #d97706; }
+    .card-paper { border-top: 3px solid #059669; }
+
+    .highlight-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 9pt;
+    }
+
+    .card-plastic strong { color: #0284c7; }
+    .card-can strong { color: #d97706; }
+    .card-paper strong { color: #059669; }
+
+    /* Steps Grid */
+    .step-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .step-badge {
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .step-title {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .urdu-box {
+      background: #f0fdf4;
+      border-left: 3px solid #10b981;
+      padding: 6px 10px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 6px;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      font-size: 9pt;
+      color: #065f46;
+      direction: rtl;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 8px 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 7.5pt;
+      text-align: left;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .tag-plastic { color: #0284c7; font-weight: 700; }
+    .tag-can { color: #d97706; font-weight: 700; }
+    .tag-paper { color: #059669; font-weight: 700; }
+
+    .urdu-cell {
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      font-size: 9pt;
+      color: #047857;
+      direction: rtl;
+    }
+
+    /* SVG Flowchart */
+    .flowchart-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 14px 0;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .checklist-list {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .checklist-list li {
+      margin-bottom: 6px;
+      color: #334155;
+      font-size: 9pt;
+    }
+
+    .callout-alert {
+      background: #fff1f2;
+      border-left: 4px solid #f43f5e;
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    .callout-alert strong {
+      color: #9f1239;
+      display: block;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Banner -->
+  <div class="header-banner">
+    <div>
+      <div class="brand-title">PecoDrop Reverse Vending Machine</div>
+      <div class="brand-sub">Operator &amp; Customer User Manual • 3-Chamber Smart Kiosk</div>
+    </div>
+    <div class="meta-badge">
+      <div>DOC REF: <span class="doc-version-tag">RVM-OP-2.4.0</span></div>
+      <div>HARDWARE: Mega 2560 Pro</div>
+      <div>DATE: 2026-09-16</div>
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2><span class="section-num">01</span> System Overview &amp; Product Architecture</h2>
+  <p>
+    The <strong>PecoDrop 3-Chamber Reverse Vending Machine (RVM)</strong> is an automated electromechanical kiosk engineered for 
+    high-throughput collection, automated sorting, volumetric sizing, material purity verification, and instant digital reward disbursement for consumer recyclables.
+  </p>
+
+  <div class="figure-container">
+    <img src="images/rvm_kiosk_system_overview.png" alt="PecoDrop 3-Chamber Kiosk System">
+    <div class="figure-caption">Figure 1.1: PecoDrop 3-Chamber Smart Kiosk with Central Interactive Touchscreen &amp; Illuminated Intake Ports</div>
+  </div>
+
+  <div class="highlights-grid">
+    <div class="highlight-card card-plastic">
+      <strong>Chamber 1 (Cyan Glow)</strong>
+      PET Plastic Beverage Bottles. 3-tier vertical ultrasonic array for Small (≤250ml), Medium (500ml), and Large (1.5L+).
+    </div>
+    <div class="highlight-card card-can">
+      <strong>Chamber 2 (Amber Glow)</strong>
+      Beverage Aluminum &amp; Steel Cans. Inductive proximity sensor executing 12-sample burst over 180ms (≥9 LOWs = 100% metal).
+    </div>
+    <div class="highlight-card card-paper">
+      <strong>Chamber 3 (Emerald Glow)</strong>
+      Clean Paper &amp; Cardboard. Dual ultrasonic arrival check and HX711 24-bit ADC strain-gauge scale with dynamic tare calibration.
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 2 -->
+  <h2><span class="section-num">02</span> Customer Recycling Deposit Workflow</h2>
+  <p>Follow the 4-step interactive procedure to deposit items and earn instant digital Green Points:</p>
+
+  <div class="figure-container">
+    <img src="images/operator_kiosk_touchscreen_guide.png" alt="Operator & Recycling User Quick Start Guide">
+    <div class="figure-caption">Figure 2.1: 4-Step Customer Recycling Workflow &amp; Mobile App Dynamic QR Code Reward Claim Guide</div>
+  </div>
+
+  <!-- Steps Detail -->
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-badge">STEP 1</span>
+      <span class="step-title">Approach Kiosk &amp; Select Waste Category</span>
+    </div>
+    <p style="font-size: 8.5pt; margin-bottom: 4px;">
+      Stand before the kiosk. On the touchscreen, select <strong>Plastic Bottles</strong>, <strong>Aluminum Cans</strong>, or <strong>Paper</strong>. The designated intake port softly illuminates.
+    </p>
+    <div class="urdu-box">مشین کے سامنے آئیں اور اسکرین پر اپنی ری سائیکلنگ کیٹیگری کا انتخاب کریں۔</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-badge">STEP 2</span>
+      <span class="step-title">Empty Container &amp; Insert Base-First</span>
+    </div>
+    <p style="font-size: 8.5pt; margin-bottom: 4px;">
+      Ensure containers are empty of liquids. Insert into the active port. The automatic upper iris aperture gate glides open (10° to 120°) to accept the item safely.
+    </p>
+    <div class="urdu-box">مخصوص پورٹ میں بوتل، کین، یا کاغذ داخل کریں۔</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-badge">STEP 3</span>
+      <span class="step-title">Automated Internal Sizing &amp; Material Verification</span>
+    </div>
+    <p style="font-size: 8.5pt; margin-bottom: 4px;">
+      Iris closes. The internal array scans: height ultrasonic beams for bottles, inductive sensor for aluminum purity, or load cell for paper mass. The bottom drop gate discharges into the internal hopper.
+    </p>
+    <div class="urdu-box">مشین خودکار طور پر سائز، دھات اور وزن کی تصدیق کر کے ذخیرہ کرے گی۔</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-badge">STEP 4</span>
+      <span class="step-title">Scan Dynamic QR Code &amp; Claim Green Points</span>
+    </div>
+    <p style="font-size: 8.5pt; margin-bottom: 4px;">
+      Session summary appears on screen. Launch the <strong>PecoDrop Mobile App</strong>, tap <em>Scan QR</em>, and scan the on-screen code to credit points immediately to your digital wallet!
+    </p>
+    <div class="urdu-box">موبائل ایپ سے اسکرین پر موجود کیو آر کوڈ اسکین کریں اور فوری انعامات حاصل کریں۔</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3 -->
+  <h2><span class="section-num">03</span> Accepted vs. Rejected Items Matrix</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Recycling Stream</th>
+        <th style="width: 18%;">Intake Port</th>
+        <th style="width: 30%;">Accepted Items</th>
+        <th style="width: 30%;">Strictly Rejected Items</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag-plastic">PET Plastic Bottles</span></td>
+        <td>Chamber 1 (Cyan Glow)</td>
+        <td>• Clear &amp; tinted PET bottles (250ml – 2.5L)<br>• Water, soft drink &amp; juice bottles<br>• Clean empty containers</td>
+        <td>• Containers with liquid contents<br>• Crushed or flattened bottles<br>• Glass bottles, motor oil cans<br>• PVC pipes and household plastics</td>
+      </tr>
+      <tr>
+        <td><span class="tag-can">Beverage Cans</span></td>
+        <td>Chamber 2 (Amber Glow)</td>
+        <td>• Standard 330ml / 500ml aluminum cans<br>• Slim 250ml energy drink cans<br>• Clean tinplate food beverage cans</td>
+        <td>• Severely crushed/shredded metal foil<br>• Pressurized aerosol spray cans<br>• Plastic coated metal composites<br>• Batteries or electronic scrap</td>
+      </tr>
+      <tr>
+        <td><span class="tag-paper">Paper Wastage</span></td>
+        <td>Chamber 3 (Emerald Glow)</td>
+        <td>• White office paper, letters, notebooks<br>• Newspapers, magazines &amp; brochures<br>• Clean flattened cardboard packaging</td>
+        <td>• Wet, grease-soaked, or food-soiled paper<br>• Thermal receipts &amp; carbon paper<br>• Styrofoam &amp; plastic bubble wrap<br>• Heavy metal binders &amp; large clips</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 4 -->
+  <h2><span class="section-num">04</span> Bilingual Operational Prompts (English &amp; Urdu)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">System State</th>
+        <th style="width: 40%;">English Display Banner</th>
+        <th style="width: 38%;">Urdu Audio/Visual Guidance (اردو)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Kiosk Ready</strong></td>
+        <td><em>System Ready. Please insert plastic bottle, can, or paper.</em></td>
+        <td class="urdu-cell">مشین تیار ہے • برائے مہربانی پلاسٹک کی بوتل، کین، یا کاغذ داخل کریں</td>
+      </tr>
+      <tr>
+        <td><strong>Item Accepted</strong></td>
+        <td><em>Object Accepted. Scanning size &amp; material purity...</em></td>
+        <td class="urdu-cell">آئٹم قبول کر لیا گیا • سائز اور میٹریل کی جانچ جاری ہے</td>
+      </tr>
+      <tr>
+        <td><strong>Plastic Sized</strong></td>
+        <td><em>Plastic Bottle verified: Medium Tier (+15 Points).</em></td>
+        <td class="urdu-cell">پلاسٹک کی بوتل تصدیق شدہ: درمیانی سائز (+15 پوائنٹس)</td>
+      </tr>
+      <tr>
+        <td><strong>Metal Verified</strong></td>
+        <td><em>Aluminum Can verified: 100% Metal (+20 Points).</em></td>
+        <td class="urdu-cell">ایلومینیم کین کی تصدیق مکمل (+20 پوائنٹس)</td>
+      </tr>
+      <tr>
+        <td><strong>Paper Weighed</strong></td>
+        <td><em>Paper mass logged: 0.185 kg (+25 Points).</em></td>
+        <td class="urdu-cell">کاغذ کا وزن کامیابی سے ریکارڈ کیا گیا (+25 پوائنٹس)</td>
+      </tr>
+      <tr>
+        <td><strong>Session Finished</strong></td>
+        <td><em>Session Complete! Scan dynamic QR code on screen.</em></td>
+        <td class="urdu-cell">سیشن مکمل! اسکرین پر موجود کیو آر کوڈ اسکین کریں</td>
+      </tr>
+      <tr>
+        <td><strong>Error / Jam</strong></td>
+        <td><em>Chamber intake blocked. Attendant alerted.</em></td>
+        <td class="urdu-cell">چیمبر میں رکاوٹ • عملے کو مطلع کر دیا گیا ہے</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Section 5 -->
+  <h2><span class="section-num">05</span> Attendant Daily Operational Checklist</h2>
+  <p>To ensure high availability and prevent jams, attendants must execute this workflow daily:</p>
+
+  <!-- SVG Flowchart -->
+  <div class="flowchart-box">
+    <svg width="600" height="150" viewBox="0 0 600 150" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+      <!-- Step 1 -->
+      <rect x="10" y="20" width="100" height="45" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="60" y="42" fill="#ffffff" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" text-anchor="middle">1. Visual Check</text>
+      <text x="60" y="55" fill="#94a3b8" font-size="7.5" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">3 Intake Ports</text>
+
+      <!-- Arrow 1 -->
+      <path d="M 110 42 L 135 42" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" fill="none"/>
+
+      <!-- Step 2 -->
+      <rect x="135" y="20" width="105" height="45" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="187" y="42" fill="#ffffff" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" text-anchor="middle">2. Clean Sensors</text>
+      <text x="187" y="55" fill="#94a3b8" font-size="7.5" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Wipe with Microfiber</text>
+
+      <!-- Arrow 2 -->
+      <path d="M 240 42 L 265 42" stroke="#64748b" stroke-width="2" fill="none"/>
+
+      <!-- Step 3 -->
+      <rect x="265" y="20" width="105" height="45" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="317" y="42" fill="#ffffff" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" text-anchor="middle">3. Bin Capacity</text>
+      <text x="317" y="55" fill="#f59e0b" font-size="7.5" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Empty if > 80%</text>
+
+      <!-- Arrow 3 -->
+      <path d="M 370 42 L 395 42" stroke="#64748b" stroke-width="2" fill="none"/>
+
+      <!-- Step 4 -->
+      <rect x="395" y="20" width="100" height="45" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.5"/>
+      <text x="445" y="42" fill="#ffffff" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" text-anchor="middle">4. Load Cell Tare</text>
+      <text x="445" y="55" fill="#10b981" font-size="7.5" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Check Zero Baseline</text>
+
+      <!-- Arrow 4 -->
+      <path d="M 495 42 L 520 42" stroke="#64748b" stroke-width="2" fill="none"/>
+
+      <!-- Step 5 -->
+      <rect x="520" y="20" width="70" height="45" rx="8" fill="#10b981" stroke="#059669" stroke-width="1.5"/>
+      <text x="555" y="42" fill="#ffffff" font-size="9" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" text-anchor="middle">READY</text>
+      <text x="555" y="55" fill="#ffffff" font-size="7.5" font-family="'Plus Jakarta Sans', sans-serif" text-anchor="middle">Online</text>
+
+      <!-- Bottom Status Bar -->
+      <rect x="10" y="85" width="580" height="45" rx="6" fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="300" y="103" fill="#0f172a" font-size="8.5" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" text-anchor="middle">Trigger 'CALIBRATE' command in Desktop Attendant Console prior to opening.</text>
+      <text x="300" y="118" fill="#0284c7" font-size="8" font-family="'JetBrains Mono', monospace" text-anchor="middle">Expected Telemetry: CALIBRATION:OK ➔ MACHINE:STARTED ➔ MACHINE:IDLE</text>
+    </svg>
+  </div>
+
+  <h3>Morning Opening Routine</h3>
+  <ol class="checklist-list">
+    <li><strong>Power Supply:</strong> Ensure primary 12V 15A industrial PSU is energized and green LEDs are illuminated.</li>
+    <li><strong>Servo Gate Verification:</strong> Confirm all 3 iris gates and 3 drop gates are in the secure closed position (10°).</li>
+    <li><strong>Sensor Lens Cleanliness:</strong> Wipe ultrasonic transducer cones and inductive sensor face with antistatic microfiber cloth.</li>
+    <li><strong>App Connectivity:</strong> Verify host PC running <code>PecoDropDesktopApp</code> has opened COM port at 115200 baud.</li>
+    <li><strong>Auto-Calibration:</strong> Send <code>CALIBRATE</code>. Confirm <code>CALIBRATION:OK</code> and <code>MACHINE:IDLE</code> appear on logs.</li>
+  </ol>
+
+  <div class="callout-alert">
+    <strong>EMERGENCY PROCEDURES</strong>
+    • <strong>Object Jam:</strong> Press the red EMERGENCY STOP button on the kiosk side or send <code>STOP</code> via console. All servos lock to 10° immediately.<br>
+    • <strong>Liquid Ingress:</strong> Immediately trip the main safety breaker switch located on the bottom-right interior cabinet.
+  </div>
+
+</body>
+</html>

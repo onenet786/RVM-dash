@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PecoDrop RVM — 3-Chamber Hardware, Architecture & Video Demonstration Guide</title>
+  <meta name="description" content="Complete 30-second video showcase, animation simulator, and hardware architecture guide for the 3-Chamber Smart Reverse Vending Machine." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #070a12;
+      --bg-card: rgba(15, 22, 36, 0.88);
+      --bg-card-hover: rgba(24, 34, 54, 0.95);
+      --border-color: rgba(255, 255, 255, 0.09);
+      --border-focus: rgba(0, 210, 255, 0.5);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-accent: #38bdf8;
+      
+      --cyan-glow: #00d2ff;
+      --amber-glow: #f59e0b;
+      --emerald-glow: #10b981;
+      --rose-glow: #f43f5e;
+      --purple-glow: #a855f7;
+
+      --plastic-color: #0284c7;
+      --metal-color: #d97706;
+      --paper-color: #059669;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 10% 15%, rgba(0, 210, 255, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(245, 158, 11, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.12) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      background: rgba(7, 10, 18, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 210, 255, 0.4);
+    }
+
+    .brand-badge svg { width: 24px; height: 24px; fill: #ffffff; }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--cyan-glow);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+
+    .nav-link:hover, .nav-link.active-link {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-btn {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 0.45rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      box-shadow: 0 0 16px rgba(2, 132, 199, 0.6);
+      transform: translateY(-1px);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem 2rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 2.5rem 1rem 3rem 1rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 0.4rem 1.1rem;
+      border-radius: 9999px;
+      color: var(--cyan-glow);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h2 {
+      font-size: 2.85rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ==============================================================
+       VIDEO CINEMA SHOWCASE SECTION
+       ============================================================== */
+    .video-showcase-section {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(7, 10, 18, 0.98));
+      border: 1px solid rgba(0, 210, 255, 0.25);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: 0 0 60px rgba(0, 210, 255, 0.12);
+      margin-bottom: 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .video-showcase-section::before {
+      content: '';
+      position: absolute;
+      top: -150px;
+      right: -150px;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.15), transparent 70%);
+      pointer-events: none;
+    }
+
+    .section-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .video-nav-tabs {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .video-tab-btn {
+      padding: 0.6rem 1.1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .video-tab-btn.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.35), rgba(2, 132, 199, 0.15));
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.25);
+    }
+
+    /* Video Player Frame Container */
+    .video-screen-wrapper {
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 16 / 9;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.7);
+    }
+
+    .video-channel {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .video-channel.active {
+      display: block;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    /* 30-Second Procedural Animation Canvas */
+    #animationCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #030816;
+    }
+
+    /* Interactive Overlay HUD for Simulation */
+    .canvas-hud-overlay {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .hud-chip {
+      background: rgba(7, 10, 18, 0.8);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--cyan-glow);
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-rec-dot {
+      width: 8px;
+      height: 8px;
+      background: #f43f5e;
+      border-radius: 50%;
+      animation: blinkRec 1s infinite;
+    }
+
+    @keyframes blinkRec {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Timeline and Controller Bar */
+    .player-controls-bar {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(0, 210, 255, 0.2);
+      border-color: var(--cyan-glow);
+    }
+
+    .timeline-slider-container {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timeline-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .timeline-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan-glow);
+      box-shadow: 0 0 10px var(--cyan-glow);
+      cursor: pointer;
+    }
+
+    .timestamp-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--cyan-glow);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* Subtitles / Scene Caption Banner */
+    .scene-caption-banner {
+      background: rgba(18, 24, 38, 0.6);
+      border-left: 4px solid var(--cyan-glow);
+      padding: 1rem 1.5rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .caption-content h5 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cyan-glow);
+      margin-bottom: 0.25rem;
+    }
+
+    .caption-content p {
+      font-size: 0.95rem;
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    .urdu-caption {
+      font-size: 0.95rem;
+      color: #34d399;
+      direction: rtl;
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    }
+
+    /* ==============================================================
+       AI VIDEO GENERATION PROMPTS & STORYBOARD SECTION
+       ============================================================== */
+    .prompt-studio-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-bottom: 4rem;
+    }
+
+    .prompt-card {
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .prompt-tag {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #c084fc;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(0, 210, 255, 0.2);
+      border-color: var(--cyan-glow);
+    }
+
+    .prompt-text {
+      background: #05070d;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Scene Breakdown Grid */
+    .storyboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+
+    .storyboard-card {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      position: relative;
+    }
+
+    .time-pill {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--cyan-glow);
+      background: rgba(0, 210, 255, 0.1);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+
+    .storyboard-card h5 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .storyboard-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ==============================================================
+       HARDWARE SPECIFICATION & INTERACTIVE TABS
+       ============================================================== */
+    .tabs-wrapper {
+      background: rgba(18, 24, 38, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      display: inline-flex;
+      gap: 6px;
+      margin-bottom: 2rem;
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 1rem 1.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.04); }
+
+    .tab-btn.active[data-tab="plastic"] {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(2, 132, 199, 0.1));
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 20px rgba(2, 132, 199, 0.2);
+    }
+
+    .tab-btn.active[data-tab="metal"] {
+      background: linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(217, 119, 6, 0.1));
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      box-shadow: 0 4px 20px rgba(217, 119, 6, 0.2);
+    }
+
+    .tab-btn.active[data-tab="paper"] {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(16, 185, 129, 0.1));
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .chamber-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .chamber-card.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chamber-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .chamber-badge {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-plastic { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-metal { background: rgba(217, 119, 6, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-paper { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 2rem;
+      margin-top: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .detail-panel {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+    }
+
+    .detail-panel h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logic-step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 1.25rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--cyan-glow);
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .step-content p { font-size: 0.925rem; color: var(--text-muted); }
+    .step-content strong { color: #fff; }
+
+    /* Matrix box */
+    .matrix-box {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-top: 1rem;
+    }
+
+    .matrix-row {
+      display: flex;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.875rem;
+    }
+
+    .matrix-row:last-child { border-bottom: none; }
+
+    .matrix-indicators { display: flex; gap: 8px; }
+
+    .indicator {
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ind-on { background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .ind-off { background: rgba(255, 255, 255, 0.05); color: #6b7280; border: 1px solid rgba(255, 255, 255, 0.08); }
+
+    .pin-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      background: rgba(0, 210, 255, 0.1);
+      color: var(--cyan-glow);
+      border: 1px solid rgba(0, 210, 255, 0.2);
+    }
+
+    /* Master Table */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-top: 2rem;
+      overflow-x: auto;
+    }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th {
+      background: rgba(11, 15, 25, 0.8);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    td { padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-size: 0.9rem; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 4rem;
+    }
+
+    pre code {
+      display: block;
+      background: #060913;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-x: auto;
+    }
+
+    @media (max-width: 768px) {
+      .hero h2 { font-size: 2rem; }
+      .chamber-card { padding: 1.5rem; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="header-container">
+      <a href="#" class="brand">
+        <div class="brand-badge">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>PECO DROP RVM</h1>
+          <span>Hardware & Video Systems Guide</span>
+        </div>
+      </a>
+      <nav class="nav-links">
+        <a href="#video-theater" class="nav-link active-link">Video Cinema</a>
+        <a href="#prompt-studio" class="nav-link">AI Video Prompts</a>
+        <a href="#chambers" class="nav-link">Chambers</a>
+        <a href="#pinout" class="nav-link">Pinout Table</a>
+        <button class="nav-btn" onclick="startSimVideo()">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Play 30s Sim
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Banner -->
+    <section class="hero">
+      <div class="hero-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+        3-Chamber Smart Kiosk • Complete 30-Second Video Demonstration
+      </div>
+      <h2>Reverse Vending Machine System Showcase</h2>
+      <p>
+        Experience the synchronized electro-mechanical workflow of our 3-Chamber Reverse Vending Machine.
+        Explore live video streams, high-definition procedural simulations, AI generation prompts, and complete Arduino Mega hardware specifications.
+      </p>
+    </section>
+
+    <!-- ==============================================================
+         VIDEO CINEMA SHOWCASE THEATER
+         ============================================================== -->
+    <section id="video-theater" class="video-showcase-section">
+      <div class="section-header-flex">
+        <div>
+          <span style="color: var(--cyan-glow); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Interactive Media Center</span>
+          <h3 class="section-title">
+            <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24" style="color: var(--cyan-glow);"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15c0-1.66 1.34-3 3-3 .35 0 .69.07 1 .18V6h5v3h-3v6c0 1.66-1.34 3-3 3s-3-1.34-3-3z"/></svg>
+            System Video Showcase &amp; Procedural CAD Simulation
+          </h3>
+        </div>
+
+        <div class="video-nav-tabs">
+          <button class="video-tab-btn active" id="btnTabSim" onclick="selectVideoChannel('sim')">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            30s Animated System CAD
+          </button>
+          <button class="video-tab-btn" id="btnTabInstruct" onclick="selectVideoChannel('instruct')">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            Instructional Video (MP4)
+          </button>
+          <button class="video-tab-btn" id="btnTabAd" onclick="selectVideoChannel('ad')">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg>
+            Kiosk Advertisement (MP4)
+          </button>
+          <button class="video-tab-btn" id="btnTabDancing" onclick="selectVideoChannel('dancing')">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            Reward Celebration
+          </button>
+        </div>
+      </div>
+
+      <!-- Player Frame -->
+      <div class="video-screen-wrapper">
+        <!-- Channel 1: 30s Procedural Animated CAD Simulation -->
+        <div id="channel-sim" class="video-channel active">
+          <canvas id="animationCanvas" width="1280" height="720"></canvas>
+          <div class="canvas-hud-overlay">
+            <div class="hud-chip">
+              <span class="hud-rec-dot"></span>
+              LIVE CAD SIMULATOR • 60 FPS
+            </div>
+            <div class="hud-chip" id="hudChamberIndicator">
+              STAGE: IDLE
+            </div>
+          </div>
+        </div>
+
+        <!-- Channel 2: Real Instructional Video -->
+        <div id="channel-instruct" class="video-channel">
+          <video id="videoInstruct" controls preload="metadata">
+            <source src="Ads/Instructions/Instructinal.mp4" type="video/mp4">
+            <source src="PecoDropDesktopApp/Ads/Instructions/Instructinal.mp4" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        </div>
+
+        <!-- Channel 3: Real Advertisement Video -->
+        <div id="channel-ad" class="video-channel">
+          <video id="videoAd" controls preload="metadata">
+            <source src="Ads/Advertisements/ad_1789147503725_PECO_B.mp4" type="video/mp4">
+            <source src="PecoDropDesktopApp/Ads/Advertisements/advertisement.mp4" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        </div>
+
+        <!-- Channel 4: Celebration Animation -->
+        <div id="channel-dancing" class="video-channel">
+          <video id="videoDancing" controls preload="metadata" loop>
+            <source src="PecoDropDesktopApp/Assets/DancingPlastic.mp4" type="video/mp4">
+            <source src="RVMDesktopApp/Assets/DancingPlastic.mp4" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        </div>
+      </div>
+
+      <!-- Controller Bar (For Simulation) -->
+      <div class="player-controls-bar" id="simControllerBar">
+        <button class="ctrl-btn" id="btnPlayPause" onclick="toggleSimPlay()">
+          <span id="playIcon">▶</span> <span id="playText">Play</span>
+        </button>
+        <button class="ctrl-btn" onclick="restartSim()">
+          <span>↺</span> Restart
+        </button>
+
+        <div class="timeline-slider-container">
+          <input type="range" id="simScrubber" class="timeline-slider" min="0" max="30" step="0.1" value="0" oninput="scrubSim(this.value)">
+          <div class="timestamp-display" id="timeDisplay">00:00 / 00:30</div>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <button class="ctrl-btn" onclick="jumpToSecond(0)">0s Kiosk</button>
+          <button class="ctrl-btn" onclick="jumpToSecond(5)">5s Plastic</button>
+          <button class="ctrl-btn" onclick="jumpToSecond(12)">12s Can</button>
+          <button class="ctrl-btn" onclick="jumpToSecond(18)">18s Paper</button>
+          <button class="ctrl-btn" onclick="jumpToSecond(24)">24s Reward</button>
+        </div>
+      </div>
+
+      <!-- Live Scene Captions & Narration -->
+      <div class="scene-caption-banner" id="captionBanner">
+        <div class="caption-content">
+          <h5 id="captionStageTag">Scene 1 • 00:00 - 00:05</h5>
+          <p id="captionEn">System Initialized. 3-Chamber Kiosk ready for customer deposit.</p>
+        </div>
+        <div class="urdu-caption" id="captionUr">
+          مشین تیار ہے • پلاسٹک کی بوتل، کین، یا کاغذ داخل کریں
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         EXECUTIVE PROMPT STUDIO & 30-SECOND STORYBOARD
+         ============================================================== -->
+    <section id="prompt-studio" class="prompt-studio-section">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span style="color: var(--purple-glow); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Generative Video Production Suite</span>
+          <h3 class="section-title">
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" style="color: var(--purple-glow);"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+            Executive 30-Second AI Video Prompts
+          </h3>
+        </div>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem;">
+        Engineered for state-of-the-art AI video generators (Runway Gen-3 Alpha, OpenAI Sora, Kling AI, Luma Dream Machine) and 3D CAD motion artists in Cinema 4D / Unreal Engine 5.
+      </p>
+
+      <!-- Master Prompt Card -->
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-tag">Master Text-to-Video Prompt • 30-Second Continuous Cinema</span>
+          <button class="copy-btn" onclick="copyPrompt('masterPrompt')">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy Prompt
+          </button>
+        </div>
+        <div class="prompt-text" id="masterPrompt">Hyper-realistic 8K commercial product reveal of a futuristic smart Reverse Vending Machine (RVM) in a minimalist architectural studio. Anamorphic lens, cinematic lighting. Shot starts with a macro view of three illuminated intake ports. The camera transitions into a translucent X-ray 3D CAD visualization showing the inner electromechanical mechanisms: In chamber 1, an automatic mechanical iris gate opens, a plastic bottle drops into a vertical scanning chute where three glowing cyan ultrasonic sensor beams measure its height, classifying it as MEDIUM before a bottom servo trapdoor opens. In chamber 2, a metallic aluminum soda can is scanned by an amber glowing inductive proximity sensor verifying metal purity. In chamber 3, paper waste lands on a precision load-cell scale with a digital weight HUD calculating grams. Dynamic camera pans to the vibrant vertical kiosk touchscreen showing green recycling points, instantly transferring rewards via a glowing QR code to a user's smartphone. Octane render, photorealistic materials, brushed titanium, matte white chassis, smooth 60fps cinematic slow-motion.</div>
+      </div>
+
+      <!-- 30-Second Storyboard Cards -->
+      <div class="storyboard-grid">
+        <div class="storyboard-card">
+          <span class="time-pill">0:00 - 0:05</span>
+          <h5>1. Hero Kiosk Approach</h5>
+          <p>Wide 45&deg; beauty pan of the sleek kiosk. User stands in front; three glowing intake ports (Plastic, Metal, Paper) pulse with soft cyan illumination.</p>
+        </div>
+
+        <div class="storyboard-card">
+          <span class="time-pill">0:05 - 0:12</span>
+          <h5>2. Plastic Ultrasonic Sizing</h5>
+          <p>Iris servo twists open. Bottle drops into sizing column. Bottom &amp; Middle ultrasonic sensor lasers scan height, confirming MEDIUM (500ml). Trapdoor opens.</p>
+        </div>
+
+        <div class="storyboard-card">
+          <span class="time-pill">0:12 - 0:18</span>
+          <h5>3. Can &amp; Metal Verification</h5>
+          <p>Aluminum can enters Chamber 2. An amber electromagnetic pulse scans metal density (Pin 32). Telemetry displays: 100% CAN VERIFIED.</p>
+        </div>
+
+        <div class="storyboard-card">
+          <span class="time-pill">0:18 - 0:24</span>
+          <h5>4. Paper Mass Weighing</h5>
+          <p>Paper drops onto the precision load cell plate. HX711 counter ticks up to 0.185 kg, confirming clean tare and dumping into recycling hopper.</p>
+        </div>
+
+        <div class="storyboard-card">
+          <span class="time-pill">0:24 - 0:30</span>
+          <h5>5. Mobile App QR Credit</h5>
+          <p>Kiosk screen updates reward balance. User scans on-screen dynamic QR code with their mobile wallet; green confirmation ring chimes with earned reward points.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         INTERACTIVE HARDWARE CHAMBERS SPECIFICATION
+         ============================================================== -->
+    <section id="chambers">
+      <h3 class="section-title" style="margin-bottom: 1.5rem;">
+        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-3V2h-4v2H9c-1.1 0-2 .9-2 2v2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V6c0-1.1-.9-2-2-2zm-1 6H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V10z"/></svg>
+        Electro-Mechanical Chamber Specifications
+      </h3>
+
+      <div class="tabs-wrapper" role="tablist">
+        <button class="tab-btn active" data-tab="plastic" id="tabBtnPlastic" onclick="switchTab('plastic')">
+          Chamber 1: Plastic Bottles (Size Sizing)
+        </button>
+        <button class="tab-btn" data-tab="metal" id="tabBtnMetal" onclick="switchTab('metal')">
+          Chamber 2: Cans / Metal (Proximity Sensing)
+        </button>
+        <button class="tab-btn" data-tab="paper" id="tabBtnPaper" onclick="switchTab('paper')">
+          Chamber 3: Paper Wastage (HX711 Load Cell)
+        </button>
+      </div>
+
+      <!-- Chamber 1: Plastic -->
+      <div id="chamber-plastic" class="chamber-card active">
+        <div class="chamber-header">
+          <div>
+            <span class="chamber-badge badge-plastic">Chamber 1 • PET Plastic</span>
+            <h3 style="font-size: 1.5rem; margin-top: 0.5rem;">Height-Based Multi-Tier Bottle Sizing</h3>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #38bdf8;">
+            Serial Output: SIZE:&lt;SIZE&gt;;MATERIAL:PLASTIC
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="detail-panel">
+            <h4>Workflow Execution</h4>
+            <div class="logic-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <strong>Entrance Detection:</strong>
+                <p>Top ultrasonic (<span class="pin-badge">Trig: 9</span> / <span class="pin-badge">Echo: 10</span>) detects object when distance drops &ge; 5cm for 3 cycles. Emits <code>PLASTIC:OBJECT_DETECTED</code>.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <strong>Iris Gate Actuation:</strong>
+                <p>Upper iris servo (<span class="pin-badge">Pin 11</span>) swings open from 10&deg; to 120&deg;. Bottle drops into the sizing chamber.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <strong>3-Level Ultrasonic Sizing:</strong>
+                <p>Inside the sizing column, 3 ultrasonics sample item height (Bottom, Middle, Top) with 30ms anti-cross-talk spacing.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">4</div>
+              <div class="step-content">
+                <strong>Drop &amp; Discharge:</strong>
+                <p>Upper iris closes (10&deg;). Bottom drop gate (<span class="pin-badge">Pin 12</span>) opens (120&deg;), drops the bottle into bin, verifies chamber is empty for 5 cycles, then sends <code>BOTTLE:CLEARED</code>.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <h4>Sizing Classification Matrix</h4>
+            <div class="matrix-box">
+              <div class="matrix-row">
+                <span class="size-tag" style="color: #38bdf8;">SMALL (&le; 250ml)</span>
+                <div class="matrix-indicators">
+                  <span class="indicator ind-on">Bottom: ON</span>
+                  <span class="indicator ind-off">Middle: OFF</span>
+                  <span class="indicator ind-off">Top: OFF</span>
+                </div>
+              </div>
+              <div class="matrix-row">
+                <span class="size-tag" style="color: #60a5fa;">MEDIUM (500ml)</span>
+                <div class="matrix-indicators">
+                  <span class="indicator ind-on">Bottom: ON</span>
+                  <span class="indicator ind-on">Middle: ON</span>
+                  <span class="indicator ind-off">Top: OFF</span>
+                </div>
+              </div>
+              <div class="matrix-row">
+                <span class="size-tag" style="color: #818cf8;">LARGE (1.5L+)</span>
+                <div class="matrix-indicators">
+                  <span class="indicator ind-on">Bottom: ON</span>
+                  <span class="indicator ind-on">Middle: ON</span>
+                  <span class="indicator ind-on">Top: ON</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chamber 2: Metal -->
+      <div id="chamber-metal" class="chamber-card">
+        <div class="chamber-header">
+          <div>
+            <span class="chamber-badge badge-metal">Chamber 2 • Beverage Cans</span>
+            <h3 style="font-size: 1.5rem; margin-top: 0.5rem;">Sizing &amp; Inductive Material Verification</h3>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #fbbf24;">
+            Serial Output: SIZE:&lt;SIZE&gt;;MATERIAL:CAN (or REJECT)
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="detail-panel">
+            <h4>Can Verification Sequence</h4>
+            <div class="logic-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <strong>Can Entry:</strong>
+                <p>Entrance ultrasonic (<span class="pin-badge">Trig: 25</span> / <span class="pin-badge">Echo: 26</span>) detects item. Iris servo (<span class="pin-badge">Pin 27</span>) opens 120&deg;.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <strong>Inductive Proximity Sampling:</strong>
+                <p>Inductive sensor (<span class="pin-badge">Pin 32</span>) samples 12 times over 180ms. Must register $\ge 9$ LOW states to confirm genuine metal.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <strong>Drop Gate:</strong>
+                <p>Discharges via Servo (<span class="pin-badge">Pin 28</span>) into the metal receptacle.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <h4>Sensor Envelope Details</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
+              • Entrance Servo: <span class="pin-badge">Pin 27</span><br>
+              • Drop Gate Servo: <span class="pin-badge">Pin 28</span><br>
+              • Inductive Proximity Pin: <span class="pin-badge">Pin 32 (INPUT_PULLUP)</span><br>
+              • Sizing Sensors: <span class="pin-badge">29/30</span>, <span class="pin-badge">31/44</span>, <span class="pin-badge">45/46</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chamber 3: Paper -->
+      <div id="chamber-paper" class="chamber-card">
+        <div class="chamber-header">
+          <div>
+            <span class="chamber-badge badge-paper">Chamber 3 • Paper Wastage</span>
+            <h3 style="font-size: 1.5rem; margin-top: 0.5rem;">HX711 Load Cell Mass Measurement</h3>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #34d399;">
+            Serial Output: SIZE:WEIGHT;MATERIAL:PAPER;WEIGHT_KG:0.185
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="detail-panel">
+            <h4>Weighing &amp; Discharge Cycle</h4>
+            <div class="logic-step">
+              <div class="step-number">1</div>
+              <div class="step-content">
+                <strong>Entry &amp; Chute Arrival:</strong>
+                <p>Top ultrasonic (<span class="pin-badge">33/34</span>) opens Iris (<span class="pin-badge">Pin 35</span>). Bottom ultrasonic (<span class="pin-badge">39/40</span>) confirms paper rests on tray.</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">2</div>
+              <div class="step-content">
+                <strong>HX711 Reading (Pins 37 &amp; 38):</strong>
+                <p>Must exceed 20g threshold. Averages 8 readings after 3 consecutive stable samples ($\pm 5\text{ g}$).</p>
+              </div>
+            </div>
+            <div class="logic-step">
+              <div class="step-number">3</div>
+              <div class="step-content">
+                <strong>Discharge:</strong>
+                <p>Paper drop servo (<span class="pin-badge">Pin 36</span>) dumps paper, verifying tare drops below 8g.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <h4>Formula &amp; Wiring</h4>
+            <pre><code>// HX711 Calibration Constants
+const float PAPER_COUNTS_PER_GRAM = 420.0f;
+const float PAPER_MIN_WEIGHT_G = 20.0f;
+const float PAPER_CLEAR_WEIGHT_G = 8.0f;</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Master Pinout Table -->
+    <section id="pinout" style="margin-top: 4rem;">
+      <h3 class="section-title">
+        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        Arduino Mega 2560 Pinout Reference
+      </h3>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Chamber</th>
+              <th>Component</th>
+              <th>Signal Type</th>
+              <th>Arduino Pin</th>
+              <th>Functional Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="chamber-badge badge-plastic">Plastic</span></td>
+              <td>Entrance Ultrasonic</td>
+              <td>Digital I/O</td>
+              <td><span class="pin-badge">Trig: 9</span> <span class="pin-badge">Echo: 10</span></td>
+              <td>User bottle insertion detection</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-plastic">Plastic</span></td>
+              <td>Iris Aperture Servo</td>
+              <td>PWM Servo</td>
+              <td><span class="pin-badge">Pin 11</span></td>
+              <td>Safety entrance gate (10&deg; closed / 120&deg; open)</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-plastic">Plastic</span></td>
+              <td>Drop Gate Servo</td>
+              <td>PWM Servo</td>
+              <td><span class="pin-badge">Pin 12</span></td>
+              <td>Discharges into plastic storage bin</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-plastic">Plastic</span></td>
+              <td>Sizing Array (B/M/T)</td>
+              <td>Digital I/O</td>
+              <td><span class="pin-badge">22/23</span>, <span class="pin-badge">24/41</span>, <span class="pin-badge">42/43</span></td>
+              <td>Measures bottle height tiers</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-metal">Metal Can</span></td>
+              <td>Entrance &amp; Servos</td>
+              <td>Digital &amp; PWM</td>
+              <td><span class="pin-badge">25/26</span>, <span class="pin-badge">Iris: 27</span>, <span class="pin-badge">Drop: 28</span></td>
+              <td>Can entrance &amp; discharge gating</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-metal">Metal Can</span></td>
+              <td>Inductive Sensor</td>
+              <td>Digital Input Pullup</td>
+              <td><span class="pin-badge">Pin 32</span></td>
+              <td>Confirms aluminum/steel body (Active LOW)</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-paper">Paper</span></td>
+              <td>Top &amp; Bottom Ultrasonic</td>
+              <td>Digital I/O</td>
+              <td><span class="pin-badge">33/34</span>, <span class="pin-badge">39/40</span></td>
+              <td>Entrance and platform arrival sensing</td>
+            </tr>
+            <tr>
+              <td><span class="chamber-badge badge-paper">Paper</span></td>
+              <td>HX711 Load Cell</td>
+              <td>Bit-banged Serial</td>
+              <td><span class="pin-badge">DOUT: 37</span> <span class="pin-badge">SCK: 38</span></td>
+              <td>Precision mass scale amplifier</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 PecoDrop Smart Reverse Vending Machine Project • Hardware &amp; Video Architecture</p>
+  </footer>
+
+  <!-- ==============================================================
+       PROCEDURAL 30-SECOND SIMULATION JAVASCRIPT ENGINE
+       ============================================================== -->
+  <script>
+    // Tab switching for Chamber Details
+    function switchTab(chamber) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.chamber-card').forEach(card => card.classList.remove('active'));
+
+      if (chamber === 'plastic') {
+        document.getElementById('tabBtnPlastic').classList.add('active');
+        document.getElementById('chamber-plastic').classList.add('active');
+      } else if (chamber === 'metal') {
+        document.getElementById('tabBtnMetal').classList.add('active');
+        document.getElementById('chamber-metal').classList.add('active');
+      } else if (chamber === 'paper') {
+        document.getElementById('tabBtnPaper').classList.add('active');
+        document.getElementById('chamber-paper').classList.add('active');
+      }
+    }
+
+    // Video Channel Selector
+    function selectVideoChannel(channel) {
+      document.querySelectorAll('.video-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.video-channel').forEach(ch => ch.classList.remove('active'));
+
+      // Pause all HTML5 video elements when switching
+      document.querySelectorAll('video').forEach(v => v.pause());
+
+      const simCtrl = document.getElementById('simControllerBar');
+
+      if (channel === 'sim') {
+        document.getElementById('btnTabSim').classList.add('active');
+        document.getElementById('channel-sim').classList.add('active');
+        simCtrl.style.display = 'flex';
+      } else if (channel === 'instruct') {
+        document.getElementById('btnTabInstruct').classList.add('active');
+        document.getElementById('channel-instruct').classList.add('active');
+        simCtrl.style.display = 'none';
+        document.getElementById('videoInstruct').play().catch(()=>{});
+      } else if (channel === 'ad') {
+        document.getElementById('btnTabAd').classList.add('active');
+        document.getElementById('channel-ad').classList.add('active');
+        simCtrl.style.display = 'none';
+        document.getElementById('videoAd').play().catch(()=>{});
+      } else if (channel === 'dancing') {
+        document.getElementById('btnTabDancing').classList.add('active');
+        document.getElementById('channel-dancing').classList.add('active');
+        simCtrl.style.display = 'none';
+        document.getElementById('videoDancing').play().catch(()=>{});
+      }
+    }
+
+    // Clipboard Copy Helper
+    function copyPrompt(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Prompt copied to clipboard successfully!");
+      });
+    }
+
+    // ==============================================================
+    // PROCEDURAL 30-SECOND SIMULATION ENGINE (HTML5 CANVAS)
+    // ==============================================================
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let isPlaying = false;
+    let currentSec = 0;
+    const totalSec = 30;
+    let lastTimestamp = null;
+    let animationFrameId = null;
+
+    const stages = [
+      { start: 0, end: 5, tag: "Scene 1 • 00:00 - 00:05", en: "Smart Kiosk Standby. Three illuminated intake ports ready for recyclables.", ur: "مشین تیار ہے • برائے مہربانی پلاسٹک، کین، یا کاغذ داخل کریں" },
+      { start: 5, end: 12, tag: "Scene 2 • 00:05 - 00:12", en: "Chamber 1: Plastic Bottle enters. 3-level ultrasonic sensors scan height (MEDIUM).", ur: "چیمبر 1: پلاسٹک کی بوتل کی اونچائی کا الٹراسونک اسکین (درمیانی سائز)" },
+      { start: 12, end: 18, tag: "Scene 3 • 00:12 - 00:18", en: "Chamber 2: Beverage Can enters. Inductive proximity sensor confirms 100% genuine metal.", ur: "چیمبر 2: ایلومینیم کین کی جانچ • انڈکٹو سینسر نے دھات کی تصدیق کی" },
+      { start: 18, end: 24, tag: "Scene 4 • 00:18 - 00:24", en: "Chamber 3: Paper Waste lands on tray. HX711 Load cell stabilizes at 0.185 kg.", ur: "چیمبر 3: کاغذ کا وزن • پریسیشن لوڈ سیل 0.185 کلوگرام کی تصدیق" },
+      { start: 24, end: 30, tag: "Scene 5 • 00:24 - 00:30", en: "Reward Credit: Kiosk displays QR code. Mobile app wallet syncs +50 Green Points!", ur: "انعامی پوائنٹس کا تبادلہ • موبائل ایپ کے ذریعے کیو آر کوڈ اسکین کر کے پوائنٹس حاصل کریں" }
+    ];
+
+    function updateCaptions(t) {
+      const stage = stages.find(s => t >= s.start && t < s.end) || stages[stages.length - 1];
+      document.getElementById('captionStageTag').innerText = stage.tag;
+      document.getElementById('captionEn').innerText = stage.en;
+      document.getElementById('captionUr').innerText = stage.ur;
+      document.getElementById('hudChamberIndicator').innerText = stage.tag.split('•')[0].trim();
+    }
+
+    function renderFrame(t) {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Dark Futuristic Background
+      ctx.fillStyle = "#030816";
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle Background Grid
+      ctx.strokeStyle = "rgba(0, 210, 255, 0.05)";
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      // Draw Main Hardware Kiosk Silhouette / Cutaway Frame
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      ctx.strokeStyle = "rgba(0, 210, 255, 0.3)";
+      ctx.lineWidth = 2;
+      ctx.roundRect(140, 60, w - 280, h - 120, 24);
+      ctx.fill();
+      ctx.stroke();
+
+      // Top Title Bar inside Kiosk
+      ctx.fillStyle = "#38bdf8";
+      ctx.font = "bold 20px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText("PECO DROP REVERSE VENDING SYSTEM", 180, 105);
+
+      ctx.fillStyle = "#64748b";
+      ctx.font = "14px 'JetBrains Mono', monospace";
+      ctx.fillText(`SERIAL LINK: 115200 BAUD  |  TIME: ${t.toFixed(1)}s  |  ARDUINO MEGA 2560`, 180, 130);
+
+      // Draw 3 Chamber Columns
+      const chamberWidth = 260;
+      const chamberHeight = 380;
+      const chamberY = 160;
+      const ch1X = 180;
+      const ch2X = 510;
+      const ch3X = 840;
+
+      // Helper function to draw chamber tube
+      function drawChamber(x, title, color, active) {
+        ctx.fillStyle = active ? "rgba(28, 38, 64, 0.9)" : "rgba(10, 15, 28, 0.7)";
+        ctx.strokeStyle = active ? color : "rgba(255, 255, 255, 0.1)";
+        ctx.lineWidth = active ? 2.5 : 1;
+        ctx.roundRect(x, chamberY, chamberWidth, chamberHeight, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = active ? color : "#64748b";
+        ctx.font = "bold 16px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillText(title, x + 20, chamberY + 36);
+
+        // Top Iris Gate Indicator
+        ctx.fillStyle = active ? "rgba(0, 210, 255, 0.3)" : "rgba(255, 255, 255, 0.05)";
+        ctx.fillRect(x + 20, chamberY + 50, chamberWidth - 40, 12);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px 'JetBrains Mono', monospace";
+        ctx.fillText("IRIS GATE", x + 25, chamberY + 60);
+
+        // Bottom Drop Gate
+        ctx.fillStyle = active ? "rgba(0, 210, 255, 0.3)" : "rgba(255, 255, 255, 0.05)";
+        ctx.fillRect(x + 20, chamberY + chamberHeight - 30, chamberWidth - 40, 12);
+        ctx.fillText("DROP GATE", x + 25, chamberY + chamberHeight - 20);
+      }
+
+      // Draw the 3 Chambers
+      drawChamber(ch1X, "1. PLASTIC BOTTLE", "#00d2ff", (t >= 5 && t < 12));
+      drawChamber(ch2X, "2. METAL CAN", "#f59e0b", (t >= 12 && t < 18));
+      drawChamber(ch3X, "3. PAPER WASTAGE", "#10b981", (t >= 18 && t < 24));
+
+      // SCENE-SPECIFIC DYNAMICS
+      if (t >= 0 && t < 5) {
+        // Standby Mode
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 24px 'Plus Jakarta Sans', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("SYSTEM READY — INSERT ITEM INTO ANY PORT", w / 2, 360);
+        ctx.font = "16px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText("Ultrasound Entrance Sensors Standby • Doors Secured", w / 2, 400);
+        ctx.textAlign = "left";
+      } 
+      else if (t >= 5 && t < 12) {
+        // PLASTIC SIZING (Chamber 1)
+        const progress = (t - 5) / 7;
+        const bottleY = chamberY + 80 + Math.min(progress * 220, 160);
+
+        // Draw Bottle
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillRect(ch1X + 110, bottleY, 40, 90);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(ch1X + 120, bottleY - 14, 20, 14);
+
+        // 3 Ultrasonic Sensor Beams
+        const sensorY = [chamberY + 230, chamberY + 180, chamberY + 130];
+        const names = ["BOTTOM (ON)", "MIDDLE (ON)", "TOP (OFF)"];
+        const states = [true, true, false];
+
+        for (let i = 0; i < 3; i++) {
+          ctx.strokeStyle = states[i] ? "#10b981" : "rgba(255,255,255,0.2)";
+          ctx.lineWidth = states[i] ? 2 : 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(ch1X + 20, sensorY[i]);
+          ctx.lineTo(ch1X + chamberWidth - 20, sensorY[i]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = states[i] ? "#34d399" : "#64748b";
+          ctx.font = "11px 'JetBrains Mono', monospace";
+          ctx.fillText(names[i], ch1X + 30, sensorY[i] - 6);
+        }
+
+        // HUD Result Badge
+        ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
+        ctx.strokeStyle = "#10b981";
+        ctx.roundRect(ch1X + 40, chamberY + 290, 180, 44, 8);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#34d399";
+        ctx.font = "bold 13px 'JetBrains Mono', monospace";
+        ctx.fillText("SIZE: MEDIUM", ch1X + 75, chamberY + 312);
+        ctx.fillText("MATERIAL: PLASTIC", ch1X + 62, chamberY + 326);
+      } 
+      else if (t >= 12 && t < 18) {
+        // CAN & INDUCTIVE PROXIMITY (Chamber 2)
+        const canY = chamberY + 200;
+
+        // Draw Can
+        ctx.fillStyle = "#ef4444";
+        ctx.roundRect(ch2X + 105, canY, 50, 75, 8);
+        ctx.fill();
+        ctx.fillStyle = "#cbd5e1";
+        ctx.fillRect(ch2X + 115, canY + 4, 30, 8);
+
+        // Inductive Sensor Probe on Pin 32
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(ch2X + 25, canY + 20, 30, 30);
+        ctx.fillStyle = "#fff";
+        ctx.font = "10px 'JetBrains Mono', monospace";
+        ctx.fillText("PIN 32", ch2X + 22, canY + 15);
+
+        // Pulse Wave from Inductive Sensor
+        const waveR = ((t - 12) * 50) % 60;
+        ctx.strokeStyle = "rgba(245, 158, 11, 0.7)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ch2X + 55, canY + 35, waveR, -Math.PI / 3, Math.PI / 3);
+        ctx.stroke();
+
+        // Verification HUD
+        ctx.fillStyle = "rgba(245, 158, 11, 0.2)";
+        ctx.strokeStyle = "#f59e0b";
+        ctx.roundRect(ch2X + 40, chamberY + 290, 180, 44, 8);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "bold 13px 'JetBrains Mono', monospace";
+        ctx.fillText("METAL VERIFIED!", ch2X + 68, chamberY + 312);
+        ctx.fillText("MATERIAL: CAN", ch2X + 75, chamberY + 326);
+      }
+      else if (t >= 18 && t < 24) {
+        // PAPER & HX711 WEIGHING (Chamber 3)
+        const trayY = chamberY + 260;
+
+        // Weighing Plate
+        ctx.fillStyle = "#64748b";
+        ctx.fillRect(ch3X + 40, trayY, 180, 12);
+
+        // Folded Paper
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillRect(ch3X + 85, trayY - 35, 90, 35);
+        ctx.fillStyle = "#059669";
+        ctx.font = "bold 12px sans-serif";
+        ctx.fillText("NEWSPAPER", ch3X + 95, trayY - 14);
+
+        // Weight Reading ticking up
+        const targetWeight = 0.185;
+        const currentWeight = Math.min(targetWeight, ((t - 18) / 4) * targetWeight).toFixed(3);
+
+        ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
+        ctx.strokeStyle = "#10b981";
+        ctx.roundRect(ch3X + 40, chamberY + 290, 180, 44, 8);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#34d399";
+        ctx.font = "bold 13px 'JetBrains Mono', monospace";
+        ctx.fillText(`HX711: ${currentWeight} KG`, ch3X + 65, chamberY + 312);
+        ctx.fillText("MASS CONFIRMED", ch3X + 72, chamberY + 326);
+      }
+      else if (t >= 24 && t <= 30) {
+        // REWARD CREDIT & QR SYNC
+        ctx.fillStyle = "rgba(7, 10, 18, 0.9)";
+        ctx.roundRect(320, 160, w - 640, 380, 20);
+        ctx.fill();
+        ctx.strokeStyle = "#10b981";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#10b981";
+        ctx.font = "bold 26px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillText("SESSION COMPLETE!", w / 2, 220);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 42px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillText("+50 GREEN POINTS", w / 2, 280);
+
+        // Simulated QR Code Frame
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(w / 2 - 55, 310, 110, 110);
+        ctx.fillStyle = "#070a12";
+        ctx.fillRect(w / 2 - 45, 320, 30, 30);
+        ctx.fillRect(w / 2 + 15, 320, 30, 30);
+        ctx.fillRect(w / 2 - 45, 380, 30, 30);
+        ctx.fillRect(w / 2 - 5, 355, 20, 20);
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "14px 'Plus Jakarta Sans', sans-serif";
+        ctx.fillText("Scan with PecoDrop Mobile App to Claim", w / 2, 450);
+        ctx.textAlign = "left";
+      }
+    }
+
+    function simLoop(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentSec += delta;
+        if (currentSec >= totalSec) {
+          currentSec = 0; // Loop back or stop
+        }
+        document.getElementById('simScrubber').value = currentSec;
+        updateTimeDisplay(currentSec);
+        updateCaptions(currentSec);
+      }
+
+      renderFrame(currentSec);
+      animationFrameId = requestAnimationFrame(simLoop);
+    }
+
+    function updateTimeDisplay(sec) {
+      const s = Math.floor(sec);
+      const str = `00:${s < 10 ? '0' : ''}${s} / 00:30`;
+      document.getElementById('timeDisplay').innerText = str;
+    }
+
+    function toggleSimPlay() {
+      isPlaying = !isPlaying;
+      document.getElementById('playIcon').innerText = isPlaying ? '❚❚' : '▶';
+      document.getElementById('playText').innerText = isPlaying ? 'Pause' : 'Play';
+    }
+
+    function startSimVideo() {
+      selectVideoChannel('sim');
+      window.location.hash = '#video-theater';
+      if (!isPlaying) toggleSimPlay();
+    }
+
+    function restartSim() {
+      currentSec = 0;
+      document.getElementById('simScrubber').value = 0;
+      updateTimeDisplay(0);
+      updateCaptions(0);
+      if (!isPlaying) toggleSimPlay();
+    }
+
+    function scrubSim(val) {
+      currentSec = parseFloat(val);
+      updateTimeDisplay(currentSec);
+      updateCaptions(currentSec);
+      renderFrame(currentSec);
+    }
+
+    function jumpToSecond(s) {
+      currentSec = s;
+      document.getElementById('simScrubber').value = s;
+      updateTimeDisplay(s);
+      updateCaptions(s);
+      renderFrame(s);
+    }
+
+    // Auto-start loop
+    requestAnimationFrame(simLoop);
+    updateCaptions(0);
+    renderFrame(0);
+  </script>
+</body>
+</html>

@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PecoDrop RVM — Master User &amp; Engineering Documentation Portal</title>
+  <meta name="description" content="Complete Master User Manual, Hardware Engineering Schematics, Firmware API, and Maintenance Guide for the PecoDrop 3-Chamber Smart Reverse Vending Machine." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #070a14;
+      --bg-card: rgba(13, 19, 34, 0.85);
+      --bg-card-hover: rgba(22, 32, 55, 0.95);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(0, 210, 255, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --cyan: #00d2ff;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --purple: #a855f7;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 210, 255, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      background: rgba(7, 10, 20, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.85rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-badge {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #0284c7, #10b981);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+    }
+
+    .brand-badge svg { width: 22px; height: 22px; fill: #ffffff; }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-tab-btn {
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-tab-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab-btn.active {
+      color: #38bdf8;
+      background: rgba(2, 132, 199, 0.2);
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.3);
+    }
+
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .hero-banner {
+      text-align: center;
+      padding: 2.5rem 1rem 3rem 1rem;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 0.4rem 1.1rem;
+      border-radius: 9999px;
+      color: var(--cyan);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-banner h2 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-banner p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* Tab Content Panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Content Cards */
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-bottom: 2.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 2rem;
+      margin-top: 1.5rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Diagram Viewer Box */
+    .diagram-box {
+      background: #030611;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .diagram-box img {
+      width: 100%;
+      height: auto;
+      display: block;
+      cursor: zoom-in;
+      transition: transform 0.2s;
+    }
+
+    .diagram-box img:hover {
+      transform: scale(1.01);
+    }
+
+    .diagram-caption {
+      padding: 0.85rem 1.25rem;
+      background: rgba(13, 19, 34, 0.9);
+      border-top: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 1.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: #0c1222;
+      color: var(--cyan);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Code Blocks */
+    pre code {
+      display: block;
+      background: #050812;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-cyan { background: rgba(0, 210, 255, 0.15); color: #38bdf8; border: 1px solid rgba(0, 210, 255, 0.3); }
+    .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    /* Interactive Pinout Search */
+    .search-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 0.65rem 1rem;
+      background: #060913;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Modal for Image Lightbox */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(3, 6, 16, 0.95);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .lightbox-modal.active {
+      display: flex;
+    }
+
+    .lightbox-modal img {
+      max-width: 95%;
+      max-height: 90vh;
+      border-radius: var(--radius-md);
+      box-shadow: 0 0 50px rgba(0, 210, 255, 0.2);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 25px;
+      right: 35px;
+      color: #fff;
+      font-size: 2rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 4rem;
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      header, .nav-links, .search-input, .hero-badge { display: none; }
+      .tab-pane { display: block !important; }
+      .content-card { border: none; box-shadow: none; background: transparent; padding: 0; margin-bottom: 3rem; page-break-after: always; }
+      table { border: 1px solid #ccc; color: #000; }
+      th, td { border: 1px solid #ccc; color: #000; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <a href="#" class="brand">
+        <div class="brand-badge">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>PECO DROP RVM</h1>
+          <span>Master Documentation Portal</span>
+        </div>
+      </a>
+
+      <nav class="nav-links">
+        <button class="nav-tab-btn active" onclick="switchPane('overview')">Kiosk Overview</button>
+        <button class="nav-tab-btn" onclick="switchPane('operator')">Operator Manual</button>
+        <button class="nav-tab-btn" onclick="switchPane('hardware')">Hardware Engineering</button>
+        <button class="nav-tab-btn" onclick="switchPane('firmware')">Firmware &amp; Serial API</button>
+        <button class="nav-tab-btn" onclick="switchPane('maintenance')">Maintenance</button>
+        <button class="nav-tab-btn" onclick="switchPane('gallery')">Visual Gallery</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+      <div class="hero-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+        Official Engineering &amp; Operations Reference Manual
+      </div>
+      <h2>3-Chamber Smart Reverse Vending Machine</h2>
+      <p>
+        Architectural specifications, electrical wiring diagrams, high-definition PNG illustrations, 
+        serial handshake protocols, and troubleshooting guides for the PecoDrop Multi-Chamber RVM.
+      </p>
+    </div>
+
+    <!-- ==============================================================
+         TAB 1: KIOSK OVERVIEW
+         ============================================================== -->
+    <section id="pane-overview" class="tab-pane active">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-cyan">SYSTEM</span>
+          PecoDrop RVM Exterior Architecture &amp; Intake Ports
+        </h3>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">
+          The PecoDrop Reverse Vending Machine utilizes a high-efficiency 3-stream mechanical layout designed for intuitive recycling, 
+          rapid throughput, and high-accuracy verification.
+        </p>
+
+        <div class="diagram-box">
+          <img src="images/rvm_kiosk_system_overview.png" alt="PecoDrop 3-Chamber Kiosk System Overview" onclick="openLightbox(this.src)">
+          <div class="diagram-caption">
+            <span>Figure 1.1: 3D CAD Master Rendering of PecoDrop 3-Chamber Smart Kiosk</span>
+            <span class="badge badge-cyan">Click to Enlarge</span>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div style="background: rgba(11, 15, 25, 0.6); padding: 1.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <h4 style="color: #38bdf8; margin-bottom: 0.5rem;">Chamber 1: PET Plastic</h4>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              3-tier vertical ultrasonic array (HC-SR04) scans bottle height in centimeters to classify containers as Small (≤250ml), Medium (500ml), or Large (1.5L+).
+            </p>
+          </div>
+
+          <div style="background: rgba(11, 15, 25, 0.6); padding: 1.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <h4 style="color: #fbbf24; margin-bottom: 0.5rem;">Chamber 2: Aluminum Cans</h4>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              High-frequency inductive proximity sensor executes a 12-sample burst over 180ms. Must register ≥9 Active LOW readings to confirm 100% genuine beverage can metal.
+            </p>
+          </div>
+
+          <div style="background: rgba(11, 15, 25, 0.6); padding: 1.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+            <h4 style="color: #34d399; margin-bottom: 0.5rem;">Chamber 3: Paper Wastage</h4>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              Dual ultrasonic sensors verify arrival on weighing tray. 24-bit HX711 ADC samples load cell platform with 420 counts/gram precision tare calibration.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         TAB 2: OPERATOR MANUAL
+         ============================================================== -->
+    <section id="pane-operator" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-emerald">OPERATOR</span>
+          Customer Recycling Workflow &amp; Attendant Guide
+        </h3>
+
+        <div class="diagram-box">
+          <img src="images/operator_kiosk_touchscreen_guide.png" alt="Operator & Customer Quick Start Guide" onclick="openLightbox(this.src)">
+          <div class="diagram-caption">
+            <span>Figure 2.1: 4-Step Customer Recycling Workflow &amp; Mobile App Reward Claim Guide</span>
+            <span class="badge badge-cyan">Click to Enlarge</span>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: #fff;">Accepted vs. Strictly Rejected Materials</h4>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Recycling Stream</th>
+                <th>Designated Chamber</th>
+                <th>Accepted Materials</th>
+                <th>Strictly Rejected</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge badge-cyan">PET Plastic</span></td>
+                <td>Chamber 1 (Cyan)</td>
+                <td>Clear and tinted PET beverage bottles (250ml to 2.5L)</td>
+                <td>Liquid-filled containers, glass, flattened bottles, PVC</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-amber">Beverage Cans</span></td>
+                <td>Chamber 2 (Amber)</td>
+                <td>Aluminum soda cans, energy drinks, steel food cans</td>
+                <td>Crushed metal foil, aerosol spray cans, batteries</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-emerald">Paper Waste</span></td>
+                <td>Chamber 3 (Emerald)</td>
+                <td>Office paper, newspapers, flyers, flattened cardboard</td>
+                <td>Greasy/wet paper, styrofoam, plastic sleeves, metal binders</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         TAB 3: HARDWARE ENGINEERING
+         ============================================================== -->
+    <section id="pane-hardware" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-cyan">HARDWARE</span>
+          Electromechanical Chamber Schematics &amp; Pinout Mapping
+        </h3>
+
+        <div class="diagram-box">
+          <img src="images/rvm_arduino_mega_pinout_wiring.png" alt="Arduino Mega 2560 Complete Pinout & Wiring" onclick="openLightbox(this.src)">
+          <div class="diagram-caption">
+            <span>Figure 3.1: Arduino Mega 2560 Pinout &amp; Dual-Rail Power Distribution Wiring</span>
+            <span class="badge badge-cyan">Click to Enlarge</span>
+          </div>
+        </div>
+
+        <!-- Interactive Pinout Search Box -->
+        <h4 style="margin-top: 2rem; color: #fff;">Searchable Arduino Mega 2560 Pinout Lookup</h4>
+        <input type="text" id="pinoutSearch" class="search-input" placeholder="Search by pin, chamber, or component..." onkeyup="filterPinoutTable()">
+
+        <div class="table-responsive">
+          <table id="pinoutTable">
+            <thead>
+              <tr>
+                <th>Chamber</th>
+                <th>Component</th>
+                <th>Interface Type</th>
+                <th>Arduino Pin</th>
+                <th>Electrical Logic / Signal Direction</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Plastic</td><td>Entrance HC-SR04 Trigger</td><td>Digital Output</td><td>Pin 9</td><td>10µs Active HIGH Pulse (Output)</td></tr>
+              <tr><td>Plastic</td><td>Entrance HC-SR04 Echo</td><td>Digital Input</td><td>Pin 10</td><td>5V TTL Echo Pulse (58µs/cm) (Input)</td></tr>
+              <tr><td>Plastic</td><td>Iris Aperture Gate Servo</td><td>PWM Servo</td><td>Pin 11</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Plastic</td><td>Bottom Drop Gate Servo</td><td>PWM Servo</td><td>Pin 12</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Plastic</td><td>Bottom Sizing Sensor</td><td>Trig / Echo</td><td>Pins 22 / 23</td><td>Height Tier 1 (≤ 250ml)</td></tr>
+              <tr><td>Plastic</td><td>Middle Sizing Sensor</td><td>Trig / Echo</td><td>Pins 24 / 41</td><td>Height Tier 2 (500ml)</td></tr>
+              <tr><td>Plastic</td><td>Top Sizing Sensor</td><td>Trig / Echo</td><td>Pins 42 / 43</td><td>Height Tier 3 (1.5L+)</td></tr>
+              <tr><td>Metal</td><td>Entrance HC-SR04 Trig / Echo</td><td>Digital I/O</td><td>Pins 25 / 26</td><td>Object entrance sensing</td></tr>
+              <tr><td>Metal</td><td>Iris Aperture Gate Servo</td><td>PWM Servo</td><td>Pin 27</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Metal</td><td>Bottom Drop Gate Servo</td><td>PWM Servo</td><td>Pin 28</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Metal</td><td>Inductive Proximity Sensor</td><td>Digital Input</td><td>Pin 32</td><td>INPUT_PULLUP (Active LOW on Metal)</td></tr>
+              <tr><td>Metal</td><td>Sizing Ultrasonics (B/M/T)</td><td>Digital I/O</td><td>29/30, 31/44, 45/46</td><td>Can physical height envelope</td></tr>
+              <tr><td>Paper</td><td>Top Entrance HC-SR04</td><td>Digital I/O</td><td>Pins 33 / 34</td><td>Entrance chute trigger</td></tr>
+              <tr><td>Paper</td><td>Bottom Platform HC-SR04</td><td>Digital I/O</td><td>Pins 39 / 40</td><td>Tray arrival confirmation</td></tr>
+              <tr><td>Paper</td><td>Iris Aperture Gate Servo</td><td>PWM Servo</td><td>Pin 35</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Paper</td><td>Paper Drop Gate Servo</td><td>PWM Servo</td><td>Pin 36</td><td>50 Hz PWM (10° Closed / 120° Open)</td></tr>
+              <tr><td>Paper</td><td>HX711 Serial Data (DOUT)</td><td>Digital Input</td><td>Pin 37</td><td>24-bit Serial Bitstream (Input)</td></tr>
+              <tr><td>Paper</td><td>HX711 Serial Clock (SCK)</td><td>Digital Output</td><td>Pin 38</td><td>Bit-banged 25 Pulses (Output)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-3" style="margin-top: 2rem;">
+          <div class="diagram-box">
+            <img src="images/chamber1_plastic_sizing_flow.png" alt="Chamber 1 Plastic Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 3.2: Chamber 1 Sizing Flow</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/chamber2_metal_inductive_flow.png" alt="Chamber 2 Metal Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 3.3: Chamber 2 Inductive Flow</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/chamber3_paper_loadcell_flow.png" alt="Chamber 3 Paper Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 3.4: Chamber 3 Load Cell Flow</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         TAB 4: FIRMWARE & SERIAL API
+         ============================================================== -->
+    <section id="pane-firmware" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-purple">API</span>
+          Firmware State Machine &amp; Serial Protocol (115200 Baud)
+        </h3>
+
+        <div class="diagram-box">
+          <img src="images/rvm_state_machine_serial_protocol.png" alt="RVM Firmware Finite State Machine" onclick="openLightbox(this.src)">
+          <div class="diagram-caption">
+            <span>Figure 4.1: Firmware Finite State Machine &amp; Serial Telemetry Flow</span>
+            <span class="badge badge-cyan">Click to Enlarge</span>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 2rem; color: #fff;">Inbound Commands Reference</h4>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Target State</th>
+                <th>Description</th>
+                <th>Firmware Response</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>START</code></td>
+                <td>RUNNING / IDLE</td>
+                <td>Enables automatic object detection if calibrated.</td>
+                <td><code>MACHINE:STARTED</code> followed by <code>MACHINE:IDLE</code></td>
+              </tr>
+              <tr>
+                <td><code>STOP</code></td>
+                <td>SAFE / LOCKED</td>
+                <td>Suspends detection, moves all 6 servos to 10° via <code>makeSafe()</code>.</td>
+                <td><code>MACHINE:STOPPED</code></td>
+              </tr>
+              <tr>
+                <td><code>RESET</code></td>
+                <td>SAFE / IDLE</td>
+                <td>Resets detection counters and secures all gates.</td>
+                <td><code>RESET:OK</code></td>
+              </tr>
+              <tr>
+                <td><code>CALIBRATE</code></td>
+                <td>CALIBRATING</td>
+                <td>Re-baselines all 8 ultrasonic empty distances and HX711 tare.</td>
+                <td><code>CALIBRATION:REMOVE_OBJECTS ... CALIBRATION:OK</code></td>
+              </tr>
+              <tr>
+                <td><code>STATUS</code></td>
+                <td>ANY</td>
+                <td>Queries current operating state, empty cm distances, and sensors.</td>
+                <td><code>STATUS:&lt;STATE&gt;;PLASTIC_CM:...;PAPER_SCALE:READY</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         TAB 5: MAINTENANCE & TROUBLESHOOTING
+         ============================================================== -->
+    <section id="pane-maintenance" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-amber">MAINTENANCE</span>
+          Preventive Care &amp; Fault Isolation Matrix
+        </h3>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Error Telemetry</th>
+                <th>Root Cause</th>
+                <th>Automated Firmware Action</th>
+                <th>Field Technician Solution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ERROR:CALIBRATION_FAILED</code></td>
+                <td>Object in chute or unplugged ultrasonic sensor.</td>
+                <td>Aborts start; stays in safe mode.</td>
+                <td>Empty chutes, inspect sensor plugs, send <code>CALIBRATE</code>.</td>
+              </tr>
+              <tr>
+                <td><code>ERROR:PLASTIC_ARRIVAL_TIMEOUT</code></td>
+                <td>Bottle failed to reach bottom sensor within 5000ms.</td>
+                <td>Closes iris servo (10°); resets count.</td>
+                <td>Verify upper chute is clear; check servo 11 linkage.</td>
+              </tr>
+              <tr>
+                <td><code>ERROR:METAL_ARRIVAL_TIMEOUT</code></td>
+                <td>Can failed to reach bottom sensor within 5000ms.</td>
+                <td>Closes iris servo (10°); resets count.</td>
+                <td>Check can flap and servo 27 travel.</td>
+              </tr>
+              <tr>
+                <td><code>ERROR:PAPER_WEIGHT_TIMEOUT</code></td>
+                <td>Paper failed to exceed 20g threshold in 5000ms.</td>
+                <td>Closes iris servo (10°); resets count.</td>
+                <td>Ensure paper meets minimum mass (≥ 20g).</td>
+              </tr>
+              <tr>
+                <td><code>ERROR:CLEAR_TIMEOUT</code></td>
+                <td>Chute sensor remains blocked 5000ms after drop gate.</td>
+                <td>Closes drop gate; alerts attendant.</td>
+                <td>Empty full storage bin; check for stuck container.</td>
+              </tr>
+              <tr>
+                <td><code>ERROR:PAPER_SCALE_NOT_READY</code></td>
+                <td>HX711 DOUT pin stuck HIGH for &gt;1000ms.</td>
+                <td>Disables paper chamber operation.</td>
+                <td>Check HX711 VCC/GND wires on Pins 37 and 38.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
+         TAB 6: VISUAL GALLERY
+         ============================================================== -->
+    <section id="pane-gallery" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-cyan">GALLERY</span>
+          Master High-Resolution Technical PNG Visuals
+        </h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+          Click any diagram to view in ultra-high resolution or save for engineering assembly prints.
+        </p>
+
+        <div class="grid-2">
+          <div class="diagram-box">
+            <img src="images/rvm_kiosk_system_overview.png" alt="Kiosk System Overview" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 1: 3D CAD Kiosk Exterior Overview</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_pinout_wiring.png" alt="Arduino Mega Pinout" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 2: Arduino Mega 2560 Complete Wiring Schematic</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/chamber1_plastic_sizing_flow.png" alt="Chamber 1 Sizing Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 3: Chamber 1 PET Plastic Sizing &amp; Sorting</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/chamber2_metal_inductive_flow.png" alt="Chamber 2 Metal Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 4: Chamber 2 Can Inductive Proximity Verification</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/chamber3_paper_loadcell_flow.png" alt="Chamber 3 Paper Flow" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 5: Chamber 3 Paper Wastage Load Cell Weighing</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_state_machine_serial_protocol.png" alt="State Machine" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 6: Firmware State Machine &amp; Serial API Protocol</span></div>
+          </div>
+          <div class="diagram-box" style="grid-column: 1 / -1;">
+            <img src="images/operator_kiosk_touchscreen_guide.png" alt="Operator Guide" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 7: Operator &amp; Recycling User Touchscreen Quick Start Guide</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Lightbox Modal -->
+  <div id="lightboxModal" class="lightbox-modal" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img id="lightboxImg" src="" alt="Enlarged Diagram">
+  </div>
+
+  <footer>
+    <p>&copy; 2026 PecoDrop Smart Reverse Vending Machine Project • Master User &amp; Engineering Documentation Suite</p>
+  </footer>
+
+  <script>
+    function switchPane(paneId) {
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      const target = document.getElementById('pane-' + paneId);
+      if (target) target.classList.add('active');
+    }
+
+    function filterPinoutTable() {
+      const input = document.getElementById('pinoutSearch');
+      const filter = input.value.toUpperCase();
+      const table = document.getElementById('pinoutTable');
+      const tr = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < tr.length; i++) {
+        let textContent = tr[i].textContent || tr[i].innerText;
+        if (textContent.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+    }
+
+    function openLightbox(src) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightboxModal').classList.add('active');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.remove('active');
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>
