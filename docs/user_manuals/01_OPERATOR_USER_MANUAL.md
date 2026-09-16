@@ -9,13 +9,27 @@
 
 The **PecoDrop 3-Chamber Reverse Vending Machine (RVM)** is an automated electromechanical kiosk designed for high-throughput collection, automated sorting, volumetric sizing, material purity verification, and instant digital reward disbursement for consumer recyclables.
 
-![PecoDrop 3-Chamber Kiosk System](images/rvm_kiosk_system_overview.png)
+![PecoDrop 3-Chamber Kiosk System Architecture & CAD Dimensions](images/rvm_kiosk_system_overview.png)
 
-### Key Architectural Highlights
-* **Chamber 1 (Cyan Glow):** PET Plastic Beverage Bottles (Height-based 3-tier volumetric sizing).
-* **Chamber 2 (Amber Glow):** Aluminum & Steel Beverage Cans (Electromagnetic inductive purity sensing).
-* **Chamber 3 (Emerald Glow):** Clean Paper & Cardboard Wastage (HX711 24-bit ADC high-precision load cell scale).
-* **Central Interactive Hub:** Portrait touchscreen interface displaying dynamic real-time scanning feedback, video advertisements, multilingual guidance, and instant wallet sync via dynamic QR code.
+### Physical Dimensions & Enclosure Specifications
+| Dimension Metric | Specification (Imperial) | Specification (Metric) | Engineering Notes |
+| :--- | :--- | :--- | :--- |
+| **Overall Width** | **48.0"** | 1,219 mm | Full front footprint width |
+| **Overall Depth** | **24.0"** | 610 mm | Deep base for high-capacity internal bins |
+| **Front Height** | **32.0"** | 813 mm | Ergonomic deposit reach height |
+| **Rear Height** | **42.0"** | 1,067 mm | Full back panel height |
+| **Front-to-Rear Rise** | **10.0"** | 254 mm | Sloped intake deck for natural item entry |
+| **LED Area Height** | **~11.8"** | ~300 mm | Angled upper display console |
+| **Dual Displays** | **2 × 24" Diagonal LED (16:9)** | 20.9" W × 11.8" H each | 2.0" display separation • 2.1" side frames |
+| **Cabinet Facade** | Architectural Wood-Slat Panel | Acoustic & eco-aesthetic matte powder coat |
+
+### Intake Port Geometries & Interactive Sub-Displays
+* **Chamber 1 — Circular Aperture (`plastic`):** Illuminated cyan circular halo. Dedicated for PET plastic bottles (up to 2.5L) with dedicated "TO BOTTLES" dynamic status panel.
+* **Chamber 2 — Triangular Aperture (`metal`):** Illuminated amber triangular halo. Dedicated for aluminum and steel beverage cans with "Waste less, recycle more." guidance display.
+* **Chamber 3 — Square Aperture (`paper`):** Illuminated square aperture. Dedicated for clean paper, sheets, and cartons with integrated top-mounted high-speed optical QR code scanner.
+* **Dual Upper 24" Consoles:** 
+  * **Left Screen:** Curated sustainability campaigns, video advertisements, and multilingual operator guidance.
+  * **Right Screen:** Live community recycling leaderboard displaying citizen rankings, points, and real-time environmental impact.
 
 ---
 
