@@ -94,52 +94,55 @@ export default function Navbar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-3 sm:px-6 py-2.5 transition-colors duration-300 shadow-sm">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border transition-colors duration-300 shadow-md">
+      
+      {/* Top Primary Navigation Bar */}
+      <div className="px-3 sm:px-6 py-2 flex items-center justify-between gap-3">
 
-        {/* Left Brand, hamburger & Client Switcher */}
-        <div className="flex flex-wrap items-center justify-between xl:justify-start gap-2.5">
+        {/* Left: Brand Logo & Title + Master Dev Badge + Inline Client Scope */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Mobile Hamburger Drawer Toggle Button */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="lg:hidden p-1.5 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all"
+            title="Toggle Navigation Menu"
+          >
+            <Menu className="w-5 h-5 text-emerald-400" />
+          </button>
 
           <div className="flex items-center gap-2">
-            {/* Mobile Hamburger Drawer Toggle Button */}
-            <button
-              onClick={() => setIsMobileOpen(!isMobileOpen)}
-              className="lg:hidden p-2 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all"
-              title="Toggle Navigation Menu"
-            >
-              <Menu className="w-5 h-5 text-emerald-400" />
-            </button>
-
-            <div className="w-9 h-9 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 flex items-center justify-center">
+            <div className="w-8 h-8 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 flex items-center justify-center">
               <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
             </div>
 
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-xs sm:text-sm font-extrabold t-text-primary tracking-wide">ISP SMART RECYCLING</h1>
-                {isMasterDev ? (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-md uppercase tracking-wider">
-                    👑 MASTER DEV
-                  </span>
-                ) : isSuperUser ? (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">
-                    SUPER ADMIN
-                  </span>
-                ) : isClientAdmin ? (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md uppercase tracking-wider">
-                    CLIENT PORTAL
-                  </span>
-                ) : null}
-              </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs sm:text-sm font-extrabold t-text-primary tracking-wide whitespace-nowrap">
+                ISP SMART RECYCLING
+              </span>
+              {isMasterDev ? (
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-md uppercase tracking-wider whitespace-nowrap">
+                  👑 MASTER DEV
+                </span>
+              ) : isSuperUser ? (
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider whitespace-nowrap">
+                  SUPER ADMIN
+                </span>
+              ) : isClientAdmin ? (
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md uppercase tracking-wider whitespace-nowrap">
+                  CLIENT PORTAL
+                </span>
+              ) : null}
             </div>
           </div>
 
-          {/* Multi-Client Organization Dropdown */}
+          <div className="h-4 w-[1px] bg-white/20 hidden sm:block mx-0.5" />
+
+          {/* Multi-Client Organization Dropdown (Compact, Inline) */}
           <div className="relative">
             <button
               disabled={isClientAdmin}
               onClick={() => setShowClientMenu(!showClientMenu)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all shadow-xs ${
                 selectedClientId === 'ALL'
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
                   : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
@@ -147,11 +150,13 @@ export default function Navbar({
               title="Switch Enterprise Client Scope"
             >
               <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <div className="text-left">
-                <div className="text-[9px] uppercase tracking-wider text-slate-400 leading-none">Client Scope</div>
-                <div className="text-xs font-black truncate max-w-[160px] sm:max-w-[210px]">{selectedClientObj.label}</div>
+              <div className="text-left flex items-center gap-1">
+                <span className="text-[10px] uppercase text-slate-400 hidden md:inline">Scope:</span>
+                <span className="text-xs font-extrabold truncate max-w-[130px] sm:max-w-[180px] text-white">
+                  {selectedClientObj.label.replace('Client: ', '')}
+                </span>
               </div>
-              {!isClientAdmin && <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+              {!isClientAdmin && <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />}
             </button>
 
             {showClientMenu && !isClientAdmin && (
@@ -187,57 +192,10 @@ export default function Navbar({
               </div>
             )}
           </div>
-
         </div>
 
-        {/* Center Operational Machine Station Selector (Segmented Pill) */}
-        <div className="flex items-center justify-center overflow-x-auto py-0.5">
-          <div className="bg-[#083622] border border-[#146c43]/60 p-1 rounded-xl flex items-center gap-1 shadow-inner">
-            {stations.map(st => {
-              const isSelected = stationFilter === st.id;
-              const Icon = st.icon;
-              return (
-                <button
-                  key={st.id}
-                  onClick={() => setStationFilter(st.id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap ${
-                    isSelected
-                      ? 'bg-emerald-500 text-slate-950 shadow-md font-black ring-1 ring-white/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                  title={`Filter dashboard to ${st.label}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{st.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                    isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-emerald-500/20 text-emerald-300'
-                  }`}>
-                    {st.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Status Indicators & Asset Counters */}
-        <div className="flex items-center justify-between xl:justify-end gap-2 shrink-0">
-
-          {/* Machine Dynamic Asset Counters */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#083622] border border-[#146c43] rounded-xl text-xs font-mono">
-            <span className="text-slate-300 font-bold">Fleet:</span>
-            <span className="text-white font-extrabold">{assetSummary.totalActive} Total</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-emerald-400 font-extrabold">{assetSummary.onlineCount} Online</span>
-            <span className="text-slate-500">/</span>
-            <span className="text-rose-400 font-bold">{assetSummary.offlineCount} Offline</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-amber-400 font-bold flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              {assetSummary.activeAlerts} Alerts
-            </span>
-          </div>
-
+        {/* Right: Clock, Palette, User Info & Logout */}
+        <div className="flex items-center gap-2 shrink-0">
           {/* Clock */}
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-[#083622] border border-[#146c43] rounded-xl text-xs mono text-white">
             <Activity className="w-3.5 h-3.5 text-amber-400" />
@@ -248,7 +206,7 @@ export default function Navbar({
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="p-2 bg-[#083622] hover:bg-[#062919] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-xs"
+              className="p-1.5 bg-[#083622] hover:bg-[#062919] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-xs"
               title="Theme Color"
             >
               <Palette className="w-3.5 h-3.5 text-amber-400" />
@@ -309,7 +267,7 @@ export default function Navbar({
 
               <button
                 onClick={onLogout}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 bg-rose-950/40 hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
+                className="p-1.5 sm:px-2.5 sm:py-1 bg-rose-950/40 hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
                 title="Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5 text-rose-300" />
@@ -317,10 +275,66 @@ export default function Navbar({
               </button>
             </div>
           )}
+        </div>
+      </div>
 
+      {/* Operational Control Strip (Station Selector & Fleet Asset Telemetry) */}
+      <div className="px-3 sm:px-6 py-1.5 bg-[#062c1b] border-t border-[#146c43]/40 flex flex-col md:flex-row items-center justify-between gap-2 overflow-hidden">
+        
+        {/* Machine Station Selector (Segmented Pill - No ugly scrollbars!) */}
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto no-scrollbar py-0.5">
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400/80 mr-1 hidden sm:inline">Station:</span>
+          <div className="bg-[#042013] border border-[#146c43]/60 p-0.5 rounded-xl flex items-center gap-1 shadow-inner shrink-0">
+            {stations.map(st => {
+              const isSelected = stationFilter === st.id;
+              const Icon = st.icon;
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => setStationFilter(st.id)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-emerald-500 text-slate-950 shadow-md font-black ring-1 ring-white/20'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                  title={`Filter dashboard to ${st.label}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{st.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                    isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>
+                    {st.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Status Indicators & Asset Counters */}
+        <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#042013] border border-[#146c43]/60 rounded-xl text-xs font-mono">
+            <span className="text-slate-300 font-bold">Fleet:</span>
+            <span className="text-white font-extrabold">{assetSummary.totalActive} Total</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-emerald-400 font-extrabold">🟢 {assetSummary.onlineCount} Online</span>
+            <span className="text-slate-500">/</span>
+            <span className="text-rose-400 font-bold">🔴 {assetSummary.offlineCount} Offline</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-amber-400 font-bold flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              {assetSummary.activeAlerts} Alerts
+            </span>
+          </div>
+
+          <span className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 bg-[#042013] border border-[#146c43]/60 rounded-xl text-[11px] font-mono font-extrabold text-emerald-300">
+            PostgreSQL rvmpg
+          </span>
         </div>
 
       </div>
+
     </header>
   );
 }

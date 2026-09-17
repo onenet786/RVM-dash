@@ -18,7 +18,7 @@
   │     └── Reverse Proxy /api/ ➔ http://127.0.0.1:5009
   │
   ├── aaPanel Node Project Manager (PM2 Engine)
-  │     └── [rvm-master-dashboard] process running server/index.js (Port 5009)
+  │     └── [rvm-dash] process running server/index.js (Port 5009)
   │
   └── Environment Connections
         ├── Primary Master Cluster: ONS-RVM (cluster0.ktted0m.mongodb.net)
@@ -82,7 +82,7 @@ npm run build
 | :--- | :--- | :--- |
 | **Path** | `/www/wwwroot/rvm-dash` | Project root folder |
 | **Node Version** | `v18.x` or `v20.x` | Select version installed in Node Version Manager |
-| **Name** | `rvm-master-dashboard` | PM2 Process Display Name |
+| **Name** | `rvm-dash` | PM2 Process Display Name |
 | **Run Opt / Start Command** | `node server/index.js` (or `npm run start`) | **IMPORTANT**: Type `node server/index.js` to ensure Node interpreter invocation |
 | **Project Port** | `5009` | Internal Express backend API port |
 | **User** | `www` (or `root`) | Linux process execution user |
@@ -95,7 +95,7 @@ npm run build
 
 ### Step 3: Set Environment Variables in aaPanel Node Project
 
-1. Under the **Node project** list, find `rvm-master-dashboard`.
+1. Under the **Node project** list, find `rvm-dash`.
 2. Click **Settings** (or **Environment Variables** / **Env** tab).
 3. Add the following environment keys:
 
@@ -223,7 +223,7 @@ bash deploy-aapanel.sh
 - **Root Cause**: Nginx cannot connect to the Node.js backend on `http://127.0.0.1:5009` because the process is stopped or port `5009` is mismatched.
 - **Solution 1 (aaPanel GUI)**:
   - Go to aaPanel ➔ **Website** ➔ **Node project** tab.
-  - Find `rvm-master-dashboard` (or `isprvm.binishaqsoft.com`).
+  - Find `rvm-dash` (or `isprvm.binishaqsoft.com`).
   - If status is **Stopped**, click **Start** or **Restart**.
   - Click **Settings**: Verify **Project Port** is set to `5009`.
 - **Solution 2 (Server Terminal PM2 Command)**:

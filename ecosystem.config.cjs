@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'rvm-master-dashboard',
+      name: 'rvm-dash',
       script: './server/index.js',
       instances: 1,
       autorestart: true,
