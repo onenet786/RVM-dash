@@ -26,7 +26,7 @@ if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
   window.fetch = async function (resource, init = {}) {
     try {
       const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
-      if (url.startsWith('/api/')) {
+      if (url.includes('/api/')) {
         const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
         if (token) {
           init = init || {};
@@ -48,7 +48,20 @@ if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
         }
       }
     } catch (e) { }
-    return originalFetch.call(this, resource, init);
+
+    const response = await originalFetch.call(this, resource, init);
+    if (response && response.status === 401) {
+      const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+      if (url.includes('/api/') && !url.includes('/api/auth/login')) {
+        // Expired or invalid token: purge and trigger clean login prompt
+        sessionStorage.removeItem('rvm_auth_token');
+        sessionStorage.removeItem('rvm_auth_user');
+        localStorage.removeItem('rvm_auth_token');
+        localStorage.removeItem('rvm_auth_user');
+        window.dispatchEvent(new CustomEvent('rvm_auth_expired'));
+      }
+    }
+    return response;
   };
 }
 
@@ -83,6 +96,15 @@ export default function App() {
   });
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setCurrentUser(null);
+      setIsLoggedOut(true);
+    };
+    window.addEventListener('rvm_auth_expired', handleAuthExpired);
+    return () => window.removeEventListener('rvm_auth_expired', handleAuthExpired);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);

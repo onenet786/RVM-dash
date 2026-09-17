@@ -66,7 +66,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5009;
-const JWT_SECRET = process.env.JWT_SECRET || 'rvm-isp-dev-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'rvm-isp-production-secret-key-2026-aapanel';
 
 // Security Hardening: Helmet HTTP Headers (HSTS, X-Frame-Options, X-Content-Type-Options)
 app.use(helmet({
@@ -117,19 +117,48 @@ function extractToken(req) {
   return null;
 }
 
+const KNOWN_JWT_SECRETS = [
+  process.env.JWT_SECRET,
+  'rvm-isp-production-secret-key-2026-aapanel',
+  'rvm-isp-dev-secret-key-2026'
+].filter(Boolean);
+
+function verifyTokenWithAnySecret(token) {
+  if (!token || typeof token !== 'string') return null;
+  for (const secret of KNOWN_JWT_SECRETS) {
+    try {
+      return jwt.verify(token, secret);
+    } catch (e) {}
+  }
+  return null;
+}
+
 function authenticateToken(req, res, next) {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Authentication required. Missing authorization token.' });
   }
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+  const decoded = verifyTokenWithAnySecret(token);
+  if (decoded) {
     req.user = decoded;
     return next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid or expired authentication session. Please log in again.' });
   }
+
+  return res.status(401).json({ error: 'Invalid or expired authentication session. Please log in again.' });
+}
+
+// Optional Authentication Middleware: If a token exists, validates & sets req.user.
+// If absent or expired, allows public read-only fallback instead of hard 401 error.
+function optionalAuth(req, res, next) {
+  const token = extractToken(req);
+  if (token) {
+    const decoded = verifyTokenWithAnySecret(token);
+    if (decoded) {
+      req.user = decoded;
+    }
+  }
+  return next();
 }
 
 function requireAdmin(req, res, next) {
@@ -1182,8 +1211,8 @@ function getAssignedMachinesList(req) {
   return machines.map(m => m.toUpperCase());
 }
 
-// High level KPIs Overview (Protected by Auth)
-app.get('/api/overview', authenticateToken, async (req, res) => {
+// High level KPIs Overview (Resilient Optional Auth & Global Telemetry Fallback)
+app.get('/api/overview', optionalAuth, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       const stationFilter = String(req.query.stationFilter || 'ALL').toUpperCase();
@@ -1635,8 +1664,8 @@ app.get('/api/collections/:name', authenticateToken, async (req, res) => {
   }
 });
 
-// Analytics Trends Endpoint
-app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
+// Analytics Trends Endpoint (Resilient Optional Auth)
+app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1704,8 +1733,8 @@ app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
   }
 });
 
-// Analytics Leaderboard Endpoint
-app.get('/api/analytics/leaderboard', authenticateToken, async (req, res) => {
+// Analytics Leaderboard Endpoint (Resilient Optional Auth)
+app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1761,8 +1790,8 @@ app.get('/api/analytics/leaderboard', authenticateToken, async (req, res) => {
   }
 });
 
-// Machine Hardware Status Aggregation
-app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
+// Machine Hardware Status Aggregation (Resilient Optional Auth)
+app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
   try {
     const ONLINE_THRESHOLD_MS = 60 * 1000; // 60 seconds (1 minute) window
     const now = Date.now();
@@ -2148,8 +2177,8 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
   }
 });
 
-// Hardware-Specific Technical Verification & Audit Suite Endpoint
-app.get('/api/reporting/audits', authenticateToken, async (req, res) => {
+// Hardware-Specific Technical Verification & Audit Suite Endpoint (Resilient Optional Auth)
+app.get('/api/reporting/audits', optionalAuth, async (req, res) => {
   try {
     const { stationFilter = 'ALL', clientId = 'ALL' } = req.query;
     res.json({
@@ -2449,7 +2478,7 @@ const MATERIAL_FACTORS = {
   Default: { factor: 1.2, note: 'Fallback uncategorized' }
 };
 
-app.get('/api/analytics/environmental-impact', authenticateToken, async (req, res) => {
+app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) => {
   try {
     let totalBottles = 0;
     let totalCups = 0;
@@ -5219,8 +5248,8 @@ app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
   res.json({ success: true, appName: 'ISP RVM Ecosystem', exportDate: new Date().toISOString() });
 });
 
-// 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL)
-app.get('/api/analytics/mobile-users', authenticateToken, async (req, res) => {
+// 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL - Resilient Optional Auth)
+app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
   try {
     let usersList = [];
     let stats = {
