@@ -410,27 +410,37 @@ export default function AdvertisementsTab() {
         </div>
       </div>
 
-      {/* Target Machine Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-3">
+      {/* Target Machine Filter Bar & Screen Orientation Profiles */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
           <Sliders className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">Filter Playlist by Machine:</span>
+          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">Target Display Scope:</span>
           <select
             value={targetMachine}
             onChange={(e) => setTargetMachine(e.target.value)}
             className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-1.5 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
           >
-            <option value="ALL">🌐 ALL Smart Recycling Machines (Global Fleet)</option>
+            <option value="ALL">🌐 ALL Recycling Machines (Global Fleet)</option>
+            <option value="PECODROP_SECONDARY">🖥️ PecoDrop 24" Secondary Display (16:9 Landscape 1080p)</option>
+            <option value="RVM_NEW_UPPER">📺 RVM New Upper Video Header Display</option>
             {machines.map(m => (
               <option key={m.machineId} value={m.machineId}>
-                🤖 {m.name || m.machineId} ({m.machineId})
+                🤖 {m.name || m.machineId} ({m.machineId}) {m.machineType === 'rvm_old' ? '⚠️ [Single-Screen Legacy]' : ''}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-          Showing <span className="text-emerald-700 dark:text-emerald-400 font-black">{ads.length}</span> configured ad video(s)
+        <div className="flex items-center gap-2">
+          {targetMachine.includes('RVM-') && machines.find(m => m.machineId === targetMachine)?.machineType === 'rvm_old' && (
+            <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 animate-pulse">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              Notice: Legacy hardware runs single integrated screen; dual video ads disabled.
+            </span>
+          )}
+          <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            Showing <span className="text-emerald-700 dark:text-emerald-400 font-black">{ads.length}</span> video asset(s)
+          </div>
         </div>
       </div>
 

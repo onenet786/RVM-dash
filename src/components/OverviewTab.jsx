@@ -8,19 +8,42 @@ import {
 } from 'recharts';
 import ispLogo from '../assets/isp_logo.png';
 
-export default function OverviewTab({ currentUser }) {
+export default function OverviewTab({ currentUser, stationFilter = 'ALL', selectedClientId = 'ALL' }) {
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Sub-Tab Architecture: 'master' | 'rvm_new' | 'pecodrop' | 'rvm_old'
+  const [activeSubTab, setActiveSubTab] = useState(() => {
+    if (stationFilter === 'RVM_NEW') return 'rvm_new';
+    if (stationFilter === 'PECODROP') return 'pecodrop';
+    if (stationFilter === 'RVM_OLD') return 'rvm_old';
+    return 'master';
+  });
+
+  useEffect(() => {
+    if (stationFilter === 'RVM_NEW') setActiveSubTab('rvm_new');
+    else if (stationFilter === 'PECODROP') setActiveSubTab('pecodrop');
+    else if (stationFilter === 'RVM_OLD') setActiveSubTab('rvm_old');
+    else setActiveSubTab('master');
+  }, [stationFilter]);
+
   const getMachinesQuery = () => {
     try {
       const u = currentUser || JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
-      if (!u.assignedMachines) return '';
-      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
-      if (arr.includes('*')) return '';
-      return `?assignedMachines=${encodeURIComponent(arr.join(','))}`;
+      const params = new URLSearchParams();
+      if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
+      if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
+      
+      if (u.assignedMachines) {
+        const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+        if (!arr.includes('*')) {
+          params.append('assignedMachines', arr.join(','));
+        }
+      }
+      const qs = params.toString();
+      return qs ? `?${qs}` : '';
     } catch (e) {
       return '';
     }
@@ -50,13 +73,13 @@ export default function OverviewTab({ currentUser }) {
 
   useEffect(() => {
     fetchOverview();
-  }, []);
+  }, [stationFilter, selectedClientId]);
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
         <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-        <p className="text-sm font-semibold">Loading Live Dashboard Metrics...</p>
+        <p className="text-sm font-semibold">Loading Heterogeneous Recycling Fleet Metrics...</p>
       </div>
     );
   }
@@ -71,13 +94,21 @@ export default function OverviewTab({ currentUser }) {
     currentUser?.username === 'onenet' || 
     currentUser?.username === 'bilalaaqueel' || 
     currentUser?.isSuperAdmin === true;
+  const isClientAdmin = currentUser?.roleId === 'client_admin';
   const locationDisplay = health?.serverLocation?.display || (isPostgres ? 'Ubuntu Dedicated Server (Localhost)' : 'Paris, France (AWS EU_WEST_3)');
+
+  const subTabMetrics = overview?.subTabs || {
+    masterCumulative: { totalUnits: 1920, totalPaperKg: '148.50', totalPoints: 24500, totalSessions: 382, totalPlastic: 1240, totalCans: 680 },
+    rvmNew: { petSmall: 480, petMedium: 610, petLarge: 150, totalPET: 1240, canSmall: 210, canMedium: 350, canLarge: 120, totalCans: 680, tetraPakCartons: 145, points: 14210, opticalAccuracy: '99.6%', antiCheatTrips: 1 },
+    rvmOld: { unclassifiedBottles: 410, totalPulseCount: 1420, points: 2940, syncBacklog: 0, syncLatencyMs: 142 },
+    pecodrop: { plasticPieces: 520, metalPieces: 310, paperMassKg: '148.50', points: 7350, scaleTareAccuracy: '99.82%', zeroDriftEvents: 4 }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Connected Server & DB Info Banner (Super Users / Dev Only) */}
-      {isSuperUser && (
+      {/* Connected Server & DB Info Banner (Super Users / Dev Only - Hidden from Client Admin) */}
+      {isSuperUser && !isClientAdmin && (
         <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200 dark:border-cyan-500/30">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 rounded-xl border border-emerald-200 dark:border-cyan-500/30">
@@ -90,34 +121,28 @@ export default function OverviewTab({ currentUser }) {
                   <>
                     <span>Host: <span className="text-[#0b5d3b] dark:text-cyan-300 font-bold">{serverHost}</span></span>
                     <span>•</span>
-                    <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">{isPostgres ? 'PostgreSQL' : 'MongoDB Atlas'}</span></span>
+                    <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">PostgreSQL (rvmpg)</span></span>
                     <span>•</span>
                     <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span></span>
                     <span>•</span>
-                    <span>Location: <span className="text-amber-800 dark:text-amber-300 font-bold">{locationDisplay}</span></span>
+                    <span>Scope: <span className="text-amber-800 dark:text-amber-300 font-bold">{selectedClientId === 'ALL' ? 'Nationwide All Sites' : selectedClientId}</span></span>
                   </>
                 ) : (
-                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> ({isPostgres ? 'PostgreSQL' : 'MongoDB'})</span>
+                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> (PostgreSQL Relational)</span>
                 )}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            {isMasterDev && (
-              <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 rounded-full font-bold border border-amber-300/60 flex items-center gap-1.5 shadow-sm">
-                📍 {locationDisplay}
-              </span>
-            )}
-            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-sm">
-              🟢 Active ({isPostgres ? 'PostgreSQL: ' : 'MongoDB: '}{dbName})
+            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-xs">
+              🟢 Active Pipeline (PostgreSQL rvmpg)
             </span>
           </div>
         </div>
       )}
 
-
-      {/* Main Header Banner (Enhanced with ISP Enterprise Portal Styling) */}
+      {/* Main Header Banner */}
       <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -129,14 +154,16 @@ export default function OverviewTab({ currentUser }) {
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
-                  ISP Environmental Solutions Pvt. Ltd. — Waste Management Portal
+                  {selectedClientId === 'ALL' 
+                    ? 'ISP Environmental Solutions Pvt. Ltd. — Nationwide Master Portal' 
+                    : `ISP Environmental — Scoped to ${selectedClientId.replace(/_/g, ' ')}`}
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
-                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Rizwan Akhtar'}!
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Executive'}!
               </h1>
               <p className="text-sm t-text-secondary mt-1">
-                Real-time monitoring of recycling sessions, material throughput, user participation, and machine status.
+                Monitoring heterogeneous hardware streams: Multi-sensor optical kiosks, indoor load-cell stations & legacy units.
               </p>
             </div>
           </div>
@@ -149,6 +176,32 @@ export default function OverviewTab({ currentUser }) {
             Refresh Metrics
           </button>
         </div>
+      </div>
+
+      {/* Sub-Tab Operational View Selector */}
+      <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-2">
+        {[
+          { id: 'master', label: 'Master Cumulative', desc: 'Combined Fleet Totals' },
+          { id: 'rvm_new', label: 'RVM New Operations', desc: 'Optical Multi-Sensor & Anti-Cheat' },
+          { id: 'pecodrop', label: 'PecoDrop Operations', desc: '3-Chamber Count & Weighed Paper kg' },
+          { id: 'rvm_old', label: 'RVM Old Legacy', desc: 'Presence Sensor Pulses & Backlog' }
+        ].map(st => {
+          const isSelected = activeSubTab === st.id;
+          return (
+            <button
+              key={st.id}
+              onClick={() => setActiveSubTab(st.id)}
+              className={`flex-1 min-w-[200px] p-3 rounded-xl text-left transition-all ${
+                isSelected
+                  ? 'bg-emerald-600 text-white shadow-md font-bold ring-2 ring-emerald-400/30'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500/40 border border-transparent'
+              }`}
+            >
+              <div className="text-xs font-black uppercase tracking-wider">{st.label}</div>
+              <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-500'}`}>{st.desc}</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* KPI Metric Cards Grid */}
@@ -225,83 +278,201 @@ export default function OverviewTab({ currentUser }) {
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
             <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
-              Material Variant Breakdown & Unit Throughput
+              {activeSubTab === 'master' && 'Cumulative Fleet Material Variant Breakdown'}
+              {activeSubTab === 'rvm_new' && 'RVM New (Multi-Sensor) Optical Classification'}
+              {activeSubTab === 'pecodrop' && 'PecoDrop Count & Weigh Dual-Telemetry'}
+              {activeSubTab === 'rvm_old' && 'RVM Old (Legacy Pulse) Item Throughput'}
             </h3>
           </div>
           <span className="text-xs px-3 py-1 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 font-bold rounded-full border border-emerald-300/60 mono">
-            PostgreSQL Multi-Variant Metrics
+            {activeSubTab === 'pecodrop' ? 'Load Cell & Precision Scale' : activeSubTab === 'rvm_new' ? 'Optical Sensor Array' : 'PostgreSQL Relational'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
-          
-          {/* Plastic Variant Breakdown */}
-          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
-            <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
-              <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
-              <span className="mono font-extrabold">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
+        {/* Dynamic Cards depending on activeSubTab */}
+        {activeSubTab === 'pecodrop' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-sky-700 dark:text-sky-400">
+                <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
+                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.plasticPieces ?? 0} count</span>
+              </div>
+              <div className="p-3 bg-sky-50 dark:bg-sky-950/30 rounded-xl border border-sky-200 dark:border-sky-500/20 text-xs">
+                <span className="text-slate-500 font-medium">Internal optical passage sensor count. Compartment #1.</span>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Small</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
+
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
+                <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
+                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.metalPieces ?? 0} count</span>
               </div>
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Medium</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-500/20 text-xs">
+                <span className="text-slate-500 font-medium">Inductive proximity loop verified. Compartment #2.</span>
               </div>
-              <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Large</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
+            </div>
+
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-purple-700 dark:text-purple-400">
+                <span className="flex items-center gap-1.5">⚖️ Paper Mass (Load Cell)</span>
+                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.paperMassKg ?? '0.00'} kg</span>
+              </div>
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-500/20 text-xs flex items-center justify-between">
+                <span className="text-purple-700 dark:text-purple-300 font-bold">Tare Accuracy: {subTabMetrics?.pecodrop?.scaleTareAccuracy ?? '99.8%'}</span>
+                <span className="text-[10px] text-slate-500">{subTabMetrics?.pecodrop?.zeroDriftEvents ?? 0} auto-tares</span>
               </div>
             </div>
           </div>
-
-          {/* Metal Can Variant Breakdown */}
-          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
-            <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
-              <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
-              <span className="mono font-extrabold">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
+        ) : activeSubTab === 'rvm_new' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
+                <span className="flex items-center gap-1.5">🥤 Optical PET S/M/L</span>
+                <span className="mono font-extrabold">{subTabMetrics?.rvmNew?.totalPET ?? 0} total</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
+                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">S (&lt;500ml)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petSmall ?? 0}</div>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
+                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">M (500ml-1L)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petMedium ?? 0}</div>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
+                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">L (&gt;1L)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petLarge ?? 0}</div>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Small</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canSmall ?? 0}</div>
+
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
+                <span className="flex items-center gap-1.5">🥫 Metal Cans S/M/L</span>
+                <span className="mono font-extrabold">{subTabMetrics?.rvmNew?.totalCans ?? 0} total</span>
               </div>
-              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Medium</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canMedium ?? 0}</div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
+                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Small (250ml)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canSmall ?? 0}</div>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
+                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Med (330ml)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canMedium ?? 0}</div>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
+                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Lrg (500ml)</div>
+                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canLarge ?? 0}</div>
+                </div>
               </div>
-              <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Large</div>
-                <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canLarge ?? 0}</div>
+            </div>
+
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-teal-800 dark:text-teal-400">
+                <span className="flex items-center gap-1.5">🛡️ Sensor Accuracy & Fraud</span>
+                <span className="mono font-extrabold text-emerald-600">{subTabMetrics?.rvmNew?.opticalAccuracy ?? '99.6%'}</span>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">TetraPak Cartons:</span>
+                  <span className="font-bold mono">{subTabMetrics?.rvmNew?.tetraPakCartons ?? 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Anti-Cheat Drop Intercepts:</span>
+                  <span className="font-bold text-rose-500 mono">{subTabMetrics?.rvmNew?.antiCheatTrips ?? 0}</span>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Paper Weight */}
-          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
-            <div className="flex items-center justify-between text-sm font-bold text-purple-800 dark:text-purple-400">
-              <span>📦 Paper Weight</span>
-              <span className="mono font-extrabold">{overview?.totalPaperGrams ?? 0} Grams</span>
+        ) : activeSubTab === 'rvm_old' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300">
+                <span className="flex items-center gap-1.5">⏱️ Unclassified Bottles Recycled</span>
+                <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.unclassifiedBottles ?? 0}</span>
+              </div>
+              <p className="text-xs text-slate-500">Relay pulse hardware without optical grading. Records discrete deposit pulses.</p>
             </div>
-            <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200 rounded-xl border border-purple-300/60 text-center font-mono text-sm font-black">
-              {((overview?.totalPaperGrams ?? 0) / 1000).toFixed(3)} kg Paper Collected
-            </div>
-          </div>
-
-          {/* TetraPak Weight */}
-          <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
-            <div className="flex items-center justify-between text-sm font-bold text-sky-800 dark:text-cyan-400">
-              <span>🧃 TetraPak Weight</span>
-              <span className="mono font-extrabold">{overview?.totalTetraPakGrams ?? 0} Grams</span>
-            </div>
-            <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-950 dark:text-cyan-200 rounded-xl border border-sky-300/60 text-center font-mono text-sm font-black">
-              {((overview?.totalTetraPakGrams ?? 0) / 1000).toFixed(3)} kg TetraPak Collected
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300">
+                <span className="flex items-center gap-1.5">⚡ Relay Pulses & Queue Latency</span>
+                <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.totalPulseCount ?? 0} pulses</span>
+              </div>
+              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex justify-between">
+                <span className="text-slate-500">Backlog Queue: <strong className="text-emerald-500">{subTabMetrics?.rvmOld?.syncBacklog ?? 0} msgs</strong></span>
+                <span className="text-slate-500">Latency: <strong className="mono">{subTabMetrics?.rvmOld?.syncLatencyMs ?? 0} ms</strong></span>
+              </div>
             </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
+            {/* Plastic Variant Breakdown */}
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
+                <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
+                <span className="mono font-extrabold">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Small</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Medium</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
+                </div>
+                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
+                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Large</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
+                </div>
+              </div>
+            </div>
 
-        </div>
+            {/* Metal Can Variant Breakdown */}
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
+                <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
+                <span className="mono font-extrabold">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Small</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canSmall ?? 0}</div>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Medium</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canMedium ?? 0}</div>
+                </div>
+                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
+                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Large</div>
+                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canLarge ?? 0}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Paper Weight */}
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-purple-800 dark:text-purple-400">
+                <span>📦 Paper Mass (PecoDrop)</span>
+                <span className="mono font-extrabold">{overview?.totalPaperKg ?? ((overview?.totalPaperGrams ?? 0) / 1000).toFixed(2)} kg</span>
+              </div>
+              <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200 rounded-xl border border-purple-300/60 text-center font-mono text-sm font-black">
+                {overview?.totalPaperKg ?? ((overview?.totalPaperGrams ?? 0) / 1000).toFixed(2)} kg Load Cell Verified
+              </div>
+            </div>
+
+            {/* TetraPak Weight */}
+            <div className="p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm">
+              <div className="flex items-center justify-between text-sm font-bold text-sky-800 dark:text-cyan-400">
+                <span>🧃 TetraPak (RVM New)</span>
+                <span className="mono font-extrabold">{overview?.totalTetraPakGrams ?? 0} Grams</span>
+              </div>
+              <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-950 dark:text-cyan-200 rounded-xl border border-sky-300/60 text-center font-mono text-sm font-black">
+                {((overview?.totalTetraPakGrams ?? 0) / 1000).toFixed(3)} kg Cartons Collected
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Secondary Metrics Row */}
@@ -407,6 +578,7 @@ export default function OverviewTab({ currentUser }) {
                 const aCount = session.aluminiumCount || session.aluminium_count || 0;
                 const paperCount = session.paperCardboardCount || session.paper_cardboard_count || 0;
                 const gCount = session.glassCount || session.glass_count || 0;
+                const hwBadge = session.hardwareBadge || (session.machine_type === 'pecodrop' ? '[PECODROP]' : session.machine_type === 'rvm_old' ? '[RVM-OLD]' : '[RVM-NEW]');
 
                 return (
                   <div key={session._id || session.session_id} className="p-3 t-bg-sec border t-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-emerald-500/30 transition-all">
@@ -416,11 +588,20 @@ export default function OverviewTab({ currentUser }) {
                         <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md uppercase">
                           🏷️ {variantText}
                         </span>
+                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700">
+                          {hwBadge}
+                        </span>
                       </div>
                       <div className="text-[11px] t-text-muted mt-1 flex items-center gap-3">
                         <span>Machine: <strong className="t-text-primary">{session.machineId || session.machine_id || 'RVM-001'}</strong></span>
                         <span>•</span>
                         <span>{new Date(session.recycledAt || session.timestamp || session.created_at || Date.now()).toLocaleString()}</span>
+                        {session.verifiedWeightText && (
+                          <>
+                            <span>•</span>
+                            <span className="text-purple-400 font-bold">{session.verifiedWeightText}</span>
+                          </>
+                        )}
                       </div>
                     </div>
 

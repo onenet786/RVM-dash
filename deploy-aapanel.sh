@@ -12,12 +12,14 @@ echo "🚀 [1/5] Starting Production Deployment for RVM Master Dashboard..."
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
 
-echo "🔄 Pulling Latest Code Changes from Branch B3-4-Postgre..."
+echo "🔄 Pulling Latest Code Changes..."
 if [ -d ".git" ]; then
+  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "B23")"
+  echo "Current branch: $CURRENT_BRANCH"
   git clean -fd dist/ 2>/dev/null || true
   git checkout -- dist/ 2>/dev/null || true
   git checkout -- server/index.js 2>/dev/null || true
-  git pull origin B3-4-Postgre || git pull origin B2 || true
+  git pull origin "$CURRENT_BRANCH" || git pull origin B23 || git pull origin B3-4-Postgre || true
 fi
 
 

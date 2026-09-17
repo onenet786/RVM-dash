@@ -26,15 +26,22 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     return col ? col.count : 0;
   };
 
-  const isSuperAdmin = isMasterDev || 
+  const isClientAdmin = currentUser?.roleId === 'client_admin';
+
+  const isSuperAdmin = !isClientAdmin && (
+    isMasterDev || 
     currentUser?.roleId === 'super_admin' || 
     currentUser?.roleId === 'superadmin' || 
     currentUser?.username === 'onenet' || 
     currentUser?.username === 'bilalaaqueel' || 
-    currentUser?.isSuperAdmin === true;
+    currentUser?.isSuperAdmin === true
+  );
 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
+    if (isClientAdmin) {
+      return ['overview', 'reporting_hub', 'mobile_users', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+    }
     if (isSuperAdmin) return ['*'];
     if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
       return currentUser.modules;
@@ -49,6 +56,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   const allowedModules = getUserAllowedModules();
 
   const isModuleAllowed = (moduleId) => {
+    if (isClientAdmin) {
+      if (['security', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
+      if (moduleId.startsWith('col_')) return false;
+    }
     if (isSuperAdmin) return true;
     if (allowedModules.includes('*') || allowedModules.includes('all')) return true;
     const cleanId = moduleId.replace('col_', '');
@@ -63,13 +74,13 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu },
     { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
-    ...((isMasterDev || isModuleAllowed('security')) ? [
+    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('security'))) ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
     ] : []),
-    ...((isMasterDev || isModuleAllowed('db_switcher')) ? [
+    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('db_switcher'))) ? [
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
     ] : []),
-    ...((isMasterDev || isModuleAllowed('db_backup')) ? [
+    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('db_backup'))) ? [
       { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
     ] : [])
   ];

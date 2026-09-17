@@ -1,10 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu, Building2 } from 'lucide-react';
+import { 
+  Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, 
+  Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu, Building2, 
+  Cpu, Layers, ChevronDown, Radio, AlertTriangle
+} from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
 
-export default function Navbar({ health, onRefresh, theme, setTheme, currentUser, onLogout, isMobileOpen, setIsMobileOpen }) {
+export default function Navbar({ 
+  health, 
+  onRefresh, 
+  theme, 
+  setTheme, 
+  currentUser, 
+  onLogout, 
+  isMobileOpen, 
+  setIsMobileOpen,
+  stationFilter = 'ALL',
+  setStationFilter = () => {},
+  selectedClientId = 'ALL',
+  setSelectedClientId = () => {}
+}) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showClientMenu, setShowClientMenu] = useState(false);
+  const [assetSummary, setAssetSummary] = useState({
+    totalActive: 5,
+    onlineCount: 3,
+    offlineCount: 2,
+    activeAlerts: 4
+  });
+
+  const fetchAssetSummary = async () => {
+    try {
+      const res = await fetch('/api/analytics/machines/summary');
+      if (res.ok) {
+        const data = await res.json();
+        setAssetSummary(data);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchAssetSummary();
+    const interval = setInterval(fetchAssetSummary, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -14,9 +54,8 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
   }, []);
 
   const isOnline = health?.status === 'online';
-  const serverHost = health?.serverHost || 'cluster0.ktted0m.mongodb.net';
-  const dbName = health?.database || 'ONS-RVM';
-  const serverLoc = health?.serverLocation?.display || 'Paris, France (AWS EU_WEST_3)';
+  const serverHost = health?.serverHost || '127.0.0.1:5432';
+  const dbName = health?.database || 'rvmpg';
 
   const themesList = [
     { id: 'isp-eco', label: 'ISP Eco Vanguard (Default)', icon: Leaf, color: 'bg-[#0B5D3B]', desc: 'Official ISP Environmental Solutions Brand' },
@@ -37,88 +76,171 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
     currentUser?.username === 'bilalaaqueel' || 
     currentUser?.isSuperAdmin === true;
 
+  const isClientAdmin = currentUser?.roleId === 'client_admin';
+
+  const clients = [
+    { id: 'ALL', label: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
+    { id: 'UCP_LAHORE', label: 'Client: UCP Lahore Campus', badge: 'Education Venue' },
+    { id: 'METRO_MALL', label: 'Client: Metro Mall RWP', badge: 'Commercial Retail' }
+  ];
+
+  const selectedClientObj = clients.find(c => c.id === selectedClientId) || clients[0];
+
+  const stations = [
+    { id: 'ALL', label: 'Cumulative (All)', icon: Layers, count: assetSummary.totalActive },
+    { id: 'RVM_NEW', label: 'RVM New (Multi-Sensor)', icon: Cpu, count: 2 },
+    { id: 'PECODROP', label: 'PecoDrop (Count & Weigh)', icon: Activity, count: 2 },
+    { id: 'RVM_OLD', label: 'RVM Old (Legacy)', icon: Radio, count: 1 },
+  ];
+
   return (
-    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-4 sm:px-6 py-3 transition-colors duration-300">
-      <div className="flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border px-3 sm:px-6 py-2.5 transition-colors duration-300 shadow-sm">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
 
-        {/* Left Brand & Server Host, DB, Location Info */}
-        <div className="flex items-center gap-2.5">
+        {/* Left Brand, hamburger & Client Switcher */}
+        <div className="flex flex-wrap items-center justify-between xl:justify-start gap-2.5">
 
-          {/* Mobile Hamburger Drawer Toggle Button */}
-          <button
-            onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="lg:hidden p-2 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all"
-            title="Toggle Navigation Menu"
-          >
-            <Menu className="w-5 h-5 text-emerald-400" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Mobile Hamburger Drawer Toggle Button */}
+            <button
+              onClick={() => setIsMobileOpen(!isMobileOpen)}
+              className="lg:hidden p-2 rounded-xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all"
+              title="Toggle Navigation Menu"
+            >
+              <Menu className="w-5 h-5 text-emerald-400" />
+            </button>
 
-          <div className="w-9 h-9 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
-            <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-extrabold t-text-primary tracking-wide">ISP SMART RECYCLING DASHBOARD</h1>
-              {isSuperUser && (
-                <span className="px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold nav-badge-pro bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider hidden sm:inline-block">
-                  PRO DEV
-                </span>
-              )}
+            <div className="w-9 h-9 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 flex items-center justify-center">
+              <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
             </div>
 
-            {isSuperUser && (
-              <div className="hidden md:flex flex-wrap items-center gap-2 text-[11px] t-text-muted mono mt-0.5">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-xs sm:text-sm font-extrabold t-text-primary tracking-wide">ISP SMART RECYCLING</h1>
                 {isMasterDev ? (
-                  <>
-                    <span className="flex items-center gap-1 nav-server-host text-cyan-400 font-semibold">
-                      <Server className="w-3 h-3" />
-                      {serverHost}
-                    </span>
-                    <span className="nav-divider">•</span>
-                    <span className="flex items-center gap-1 nav-server-db text-indigo-400 font-bold">
-                      <HardDrive className="w-3 h-3" />
-                      {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
-                    </span>
-                    <span className="nav-divider">•</span>
-                    <span className="flex items-center gap-1 nav-server-loc text-amber-400 font-bold">
-                      <MapPin className="w-3 h-3 text-amber-400" />
-                      Region: {health?.serverLocation?.display || (health?.databaseType === 'postgres' ? 'Ubuntu Dedicated Server' : serverLoc)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="flex items-center gap-1 nav-server-db text-emerald-400 font-bold">
-                    <HardDrive className="w-3 h-3" />
-                    {health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB'}: {dbName}
+                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-md uppercase tracking-wider">
+                    👑 MASTER DEV
                   </span>
-                )}
+                ) : isSuperUser ? (
+                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-md uppercase tracking-wider">
+                    SUPER ADMIN
+                  </span>
+                ) : isClientAdmin ? (
+                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md uppercase tracking-wider">
+                    CLIENT PORTAL
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {/* Multi-Client Organization Dropdown */}
+          <div className="relative">
+            <button
+              disabled={isClientAdmin}
+              onClick={() => setShowClientMenu(!showClientMenu)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-xs ${
+                selectedClientId === 'ALL'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                  : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
+              }`}
+              title="Switch Enterprise Client Scope"
+            >
+              <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <div className="text-left">
+                <div className="text-[9px] uppercase tracking-wider text-slate-400 leading-none">Client Scope</div>
+                <div className="text-xs font-black truncate max-w-[160px] sm:max-w-[210px]">{selectedClientObj.label}</div>
+              </div>
+              {!isClientAdmin && <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+            </button>
+
+            {showClientMenu && !isClientAdmin && (
+              <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in backdrop-blur-2xl">
+                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
+                  Select Enterprise Client Scope
+                </div>
+                <div className="space-y-1 mt-1.5">
+                  {clients.map(c => {
+                    const isSelected = selectedClientId === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          setSelectedClientId(c.id);
+                          setShowClientMenu(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs text-left transition-all ${
+                          isSelected
+                            ? 'bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30'
+                            : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-extrabold">{c.label}</div>
+                          <div className="text-[10px] text-slate-400">{c.badge}</div>
+                        </div>
+                        {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
+
         </div>
 
+        {/* Center Operational Machine Station Selector (Segmented Pill) */}
+        <div className="flex items-center justify-center overflow-x-auto py-0.5">
+          <div className="bg-[#083622] border border-[#146c43]/60 p-1 rounded-xl flex items-center gap-1 shadow-inner">
+            {stations.map(st => {
+              const isSelected = stationFilter === st.id;
+              const Icon = st.icon;
+              return (
+                <button
+                  key={st.id}
+                  onClick={() => setStationFilter(st.id)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black transition-all whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-emerald-500 text-slate-950 shadow-md font-black ring-1 ring-white/20'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                  title={`Filter dashboard to ${st.label}`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{st.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
+                    isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>
+                    {st.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-        {/* Right Status Indicators, User Profile & Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Right Status Indicators & Asset Counters */}
+        <div className="flex items-center justify-between xl:justify-end gap-2 shrink-0">
 
-          {/* DB Status Badge */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs text-white">
-            <div className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-[#e5a919] animate-pulse' : 'bg-rose-500'}`} />
-            <div className="flex items-center gap-1.5 font-semibold text-white">
-              {isSuperUser ? (
-                <>
-                  <span>{isOnline ? (health?.databaseType === 'postgres' ? 'PostgreSQL' : 'MongoDB Atlas') : 'Disconnected'}</span>
-                  <span className="text-[#fde68a] font-bold">({dbName})</span>
-                </>
-              ) : (
-                <span>{isOnline ? 'System Online' : 'Offline'}</span>
-              )}
-            </div>
+          {/* Machine Dynamic Asset Counters */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#083622] border border-[#146c43] rounded-xl text-xs font-mono">
+            <span className="text-slate-300 font-bold">Fleet:</span>
+            <span className="text-white font-extrabold">{assetSummary.totalActive} Total</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-emerald-400 font-extrabold">{assetSummary.onlineCount} Online</span>
+            <span className="text-slate-500">/</span>
+            <span className="text-rose-400 font-bold">{assetSummary.offlineCount} Offline</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-amber-400 font-bold flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              {assetSummary.activeAlerts} Alerts
+            </span>
           </div>
 
           {/* Clock */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#08422a] border border-[#146c43] rounded-xl text-xs mono text-white">
-            <Activity className="w-3.5 h-3.5 text-[#e5a919]" />
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-[#083622] border border-[#146c43] rounded-xl text-xs mono text-white">
+            <Activity className="w-3.5 h-3.5 text-amber-400" />
             <span className="text-white font-bold">{timeStr}</span>
           </div>
 
@@ -126,11 +248,10 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-[#08422a] hover:bg-[#063320] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-sm"
-              title="Switch Dashboard Color Theme"
+              className="p-2 bg-[#083622] hover:bg-[#062919] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-xs"
+              title="Theme Color"
             >
-              <Palette className="w-4 h-4 text-[#e5a919]" />
-              <span className="hidden sm:inline text-white font-bold">{currentThemeObj.label}</span>
+              <Palette className="w-3.5 h-3.5 text-amber-400" />
             </button>
 
             {showThemeMenu && (
@@ -149,10 +270,11 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
                           setTheme(t.id);
                           setShowThemeMenu(false);
                         }}
-                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${isSelected
-                            ? 'bg-[#e6f3ec] text-[#0b5d3b] font-bold border border-[#0b5d3b]/40 shadow-sm'
+                        className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${
+                          isSelected
+                            ? 'bg-[#e6f3ec] text-[#0b5d3b] font-bold border border-[#0b5d3b]/40 shadow-xs'
                             : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
+                        }`}
                       >
                         <div className={`w-3.5 h-3.5 rounded-full mt-0.5 shrink-0 ${t.color} border border-black/10`} />
                         <div className="flex-1">
@@ -176,16 +298,21 @@ export default function Navbar({ health, onRefresh, theme, setTheme, currentUser
           {currentUser && (
             <div className="flex items-center gap-2 pl-2 border-l border-emerald-700/50">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-extrabold text-white leading-tight">{currentUser.fullName || currentUser.username}</span>
-                <span className="text-[11px] font-bold text-[#fde68a] uppercase tracking-wider">{currentUser.roleName || currentUser.roleId}</span>
+                <span className="text-xs font-extrabold text-white leading-tight flex items-center justify-end gap-1">
+                  {isMasterDev && <span>👑</span>}
+                  {currentUser.fullName || currentUser.username}
+                </span>
+                <span className="text-[10px] font-black text-[#fde68a] uppercase tracking-wider">
+                  {isMasterDev ? 'IMMUTABLE SUPER ADMIN' : (currentUser.roleName || currentUser.roleId)}
+                </span>
               </div>
 
               <button
                 onClick={onLogout}
-                className="p-2 bg-[#08422a] hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
+                className="p-1.5 sm:px-2.5 sm:py-1.5 bg-rose-950/40 hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
                 title="Sign Out"
               >
-                <LogOut className="w-4 h-4 text-rose-300" />
+                <LogOut className="w-3.5 h-3.5 text-rose-300" />
                 <span className="hidden md:inline">Sign Out</span>
               </button>
             </div>

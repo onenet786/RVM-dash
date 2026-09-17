@@ -179,7 +179,7 @@ export default function EnvironmentalImpactTab() {
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
               Audited Material CO2e Breakdown (Single Source of Truth)
             </h3>
-            <p className="text-xs t-text-secondary mt-0.5">Reconciled mapping between PRD Reward Classes and Environmental Factors.</p>
+            <p className="text-xs t-text-secondary mt-0.5">EPA / ISO 14064 Compliant Verification Tiering & Heterogeneous Hardware Attribution.</p>
           </div>
           <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
             Total Weight: {totalWeightProcessedKg} kg
@@ -192,37 +192,56 @@ export default function EnvironmentalImpactTab() {
               <tr className="border-b t-border t-text-muted uppercase tracking-wider font-bold">
                 <th className="py-3 px-4">Material Taxonomy</th>
                 <th className="py-3 px-4">Reward Class (PRD 4.1)</th>
+                <th className="py-3 px-4">Hardware Stream</th>
+                <th className="py-3 px-4">EPA Verification Tier</th>
                 <th className="py-3 px-4 text-right">Processed Weight (kg)</th>
                 <th className="py-3 px-4 text-center">Factor (kg CO2e / kg)</th>
                 <th className="py-3 px-4 text-right">Verified CO2e Saved (kg)</th>
               </tr>
             </thead>
             <tbody className="divide-y t-border">
-              {breakdown.map((row) => (
-                <tr key={row.material} className="hover:t-bg-hover">
-                  <td className="py-3.5 px-4 font-extrabold t-text-primary">{row.material}</td>
-                  <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold t-bg-sec border t-border t-text-secondary">
-                      {row.rewardClass}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right mono font-bold t-text-primary">
-                    {row.weightKg.toLocaleString()}
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="px-2 py-0.5 rounded text-xs font-mono font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {row.factor}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-right mono font-extrabold text-emerald-400">
-                    {row.co2eSavedKg.toLocaleString()} kg
-                  </td>
-                </tr>
-              ))}
+              {breakdown.map((row) => {
+                const isLoadCell = row.material.toLowerCase().includes('paper');
+                const hwStream = isLoadCell ? 'PecoDrop (Strain Gauge)' : 'RVM New / Cumulative (Optical)';
+                const tier = isLoadCell ? 'Tier-1 (Direct Load Cell Mass)' : 'Tier-2 (Statistical Unit Weight)';
+                const tierClass = isLoadCell ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
+
+                return (
+                  <tr key={row.material} className="hover:t-bg-hover">
+                    <td className="py-3.5 px-4 font-extrabold t-text-primary">{row.material}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold t-bg-sec border t-border t-text-secondary">
+                        {row.rewardClass}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="mono text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        {hwStream}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className={`px-2 py-0.5 text-[10px] font-mono font-extrabold rounded border ${tierClass}`}>
+                        {tier}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right mono font-bold t-text-primary">
+                      {row.weightKg.toLocaleString()}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className="px-2 py-0.5 rounded text-xs font-mono font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {row.factor}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right mono font-extrabold text-emerald-400">
+                      {row.co2eSavedKg.toLocaleString()} kg
+                    </td>
+                  </tr>
+                );
+              })}
               
               {/* Total Summary Row */}
               <tr className="t-bg-sec font-extrabold border-t-2 border-emerald-500/40">
-                <td colSpan={2} className="py-4 px-4 text-emerald-400 text-sm">
+                <td colSpan={4} className="py-4 px-4 text-emerald-400 text-sm">
                   TOTAL VERIFIED AVOIDED CARBON
                 </td>
                 <td className="py-4 px-4 text-right text-sm mono t-text-primary">

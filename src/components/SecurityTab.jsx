@@ -603,7 +603,14 @@ export default function SecurityTab() {
                 ) : users.map(u => (
                   <tr key={u.username} className="hover:t-bg-hover">
                     <td className="py-3 px-4">
-                      <div className="font-bold t-text-primary text-xs">{u.fullName || u.username}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold t-text-primary text-xs">{u.fullName || u.username}</span>
+                        {u.username === 'onenet' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs flex items-center gap-1">
+                            👑 Indestructible Master Super Admin
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] t-text-muted mono">{u.email || `@${u.username}`}</div>
                     </td>
 
@@ -615,7 +622,7 @@ export default function SecurityTab() {
                       <div className="flex flex-wrap gap-1">
                         {Array.isArray(u.assignedMachines) && u.assignedMachines.includes('*') ? (
                           <span className="mono text-xs font-semibold text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
-                            🌟 All Smart Recycling Fleet (*)
+                            🌟 All Recycling Fleet (*)
                           </span>
                         ) : (
                           (Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines]).map(m => (
@@ -634,11 +641,13 @@ export default function SecurityTab() {
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => handleToggleUserStatus(u)}
+                        disabled={u.username === 'onenet'}
                         className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full border ${
                           u.status === 'active' 
                             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
                             : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-                        }`}
+                        } ${u.username === 'onenet' ? 'cursor-not-allowed opacity-90' : ''}`}
+                        title={u.username === 'onenet' ? 'Permanent Active Status (Indestructible)' : 'Toggle Status'}
                       >
                         {u.status || 'active'}
                       </button>
@@ -658,9 +667,9 @@ export default function SecurityTab() {
                         onClick={() => handleDeleteUser(u)}
                         disabled={u.username === 'onenet'}
                         className="p-1.5 t-bg-sec hover:bg-rose-600 hover:text-white t-text-secondary rounded-lg border t-border transition-all disabled:opacity-30"
-                        title="Delete User Account"
+                        title={u.username === 'onenet' ? 'Cannot delete indestructible master account' : 'Delete User'}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5 text-rose-400" />
                       </button>
                     </td>
                   </tr>

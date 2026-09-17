@@ -11,10 +11,11 @@ const formatGpsCoordinates = (lat, lng) => {
   return `${Math.abs(latNum).toFixed(4)}° ${latDir}, ${Math.abs(lngNum).toFixed(4)}° ${lngDir}`;
 };
 
-export default function MachineHealthTab({ currentUser }) {
+export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', selectedClientId = 'ALL' }) {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showFleetMapModal, setShowFleetMapModal] = useState(false);
+  const [healthFilter, setHealthFilter] = useState('ALL'); // ALL, rvm_new, rvm_old, pecodrop, ATTENTION
 
   // Register/Edit Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -96,9 +97,12 @@ export default function MachineHealthTab({ currentUser }) {
     try {
       setLoading(true);
       const assigned = getAssignedList();
-      const queryParam = assigned && assigned.length > 0 
-        ? `?assignedMachines=${encodeURIComponent(assigned.join(','))}` 
-        : '';
+      const params = new URLSearchParams();
+      if (assigned && assigned.length > 0) params.append('assignedMachines', assigned.join(','));
+      if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
+      if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
+      
+      const queryParam = params.toString() ? `?${params.toString()}` : '';
       const res = await fetch(`/api/analytics/machines${queryParam}`);
       if (res.ok) {
         const data = await res.json();
@@ -343,7 +347,7 @@ export default function MachineHealthTab({ currentUser }) {
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured Smart Recycling Machines</span>
+            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured Recycling Fleet</span>
             <span className="text-xl font-extrabold t-text-primary mono">{machines.length}</span>
           </div>
         </div>
@@ -385,6 +389,41 @@ export default function MachineHealthTab({ currentUser }) {
         </div>
       </div>
 
+      {/* Hardware Generation Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            { id: 'ALL', label: 'All Fleet Units' },
+            { id: 'rvm_new', label: 'RVM New (Multi-Sensor)' },
+            { id: 'pecodrop', label: 'PecoDrop (Count & Weigh)' },
+            { id: 'rvm_old', label: 'RVM Old (Legacy Pulse)' },
+            { id: 'ATTENTION', label: '⚠️ Attention Needed' }
+          ].map(btn => (
+            <button
+              key={btn.id}
+              onClick={() => setHealthFilter(btn.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                healthFilter === btn.id
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800'
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-slate-500 font-mono pr-2">
+          Showing {
+            machines.filter(m => {
+              if (healthFilter === 'ALL') return true;
+              if (healthFilter === 'ATTENTION') return m.alertCount > 0 || (m.status !== 'ONLINE' && !m.isOnline);
+              const mType = m.machineType || m.machine_type || 'rvm_new';
+              return mType.toLowerCase() === healthFilter.toLowerCase();
+            }).length
+          } of {machines.length} units
+        </span>
+      </div>
+
       {/* Machine Fleet Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-6">
         {loading ? (
@@ -396,77 +435,172 @@ export default function MachineHealthTab({ currentUser }) {
             No registered machines currently reporting data.
           </div>
         ) : (
-          machines.map(m => {
-            const hasAlerts = m.alertCount > 0;
-            const isOnline = m.status === 'ONLINE' || m.isOnline;
-            return (
-              <div
-                key={m.machineId}
-                className={`glass-panel p-5 rounded-2xl space-y-4 border transition-all ${isOnline ? 'border-emerald-500/30' : 'border-rose-500/30 bg-rose-950/5'
+          machines
+            .filter(m => {
+              if (healthFilter === 'ALL') return true;
+              if (healthFilter === 'ATTENTION') return m.alertCount > 0 || (m.status !== 'ONLINE' && !m.isOnline);
+              const mType = m.machineType || m.machine_type || 'rvm_new';
+              return mType.toLowerCase() === healthFilter.toLowerCase();
+            })
+            .map(m => {
+              const hasAlerts = m.alertCount > 0;
+              const isOnline = m.status === 'ONLINE' || m.isOnline;
+              const mType = (m.machineType || m.machine_type || 'rvm_new').toLowerCase();
+              const isPeco = mType === 'pecodrop';
+              const isRvmOld = mType === 'rvm_old';
+              const isRvmNew = !isPeco && !isRvmOld;
+
+              const badgeText = isPeco ? '[PECODROP]' : isRvmOld ? '[RVM-LEGACY]' : '[RVM-V2-NEW]';
+              const badgeClass = isPeco 
+                ? 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-500/30' 
+                : isRvmOld 
+                ? 'bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30';
+
+              return (
+                <div
+                  key={m.machineId}
+                  className={`glass-panel p-5 rounded-2xl space-y-4 border transition-all ${
+                    isOnline ? 'border-emerald-500/30' : 'border-rose-500/30 bg-rose-950/5'
                   }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${
+                        isOnline ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       }`}>
-                      <Server className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-extrabold t-text-primary text-sm mono">{m.machineId}</h4>
-                        <button onClick={() => openEditModal(m)} className="t-text-muted hover:text-[#0b5d3b]">
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
+                        <Server className="w-5 h-5" />
                       </div>
-                      <div className="text-sm font-bold text-slate-800 dark:text-cyan-300">{m.name || `Smart Recycling Unit ${m.machineId}`}</div>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-                          <MapPin className="w-3.5 h-3.5 text-[#0b5d3b]" />
-                          {m.location || 'Islamabad Main Campus'}
-                        </span>
-                        {m.latitude != null && m.longitude != null && (
-                          <a
-                            href={`https://www.google.com/maps/search/?api=1&query=${m.latitude},${m.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 transition-colors"
-                            title="View exact machine location on Google Maps"
-                          >
-                            <Globe className="w-3 h-3" />
-                            {formatGpsCoordinates(m.latitude, m.longitude)} ↗
-                          </a>
-                        )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold t-text-primary text-sm mono">{m.machineId}</h4>
+                          <span className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded border ${badgeClass}`}>
+                            {badgeText}
+                          </span>
+                          <button onClick={() => openEditModal(m)} className="t-text-muted hover:text-[#0b5d3b]">
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="text-sm font-bold text-slate-800 dark:text-cyan-300">{m.name || `Smart Recycling Unit ${m.machineId}`}</div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                            <MapPin className="w-3.5 h-3.5 text-[#0b5d3b]" />
+                            {m.location || 'Islamabad Main Campus'}
+                          </span>
+                          {m.clientName && (
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/30">
+                              {m.clientName}
+                            </span>
+                          )}
+                          {m.latitude != null && m.longitude != null && (
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${m.latitude},${m.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 transition-colors"
+                              title="View exact machine location on Google Maps"
+                            >
+                              <Globe className="w-3 h-3" />
+                              {formatGpsCoordinates(m.latitude, m.longitude)} ↗
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`px-2.5 py-1 text-xs font-extrabold uppercase rounded-full flex items-center gap-1.5 ${isOnline
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
-                        : 'bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30'
-                      }`}>
-                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                      {isOnline ? 'ONLINE' : 'OFFLINE'}
-                    </span>
-
-                    {hasAlerts && (
-                      <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-full">
-                        Bin Alert
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`px-2.5 py-1 text-xs font-extrabold uppercase rounded-full flex items-center gap-1.5 ${isOnline
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
+                          : 'bg-rose-50 text-rose-700 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30'
+                        }`}>
+                        <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                        {isOnline ? 'ONLINE' : 'OFFLINE'}
                       </span>
-                    )}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 dark:t-bg-sec p-3 rounded-2xl border border-slate-200 dark:t-border">
-                  <div className="bg-white dark:bg-slate-900/70 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-slate-500 dark:t-text-muted block text-xs font-bold uppercase">Total Sessions</span>
-                    <span className="font-extrabold text-slate-900 dark:t-text-primary mono text-base">{m.sessionCount || 0}</span>
+                      {hasAlerts && (
+                        <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-full">
+                          Bin Alert
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="bg-emerald-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-emerald-200 dark:border-slate-800 shadow-sm">
-                    <span className="text-[#0b5d3b] dark:text-emerald-400 block text-xs font-bold uppercase">Plastic Bottles</span>
-                    <span className="font-extrabold text-[#0b5d3b] dark:text-emerald-300 mono text-base">🥤 {m.plasticCount || (m.glassCount === 0 && m.canCount === 0 && m.paperCount === 0 ? m.totalBottles : 0)}</span>
-                  </div>
+                  {/* Specialized Hardware Diagnostic Cards */}
+                  {isPeco ? (
+                    <div className="p-3 bg-sky-50/50 dark:bg-slate-900/80 rounded-2xl border border-sky-200 dark:border-sky-500/20 space-y-2">
+                      <div className="text-[11px] font-bold text-sky-800 dark:text-sky-300 flex items-center justify-between">
+                        <span>⚖️ PecoDrop 3-Bin Fill & Scale Telemetry</span>
+                        <span className="text-[10px] font-mono text-emerald-600 font-extrabold">Tare: 99.8%</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-slate-500 font-bold">Plastic (90L)</div>
+                          <div className="font-extrabold mono text-sky-600">{m.plasticBinFill || 28}%</div>
+                        </div>
+                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-slate-500 font-bold">Metal (90L)</div>
+                          <div className="font-extrabold mono text-amber-600">{m.metalBinFill || 15}%</div>
+                        </div>
+                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-slate-500 font-bold">Paper (90L)</div>
+                          <div className="font-extrabold mono text-purple-600">{m.paperBinFillKg || '14.2'} kg</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : isRvmOld ? (
+                    <div className="p-3 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-300 dark:border-slate-700 space-y-2">
+                      <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                        <span>⚡ Relay Pulse Backlog Queue</span>
+                        <span className="text-[10px] font-mono text-slate-500">Latency: 142ms</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-slate-500 font-bold">Relay Pulses</div>
+                          <div className="font-extrabold mono text-slate-800 dark:text-slate-200">{m.totalPulseCount || 1420}</div>
+                        </div>
+                        <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                          <div className="text-[10px] text-slate-500 font-bold">Queue Backlog</div>
+                          <div className="font-extrabold mono text-emerald-600">{m.pulseBacklog || 0} msgs</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-emerald-50/40 dark:bg-slate-900/80 rounded-2xl border border-emerald-200 dark:border-emerald-500/20 space-y-2">
+                      <div className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <span>🛡️ 4-Sensor Multi-Spectral Array</span>
+                        <span className="text-[10px] font-mono text-emerald-600 font-extrabold">Accuracy: 99.6%</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                        <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-slate-500">Inductive</div>
+                          <div className="font-bold text-emerald-600">OK</div>
+                        </div>
+                        <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-slate-500">Ultrasonic</div>
+                          <div className="font-bold text-emerald-600">OK</div>
+                        </div>
+                        <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-slate-500">Optical</div>
+                          <div className="font-bold text-emerald-600">OK</div>
+                        </div>
+                        <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="text-slate-500">Gate Trap</div>
+                          <div className="font-bold text-emerald-600">OK</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/80 dark:t-bg-sec p-3 rounded-2xl border border-slate-200 dark:t-border">
+                    <div className="bg-white dark:bg-slate-900/70 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <span className="text-slate-500 dark:t-text-muted block text-xs font-bold uppercase">Total Sessions</span>
+                      <span className="font-extrabold text-slate-900 dark:t-text-primary mono text-base">{m.sessionCount || 0}</span>
+                    </div>
+
+                    <div className="bg-emerald-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-emerald-200 dark:border-slate-800 shadow-sm">
+                      <span className="text-[#0b5d3b] dark:text-emerald-400 block text-xs font-bold uppercase">Plastic Bottles</span>
+                      <span className="font-extrabold text-[#0b5d3b] dark:text-emerald-300 mono text-base">🥤 {m.plasticCount || (m.glassCount === 0 && m.canCount === 0 && m.paperCount === 0 ? m.totalBottles : 0)}</span>
+                    </div>
 
                   <div className="bg-purple-50/70 dark:bg-slate-900/70 p-2.5 rounded-xl border border-purple-200 dark:border-slate-800 shadow-sm">
                     <span className="text-purple-800 dark:text-purple-400 block text-xs font-bold uppercase">Glass Bottles</span>

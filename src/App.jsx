@@ -56,6 +56,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [health, setHealth] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [stationFilter, setStationFilter] = useState('ALL'); // 'ALL' | 'RVM_OLD' | 'RVM_NEW' | 'PECODROP'
+  const [selectedClientId, setSelectedClientId] = useState('ALL'); // 'ALL' | 'ISP_MASTER' | 'UCP_LAHORE' | 'METRO_MALL'
   const [theme, setTheme] = useState(() => {
     try {
       const explicit = localStorage.getItem('rvm_theme_explicit');
@@ -67,7 +69,6 @@ export default function App() {
   });
 
   // Authentication State (sessionStorage: demands re-login on browser window restart)
-
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const savedUser = sessionStorage.getItem('rvm_auth_user');
@@ -113,6 +114,9 @@ export default function App() {
     setCurrentUser(user);
     setIsLoggedOut(false);
     setActiveTab('overview');
+    if (user?.roleId === 'client_admin' && user?.assignedClient) {
+      setSelectedClientId(user.assignedClient);
+    }
   };
 
   const handleLogout = async () => {
@@ -127,7 +131,6 @@ export default function App() {
     setIsLoggedOut(true);
   };
 
-
   const renderContent = () => {
     const isMasterDev = currentUser?.username === 'onenet';
     const isSuperAdmin = isMasterDev || 
@@ -137,12 +140,17 @@ export default function App() {
       currentUser?.username === 'bilalaaqueel' || 
       currentUser?.isSuperAdmin === true;
 
+    const isClientAdmin = currentUser?.roleId === 'client_admin';
+
     const getUserAllowedModules = () => {
       if (isSuperAdmin) return ['*'];
+      if (isClientAdmin) return ['overview', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
       if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
         return currentUser.modules;
       }
       const roleId = currentUser?.roleId;
+      if (roleId === 'pecodrop_technician') return ['overview', 'machines', 'reporting_hub'];
+      if (roleId === 'rvm_field_technician') return ['overview', 'machines', 'reporting_hub'];
       if (roleId === 'fleet_operator') return ['overview', 'machines'];
       if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
       if (roleId === 'support_specialist') return ['overview', 'mobile_users', 'feedbacks', 'users'];
@@ -152,6 +160,8 @@ export default function App() {
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
+      if (isClientAdmin && ['db_switcher', 'db_backup', 'security'].includes(tab)) return false;
+      if (isClientAdmin && tab.startsWith('col_')) return false;
       if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
       const clean = tab.replace('col_', '');
@@ -160,33 +170,33 @@ export default function App() {
 
     // Block unauthorized users from any un-allowed tabs
     if (!isAllowedTab(activeTab)) {
-      return <OverviewTab currentUser={currentUser} />;
+      return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
 
     if (activeTab === 'overview') {
-      return <OverviewTab currentUser={currentUser} />;
+      return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
 
     if (activeTab === 'reporting_hub') {
-      return <ReportingHubTab />;
+      return <ReportingHubTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
 
     if (activeTab === 'mobile_users' || activeTab === 'col_users') {
-      return <MobileUsersTab />;
+      return <MobileUsersTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
 
     if (activeTab === 'esg_impact') {
-      return <EnvironmentalImpactTab />;
+      return <EnvironmentalImpactTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
     if (activeTab === 'analytics') {
-      return <AnalyticsTab />;
+      return <AnalyticsTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
 
     if (activeTab === 'machines') {
-      return <MachineHealthTab currentUser={currentUser} />;
+      return <MachineHealthTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
     if (activeTab === 'advertisements') {
-      return <AdvertisementsTab />;
+      return <AdvertisementsTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
     if (activeTab === 'col_machines') {
       return <RvmManagementTab currentUser={currentUser} />;
@@ -203,7 +213,6 @@ export default function App() {
     if (activeTab === 'db_backup' && (isSuperAdmin || isAllowedTab('db_backup'))) {
       return <DbBackupTab onRefreshHealth={fetchHealth} />;
     }
-
 
     if (activeTab.startsWith('col_')) {
       const colName = activeTab.replace('col_', '');
@@ -229,7 +238,7 @@ export default function App() {
       );
     }
 
-    return <OverviewTab />;
+    return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
   };
 
   return (
@@ -253,6 +262,10 @@ export default function App() {
         onLogout={handleLogout}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
+        stationFilter={stationFilter}
+        setStationFilter={setStationFilter}
+        selectedClientId={selectedClientId}
+        setSelectedClientId={setSelectedClientId}
       />
 
       <div className="flex flex-1 overflow-hidden">
