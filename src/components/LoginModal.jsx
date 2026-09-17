@@ -260,8 +260,12 @@ export default function LoginModal({ onLoginSuccess }) {
         sessionStorage.setItem('rvm_auth_user', JSON.stringify(json.user));
         if (rememberMe) {
           localStorage.setItem('rvm_saved_username', username.trim());
+          localStorage.setItem('rvm_auth_token', json.token);
+          localStorage.setItem('rvm_auth_user', JSON.stringify(json.user));
         } else {
           localStorage.removeItem('rvm_saved_username');
+          localStorage.removeItem('rvm_auth_token');
+          localStorage.removeItem('rvm_auth_user');
         }
         if (onLoginSuccess) onLoginSuccess(json.user, json.token);
       } else {

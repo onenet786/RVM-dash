@@ -68,13 +68,18 @@ export default function App() {
     return 'isp-eco';
   });
 
-  // Authentication State (sessionStorage: demands re-login on browser window restart)
+  // Authentication State (sessionStorage with persistent rememberMe fallback)
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const savedUser = sessionStorage.getItem('rvm_auth_user');
-      if (savedUser) return JSON.parse(savedUser);
+      const savedUser = sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user');
+      const savedToken = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
+      if (savedUser && savedToken) {
+        sessionStorage.setItem('rvm_auth_user', savedUser);
+        sessionStorage.setItem('rvm_auth_token', savedToken);
+        return JSON.parse(savedUser);
+      }
     } catch (e) { }
-    return null; // Force login modal on fresh browser session
+    return null; // Demands login modal when unauthenticated
   });
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
@@ -241,16 +246,15 @@ export default function App() {
     return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
   };
 
+  if (isLoggedOut || !currentUser) {
+    return <LoginModal onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen t-bg-app flex flex-col font-sans transition-colors duration-300 relative">
 
       {/* Dynamic Flying Leaf Watermark across all Dashboard pages */}
       <FlyingLeavesWatermark isWatermark={true} count={28} />
-
-      {/* Login Portal Modal overlay when logged out */}
-      {(isLoggedOut || !currentUser) && (
-        <LoginModal onLoginSuccess={handleLoginSuccess} />
-      )}
 
       {/* Top Navbar */}
       <Navbar

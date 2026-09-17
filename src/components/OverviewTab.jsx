@@ -72,8 +72,13 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   };
 
   useEffect(() => {
-    fetchOverview();
-  }, [stationFilter, selectedClientId]);
+    const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
+    if (token) {
+      fetchOverview();
+    } else {
+      setLoading(false);
+    }
+  }, [stationFilter, selectedClientId, currentUser]);
 
   if (loading) {
     return (

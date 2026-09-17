@@ -7,7 +7,7 @@
  * - Instant sub-50ms repeat load time on mobile devices and browsers
  */
 
-const CACHE_NAME = 'rvm-shell-v3';
+const CACHE_NAME = 'rvm-shell-v4';
 const STATIC_SHELL = [
   '/',
   '/index.html',
@@ -39,19 +39,21 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. Bypass all non-GET requests and dynamic backend APIs immediately
+  // 1. Bypass all non-GET requests, dynamic backend APIs, and JS module chunks
+  // Letting the browser's native module loader and disk cache handle JS chunks prevents Chromium cross-world preload warnings.
   if (
     request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/claim') ||
     url.pathname.startsWith('/scanner') ||
     url.pathname.startsWith('/uploads/') ||
-    url.pathname.startsWith('/socket.io')
+    url.pathname.startsWith('/socket.io') ||
+    (url.pathname.includes('/assets/') && url.pathname.endsWith('.js'))
   ) {
     return;
   }
 
-  // 2. Versioned / Fingerprinted Assets (/assets/*) - Cache-First Strategy with Background Revalidation
+  // 2. Versioned Static Assets (CSS, Images, SVGs, Fonts) - Cache-First Strategy with Background Revalidation
   if (url.pathname.includes('/assets/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {

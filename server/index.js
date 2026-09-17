@@ -2115,8 +2115,8 @@ app.get('/api/analytics/machines', authenticateToken, async (req, res) => {
   }
 });
 
-// Live Machine Asset Summary for Global Top Bar Control Strip
-app.get('/api/analytics/machines/summary', authenticateToken, async (req, res) => {
+// Live Machine Asset Summary for Global Top Bar Control Strip (Public Telemetry Counters)
+app.get('/api/analytics/machines/summary', async (req, res) => {
   try {
     const pool = getPgPool();
     let machines = [];

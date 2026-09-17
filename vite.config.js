@@ -13,6 +13,7 @@ export default defineConfig({
     },
   },
   build: {
+    modulePreload: false,
     emptyOutDir: false,
     chunkSizeWarningLimit: 600,
     cssCodeSplit: true,

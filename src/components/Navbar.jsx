@@ -32,7 +32,9 @@ export default function Navbar({
 
   const fetchAssetSummary = async () => {
     try {
-      const res = await fetch('/api/analytics/machines/summary');
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await fetch('/api/analytics/machines/summary', { headers });
       if (res.ok) {
         const data = await res.json();
         setAssetSummary(data);
