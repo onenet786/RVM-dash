@@ -24,6 +24,8 @@ export default function RvmManagementTab({ currentUser }) {
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [status, setStatus] = useState('ONLINE');
+  const [machineType, setMachineType] = useState('RVM_NEW');
+  const [clientId, setClientId] = useState('ISP_MASTER');
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -96,6 +98,8 @@ export default function RvmManagementTab({ currentUser }) {
     setLocation('');
     setLatitude('');
     setLongitude('');
+    setMachineType('RVM_NEW');
+    setClientId('ISP_MASTER');
     setStatus('ONLINE');
     setShowAddModal(true);
   };
@@ -107,6 +111,9 @@ export default function RvmManagementTab({ currentUser }) {
     setLocation(m.location || '');
     setLatitude(m.latitude != null ? String(m.latitude) : '');
     setLongitude(m.longitude != null ? String(m.longitude) : '');
+    const mType = String(m.machineType || m.machine_type || '').toUpperCase();
+    setMachineType(mType.includes('PECO') ? 'PECODROP' : mType.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW');
+    setClientId(m.clientId || m.client_id || 'ISP_MASTER');
     setStatus(m.status || 'ONLINE');
     setShowAddModal(true);
   };
@@ -141,6 +148,9 @@ export default function RvmManagementTab({ currentUser }) {
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
           status,
+          machineType,
+          clientId,
+          clientName: clientId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : clientId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)',
           username: user.username,
           roleId: user.roleId,
           isSuperAdmin: isSuperAdmin,
@@ -399,6 +409,38 @@ export default function RvmManagementTab({ currentUser }) {
                     placeholder="e.g. 73.0931"
                     className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Hardware Station Type
+                  </label>
+                  <select
+                    value={machineType}
+                    onChange={e => setMachineType(e.target.value)}
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b]"
+                  >
+                    <option value="RVM_NEW">RVM New (Multi-Sensor Optical)</option>
+                    <option value="PECODROP">PecoDrop (Count & Weigh)</option>
+                    <option value="RVM_OLD">RVM Old (Legacy Pulse)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Enterprise Client Organization
+                  </label>
+                  <select
+                    value={clientId}
+                    onChange={e => setClientId(e.target.value)}
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b]"
+                  >
+                    <option value="ISP_MASTER">ISP Environmental Master (All Sites)</option>
+                    <option value="UCP_LAHORE">Client: UCP Lahore Campus</option>
+                    <option value="METRO_MALL">Client: Metro Mall RWP</option>
+                  </select>
                 </div>
               </div>
 

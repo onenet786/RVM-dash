@@ -606,12 +606,37 @@ async function initProductionPostgresSchemas() {
       CREATE INDEX IF NOT EXISTS idx_redemptions_date ON redemptions (created_at DESC);
     `);
 
-    // 7. Seed & Categorize Baseline Machines by Model Generation & Client Organization
+    // 7. Auto-heal & Categorize Baseline Machines by Model Generation & Client Organization
     await pool.query(`
+      -- A. Categorize machine_type accurately based on identifier and operational profile
+      UPDATE machines 
+      SET machine_type = 'PECODROP' 
+      WHERE UPPER(machine_id) LIKE '%PECO%' OR UPPER(name) LIKE '%PECO%';
+
+      UPDATE machines 
+      SET machine_type = 'RVM_OLD' 
+      WHERE UPPER(machine_id) LIKE '%OLD%' OR UPPER(name) LIKE '%OLD%';
+
+      UPDATE machines 
+      SET machine_type = 'RVM_NEW' 
+      WHERE machine_type IS NULL OR (UPPER(machine_id) NOT LIKE '%PECO%' AND UPPER(name) NOT LIKE '%PECO%' AND UPPER(machine_id) NOT LIKE '%OLD%' AND UPPER(name) NOT LIKE '%OLD%');
+
+      -- B. Assign enterprise client organizations based on site location and identifier
+      UPDATE machines 
+      SET client_id = 'UCP_LAHORE', client_name = 'Client: UCP Lahore Campus'
+      WHERE UPPER(machine_id) LIKE '%UCP%' OR UPPER(name) LIKE '%UCP%' OR machine_id = 'RVM:01';
+
+      UPDATE machines 
+      SET client_id = 'METRO_MALL', client_name = 'Client: Metro Mall RWP'
+      WHERE UPPER(name) LIKE '%PECO-RWP%' OR UPPER(name) LIKE '%RVM-RWP-MT%' OR UPPER(location) LIKE '%METRO%' OR machine_id IN ('RVM-007', 'RVM-0067');
+
+      UPDATE machines 
+      SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)'
+      WHERE client_id IS NULL OR (client_id NOT IN ('UCP_LAHORE', 'METRO_MALL') AND machine_id NOT IN ('RVM-007', 'RVM-0067', 'UCP-RVM', 'RVM:01'));
+
+      -- C. Seed dedicated demo / baseline machines if not already present
       INSERT INTO machines (machine_id, name, location, status, machine_type, client_id, client_name, bin_fill_percentage, plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg, scale_status, tare_offset_grams, zero_drift_grams, inductive_status, ultrasonic_status, optical_status, dropgate_status, anti_cheat_trips, pulse_count, offline_backlog_count)
       VALUES 
-        ('RVM-001', 'Smart RVM V2 (Main Entrance)', 'UCP Lahore Campus - Gate 1', 'active', 'RVM_NEW', 'UCP_LAHORE', 'Client: UCP Lahore Campus', 48, 52, 40, 0.00, 'Optimal', 0.00, 0.00, 'NORMAL', 'NORMAL', '60 FPS', 'CLOSED', 0, 0, 0),
-        ('RVM-0067', 'Smart RVM V2 (Cafeteria Plaza)', 'UCP Lahore Campus - Food Court', 'active', 'RVM_NEW', 'UCP_LAHORE', 'Client: UCP Lahore Campus', 65, 70, 55, 0.00, 'Optimal', 0.00, 0.00, 'NORMAL', 'NORMAL', '60 FPS', 'CLOSED', 1, 0, 0),
         ('PECO-01', 'PecoDrop Station (Indoor Hub 1)', 'Metro Mall RWP - Ground Floor', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 62, 58, 42, 11.40, 'Optimal', 0.00, 0.02, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
         ('PECO-02', 'PecoDrop Station (Indoor Hub 2)', 'Metro Mall RWP - Food Court 3F', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 78, 65, 50, 14.80, 'Compensated', 0.15, 0.32, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
         ('RVM-OLD-01', 'RVM Old Legacy Kiosk', 'ISP Metro Street Station - North', 'active', 'RVM_OLD', 'ISP_MASTER', 'ISP Environmental Master (All Sites)', 85, 85, 0, 0.00, 'N/A', 0.00, 0.00, 'N/A', 'N/A', 'N/A', 'N/A', 0, 1420, 0)
@@ -1822,6 +1847,32 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             LEFT JOIN machine_configs c ON m.machine_id = c.machine_id
           `);
           metaRes.rows.forEach(r => {
+            const upperId = String(r.machine_id || '').toUpperCase();
+            const upperName = String(r.name || '').toUpperCase();
+            const upperLoc = String(r.location || '').toUpperCase();
+
+            let mType = r.machine_type;
+            if (upperId.includes('PECO') || upperName.includes('PECO')) {
+              mType = 'PECODROP';
+            } else if (upperId.includes('OLD') || upperName.includes('OLD')) {
+              mType = 'RVM_OLD';
+            } else if (!mType || mType === 'active' || mType === 'rvm_new') {
+              mType = 'RVM_NEW';
+            }
+
+            let cId = r.client_id;
+            let cName = r.client_name;
+            if (upperId.includes('UCP') || upperName.includes('UCP') || upperLoc.includes('UCP') || upperId === 'RVM:01') {
+              cId = 'UCP_LAHORE';
+              cName = 'Client: UCP Lahore Campus';
+            } else if (upperId.includes('METRO') || upperName.includes('METRO') || upperLoc.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067') {
+              cId = 'METRO_MALL';
+              cName = 'Client: Metro Mall RWP';
+            } else if (!cId || cId === 'ALL') {
+              cId = 'ISP_MASTER';
+              cName = 'ISP Environmental Master (All Sites)';
+            }
+
             allRegisteredMachines.push({
               machineId: r.machine_id,
               name: r.name || `RVM Machine ${r.machine_id}`,
@@ -1832,9 +1883,9 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               lastPingAt: r.last_ping_at,
               publicIp: r.public_ip || 'N/A',
               localIp: r.local_ip || 'N/A',
-              machineType: r.machine_type || (r.machine_id.includes('PECO') ? 'PECODROP' : r.machine_id.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW'),
-              clientId: r.client_id || 'ISP_MASTER',
-              clientName: r.client_name || 'ISP Environmental Master (All Sites)',
+              machineType: mType,
+              clientId: cId,
+              clientName: cName,
               plasticBinFill: r.plastic_bin_fill ?? 45,
               metalBinFill: r.metal_bin_fill ?? 30,
               paperBinFillKg: parseFloat(r.paper_bin_fill_kg || 8.50),
@@ -1939,6 +1990,10 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         const sTime = s.recycledAt || s.timestamp ? new Date(s.recycledAt || s.timestamp).getTime() : 0;
         if (!grouped[mId]) {
           const isOnline = sTime > 0 && (now - sTime <= ONLINE_THRESHOLD_MS);
+          const upperMId = String(mId).toUpperCase();
+          const mType = upperMId.includes('PECO') ? 'PECODROP' : upperMId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW';
+          const cId = upperMId.includes('UCP') || upperMId === 'RVM:01' ? 'UCP_LAHORE' : (upperMId.includes('METRO') || upperMId === 'RVM-007' || upperMId === 'RVM-0067') ? 'METRO_MALL' : 'ISP_MASTER';
+          const cName = cId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : cId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)';
           grouped[mId] = {
             machineId: mId,
             name: `RVM Machine ${mId}`,
@@ -1946,9 +2001,9 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             status: isOnline ? 'ONLINE' : 'OFFLINE',
             isOnline,
             lastPingAt: s.recycledAt || s.timestamp,
-            machineType: mId.includes('PECO') ? 'PECODROP' : mId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW',
-            clientId: 'ISP_MASTER',
-            clientName: 'ISP Environmental Master (All Sites)',
+            machineType: mType,
+            clientId: cId,
+            clientName: cName,
             plasticBinFill: 45,
             metalBinFill: 30,
             paperBinFillKg: 8.50,
@@ -1962,6 +2017,24 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             antiCheatTrips: 0,
             pulseCount: 1250,
             offlineBacklogCount: 0,
+            pointsPerPlasticBottle: 10,
+            pointsPlasticSmall: 5,
+            pointsPlasticMedium: 10,
+            pointsPlasticLarge: 15,
+            pointsPerAluminiumCan: 20,
+            pointsCanSmall: 10,
+            pointsCanMedium: 15,
+            pointsCanLarge: 20,
+            pointsPerPaperKg: 15,
+            pointsPerGlass: 15,
+            pointsGlassSmall: 10,
+            pointsGlassMedium: 15,
+            pointsGlassLarge: 20,
+            plasticUnit: 'per_piece',
+            aluminiumUnit: 'per_piece',
+            paperUnit: 'per_kg',
+            glassUnit: 'per_piece',
+            configVersion: 1,
             totalBottles: 0,
             totalCups: 0,
             totalPoints: 0,
@@ -1970,35 +2043,40 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             glassCount: 0,
             canCount: 0,
             paperCount: 0,
-            lastActive: s.recycledAt || s.timestamp
+            lastActive: s.recycledAt || s.timestamp || null
           };
         }
-        grouped[mId].totalBottles += parseInt(s.bottles || s.totalBottles || 0);
-        grouped[mId].totalCups += parseInt(s.cups || s.totalCups || 0);
-        grouped[mId].totalPoints += parseInt(s.points || s.totalPoints || 0);
-        grouped[mId].sessionCount += 1;
 
-        const pCnt = parseInt(s.plasticCount || s.plastic_count || 0);
-        const gCnt = parseInt(s.glassCount || s.glass_count || 0);
-        const cCnt = parseInt(s.aluminiumCount || s.aluminium_count || s.canCount || s.can_count || s.metalCount || 0);
-        const paCnt = parseInt(s.paperCardboardCount || s.paper_cardboard_count || s.paperCount || s.paper_count || 0);
+        const mType = String(grouped[mId].machineType || '').toUpperCase();
+        if (s.raw) {
+          const r = s.raw;
+          const p = (r.plasticSmall || 0) + (r.plasticMedium || 0) + (r.plasticLarge || 0) + (r.plasticCount || 0) + (r.bottleCount || 0) + (r.bottles || 0);
+          const c = (r.canSmall || 0) + (r.canMedium || 0) + (r.canLarge || 0) + (r.canCount || 0) + (r.cans || 0);
+          const g = (r.glassSmall || 0) + (r.glassMedium || 0) + (r.glassLarge || 0) + (r.glassCount || 0) + (r.glass || 0);
+          const pa = (r.paperWeightKg ? 1 : 0) || (r.paperCount || 0);
 
-        if (pCnt === 0 && gCnt === 0 && cCnt === 0 && paCnt === 0) {
-          const mat = String(s.materialType || s.material_type || s.material || '').toUpperCase();
-          const items = parseInt(s.bottles || s.totalBottles || s.itemCount || 0);
-          if (mat.includes('GLASS')) grouped[mId].glassCount += items;
-          else if (mat.includes('CAN') || mat.includes('METAL') || mat.includes('ALUMINIUM')) grouped[mId].canCount += items;
-          else if (mat.includes('PAPER')) grouped[mId].paperCount += items;
-          else grouped[mId].plasticCount += items;
+          grouped[mId].plasticCount += p;
+          grouped[mId].canCount += c;
+          grouped[mId].glassCount += g;
+          grouped[mId].paperCount += pa;
+          grouped[mId].totalBottles += (p + c + g + pa);
         } else {
-          grouped[mId].plasticCount += pCnt;
-          grouped[mId].glassCount += gCnt;
-          grouped[mId].canCount += cCnt;
-          grouped[mId].paperCount += paCnt;
+          const p = s.plasticCount || (s.plasticSmallCount || 0) + (s.plasticMediumCount || 0) + (s.plasticLargeCount || 0) || s.count || 0;
+          const c = s.aluminiumCount || (s.canSmallCount || 0) + (s.canMediumCount || 0) + (s.canLargeCount || 0) || 0;
+          const g = s.glassCount || (s.glassSmallCount || 0) + (s.glassMediumCount || 0) + (s.glassLargeCount || 0) || 0;
+          const pa = s.paperCount || (s.paperWeightGrams ? 1 : 0) || 0;
+
+          grouped[mId].plasticCount += p;
+          grouped[mId].canCount += c;
+          grouped[mId].glassCount += g;
+          grouped[mId].paperCount += pa;
+          grouped[mId].totalBottles += (p + c + g + pa);
         }
 
-        if (sTime > 0 && !grouped[mId].lastPingAt) {
-          grouped[mId].lastPingAt = s.recycledAt || s.timestamp;
+        grouped[mId].totalCups += (s.cups || (s.raw && s.raw.cups) || 0);
+        grouped[mId].totalPoints += (s.pointsAwarded || s.points || s.pointsEarned || 0);
+        grouped[mId].sessionCount += 1;
+        if (sTime > (grouped[mId].lastActive ? new Date(grouped[mId].lastActive).getTime() : 0)) {
           grouped[mId].lastActive = s.recycledAt || s.timestamp;
           const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
           grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
@@ -2028,7 +2106,10 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
       }
       if (stationFilter && stationFilter !== 'ALL') {
-        combined = combined.filter(m => String(m.machineType || '').toUpperCase() === stationFilter);
+        const targetType = (stationFilter === 'RVM_NEW' || stationFilter === 'RV_NEW') ? 'RVM_NEW' :
+                           (stationFilter === 'PECODROP' || stationFilter === 'PECO') ? 'PECODROP' :
+                           (stationFilter === 'RVM_OLD' || stationFilter === 'LEGACY') ? 'RVM_OLD' : stationFilter;
+        combined = combined.filter(m => String(m.machineType || '').toUpperCase() === targetType);
       }
       if (clientId && clientId !== 'ALL') {
         combined = combined.filter(m => String(m.clientId || '').toUpperCase() === clientId);
@@ -2148,24 +2229,60 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
 app.get('/api/analytics/machines/summary', async (req, res) => {
   try {
     const pool = getPgPool();
-    let machines = [];
+    let allMachines = [];
     if (pool) {
-      const resM = await pool.query('SELECT machine_id, status, last_ping_at, machine_type, client_id, client_name FROM machines');
-      machines = resM.rows;
+      const resM = await pool.query('SELECT machine_id, name, status, last_ping_at, machine_type, client_id, client_name FROM machines');
+      allMachines = resM.rows;
     }
     const alerts = await fetchCollectionDocs('binfullnotifications');
     const now = Date.now();
+
+    // Support optional client filtering
+    const clientId = String(req.query.clientId || 'ALL').toUpperCase();
+    let scopedMachines = allMachines;
+    if (clientId && clientId !== 'ALL') {
+      scopedMachines = allMachines.filter(m => {
+        const upperId = String(m.machine_id || '').toUpperCase();
+        const upperName = String(m.name || '').toUpperCase();
+        const cId = String(m.client_id || '').toUpperCase();
+        if (clientId === 'METRO_MALL') {
+          return cId === 'METRO_MALL' || upperId.includes('METRO') || upperName.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067';
+        }
+        if (clientId === 'UCP_LAHORE') {
+          return cId === 'UCP_LAHORE' || upperId.includes('UCP') || upperName.includes('UCP') || upperId === 'RVM:01';
+        }
+        return cId === clientId;
+      });
+    }
+
     let onlineCount = 0;
-    machines.forEach(m => {
+    scopedMachines.forEach(m => {
       const pingTime = m.last_ping_at ? new Date(m.last_ping_at).getTime() : 0;
       if (pingTime > 0 && (now - pingTime <= 60000)) onlineCount++;
     });
-    const offlineCount = Math.max(0, machines.length - onlineCount);
+    const offlineCount = Math.max(0, scopedMachines.length - onlineCount);
+
+    const getNormalizedStation = (m) => {
+      const t = String(m.machine_type || '').toUpperCase();
+      const id = String(m.machine_id || '').toUpperCase();
+      const name = String(m.name || '').toUpperCase();
+      if (t === 'PECODROP' || id.includes('PECO') || name.includes('PECO')) return 'pecodrop';
+      if (t === 'RVM_OLD' || id.includes('OLD') || name.includes('OLD')) return 'rvmOld';
+      return 'rvmNew';
+    };
+
+    const byStation = {
+      rvmNew: scopedMachines.filter(m => getNormalizedStation(m) === 'rvmNew').length,
+      pecodrop: scopedMachines.filter(m => getNormalizedStation(m) === 'pecodrop').length,
+      rvmOld: scopedMachines.filter(m => getNormalizedStation(m) === 'rvmOld').length
+    };
+
     res.json({
-      totalActive: machines.length || 5,
-      onlineCount: onlineCount || 3,
-      offlineCount: offlineCount || 2,
-      activeAlerts: alerts.length || 4,
+      totalActive: scopedMachines.length,
+      onlineCount,
+      offlineCount,
+      activeAlerts: alerts.length || 0,
+      byStation,
       clients: [
         { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites)' },
         { id: 'UCP_LAHORE', name: 'Client: UCP Lahore Campus' },
@@ -2239,6 +2356,9 @@ app.post('/api/machines', async (req, res) => {
       latitude,
       longitude,
       status,
+      machineType,
+      clientId,
+      clientName,
       pointsPerPlasticBottle = 10,
       pointsPerAluminiumCan = 20,
       pointsPerPaperKg = 15,
@@ -2249,6 +2369,30 @@ app.post('/api/machines', async (req, res) => {
     } = req.body || {};
     if (!machineId) {
       return res.status(400).json({ error: 'Machine ID is required' });
+    }
+
+    const upperMId = String(machineId).toUpperCase();
+    const upperMName = String(name || '').toUpperCase();
+    let mType = machineType;
+    if (!mType) {
+      mType = (upperMId.includes('PECO') || upperMName.includes('PECO')) ? 'PECODROP' :
+              (upperMId.includes('OLD') || upperMName.includes('OLD')) ? 'RVM_OLD' : 'RVM_NEW';
+    }
+    let cId = clientId;
+    let cName = clientName;
+    if (!cId) {
+      if (upperMId.includes('UCP') || upperMName.includes('UCP') || upperMId === 'RVM:01') {
+        cId = 'UCP_LAHORE';
+        cName = 'Client: UCP Lahore Campus';
+      } else if (upperMId.includes('METRO') || upperMName.includes('METRO') || upperMName.includes('PECO-RWP') || upperMName.includes('RVM-RWP-MT') || upperMId === 'RVM-007' || upperMId === 'RVM-0067') {
+        cId = 'METRO_MALL';
+        cName = 'Client: Metro Mall RWP';
+      } else {
+        cId = 'ISP_MASTER';
+        cName = 'ISP Environmental Master (All Sites)';
+      }
+    } else if (!cName) {
+      cName = cId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : cId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)';
     }
 
     const pool = getPgPool();
@@ -2357,18 +2501,24 @@ app.post('/api/machines', async (req, res) => {
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ONLINE';`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(50) DEFAULT 'RVM_NEW';`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';`);
+        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';`);
 
         await pool.query(`
-          INSERT INTO machines (machine_id, name, location, latitude, longitude, status, last_ping_at)
-          VALUES ($1, $2, $3, $4, $5, $6, NOW())
+          INSERT INTO machines (machine_id, name, location, latitude, longitude, status, machine_type, client_id, client_name, last_ping_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
           ON CONFLICT (machine_id)
           DO UPDATE SET name = EXCLUDED.name, 
                         location = EXCLUDED.location, 
                         latitude = COALESCE(EXCLUDED.latitude, machines.latitude),
                         longitude = COALESCE(EXCLUDED.longitude, machines.longitude),
                         status = EXCLUDED.status, 
+                        machine_type = EXCLUDED.machine_type,
+                        client_id = EXCLUDED.client_id,
+                        client_name = EXCLUDED.client_name,
                         last_ping_at = NOW()
-        `, [machineId, machineName, machineLocation, parsedLat, parsedLng, machineStatus]);
+        `, [machineId, machineName, machineLocation, parsedLat, parsedLng, machineStatus, mType, cId, cName]);
 
         await pool.query(`
           INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)

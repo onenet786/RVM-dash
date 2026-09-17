@@ -102,8 +102,21 @@ export default function App() {
       setCurrentUser(null);
       setIsLoggedOut(true);
     };
+    const handleSwitchClient = (e) => {
+      if (e.detail) setSelectedClientId(e.detail);
+    };
+    const handleSwitchStation = (e) => {
+      if (e.detail) setStationFilter(e.detail);
+    };
+
     window.addEventListener('rvm_auth_expired', handleAuthExpired);
-    return () => window.removeEventListener('rvm_auth_expired', handleAuthExpired);
+    window.addEventListener('rvm_switch_client', handleSwitchClient);
+    window.addEventListener('rvm_switch_station', handleSwitchStation);
+    return () => {
+      window.removeEventListener('rvm_auth_expired', handleAuthExpired);
+      window.removeEventListener('rvm_switch_client', handleSwitchClient);
+      window.removeEventListener('rvm_switch_station', handleSwitchStation);
+    };
   }, []);
 
   useEffect(() => {

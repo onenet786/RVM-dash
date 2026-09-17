@@ -34,7 +34,8 @@ export default function Navbar({
     try {
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await fetch('/api/analytics/machines/summary', { headers });
+      const clientParam = selectedClientId && selectedClientId !== 'ALL' ? `?clientId=${selectedClientId}` : '';
+      const res = await fetch(`/api/analytics/machines/summary${clientParam}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setAssetSummary(data);
@@ -46,7 +47,7 @@ export default function Navbar({
     fetchAssetSummary();
     const interval = setInterval(fetchAssetSummary, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedClientId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -89,10 +90,10 @@ export default function Navbar({
   const selectedClientObj = clients.find(c => c.id === selectedClientId) || clients[0];
 
   const stations = [
-    { id: 'ALL', label: 'Cumulative (All)', icon: Layers, count: assetSummary.totalActive },
-    { id: 'RVM_NEW', label: 'RVM New (Multi-Sensor)', icon: Cpu, count: 2 },
-    { id: 'PECODROP', label: 'PecoDrop (Count & Weigh)', icon: Activity, count: 2 },
-    { id: 'RVM_OLD', label: 'RVM Old (Legacy)', icon: Radio, count: 1 },
+    { id: 'ALL', label: 'Cumulative (All)', icon: Layers, count: assetSummary.totalActive ?? 0 },
+    { id: 'RVM_NEW', label: 'RVM New (Multi-Sensor)', icon: Cpu, count: assetSummary.byStation?.rvmNew ?? 0 },
+    { id: 'PECODROP', label: 'PecoDrop (Count & Weigh)', icon: Activity, count: assetSummary.byStation?.pecodrop ?? 0 },
+    { id: 'RVM_OLD', label: 'RVM Old (Legacy)', icon: Radio, count: assetSummary.byStation?.rvmOld ?? 0 },
   ];
 
   return (

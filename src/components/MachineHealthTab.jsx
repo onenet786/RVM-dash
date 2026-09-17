@@ -22,6 +22,10 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
   const [newMachineId, setNewMachineId] = useState('RVM-001');
   const [newMachineName, setNewMachineName] = useState('');
   const [newMachineLocation, setNewMachineLocation] = useState('');
+  const [newMachineType, setNewMachineType] = useState('RVM_NEW');
+  const [newClientId, setNewClientId] = useState('ISP_MASTER');
+  const [newLatitude, setNewLatitude] = useState('');
+  const [newLongitude, setNewLongitude] = useState('');
 
   // Points & Unit Configuration Modal State
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -146,6 +150,11 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
           machineId: newMachineId.trim(),
           name: (newMachineName || `Smart Recycling Machine ${newMachineId}`).trim(),
           location: (newMachineLocation || 'Main Campus').trim(),
+          latitude: newLatitude ? parseFloat(newLatitude) : null,
+          longitude: newLongitude ? parseFloat(newLongitude) : null,
+          machineType: newMachineType || 'RVM_NEW',
+          clientId: newClientId || 'ISP_MASTER',
+          clientName: newClientId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : newClientId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)',
           username: user.username,
           roleId: user.roleId,
           isSuperAdmin,
@@ -222,10 +231,24 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     }
   };
 
+  const getNormalizedType = (m) => {
+    const raw = String(m?.machineType || m?.machine_type || '').toLowerCase();
+    const id = String(m?.machineId || '').toLowerCase();
+    const name = String(m?.name || '').toLowerCase();
+    if (raw === 'pecodrop' || id.includes('peco') || name.includes('peco')) return 'pecodrop';
+    if (raw === 'rvm_old' || id.includes('old') || name.includes('old')) return 'rvm_old';
+    return 'rvm_new';
+  };
+
   const openEditModal = (m) => {
     setNewMachineId(m.machineId);
     setNewMachineName(m.name || '');
     setNewMachineLocation(m.location || '');
+    setNewLatitude(m.latitude != null ? String(m.latitude) : '');
+    setNewLongitude(m.longitude != null ? String(m.longitude) : '');
+    const normType = getNormalizedType(m);
+    setNewMachineType(normType === 'pecodrop' ? 'PECODROP' : normType === 'rvm_old' ? 'RVM_OLD' : 'RVM_NEW');
+    setNewClientId(m.clientId || m.client_id || 'ISP_MASTER');
     setPointsPlastic(m.pointsPerPlasticBottle ?? 10);
     setPointsPlasticSmall(m.pointsPlasticSmall ?? 5);
     setPointsPlasticMedium(m.pointsPlasticMedium ?? 10);
@@ -280,7 +303,16 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     fetchMachines();
     const interval = setInterval(fetchMachines, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [stationFilter, selectedClientId]);
+
+  // Synchronize internal health filter when user clicks top station pills
+  useEffect(() => {
+    if (stationFilter && stationFilter !== 'ALL') {
+      setHealthFilter(stationFilter.toLowerCase());
+    } else if (stationFilter === 'ALL' && ['rvm_new', 'pecodrop', 'rvm_old'].includes(healthFilter)) {
+      setHealthFilter('ALL');
+    }
+  }, [stationFilter]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -413,14 +445,14 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
           ))}
         </div>
         <span className="text-xs text-slate-500 font-mono pr-2">
-          Showing {
+          Showing <span className="font-extrabold text-emerald-500 dark:text-emerald-400">{
             machines.filter(m => {
               if (healthFilter === 'ALL') return true;
               if (healthFilter === 'ATTENTION') return m.alertCount > 0 || (m.status !== 'ONLINE' && !m.isOnline);
-              const mType = m.machineType || m.machine_type || 'rvm_new';
-              return mType.toLowerCase() === healthFilter.toLowerCase();
+              const mType = getNormalizedType(m);
+              return mType === healthFilter.toLowerCase();
             }).length
-          } of {machines.length} units
+          }</span> of {machines.length} units
         </span>
       </div>
 
@@ -430,22 +462,53 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
           <div className="col-span-full py-12 flex justify-center t-text-muted">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
           </div>
-        ) : machines.length === 0 ? (
-          <div className="col-span-full glass-panel p-8 text-center t-text-muted rounded-2xl">
-            No registered machines currently reporting data.
+        ) : machines.filter(m => {
+            if (healthFilter === 'ALL') return true;
+            if (healthFilter === 'ATTENTION') return m.alertCount > 0 || (m.status !== 'ONLINE' && !m.isOnline);
+            const mType = getNormalizedType(m);
+            return mType === healthFilter.toLowerCase();
+          }).length === 0 ? (
+          <div className="col-span-full glass-panel p-10 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+            <Server className="w-10 h-10 text-slate-400 mx-auto" />
+            <div className="text-base font-extrabold t-text-primary">
+              {machines.length === 0 ? 'No Machines Found for Active Scope' : `No ${healthFilter.toUpperCase().replace('_', ' ')} Units Found`}
+            </div>
+            <p className="text-xs t-text-secondary max-w-md mx-auto">
+              {machines.length === 0 
+                ? `No Smart Recycling units are assigned to ${selectedClientId === 'ALL' ? 'the global fleet' : selectedClientId}.` 
+                : `No machines matching the "${healthFilter}" filter were found under ${selectedClientId === 'ALL' ? 'Nationwide All Sites' : selectedClientId}.`}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              {healthFilter !== 'ALL' && (
+                <button
+                  onClick={() => setHealthFilter('ALL')}
+                  className="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 t-text-primary rounded-xl text-xs font-bold transition-all"
+                >
+                  Show All Station Types ({machines.length})
+                </button>
+              )}
+              {selectedClientId !== 'ALL' && (
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('rvm_switch_client', { detail: 'ALL' }))}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black shadow-sm transition-all"
+                >
+                  View Nationwide Fleet (All Sites)
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           machines
             .filter(m => {
               if (healthFilter === 'ALL') return true;
               if (healthFilter === 'ATTENTION') return m.alertCount > 0 || (m.status !== 'ONLINE' && !m.isOnline);
-              const mType = m.machineType || m.machine_type || 'rvm_new';
-              return mType.toLowerCase() === healthFilter.toLowerCase();
+              const mType = getNormalizedType(m);
+              return mType === healthFilter.toLowerCase();
             })
             .map(m => {
               const hasAlerts = m.alertCount > 0;
               const isOnline = m.status === 'ONLINE' || m.isOnline;
-              const mType = (m.machineType || m.machine_type || 'rvm_new').toLowerCase();
+              const mType = getNormalizedType(m);
               const isPeco = mType === 'pecodrop';
               const isRvmOld = mType === 'rvm_old';
               const isRvmNew = !isPeco && !isRvmOld;
@@ -748,6 +811,150 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                 Close Map View
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit / Register Machine Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="glass-panel p-6 rounded-3xl max-w-xl w-full border border-cyan-500/40 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b t-border pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-base font-extrabold t-text-primary">
+                  Configure Smart Recycling Machine ({newMachineId})
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="t-text-muted hover:t-text-primary p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMachine} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Machine ID / Hardware Serial
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newMachineId}
+                  onChange={e => setNewMachineId(e.target.value)}
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-mono t-text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Unit Name / Display Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newMachineName}
+                  onChange={e => setNewMachineName(e.target.value)}
+                  placeholder="e.g. Smart RVM V2 (Food Court)"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                  Deployment Location
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newMachineLocation}
+                  onChange={e => setNewMachineLocation(e.target.value)}
+                  placeholder="e.g. Metro Mall RWP - Ground Floor"
+                  className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Hardware Station Type
+                  </label>
+                  <select
+                    value={newMachineType}
+                    onChange={e => setNewMachineType(e.target.value)}
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="RVM_NEW">RVM New (Multi-Sensor Optical)</option>
+                    <option value="PECODROP">PecoDrop (Count & Weigh)</option>
+                    <option value="RVM_OLD">RVM Old (Legacy Pulse)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Enterprise Client Organization
+                  </label>
+                  <select
+                    value={newClientId}
+                    onChange={e => setNewClientId(e.target.value)}
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="ISP_MASTER">ISP Environmental Master (All Sites)</option>
+                    <option value="UCP_LAHORE">Client: UCP Lahore Campus</option>
+                    <option value="METRO_MALL">Client: Metro Mall RWP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newLatitude}
+                    onChange={e => setNewLatitude(e.target.value)}
+                    placeholder="e.g. 33.7294"
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold t-text-muted mb-1 uppercase tracking-wider">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={newLongitude}
+                    onChange={e => setNewLongitude(e.target.value)}
+                    placeholder="e.g. 73.0931"
+                    className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm t-text-primary focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t t-border">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 text-xs font-bold t-text-secondary hover:t-text-primary rounded-xl border t-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 text-xs font-extrabold bg-[#0b5d3b] hover:bg-[#08422a] text-white rounded-xl shadow-md flex items-center gap-2 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
+                  <span>{saving ? 'Saving...' : 'Save Configuration'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
