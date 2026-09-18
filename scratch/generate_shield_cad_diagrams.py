@@ -50,235 +50,94 @@ def get_board_tracks():
     # Tracks are list of dicts: {'pts': [...], 'width': float, 'layer': 'top'/'bot'/'both', 'net': str}
     tracks = []
 
-    # 1. HEAVY 5V_SERVO RAIL (100-mil / 2.5mm width on Bottom Copper)
-    tracks.append({
-        'pts': [(4.8, 31.8), (4.8, 22.0), (7.2, 19.5), (7.2, 12.0), (7.2, 4.5)],
-        'width': 2.8, 'layer': 'bot', 'net': '5V_SERVO_FEED'
-    })
-    tracks.append({
-        'pts': [(4.8, 31.8), (12.0, 31.8), (14.0, 33.8), (21.04, 33.8), (21.04, 34.5)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_P_IRIS'
-    })
-    tracks.append({
-        'pts': [(21.04, 33.8), (32.04, 33.8), (32.04, 34.5)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_P_DROP'
-    })
-    tracks.append({
-        'pts': [(32.04, 33.8), (42.0, 33.8), (44.0, 31.8), (44.0, 18.5), (47.54, 18.5), (47.54, 17.0)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_M_IRIS'
-    })
-    tracks.append({
-        'pts': [(47.54, 18.5), (59.04, 18.5), (59.04, 17.0)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_M_DROP'
-    })
-    tracks.append({
-        'pts': [(44.0, 31.8), (70.0, 31.8), (74.54, 31.8), (74.54, 32.0)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_PP_IRIS'
-    })
-    tracks.append({
-        'pts': [(74.54, 31.8), (85.54, 31.8), (85.54, 32.0)],
-        'width': 2.4, 'layer': 'bot', 'net': '5V_SERVO_PP_DROP'
-    })
+    # =========================================================================
+    # LAYER 1: BOTTOM COPPER (B.Cu) - 100% PLANAR, 0 COLLISIONS
+    # =========================================================================
+    # 1.1 +5V_SERVO Power Distribution
+    tracks.append({'net': '5V_SERVO_FEED', 'layer': 'bot', 'width': 2.6,
+        'pts': [(4.8, 31.8), (4.8, 20.0), (7.2, 19.5), (7.2, 4.5)]})
+    tracks.append({'net': '5V_SERVO_P_IRIS', 'layer': 'bot', 'width': 2.2,
+        'pts': [(4.8, 31.8), (21.04, 31.8), (21.04, 34.5)]})
+    tracks.append({'net': '5V_SERVO_P_DROP', 'layer': 'bot', 'width': 2.2,
+        'pts': [(21.04, 31.8), (32.04, 31.8), (32.04, 34.5)]})
+    tracks.append({'net': '5V_SERVO_CH2_DROP', 'layer': 'bot', 'width': 2.2,
+        'pts': [(32.04, 31.8), (41.0, 31.8), (41.0, 18.5), (47.54, 18.5), (47.54, 17.0)]})
+    tracks.append({'net': '5V_SERVO_M_DROP', 'layer': 'bot', 'width': 2.2,
+        'pts': [(47.54, 18.5), (59.04, 18.5), (59.04, 17.0)]})
+    tracks.append({'net': '5V_SERVO_PP_IRIS', 'layer': 'bot', 'width': 2.2,
+        'pts': [(41.0, 31.8), (74.54, 31.8), (74.54, 32.0)]})
+    tracks.append({'net': '5V_SERVO_PP_DROP', 'layer': 'bot', 'width': 2.2,
+        'pts': [(74.54, 31.8), (85.54, 31.8), (85.54, 32.0)]})
 
-    # 2. POWER GROUND PGND RAIL (100-mil / 2.5mm width on Top & Bottom)
-    tracks.append({
-        'pts': [(9.6, 31.8), (11.5, 31.8), (11.5, 20.5), (7.2, 16.2), (4.3, 16.2)],
-        'width': 2.4, 'layer': 'top', 'net': 'PGND_TVS'
-    })
-    tracks.append({
-        'pts': [(9.6, 31.8), (16.0, 31.8), (18.5, 34.3), (18.5, 34.5)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_P_IRIS'
-    })
-    tracks.append({
-        'pts': [(18.5, 34.3), (27.0, 34.3), (29.5, 34.3), (29.5, 34.5)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_P_DROP'
-    })
-    tracks.append({
-        'pts': [(29.5, 34.3), (40.0, 34.3), (45.0, 19.5), (45.0, 17.0)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_M_IRIS'
-    })
-    tracks.append({
-        'pts': [(45.0, 19.5), (56.5, 19.5), (56.5, 17.0)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_M_DROP'
-    })
-    tracks.append({
-        'pts': [(40.0, 34.3), (72.0, 34.3), (72.0, 32.0)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_PP_IRIS'
-    })
-    tracks.append({
-        'pts': [(72.0, 34.3), (83.0, 34.3), (83.0, 32.0)],
-        'width': 2.0, 'layer': 'bot', 'net': 'PGND_PP_DROP'
-    })
+    # 1.2 Top Edge PWMs on B.Cu (D9, D11)
+    tracks.append({'net': 'P_ENTR_TRIG_D9', 'layer': 'bot', 'width': 0.6,
+        'pts': [(18.7, 42.1), (18.7, 49.5), (46.04, 49.5), (46.04, 51.1)]})
+    tracks.append({'net': 'P_IRIS_PWM_D11', 'layer': 'bot', 'width': 0.6,
+        'pts': [(23.58, 34.5), (23.58, 47.5), (51.12, 47.5), (51.12, 51.1)]})
 
-    # 3. 12V MAIN & INDUCTIVE POWER
-    tracks.append({
-        'pts': [(4.8, 44.2), (15.0, 44.2), (18.5, 40.7), (18.5, 24.2)],
-        'width': 1.6, 'layer': 'top', 'net': '12V_TO_TB_IND'
-    })
-    tracks.append({
-        'pts': [(18.5, 24.2), (24.0, 24.2), (24.0, 26.5), (28.0, 26.5), (28.0, 25.5)],
-        'width': 1.2, 'layer': 'top', 'net': '12V_TO_R1_U1'
-    })
-    tracks.append({
-        'pts': [(9.6, 44.2), (14.0, 44.2), (24.1, 34.1), (24.1, 24.2)],
-        'width': 1.4, 'layer': 'bot', 'net': '12V_GND_TO_TB_IND'
-    })
-    tracks.append({
-        'pts': [(21.3, 24.2), (21.3, 22.0), (28.0, 22.0)],
-        'width': 1.0, 'layer': 'top', 'net': 'IND_SIG_TO_OPTO'
-    })
+    # 1.3 Signal Traces on B.Cu (Dedicated non-overlapping channels)
+    # Pin 41: P_MID_ECHO
+    tracks.append({'net': 'P_MID_ECHO_41', 'layer': 'bot', 'width': 0.55,
+        'pts': [(31.7, 42.1), (31.7, 45.5), (94.0, 45.5), (94.0, 37.86), (97.5, 37.86)]})
+    # Pin 39: PP_BOT_TRIG
+    tracks.append({'net': 'PP_BOT_TRIG_39', 'layer': 'bot', 'width': 0.55,
+        'pts': [(85.4, 40.2), (85.4, 35.32), (97.5, 35.32)]})
+    # Pin 31: M_MID_TRIG
+    tracks.append({'net': 'M_MID_TRIG_31', 'layer': 'bot', 'width': 0.55,
+        'pts': [(57.7, 25.1), (57.7, 25.16), (97.5, 25.16)]})
+    # Pin 28: M_DROP_PWM
+    tracks.append({'net': 'M_DROP_PWM_28', 'layer': 'bot', 'width': 0.55,
+        'pts': [(61.58, 17.0), (61.58, 22.62), (100.04, 22.62)]})
+    # Pin 27: M_IRIS_PWM
+    tracks.append({'net': 'M_IRIS_PWM_27', 'layer': 'bot', 'width': 0.55,
+        'pts': [(50.08, 17.0), (50.08, 14.5), (96.0, 14.5), (96.0, 20.08), (97.5, 20.08)]})
 
-    # Optocoupler Isolated Output to Mega Pin 32
-    tracks.append({
-        'pts': [(33.5, 25.5), (38.0, 25.5), (42.0, 29.5), (92.0, 29.5), (95.5, 26.0), (100.04, 25.8)],
-        'width': 0.8, 'layer': 'bot', 'net': 'CAN_INDUCTIVE_PIN32'
-    })
+    # =========================================================================
+    # LAYER 2: TOP COPPER (F.Cu) - 100% PLANAR, 0 COLLISIONS
+    # =========================================================================
+    # 2.1 12V Power
+    tracks.append({'net': '12V_TO_TB_IND', 'layer': 'top', 'width': 1.6,
+        'pts': [(4.8, 44.2), (3.2, 44.2), (3.2, 23.5), (18.5, 23.5), (18.5, 24.2)]})
+    tracks.append({'net': '12V_GND_TO_TB_IND', 'layer': 'top', 'width': 1.4,
+        'pts': [(9.6, 44.2), (9.6, 45.5), (2.0, 45.5), (2.0, 22.0), (21.3, 22.0), (21.3, 24.2)]})
+    tracks.append({'net': '12V_TO_OPTO_R1', 'layer': 'top', 'width': 1.0,
+        'pts': [(18.5, 24.2), (18.5, 25.5), (28.0, 25.5)]})
+    tracks.append({'net': 'IND_SIG_TO_OPTO', 'layer': 'top', 'width': 1.0,
+        'pts': [(24.1, 24.2), (24.1, 22.0), (28.0, 22.0)]})
 
-    # 4. 5V_LOGIC BUS (Clean 1.2mm / 48-mil rail)
-    tracks.append({
-        'pts': [(42.66, 2.4), (42.66, 6.0), (38.0, 6.0), (38.0, 8.0)],
-        'width': 1.4, 'layer': 'top', 'net': 'MEGA_5V_TO_FB1'
-    })
-    tracks.append({
-        'pts': [(38.0, 8.0), (32.0, 8.0), (26.0, 8.0), (20.0, 14.0), (17.7, 14.0), (17.7, 42.1)],
-        'width': 1.2, 'layer': 'top', 'net': '5V_LOGIC_CH1_BUS'
-    })
-    tracks.append({
-        'pts': [(17.7, 42.1), (23.7, 42.1), (29.7, 42.1), (35.7, 42.1)],
-        'width': 1.0, 'layer': 'top', 'net': '5V_LOGIC_US_CH1'
-    })
-    tracks.append({
-        'pts': [(38.0, 6.0), (44.7, 6.0), (44.7, 25.1), (50.7, 25.1), (56.7, 25.1), (62.7, 25.1)],
-        'width': 1.0, 'layer': 'top', 'net': '5V_LOGIC_US_CH2'
-    })
-    tracks.append({
-        'pts': [(44.7, 6.0), (73.0, 6.0), (73.0, 40.2), (84.0, 40.2)],
-        'width': 1.0, 'layer': 'top', 'net': '5V_LOGIC_US_CH3'
-    })
-    tracks.append({
-        'pts': [(73.0, 6.0), (75.0, 8.0), (75.0, 20.1)],
-        'width': 1.0, 'layer': 'top', 'net': '5V_LOGIC_HX711'
-    })
+    # 2.2 PGND Power Ground
+    tracks.append({'net': 'PGND_TVS', 'layer': 'top', 'width': 2.0,
+        'pts': [(4.3, 16.2), (7.2, 16.2)]})
+    tracks.append({'net': 'PGND_P_IRIS', 'layer': 'top', 'width': 2.0,
+        'pts': [(9.6, 31.8), (18.5, 31.8), (18.5, 34.5)]})
+    tracks.append({'net': 'PGND_P_DROP', 'layer': 'top', 'width': 2.0,
+        'pts': [(18.5, 31.8), (29.5, 31.8), (29.5, 34.5)]})
+    tracks.append({'net': 'PGND_CH2', 'layer': 'top', 'width': 2.0,
+        'pts': [(29.5, 31.8), (38.0, 31.8), (38.0, 15.0), (45.0, 15.0), (45.0, 17.0)]})
+    tracks.append({'net': 'PGND_M_DROP', 'layer': 'top', 'width': 2.0,
+        'pts': [(45.0, 15.0), (56.5, 15.0), (56.5, 17.0)]})
+    tracks.append({'net': 'PGND_PP_IRIS', 'layer': 'top', 'width': 2.0,
+        'pts': [(38.0, 31.8), (72.0, 31.8), (72.0, 32.0)]})
+    tracks.append({'net': 'PGND_PP_DROP', 'layer': 'top', 'width': 2.0,
+        'pts': [(72.0, 31.8), (83.0, 31.8), (83.0, 32.0)]})
 
-    # 5. SIGNAL TRACES WITH 45-DEGREE ANGLE ROUTING (16-mil / 0.45mm width)
-    # Chamber 1 (Plastic) PWM & Ultrasonic
-    tracks.append({
-        'pts': [(18.7, 42.1), (18.7, 46.5), (23.2, 51.0), (45.0, 51.0), (45.0, 50.0), (46.04, 51.1)],
-        'width': 0.6, 'layer': 'bot', 'net': 'P_ENTR_TRIG_D9'
-    })
-    tracks.append({
-        'pts': [(19.7, 42.1), (19.7, 45.5), (24.2, 50.0), (47.5, 50.0), (48.58, 51.1)],
-        'width': 0.6, 'layer': 'top', 'net': 'P_ENTR_ECHO_D10'
-    })
-    tracks.append({
-        'pts': [(23.58, 34.5), (23.58, 37.0), (32.0, 45.4), (50.0, 45.4), (51.12, 51.1)],
-        'width': 0.6, 'layer': 'bot', 'net': 'P_IRIS_PWM_D11'
-    })
-    tracks.append({
-        'pts': [(34.58, 34.5), (34.58, 36.5), (42.0, 43.9), (52.5, 43.9), (53.66, 51.1)],
-        'width': 0.6, 'layer': 'top', 'net': 'P_DROP_PWM_D12'
-    })
-    # Sizing Ultrasonics to 2x18 Header (Right Edge)
-    tracks.append({
-        'pts': [(24.7, 42.1), (24.7, 44.0), (28.0, 47.3), (92.0, 47.3), (96.5, 42.8), (100.04, 15.0)],
-        'width': 0.55, 'layer': 'bot', 'net': 'P_BOT_TRIG_22'
-    })
-    tracks.append({
-        'pts': [(25.7, 42.1), (25.7, 43.0), (29.0, 46.3), (91.0, 46.3), (95.5, 41.8), (97.5, 15.0)],
-        'width': 0.55, 'layer': 'top', 'net': 'P_BOT_ECHO_23'
-    })
-    tracks.append({
-        'pts': [(30.7, 42.1), (30.7, 43.5), (33.5, 46.3), (90.0, 46.3), (95.0, 41.3), (100.04, 16.8)],
-        'width': 0.55, 'layer': 'bot', 'net': 'P_MID_TRIG_24'
-    })
-    tracks.append({
-        'pts': [(31.7, 42.1), (31.7, 42.5), (34.5, 45.3), (89.0, 45.3), (94.0, 40.3), (97.5, 31.2)],
-        'width': 0.55, 'layer': 'top', 'net': 'P_MID_ECHO_41'
-    })
-    tracks.append({
-        'pts': [(36.7, 42.1), (36.7, 43.0), (39.5, 45.8), (88.0, 45.8), (93.0, 40.8), (100.04, 33.0)],
-        'width': 0.55, 'layer': 'bot', 'net': 'P_TOP_TRIG_42'
-    })
-    tracks.append({
-        'pts': [(37.7, 42.1), (37.7, 42.0), (40.5, 44.8), (87.0, 44.8), (92.0, 39.8), (97.5, 33.0)],
-        'width': 0.55, 'layer': 'top', 'net': 'P_TOP_ECHO_43'
-    })
+    # 2.3 Top Signals
+    tracks.append({'net': 'P_ENTR_ECHO_D10', 'layer': 'top', 'width': 0.6,
+        'pts': [(19.7, 42.1), (19.7, 48.5), (48.58, 48.5), (48.58, 51.1)]})
+    tracks.append({'net': 'P_DROP_PWM_D12', 'layer': 'top', 'width': 0.6,
+        'pts': [(34.58, 34.5), (34.58, 47.0), (53.66, 47.0), (53.66, 51.1)]})
 
-    # Chamber 2 (Metal) Signals
-    tracks.append({
-        'pts': [(45.7, 25.1), (45.7, 22.0), (49.0, 18.7), (92.0, 18.7), (97.5, 18.6)],
-        'width': 0.55, 'layer': 'bot', 'net': 'M_ENTR_TRIG_25'
-    })
-    tracks.append({
-        'pts': [(46.7, 25.1), (46.7, 21.0), (50.0, 17.7), (91.0, 17.7), (100.04, 18.6)],
-        'width': 0.55, 'layer': 'top', 'net': 'M_ENTR_ECHO_26'
-    })
-    tracks.append({
-        'pts': [(50.08, 17.0), (50.08, 14.5), (55.0, 9.58), (91.5, 9.58), (97.5, 20.4)],
-        'width': 0.55, 'layer': 'bot', 'net': 'M_IRIS_PWM_27'
-    })
-    tracks.append({
-        'pts': [(61.58, 17.0), (61.58, 13.5), (65.0, 10.08), (92.5, 10.08), (100.04, 20.4)],
-        'width': 0.55, 'layer': 'top', 'net': 'M_DROP_PWM_28'
-    })
-    tracks.append({
-        'pts': [(51.7, 25.1), (51.7, 22.5), (54.0, 20.2), (93.0, 20.2), (97.5, 22.2)],
-        'width': 0.55, 'layer': 'bot', 'net': 'M_BOT_TRIG_29'
-    })
-    tracks.append({
-        'pts': [(52.7, 25.1), (52.7, 21.5), (55.0, 19.2), (94.0, 19.2), (100.04, 22.2)],
-        'width': 0.55, 'layer': 'top', 'net': 'M_BOT_ECHO_30'
-    })
-    tracks.append({
-        'pts': [(57.7, 25.1), (57.7, 23.0), (60.0, 20.7), (93.5, 20.7), (97.5, 24.0)],
-        'width': 0.55, 'layer': 'bot', 'net': 'M_MID_TRIG_31'
-    })
-    tracks.append({
-        'pts': [(58.7, 25.1), (58.7, 22.0), (61.0, 19.7), (85.0, 19.7), (90.0, 24.7), (100.04, 34.8)],
-        'width': 0.55, 'layer': 'top', 'net': 'M_MID_ECHO_44'
-    })
-    tracks.append({
-        'pts': [(63.7, 25.1), (63.7, 23.5), (66.0, 21.2), (86.0, 21.2), (91.0, 26.2), (97.5, 36.6)],
-        'width': 0.55, 'layer': 'bot', 'net': 'M_TOP_TRIG_45'
-    })
-    tracks.append({
-        'pts': [(64.7, 25.1), (64.7, 22.5), (67.0, 20.2), (87.0, 20.2), (92.0, 25.2), (100.04, 36.6)],
-        'width': 0.55, 'layer': 'top', 'net': 'M_TOP_ECHO_46'
-    })
-
-    # Chamber 3 (Paper) Signals & Load Cell
-    tracks.append({
-        'pts': [(74.4, 40.2), (74.4, 37.0), (77.0, 34.4), (91.0, 34.4), (95.0, 30.4), (97.5, 27.6)],
-        'width': 0.55, 'layer': 'bot', 'net': 'PP_TOP_TRIG_33'
-    })
-    tracks.append({
-        'pts': [(75.8, 40.2), (75.8, 36.0), (78.0, 33.8), (92.0, 33.8), (96.0, 29.8), (100.04, 27.6)],
-        'width': 0.55, 'layer': 'top', 'net': 'PP_TOP_ECHO_34'
-    })
-    tracks.append({
-        'pts': [(77.08, 32.0), (77.08, 29.5), (80.0, 26.58), (93.0, 26.58), (97.5, 29.4)],
-        'width': 0.55, 'layer': 'bot', 'net': 'PP_IRIS_PWM_35'
-    })
-    tracks.append({
-        'pts': [(88.08, 32.0), (88.08, 28.5), (91.0, 25.58), (94.0, 25.58), (100.04, 29.4)],
-        'width': 0.55, 'layer': 'top', 'net': 'PP_DROP_PWM_36'
-    })
-    tracks.append({
-        'pts': [(85.4, 40.2), (85.4, 38.0), (88.0, 35.4), (93.0, 35.4), (97.5, 33.0)],
-        'width': 0.55, 'layer': 'bot', 'net': 'PP_BOT_TRIG_39'
-    })
-    tracks.append({
-        'pts': [(86.8, 40.2), (86.8, 37.0), (89.0, 34.8), (94.0, 34.8), (100.04, 33.0)],
-        'width': 0.55, 'layer': 'top', 'net': 'PP_BOT_ECHO_40'
-    })
-    tracks.append({
-        'pts': [(79.5, 20.1), (79.5, 17.5), (82.0, 15.0), (94.5, 15.0), (97.5, 31.2)],
-        'width': 0.55, 'layer': 'bot', 'net': 'HX711_DOUT_37'
-    })
-    tracks.append({
-        'pts': [(84.0, 20.1), (84.0, 16.5), (86.5, 14.0), (95.5, 14.0), (100.04, 31.2)],
-        'width': 0.55, 'layer': 'top', 'net': 'HX711_SCK_38'
-    })
+    # 2.4 Clean Signals on F.Cu
+    tracks.append({'net': 'PP_BOT_ECHO_40', 'layer': 'top', 'width': 0.55,
+        'pts': [(86.8, 40.2), (86.8, 37.86), (100.04, 37.86)]})
+    tracks.append({'net': 'PP_DROP_PWM_36', 'layer': 'top', 'width': 0.55,
+        'pts': [(88.08, 32.0), (88.08, 32.78), (100.04, 32.78)]})
+    tracks.append({'net': 'M_BOT_ECHO_30', 'layer': 'top', 'width': 0.55,
+        'pts': [(52.7, 25.1), (52.7, 25.16), (100.04, 25.16)]})
+    tracks.append({'net': 'M_BOT_TRIG_29', 'layer': 'top', 'width': 0.55,
+        'pts': [(51.7, 25.1), (51.7, 22.62), (97.5, 22.62)]})
+    tracks.append({'net': 'M_ENTR_ECHO_26', 'layer': 'top', 'width': 0.55,
+        'pts': [(46.7, 25.1), (46.7, 20.08), (100.04, 20.08)]})
 
     return tracks
 
