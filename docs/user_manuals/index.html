@@ -386,6 +386,69 @@
       margin-top: 4rem;
     }
 
+    .btn-action-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin: 1.25rem 0;
+    }
+    .btn-action {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: #334155;
+      color: #fff;
+      border-color: var(--cyan);
+    }
+    .btn-action.primary {
+      background: linear-gradient(135deg, #0284c7, #00d2ff);
+      color: #070a14;
+      border: none;
+      font-weight: 700;
+    }
+    .btn-action.primary:hover {
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    }
+    .cad-view-selector {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
+    }
+    .cad-view-btn {
+      background: #090e1c;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cad-view-btn:hover {
+      color: #fff;
+      border-color: var(--cyan);
+    }
+    .cad-view-btn.active {
+      background: var(--cyan);
+      color: #070a14;
+      border-color: var(--cyan);
+      font-weight: 700;
+    }
+
     @media print {
       body { background: #fff; color: #000; }
       header, .nav-links, .search-input, .hero-badge { display: none; }
@@ -412,12 +475,14 @@
       </a>
 
       <nav class="nav-links">
-        <button class="nav-tab-btn active" onclick="switchPane('overview')">Kiosk Overview</button>
-        <button class="nav-tab-btn" onclick="switchPane('operator')">Operator Manual</button>
-        <button class="nav-tab-btn" onclick="switchPane('hardware')">Hardware Engineering</button>
-        <button class="nav-tab-btn" onclick="switchPane('firmware')">Firmware &amp; Serial API</button>
-        <button class="nav-tab-btn" onclick="switchPane('maintenance')">Maintenance</button>
-        <button class="nav-tab-btn" onclick="switchPane('gallery')">Visual Gallery</button>
+        <button class="nav-tab-btn active" onclick="switchPane('overview', this)">Kiosk Overview</button>
+        <button class="nav-tab-btn" onclick="switchPane('operator', this)">Operator Manual</button>
+        <button class="nav-tab-btn" onclick="switchPane('hardware', this)">Hardware Engineering</button>
+        <button class="nav-tab-btn" onclick="switchPane('pcb-shield', this)" style="color:var(--cyan); border-color:rgba(0,210,255,0.5); background:rgba(0,210,255,0.1); font-weight:700;">⚡ Shield PCB &amp; BOM</button>
+        <button class="nav-tab-btn" onclick="switchPane('firmware', this)">Firmware &amp; Serial API</button>
+        <button class="nav-tab-btn" onclick="switchPane('maintenance', this)">Maintenance</button>
+        <button class="nav-tab-btn" onclick="switchPane('gallery', this)">Visual Gallery</button>
+        <a href="RVM_Arduino_Mega_Shield_Design_Guide.html" class="nav-tab-btn" style="color:var(--cyan); border:1px solid rgba(0,210,255,0.4); text-decoration:none; display:inline-block;" target="_blank">⚡ CAD Suite</a>
       </nav>
     </div>
   </header>
@@ -434,6 +499,19 @@
         Architectural specifications, electrical wiring diagrams, high-definition PNG illustrations, 
         serial handshake protocols, and troubleshooting guides for the PecoDrop Multi-Chamber RVM.
       </p>
+
+      <!-- Executive Quick-Jump Action Toolbar -->
+      <div style="display: flex; justify-content: center; gap: 0.85rem; margin-top: 1.75rem; flex-wrap: wrap;">
+        <button onclick="switchPane('pcb-shield')" class="btn-action primary" style="font-size: 0.95rem; padding: 0.65rem 1.4rem; box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);">
+          ⚡ View Shield PCB Print &amp; Bill of Materials (BOM)
+        </button>
+        <a href="RVM_Arduino_Mega_Shield_Design_Guide.html" target="_blank" class="btn-action" style="font-size: 0.95rem; padding: 0.65rem 1.4rem;">
+          🖥️ Interactive CAD Suite &amp; Pinout
+        </a>
+        <a href="rvm_mega_shield_bom.csv" download="PecoDrop_RVM_Mega_Shield_BOM_Rev2.1.csv" class="btn-action" style="font-size: 0.95rem; padding: 0.65rem 1.4rem;">
+          ⬇️ Download BOM (.CSV)
+        </a>
+      </div>
     </div>
 
     <!-- ==============================================================
@@ -611,6 +689,345 @@
     </section>
 
     <!-- ==============================================================
+         TAB: MEGA SHIELD PCB DESIGN & BILL OF MATERIALS (BOM)
+         ============================================================== -->
+    <section id="pane-pcb-shield" class="tab-pane">
+      <div class="content-card">
+        <h3 class="card-title">
+          <span class="badge badge-cyan">SHIELD CAD &amp; BOM</span>
+          Arduino Mega 2560 Mezzanine Shield — Complete Schematic, PCB Print &amp; Bill of Materials
+        </h3>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">
+          Production-certified hardware expansion shield for the PecoDrop 3-Chamber Smart Reverse Vending Machine.
+          Eliminates loose DuPont wiring and breadboards through direct header mounting onto the Arduino Mega 2560 Rev3.
+          Features dual-rail isolated power (5V 10A servo / 5V 3A logic), TVS back-EMF surge protection, optocoupled 12V inductive proximity sensing, and keyed polarized connectors.
+        </p>
+
+        <!-- Quick Action Toolbar -->
+        <div class="btn-action-bar">
+          <a href="RVM_Mega_Shield_Bottom_Copper_MIRROR_1to1.pdf" download="RVM_Mega_Shield_Bottom_Copper_MIRROR_1to1.pdf" class="btn-action" style="background: #f59e0b; color: #070a14; border-color: #fbbf24; font-weight: 700;">
+            📄 Download 1:1 Toner Transfer PDF (Give to Print Shop)
+          </a>
+          <a href="RVM_Mega_Shield_Master_Fabrication_Sheet_A4.pdf" download="RVM_Mega_Shield_Master_Fabrication_Sheet_A4.pdf" class="btn-action" style="background: #0284c7; color: #fff; border-color: #38bdf8; font-weight: 700;">
+            📑 Download 4-Panel Master Fab PDF (A4)
+          </a>
+          <a href="rvm_mega_shield_bom.csv" download="PecoDrop_RVM_Mega_Shield_BOM_Rev2.1.csv" class="btn-action">⬇️ Download BOM (.CSV)</a>
+          <a href="RVM_Arduino_Mega_Shield_Design_Guide.html" target="_blank" class="btn-action">⚡ Interactive CAD Suite</a>
+          <a href="05_ARDUINO_MEGA_SHIELD_PCB_DESIGN.md" target="_blank" class="btn-action">📄 Engineering Manual (MD)</a>
+        </div>
+
+        <!-- Quick Jump Navigation -->
+        <div class="cad-view-selector" style="margin-top: 1.25rem;">
+          <a href="#section-pcb-cu-bot" class="cad-view-btn active" style="text-decoration:none;">1. Bottom Copper (B.Cu Solder Side)</a>
+          <a href="#section-pcb-cu-mirror" class="cad-view-btn" style="text-decoration:none;">2. Mirrored Copper (Toner Transfer)</a>
+          <a href="#section-pcb-cu-top" class="cad-view-btn" style="text-decoration:none;">3. Top Copper (F.Cu Tracks)</a>
+          <a href="#section-pcb-print" class="cad-view-btn" style="text-decoration:none;">4. 4-Panel 1:1 Fabrication Sheet</a>
+          <a href="#section-pcb-cad" class="cad-view-btn" style="text-decoration:none;">5. Physical 2D CAD Layout</a>
+          <a href="#section-schematic" class="cad-view-btn" style="text-decoration:none;">6. Electrical Schematic</a>
+          <a href="#section-bom" class="cad-view-btn" style="text-decoration:none;">7. BOM Table</a>
+        </div>
+
+        <!-- ==============================================================
+             INTERACTIVE MULTI-LAYER CAD & COPPER ARTWORK VIEWER
+             ============================================================== -->
+        <div style="margin-top: 2rem; background: rgba(9, 14, 28, 0.75); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span class="badge badge-cyan" style="font-size: 0.85rem;">INTERACTIVE VIEWER</span>
+              <h4 id="shieldViewerTitle" style="font-size: 1.2rem; color: #fff; margin: 0;">Bottom Copper Layer (B.Cu) — Etching Mask</h4>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <a id="shieldDownloadBtn" href="images/rvm_arduino_mega_shield_pcb_copper_bottom.png" download="RVM_Mega_Shield_Bottom_Copper_B.Cu.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem; background: #0284c7; color: #fff; border-color: #38bdf8;">
+                ⬇️ Download 300 DPI Film
+              </a>
+              <button onclick="window.print()" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+                🖨️ Print 1:1 Scale
+              </button>
+            </div>
+          </div>
+
+          <div class="cad-view-selector" style="margin-bottom: 1rem;">
+            <button id="shield-btn-cu-bot" class="cad-view-btn active" onclick="switchShieldView('cu-bot')">⚡ Bottom Copper (B.Cu)</button>
+            <button id="shield-btn-cu-mirror" class="cad-view-btn" onclick="switchShieldView('cu-mirror')">🖨️ Mirrored (Toner Transfer)</button>
+            <button id="shield-btn-cu-top" class="cad-view-btn" onclick="switchShieldView('cu-top')">🔶 Top Copper (F.Cu)</button>
+            <button id="shield-btn-print" class="cad-view-btn" onclick="switchShieldView('print')">📑 4-Panel 1:1 Sheet</button>
+            <button id="shield-btn-pcb" class="cad-view-btn" onclick="switchShieldView('pcb')">🖥️ 2D CAD Board</button>
+            <button id="shield-btn-sch" class="cad-view-btn" onclick="switchShieldView('sch')">📐 Schematic (Rev 2.1)</button>
+          </div>
+
+          <div class="diagram-box" style="border: 2px solid rgba(0, 210, 255, 0.4); max-height: 700px; display: flex; align-items: center; justify-content: center; background: #05070d;">
+            <img id="shieldMainImg" src="images/rvm_arduino_mega_shield_pcb_copper_bottom.png" alt="Arduino Mega Shield Bottom Copper Etch Mask" onclick="openLightbox(this.src)" style="max-height: 650px; width: auto; max-width: 100%; object-fit: contain; cursor: zoom-in;">
+            <div class="diagram-caption">
+              <span id="shieldImgCaption">Figure: Bottom Copper Layer (B.Cu) — Solid Black Tracks, 100-mil High-Current Power Bus, 45° Chamfered Signal Lines &amp; Solder Annular Pads (101.60 mm × 53.34 mm)</span>
+              <span class="badge badge-cyan">Click to Enlarge / Full Res</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 1: BOTTOM COPPER LAYER (B.Cu - DIRECT SOLDER SIDE)
+             ============================================================== -->
+        <div id="section-pcb-cu-bot" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-cyan" style="font-size: 0.8rem;">COPPER LAYER 1</span>
+              Bottom Copper Artwork (B.Cu Solder Side) — Chemical Etch &amp; CNC Isolation Mask
+            </h4>
+            <a href="images/rvm_arduino_mega_shield_pcb_copper_bottom.png" download="RVM_Mega_Shield_Bottom_Copper_B.Cu.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              ⬇️ Save B.Cu Mask (PNG)
+            </a>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Direct view of the solder side copper pattern. Features <b>solid black copper tracks</b>, 2.4 mm (100 mil) high-current servo power buses, 0.55 mm (22 mil) signal tracks with 45° mitered bends to avoid acid traps, 2.0 mm outer annular pads with 0.8–1.0 mm drill centers, and an integrated <b>100.0 mm calibration ruler</b>.
+          </p>
+
+          <div class="diagram-box" style="border: 2px solid rgba(0, 210, 255, 0.3);">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_bottom.png" alt="Arduino Mega Shield Bottom Copper Artwork" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.1: Bottom Copper Layer (B.Cu) Direct View — Chemical Etching &amp; Isolation Routing Artwork</span>
+              <span class="badge badge-cyan">Click to Enlarge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 2: MIRRORED BOTTOM COPPER (B.Cu MIRROR - TONER TRANSFER)
+             ============================================================== -->
+        <div id="section-pcb-cu-mirror" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-amber" style="font-size: 0.8rem;">TONER TRANSFER</span>
+              Mirrored Bottom Copper (B.Cu Mirror) — Ready for Laser Iron-On Etching
+            </h4>
+            <a href="images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png" download="RVM_Mega_Shield_Bottom_Copper_MIRROR.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              ⬇️ Save Mirrored Mask (PNG)
+            </a>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Pre-mirrored horizontally at 1:1 true scale. Print directly onto glossy photo paper or heat-transfer paper with a laser printer, then iron onto copper-clad FR-4 laminate. When flipped face down against the copper, the resulting etched tracks will be in the correct physical orientation.
+          </p>
+
+          <div class="diagram-box" style="border: 2px solid rgba(245, 158, 11, 0.3);">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png" alt="Arduino Mega Shield Mirrored Bottom Copper" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.2: Mirrored Bottom Copper Mask (B.Cu Mirror) — Laser Printer Iron-On Toner Transfer Ready</span>
+              <span class="badge badge-amber">Click to Enlarge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 3: TOP COPPER LAYER (F.Cu - COMPONENT SIDE TRACKS)
+             ============================================================== -->
+        <div id="section-pcb-cu-top" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-emerald" style="font-size: 0.8rem;">COPPER LAYER 2</span>
+              Top Copper Artwork (F.Cu Component Side) — Top Signal Routing
+            </h4>
+            <a href="images/rvm_arduino_mega_shield_pcb_copper_top.png" download="RVM_Mega_Shield_Top_Copper_F.Cu.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              ⬇️ Save F.Cu Mask (PNG)
+            </a>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Top copper layer routing for double-sided fabrication. Connects sensor trigger and PWM signal lines to the 2×18 auxiliary pin header (pins 22 to 53) and analog header without crossing power buses.
+          </p>
+
+          <div class="diagram-box" style="border: 2px solid rgba(16, 185, 129, 0.3);">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_top.png" alt="Arduino Mega Shield Top Copper Artwork" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.3: Top Copper Layer (F.Cu) — Component-Side Trace Routing &amp; Pad Connections</span>
+              <span class="badge badge-emerald">Click to Enlarge</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 4: 1:1 TRUE-SCALE 4-PANEL PRINTABLE FABRICATION SHEET
+             ============================================================== -->
+        <div id="section-pcb-print" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-cyan" style="font-size: 0.8rem;">MASTER FAB SHEET</span>
+              1:1 Scale True-Dimension 4-Panel Master Fabrication Print Sheet (A4)
+            </h4>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="images/rvm_arduino_mega_shield_pcb_print_1to1.png" download="PecoDrop_RVM_Mega_Shield_Master_Fab_Sheet_1to1.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+                ⬇️ Download Master Sheet (PNG)
+              </a>
+              <button onclick="window.print()" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+                🖨️ Print Master Sheet
+              </button>
+            </div>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Comprehensive all-in-one A4 workshop fabrication sheet containing <b>Panel 1: Bottom Copper Etching Mask</b>, <b>Panel 2: Top Copper Layer</b>, <b>Panel 3: Top Component Silkscreen &amp; Drill Positioning Template</b>, and <b>Panel 4: Drill Bit Aperture Schedule &amp; 100.0 mm Calibration Ruler</b>.
+          </p>
+
+          <div class="diagram-box" style="border: 2px solid rgba(0, 210, 255, 0.3);">
+            <img src="images/rvm_arduino_mega_shield_pcb_print_1to1.png" alt="Arduino Mega Shield 1:1 Scale Printable PCB Film" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.4: 1:1 Scale 4-Panel Master Printable PCB Film &amp; Drill Template (A4 Sheet, 101.60 mm × 53.34 mm Outlines)</span>
+              <span class="badge badge-cyan">Click to Enlarge / Full Res</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(14, 23, 42, 0.7); border: 1px solid rgba(0, 210, 255, 0.25); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-top: 1rem; font-size: 0.85rem;">
+            <b style="color: var(--cyan);">📏 Scale Calibration Verification:</b>
+            When printing this page or the image onto A4 paper / transparency film, ensure printer scale is set to <b>"100% / Actual Size"</b> (disable "Fit to Page").
+            After printing, measure the printed 100.0 mm calibration bar with digital calipers. A reading of exactly 100.0 mm confirms 100% true-scale dimensional accuracy.
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 5: PHYSICAL 2D CAD PCB COMPOSITE BOARD
+             ============================================================== -->
+        <div id="section-pcb-cad" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-cyan" style="font-size: 0.8rem;">CAD COMPOSITE</span>
+              Physical 2D CAD PCB Board with Visible Copper Tracks &amp; Silkscreen
+            </h4>
+            <a href="images/rvm_arduino_mega_shield_pcb_layout.png" download="RVM_Mega_Shield_CAD_Board_Composite.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              ⬇️ Save CAD Composite (PNG)
+            </a>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Full dual-layer CAD assembly view displaying <b style="color: #f59e0b;">amber top copper traces (F.Cu)</b>, <b style="color: #38bdf8;">cyan bottom copper traces (B.Cu)</b>, golden through-hole annular pads, polarized JST-XH ultrasonic sockets, 3-pin keyed servo headers, high-current terminal blocks, decoupling capacitors, and TVS surge suppressors.
+          </p>
+
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_layout.png" alt="Arduino Mega Shield Physical PCB Layout" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.5: Arduino Mega 2560 Shield 2D CAD Physical Composite Layout (101.60 mm × 53.34 mm)</span>
+              <span class="badge badge-cyan">Click to Enlarge / Lightbox</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             DRAWING 6: MASTER ELECTRICAL SCHEMATIC
+             ============================================================== -->
+        <div id="section-schematic" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-cyan" style="font-size: 0.8rem;">SCHEMATIC REV 2.1</span>
+              Arduino Mega 2560 Mezzanine Shield Master Electrical Schematic
+            </h4>
+            <a href="images/rvm_arduino_mega_shield_schematic.png" download="PecoDrop_RVM_Mega_Shield_Schematic_Rev2.1.png" class="btn-action" style="padding: 0.4rem 0.9rem; font-size: 0.8rem;">
+              ⬇️ Save Schematic (PNG)
+            </a>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Complete electrical schematic detailing the dual-rail power isolation, TVS motor flyback suppression (SMBJ6.0A), optocoupled 12V inductive proximity sensor interface (PC817), and HX711 24-bit strain-gauge ADC breakout carrier.
+          </p>
+
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_schematic.png" alt="Arduino Mega Expansion Shield Schematic" onclick="openLightbox(this.src)">
+            <div class="diagram-caption">
+              <span>Figure 4.6: Arduino Mega 2560 Shield Complete Electrical Schematic (Dual Rails, TVS Suppression, Optocoupled 12V Sensor)</span>
+              <span class="badge badge-cyan">Click to Enlarge / Lightbox</span>
+            </div>
+          </div>
+
+
+        <!-- ==============================================================
+             SECTION: COMPLETE PRODUCTION BILL OF MATERIALS (BOM)
+             ============================================================== -->
+        <div id="section-bom" style="margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+              <span>📦 Complete Production Bill of Materials (BOM)</span>
+              <span class="badge badge-cyan" style="font-size: 0.75rem;">JLCPCB / SMT Ready • 28 Items</span>
+            </h4>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="rvm_mega_shield_bom.csv" download="PecoDrop_RVM_Mega_Shield_BOM_Rev2.1.csv" class="btn-action" style="background:#0284c7; color:#fff; border:none; padding:0.45rem 1rem; font-size:0.85rem;">
+                ⬇️ Download BOM (.CSV)
+              </a>
+              <button onclick="window.print()" class="btn-action" style="padding:0.45rem 1rem; font-size:0.85rem;">
+                🖨️ Print BOM
+              </button>
+            </div>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Production-certified parts list with Manufacturer Part Numbers (MPNs) and LCSC Part Codes for turnkey SMT automated assembly:
+          </p>
+
+          <input type="text" id="bomSearchInput" class="search-input" placeholder="Search by Designator, Description, Footprint, MPN, or LCSC Part #..." onkeyup="filterBomTable()" style="margin-top: 1rem; width: 100%; max-width: 450px;">
+
+          <div class="table-responsive" style="margin-top: 1rem;">
+            <table id="bomTable">
+              <thead>
+                <tr>
+                  <th>Designator</th>
+                  <th>Qty</th>
+                  <th>Component Description</th>
+                  <th>Package / Footprint</th>
+                  <th>Manufacturer Part # (MPN)</th>
+                  <th>LCSC Part #</th>
+                  <th>Functional Role / Circuit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><b>U1</b></td><td>1</td><td>Optocoupler Phototransistor 5000 VRMS</td><td>DIP-4 / SOP-4</td><td>Everlight EL817C</td><td><code>C4998</code></td><td>Galvanic isolation for 12V inductive can sensor (Pin 32)</td></tr>
+                <tr><td><b>D1</b></td><td>1</td><td>TVS Diode 6.0V 600W Unidirectional</td><td>DO-214AA (SMB)</td><td>Littelfuse SMBJ6.0A</td><td><code>C2832814</code></td><td>Clamps motor back-EMF voltage spikes on 5V_SERVO rail</td></tr>
+                <tr><td><b>D2</b></td><td>1</td><td>Fast Switching Diode 100V 300mA</td><td>SOD-123</td><td>1N4148W</td><td><code>C81598</code></td><td>Optocoupler LED reverse polarity clamping</td></tr>
+                <tr><td><b>D3</b></td><td>1</td><td>Fast Switching Diode 100V 300mA</td><td>SOD-123</td><td>1N4148W</td><td><code>C81598</code></td><td>Flyback freewheeling diode protection</td></tr>
+                <tr><td><b>C1</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 1 Servos</td></tr>
+                <tr><td><b>C2</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 2 Servos</td></tr>
+                <tr><td><b>C3</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 3 Servos</td></tr>
+                <tr><td><b>C4</b></td><td>1</td><td>Tantalum Capacitor 100µF 16V Low-ESR</td><td>Case D (7343)</td><td>AVX TAJD107K016RNJ</td><td><code>C7171</code></td><td>Low-frequency decoupling on 5V_LOGIC rail</td></tr>
+                <tr><td><b>C5–C18</b></td><td>14</td><td>Ceramic Capacitor 100nF (0.1µF) 50V X7R</td><td>0805 SMD</td><td>Murata GRM21BR71H104KA01L</td><td><code>C49678</code></td><td>High-frequency bypass per sensor and servo header</td></tr>
+                <tr><td><b>FB1</b></td><td>1</td><td>Ferrite Bead 600Ω @ 100MHz 3A</td><td>0805 SMD</td><td>Murata BLM21PG601SN1D</td><td><code>C23177</code></td><td>Isolates high-frequency servo PWM harmonics from logic rail</td></tr>
+                <tr><td><b>R1</b></td><td>1</td><td>Thick Film Resistor 2.2kΩ 0.5W 1%</td><td>1206 SMD</td><td>Yageo RC1206FR-072K2L</td><td><code>C4460</code></td><td>Optocoupler LED current-limiting resistor from 12V supply</td></tr>
+                <tr><td><b>R2</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Logic Power LED current limiter</td></tr>
+                <tr><td><b>R3</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Servo Power LED current limiter</td></tr>
+                <tr><td><b>R4</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Heartbeat LED current limiter (Pin 13 pulse)</td></tr>
+                <tr><td><b>R5</b></td><td>1</td><td>Thick Film Resistor 100Ω 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1000T5E</td><td><code>C17414</code></td><td>HX711 Serial Clock transmission line damping (Pin 38)</td></tr>
+                <tr><td><b>R6</b></td><td>1</td><td>Thick Film Resistor 100Ω 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1000T5E</td><td><code>C17414</code></td><td>HX711 Serial Data transmission line damping (Pin 37)</td></tr>
+                <tr><td><b>R7</b></td><td>1</td><td>Thick Film Resistor 10kΩ 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1002T5E</td><td><code>C17415</code></td><td>Optocoupler phototransistor collector pull-up resistor</td></tr>
+                <tr><td><b>LED1</b></td><td>1</td><td>SMD LED Green (565nm) 20mA</td><td>0805 SMD</td><td>Everlight 17-215SURC</td><td><code>C84267</code></td><td>LED_PWR_LOGIC (Indicates 5V MCU rail active)</td></tr>
+                <tr><td><b>LED2</b></td><td>1</td><td>SMD LED Blue (470nm) 20mA</td><td>0805 SMD</td><td>Everlight 19-217/BHC</td><td><code>C72043</code></td><td>LED_PWR_SERVO (Indicates 5V 10A servo rail active)</td></tr>
+                <tr><td><b>LED3</b></td><td>1</td><td>SMD LED Amber (590nm) 20mA</td><td>0805 SMD</td><td>Everlight 19-217/Y5C</td><td><code>C72044</code></td><td>LED_HEARTBEAT (Pin 13 firmware activity pulse)</td></tr>
+                <tr><td><b>SW1</b></td><td>1</td><td>Tactile Pushbutton Switch SPST 6×6mm</td><td>SMD / THT</td><td>Omron B3F-1000</td><td><code>C115357</code></td><td>SW_RESET (Manual hardware reset for ATmega2560)</td></tr>
+                <tr><td><b>TB1</b></td><td>1</td><td>Screw Terminal Block 2-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-02P</td><td><code>C406450</code></td><td>TB_12V (Main DC 12V Industrial Power Input)</td></tr>
+                <tr><td><b>TB2</b></td><td>1</td><td>Screw Terminal Block 2-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-02P</td><td><code>C406450</code></td><td>TB_SERVO_PWR (5V 10A Buck Converter Input)</td></tr>
+                <tr><td><b>TB3</b></td><td>1</td><td>Screw Terminal Block 3-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-03P</td><td><code>C406451</code></td><td>TB_INDUCTIVE (12V, NPN Signal, GND for LJ12A3 Sensor)</td></tr>
+                <tr><td><b>J_SRV1–6</b></td><td>6</td><td>Polarized Pin Header 1×3 2.54mm Keyed</td><td>2.54mm THT</td><td>Wurth Elektronik 61300311121</td><td><code>C2897384</code></td><td>6x Servo Motor Headers [GND, +5V_SERVO, PWM Signal]</td></tr>
+                <tr><td><b>J_US1–8</b></td><td>8</td><td>JST-XH Shrouded Header 4-Pin 2.50mm</td><td>2.50mm Male</td><td>JST B4B-XH-A</td><td><code>C157934</code></td><td>8x HC-SR04 Ultrasonic Headers [VCC, TRIG, ECHO, GND]</td></tr>
+                <tr><td><b>J_HX</b></td><td>1</td><td>Gold Header Socket 1×4 2.54mm Pitch</td><td>2.54mm Female</td><td>Amphenol 68000-104HLF</td><td><code>C124376</code></td><td>HX711 24-Bit ADC Breakout Carrier Socket</td></tr>
+                <tr><td><b>HDR_MEGA</b></td><td>1</td><td>Arduino Mega Stacking Header Kit (Long Lead)</td><td>Stackable Headers</td><td>Adafruit PRT-09372</td><td>Custom</td><td>Bottom-side male header pins mating with Mega 2560 Rev3</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: PCB Mechanical & Manufacturing Schedule -->
+        <h4 style="margin-top: 3rem; color: #fff;">📐 PCB Manufacturing &amp; Fabrication Schedule</h4>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Engineering Specification</th>
+                <th>Notes / Standard</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><b>Board Dimensions</b></td><td>101.60 mm × 53.34 mm (4.000 in × 2.100 in)</td><td>Exact 1:1 Arduino Mega 2560 Rev3 footprint</td></tr>
+              <tr><td><b>Layer Count</b></td><td>2-Layer Standard (F.Cu Top, B.Cu Bottom) • 4-Layer Optional</td><td>Standard low-cost 2-layer fab ($2 at JLCPCB/PCBWay) or DIY etch; 4-layer optional for extreme EMC</td></tr>
+              <tr><td><b>Board Thickness</b></td><td>1.6 mm standard FR-4 (TG140–150)</td><td>Rigid support against mechanical motor vibration</td></tr>
+              <tr><td><b>Copper Weight</b></td><td>1 oz (35 µm) or 2 oz (70 µm) Outer Layers</td><td>100-mil power buses easily sustain 10A continuous / 15A surge</td></tr>
+              <tr><td><b>Surface Finish</b></td><td>Lead-Free HASL or ENIG (Gold Immersion)</td><td>Corrosion-resistant for 24/7 public kiosks</td></tr>
+              <tr><td><b>Drill Schedule</b></td><td>M3 (3.2mm NPTH), Header Pins (1.0mm PTH), Terminals (1.4mm PTH)</td><td>Compatible with standard M3 nylon standoffs</td></tr>
+              <tr><td><b>Minimum Trace / Clearance</b></td><td>0.15 mm / 0.15 mm (6 mil / 6 mil)</td><td>High yield across all standard PCB fab houses</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================
          TAB 4: FIRMWARE & SERIAL API
          ============================================================== -->
     <section id="pane-firmware" class="tab-pane">
@@ -777,9 +1194,33 @@
             <img src="images/rvm_state_machine_serial_protocol.png" alt="State Machine" onclick="openLightbox(this.src)">
             <div class="diagram-caption"><span>Figure 6: Firmware State Machine &amp; Serial API Protocol</span></div>
           </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_bottom.png" alt="Bottom Copper (B.Cu) Etch Mask" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 7: Bottom Copper Layer (B.Cu) — Solid Copper Etching Mask</span><span class="badge badge-cyan">Click to Enlarge</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png" alt="Mirrored Bottom Copper Mask" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 8: Mirrored Bottom Copper (B.Cu Mirror) — Laser Toner Transfer Ready</span><span class="badge badge-amber">Click to Enlarge</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_copper_top.png" alt="Top Copper (F.Cu) Component Side Tracks" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 9: Top Copper Layer (F.Cu) — Component-Side Trace Routing</span><span class="badge badge-emerald">Click to Enlarge</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_print_1to1.png" alt="Arduino Mega Shield 1:1 Scale Printable PCB Film" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 10: 1:1 Scale 4-Panel Master Fabrication &amp; Drill Template (A4 Sheet)</span><span class="badge badge-cyan">Click to Enlarge</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_pcb_layout.png" alt="Arduino Mega Shield Physical PCB Layout" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 11: Arduino Mega 2560 Shield 2D CAD PCB Physical Composite Layout</span><span class="badge badge-cyan">Click to Enlarge</span></div>
+          </div>
+          <div class="diagram-box">
+            <img src="images/rvm_arduino_mega_shield_schematic.png" alt="Arduino Mega Expansion Shield Schematic" onclick="openLightbox(this.src)">
+            <div class="diagram-caption"><span>Figure 12: Arduino Mega 2560 Mezzanine Shield Schematic (Rev 2.1)</span><span class="badge badge-cyan">Click to Enlarge</span></div>
+          </div>
           <div class="diagram-box" style="grid-column: 1 / -1;">
             <img src="images/operator_kiosk_touchscreen_guide.png" alt="Operator Guide" onclick="openLightbox(this.src)">
-            <div class="diagram-caption"><span>Figure 7: Operator &amp; Recycling User Touchscreen Quick Start Guide</span></div>
+            <div class="diagram-caption"><span>Figure 10: Operator &amp; Recycling User Touchscreen Quick Start Guide</span></div>
           </div>
         </div>
       </div>
@@ -797,19 +1238,127 @@
   </footer>
 
   <script>
-    function switchPane(paneId) {
+    function switchPane(paneId, btn) {
       document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
-      event.currentTarget.classList.add('active');
+      if (btn) {
+        btn.classList.add('active');
+      } else {
+        const found = Array.from(document.querySelectorAll('.nav-tab-btn')).find(b => {
+          const oc = b.getAttribute('onclick');
+          return oc && oc.includes("'" + paneId + "'");
+        });
+        if (found) found.classList.add('active');
+      }
       const target = document.getElementById('pane-' + paneId);
-      if (target) target.classList.add('active');
+      if (target) {
+        target.classList.add('active');
+        window.scrollTo({ top: target.offsetTop - 75, behavior: 'smooth' });
+      }
+      if (history.pushState) {
+        history.pushState(null, null, '#' + paneId);
+      }
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && document.getElementById('pane-' + hash)) {
+        switchPane(hash);
+      }
+    });
 
     function filterPinoutTable() {
       const input = document.getElementById('pinoutSearch');
       const filter = input.value.toUpperCase();
       const table = document.getElementById('pinoutTable');
+      const tr = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < tr.length; i++) {
+        let textContent = tr[i].textContent || tr[i].innerText;
+        if (textContent.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+    }
+
+    function switchShieldView(view) {
+      const img = document.getElementById('shieldMainImg');
+      const caption = document.getElementById('shieldImgCaption');
+      const title = document.getElementById('shieldViewerTitle');
+      const dlBtn = document.getElementById('shieldDownloadBtn');
+      document.querySelectorAll('#pane-pcb-shield .cad-view-btn').forEach(b => b.classList.remove('active'));
+
+      if (view === 'cu-bot') {
+        img.src = 'images/rvm_arduino_mega_shield_pcb_copper_bottom.png';
+        caption.innerText = 'Figure: Bottom Copper Layer (B.Cu) — Solid Black Tracks, 100-mil High-Current Power Bus, 45° Chamfered Signal Lines & Solder Annular Pads (101.60 mm × 53.34 mm)';
+        if (title) title.innerText = 'Bottom Copper Layer (B.Cu) — Etching Mask';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_pcb_copper_bottom.png';
+          dlBtn.download = 'RVM_Mega_Shield_Bottom_Copper_B.Cu.png';
+        }
+        const btn = document.getElementById('shield-btn-cu-bot');
+        if (btn) btn.classList.add('active');
+      } else if (view === 'cu-mirror') {
+        img.src = 'images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png';
+        caption.innerText = 'Figure: Mirrored Bottom Copper Mask (B.Cu Mirror) — Laser Printer Iron-On Toner Transfer Ready';
+        if (title) title.innerText = 'Mirrored Bottom Copper (B.Cu Mirror) — Toner Transfer';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png';
+          dlBtn.download = 'RVM_Mega_Shield_Bottom_Copper_MIRROR.png';
+        }
+        const btn = document.getElementById('shield-btn-cu-mirror');
+        if (btn) btn.classList.add('active');
+      } else if (view === 'cu-top') {
+        img.src = 'images/rvm_arduino_mega_shield_pcb_copper_top.png';
+        caption.innerText = 'Figure: Top Copper Layer (F.Cu) — Component-Side Trace Routing & Pad Connections';
+        if (title) title.innerText = 'Top Copper Layer (F.Cu) — Component Side Routing';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_pcb_copper_top.png';
+          dlBtn.download = 'RVM_Mega_Shield_Top_Copper_F.Cu.png';
+        }
+        const btn = document.getElementById('shield-btn-cu-top');
+        if (btn) btn.classList.add('active');
+      } else if (view === 'print') {
+        img.src = 'images/rvm_arduino_mega_shield_pcb_print_1to1.png';
+        caption.innerText = 'Figure: 1:1 Scale 4-Panel Master Printable PCB Film & Drill Template (A4 Sheet, 101.60 mm × 53.34 mm Outlines)';
+        if (title) title.innerText = '1:1 Master Fabrication Sheet (4-Panel A4)';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_pcb_print_1to1.png';
+          dlBtn.download = 'PecoDrop_RVM_Mega_Shield_Master_Fab_Sheet_1to1.png';
+        }
+        const btn = document.getElementById('shield-btn-print');
+        if (btn) btn.classList.add('active');
+      } else if (view === 'pcb') {
+        img.src = 'images/rvm_arduino_mega_shield_pcb_layout.png';
+        caption.innerText = 'Figure: Arduino Mega 2560 Shield 2D CAD Physical Composite Layout with Visible Copper Traces (101.60 mm × 53.34 mm)';
+        if (title) title.innerText = 'Physical 2D CAD PCB Board Composite';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_pcb_layout.png';
+          dlBtn.download = 'RVM_Mega_Shield_CAD_Board_Composite.png';
+        }
+        const btn = document.getElementById('shield-btn-pcb');
+        if (btn) btn.classList.add('active');
+      } else if (view === 'sch') {
+        img.src = 'images/rvm_arduino_mega_shield_schematic.png';
+        caption.innerText = 'Figure: Arduino Mega 2560 Shield Complete Electrical Schematic (Dual Rails, TVS Suppression, Optocoupled 12V Sensor)';
+        if (title) title.innerText = 'Master Electrical Schematic (Rev 2.1)';
+        if (dlBtn) {
+          dlBtn.href = 'images/rvm_arduino_mega_shield_schematic.png';
+          dlBtn.download = 'PecoDrop_RVM_Mega_Shield_Schematic_Rev2.1.png';
+        }
+        const btn = document.getElementById('shield-btn-sch');
+        if (btn) btn.classList.add('active');
+      }
+    }
+
+    function filterBomTable() {
+      const input = document.getElementById('bomSearchInput');
+      const filter = input.value.toUpperCase();
+      const table = document.getElementById('bomTable');
+      if (!table) return;
       const tr = table.getElementsByTagName('tr');
 
       for (let i = 1; i < tr.length; i++) {
