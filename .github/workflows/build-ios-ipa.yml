@@ -1,0 +1,88 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag (e.g. v2.0.2)'
+        required: false
+        default: 'v2.0.2'
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile_app/**'
+      - '.github/workflows/build-ios-ipa.yml'
+
+jobs:
+  build-ipa:
+    name: Build iOS IPA Package
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'mobile_app/package-lock.json'
+
+      - name: Setup Ruby for CocoaPods
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: false
+
+      - name: Install Node Dependencies
+        working-directory: mobile_app
+        run: |
+          npm ci --legacy-peer-deps
+
+      - name: Install CocoaPods
+        working-directory: mobile_app/ios
+        run: |
+          pod install --repo-update
+
+      - name: Pre-bundle React Native iOS Assets
+        working-directory: mobile_app
+        run: |
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output ios/main.jsbundle \
+            --assets-dest ios/
+
+      - name: Build Xcode Archive (Unsigned / Developer IPA)
+        working-directory: mobile_app/ios
+        run: |
+          mkdir -p build
+          xcodebuild archive \
+            -workspace PleaseIsp.xcworkspace \
+            -scheme PleaseIsp \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/PleaseIsp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean archive
+
+      - name: Package Payload into IPA
+        working-directory: mobile_app/ios
+        run: |
+          mkdir -p build/Payload
+          cp -r "build/PleaseIsp.xcarchive/Products/Applications/PleaseIsp.app" build/Payload/
+          cd build
+          zip -r -9 PecoDrop-v2.0.2.ipa Payload/
+          ls -lh PecoDrop-v2.0.2.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PecoDrop-iOS-v2.0.2
+          path: mobile_app/ios/build/PecoDrop-v2.0.2.ipa
+          retention-days: 90
