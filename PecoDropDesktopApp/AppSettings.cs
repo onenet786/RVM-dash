@@ -10,7 +10,7 @@ public sealed class AppSettings
     public string MachineId { get; init; } = "RVM-001";
     public string CentralApiUrl { get; init; } = "https://isprvm.binishaqsoft.com";
     public string ArduinoPort { get; init; } = "COM16";
-    public int ArduinoBaud { get; init; } = 9600;
+    public int ArduinoBaud { get; init; } = 115200;
     public string CameraPort { get; init; } = "COM31";
     public int CameraBaud { get; init; } = 921600;
     public string AdvertisementVideoFolder { get; init; } = @"Ads\Advertisements";
@@ -35,7 +35,7 @@ public sealed class AppSettings
             Latitude = GetDoubleOrNull(values, "Latitude") ?? 31.5826,
             Longitude = GetDoubleOrNull(values, "Longitude") ?? 74.3276,
             ArduinoPort = Get(values, "ArduinoPort", "COM16"),
-            ArduinoBaud = GetInt(values, "ArduinoBaud", 9600),
+            ArduinoBaud = GetInt(values, "ArduinoBaud", 115200),
             CameraPort = Get(values, "CameraPort", "COM31"),
             CameraBaud = GetInt(values, "CameraBaud", 921600),
             AdvertisementVideoFolder = Get(values, "AdvertisementVideoFolder", @"Ads\Advertisements"),
@@ -90,7 +90,7 @@ public sealed class AppSettings
         content.AppendLine();
         content.AppendLine("# Hardware and classifier settings");
         content.AppendLine($"ArduinoPort={configValues.GetValueOrDefault("ArduinoPort", "COM16")}");
-        content.AppendLine($"ArduinoBaud={configValues.GetValueOrDefault("ArduinoBaud", "9600")}");
+        content.AppendLine($"ArduinoBaud={configValues.GetValueOrDefault("ArduinoBaud", "115200")}");
         content.AppendLine($"AdvertisementVideoFolder={configValues.GetValueOrDefault("AdvertisementVideoFolder", @"Ads\Advertisements")}");
         content.AppendLine($"InstructionVideoFolder={configValues.GetValueOrDefault("InstructionVideoFolder", @"Ads\Instructions")}");
         content.AppendLine($"CameraPort={configValues.GetValueOrDefault("CameraPort", "COM31")}");

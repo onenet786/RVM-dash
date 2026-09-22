@@ -7,7 +7,7 @@
  * - Instant sub-50ms repeat load time on mobile devices and browsers
  */
 
-const CACHE_NAME = 'rvm-shell-v4';
+const CACHE_NAME = 'rvm-shell-v6';
 const STATIC_SHELL = [
   '/',
   '/index.html',
@@ -16,12 +16,13 @@ const STATIC_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_SHELL).catch((err) => {
         console.warn('[SW] Pre-cache partial warning:', err);
       });
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -33,6 +34,12 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {

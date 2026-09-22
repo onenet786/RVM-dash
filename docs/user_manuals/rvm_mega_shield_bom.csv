@@ -1,0 +1,29 @@
+Designator,Qty,Description,Package/Footprint,Manufacturer Part Number (MPN),LCSC Part #,Functional Role / Circuit
+U1,1,Optocoupler Phototransistor 5000 VRMS,DIP-4 / SOP-4,Everlight EL817C,C4998,Inductive sensor galvanic isolation (Pin 32)
+D1,1,TVS Diode 6.0V 600W Unidirectional,DO-214AA (SMB),Littelfuse SMBJ6.0A,C2832814,Servo rail back-EMF surge clamp
+D2,1,Fast Switching Diode 100V 300mA,SOD-123,1N4148W,C81598,Inductive optocoupler reverse polarity clamp
+D3,1,Fast Switching Diode 100V 300mA,SOD-123,1N4148W,C81598,Flyback freewheeling clamp
+C1,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-FR1C102,C137837,Servo rail bulk charge reservoir (Chamber 1)
+C2,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-FR1C102,C137837,Servo rail bulk charge reservoir (Chamber 2)
+C3,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-FR1C102,C137837,Servo rail bulk charge reservoir (Chamber 3)
+C4,1,Tantalum Capacitor 100uF 16V Low-ESR,Case D (7343),AVX TAJD107K016RNJ,C7171,Logic rail bulk decoupling
+C5-C18,14,Ceramic Capacitor 100nF (0.1uF) 50V X7R,0805 SMD,Murata GRM21BR71H104KA01L,C49678,High-frequency bypass per sensor/servo port
+FB1,1,Ferrite Bead 600 Ohm @ 100MHz 3A,0805 SMD,Murata BLM21PG601SN1D,C23177,Logic rail high-frequency RF filter
+R1,1,Thick Film Resistor 2.2k Ohm 0.5W 1%,1206 SMD,Yageo RC1206FR-072K2L,C4460,Optocoupler LED current limit from 12V
+R2,1,Thick Film Resistor 330 Ohm 0.25W 1%,0805 SMD,Uniroyal 0805W8F3300T5E,C17630,Logic Power LED current limit
+R3,1,Thick Film Resistor 330 Ohm 0.25W 1%,0805 SMD,Uniroyal 0805W8F3300T5E,C17630,Servo Power LED current limit
+R4,1,Thick Film Resistor 330 Ohm 0.25W 1%,0805 SMD,Uniroyal 0805W8F3300T5E,C17630,Heartbeat LED current limit (Pin 13)
+R5,1,Thick Film Resistor 100 Ohm 0.125W 1%,0805 SMD,Uniroyal 0805W8F1000T5E,C17414,HX711 Serial Clock series damping (Pin 38)
+R6,1,Thick Film Resistor 100 Ohm 0.125W 1%,0805 SMD,Uniroyal 0805W8F1000T5E,C17414,HX711 Serial Data series damping (Pin 37)
+R7,1,Thick Film Resistor 10k Ohm 0.125W 1%,0805 SMD,Uniroyal 0805W8F1002T5E,C17415,Optocoupler collector pull-up
+LED1,1,SMD LED Green (565nm) 20mA,0805 SMD,Everlight 17-215SURC,C84267,LED_PWR_LOGIC (5V Logic Status)
+LED2,1,SMD LED Blue (470nm) 20mA,0805 SMD,Everlight 19-217/BHC,C72043,LED_PWR_SERVO (5V Servo Status)
+LED3,1,SMD LED Amber (590nm) 20mA,0805 SMD,Everlight 19-217/Y5C,C72044,LED_HEARTBEAT (Pin 13 Firmware Pulse)
+SW1,1,Tactile Pushbutton Switch SPST 6x6mm,SMD / THT,Omron B3F-1000,C115357,SW_RESET Manual ATmega2560 Restart
+TB1,1,Screw Terminal Block 2-Pin 5.08mm 16A,Through-Hole 5.08mm,Degson DG128-5.08-02P,C406450,TB_12V Industrial Main Power Input
+TB2,1,Screw Terminal Block 2-Pin 5.08mm 16A,Through-Hole 5.08mm,Degson DG128-5.08-02P,C406450,TB_SERVO_PWR 5V 10A Buck Input
+TB3,1,Screw Terminal Block 3-Pin 5.08mm 16A,Through-Hole 5.08mm,Degson DG128-5.08-03P,C406451,TB_INDUCTIVE LJ12A3 Sensor Input
+J_SRV1-6,6,Polarized Pin Header 1x3 2.54mm Keyed,Through-Hole 2.54mm,Wurth Elektronik 61300311121,C2897384,6x Gate Servo Connectors [GND, VCC, SIG]
+J_US1-8,8,JST-XH Shrouded Header 4-Pin 2.50mm,2.50mm Shrouded Male,JST B4B-XH-A,C157934,8x Ultrasonic HC-SR04 Ports [VCC, TRIG, ECHO, GND]
+J_HX,1,Pin Header Socket 1x4 2.54mm Gold-Plated,Female Socket 2.54mm,Amphenol 68000-104HLF,C124376,HX711 24-bit ADC Breakout Sub-carrier Socket
+HDR_MEGA,1,Arduino Mega Stacking Header Kit (Long Lead),Stackable Through-Hole,Adafruit / SparkFun PRT-09372,Custom,Bottom-side Mating Headers into Mega 2560

@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "dgSpecHash": "n1PP2srzaHE=",
+  "success": false,
+  "projectFilePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+  "expectedPackageFiles": [],
+  "logs": [
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1801",
+      "level": "Warning",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package Microsoft.Data.SqlClient. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "Microsoft.Data.SqlClient",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package QRCoder. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "QRCoder",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package System.IO.Ports. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "System.IO.Ports",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package Microsoft.NETCore.App.Ref. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "Microsoft.NETCore.App.Ref",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package Microsoft.WindowsDesktop.App.Ref. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "Microsoft.WindowsDesktop.App.Ref",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package Microsoft.AspNetCore.App.Ref. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "Microsoft.AspNetCore.App.Ref",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1101",
+      "level": "Error",
+      "message": "Unable to find package Microsoft.NETCore.App.Host.win-x64. No packages exist with this id in source(s): nuget.org",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "libraryId": "Microsoft.NETCore.App.Host.win-x64",
+      "targetGraphs": [
+        "net8.0-windows7.0"
+      ]
+    },
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\PecoDropDesktopApp.csproj",
+      "targetGraphs": []
+    }
+  ]
+}

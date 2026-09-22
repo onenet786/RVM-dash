@@ -10,7 +10,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Prevent generated files from alternate build folders being compiled as source. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);tmp-build-obj\**;tmp-build-output\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**;tmp-build-obj\**;tmp-build-output\**;Tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

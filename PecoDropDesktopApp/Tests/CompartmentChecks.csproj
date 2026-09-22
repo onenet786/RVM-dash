@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="CompartmentChecks.cs" />
+    <Compile Include="../CompartmentAvailability.cs" Link="CompartmentAvailability.cs" />
+    <Compile Include="../CompartmentStatusPresenter.cs" Link="CompartmentStatusPresenter.cs" />
+  </ItemGroup>
+</Project>

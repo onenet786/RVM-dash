@@ -33,6 +33,36 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private readonly AppSettings settings = AppSettings.Load();
     private readonly SerialManager serial = new();
+    private readonly CompartmentAvailability compartmentAvailability = new();
+    private string? activeScanCompartment;
+    private double paperTotalWeightKg;
+
+    private bool ProcessCompartmentStatus(string message)
+    {
+        if (!compartmentAvailability.TryApply(message)) return false;
+        RefreshCompartmentCards();
+        return true;
+    }
+
+    private void RefreshCompartmentCards()
+    {
+        CompartmentStatusPresenter.UpdateCard(PlasticCompartmentCard, PlasticCompartmentStatus, compartmentAvailability["PLASTIC"], "PLASTIC");
+        CompartmentStatusPresenter.UpdateCard(MetalCompartmentCard, MetalCompartmentStatus, compartmentAvailability["METAL"], "METAL");
+        CompartmentStatusPresenter.UpdateCard(PaperCompartmentCard, PaperCompartmentStatus, compartmentAvailability["PAPER"], "PAPER");
+        CompartmentWarningText.Text = compartmentAvailability.WarningText;
+        CompartmentWarningBanner.Visibility = CompartmentWarningText.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (pendingBottleResult is not null && !compartmentAvailability.CanAccept(pendingBottleResult.Material))
+        {
+            pendingBottleResult = null;
+            pendingBottlePoints = 0;
+        }
+        if (activeScanCompartment is not null && !compartmentAvailability.CanAccept(activeScanCompartment))
+        {
+            scanTimer.Stop();
+            activeScanCompartment = null;
+        }
+    }
+
     private readonly DispatcherTimer scanTimer = new();
     private Guid sessionId = Guid.NewGuid();
 
@@ -67,12 +97,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private string? _currentStartToken;
     private DateTime _startTokenExpiresAt = DateTime.MinValue;
     private bool _isRegisteringHandshake = false;
-    private readonly DispatcherTimer _inactivityCountdownTimer = new();
-    private int _inactivitySecondsRemaining = 0;
 
     public LandscapeWindow()
     {
         InitializeComponent();
+        RefreshCompartmentCards();
 
         Loaded += LandscapeWindow_Loaded;
         Closing += LandscapeWindow_Closing;
@@ -153,8 +182,6 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         _startHandshakeTimer.Interval = TimeSpan.FromMilliseconds(1500);
         _startHandshakeTimer.Tick += StartHandshakeTimer_Tick;
         _startHandshakeTimer.Start();
-        _inactivityCountdownTimer.Interval = TimeSpan.FromSeconds(1);
-        _inactivityCountdownTimer.Tick += InactivityCountdownTimer_Tick;
         _ = RegisterStartHandshakeAsync();
     }
 
@@ -519,6 +546,48 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void StopButton_Click(object sender, RoutedEventArgs e) => StopMachine();
 
+    private void ResetHardwareButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!serial.IsConnected)
+        {
+            ConnectArduino();
+            return;
+        }
+
+        serial.SendCommand("RESET");
+        machineStarted = false;
+        pendingBottleResult = null;
+        pendingBottlePoints = 0;
+        scanTimer.Stop();
+        StatusText.Text = "Machine Reset";
+        StatusText.Foreground = Brushes.Orange;
+        BottleInfoText.Text = "Press START to resume";
+        MachineStateText.Text = "MACHINE: RESET";
+        LogTelemetry("[CMD] RESET");
+        SimulatorStateChanged?.Invoke();
+    }
+
+    private void CalibrateHardwareButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!serial.IsConnected)
+        {
+            ConnectArduino();
+            return;
+        }
+
+        machineStarted = false;
+        pendingBottleResult = null;
+        pendingBottlePoints = 0;
+        scanTimer.Stop();
+        StatusText.Text = "Calibrating...";
+        StatusText.Foreground = Brushes.Gold;
+        BottleInfoText.Text = "Remove all objects from every compartment";
+        MachineStateText.Text = "MACHINE: CALIBRATING";
+        LogTelemetry("[CMD] CALIBRATE");
+        serial.SendCommand("CALIBRATE");
+        SimulatorStateChanged?.Invoke();
+    }
+
     private void AdminButton_Click(object sender, RoutedEventArgs e) => OpenAdmin();
 
     private void ViewRewardsButton_Click(object sender, RoutedEventArgs e) => CompleteSessionToWallet();
@@ -534,7 +603,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void InstructionsNav_Click(object sender, RoutedEventArgs e)
     {
-        RvmMessageDialog.ShowInfo("How To Use RVM", "1. Press 0 to Start\n2. Insert Bottle/Can/UBC/Cup\n3. Detect\n4. Press Enter\n5. Enter Mobile Number / Scan QR Code\n6. Press Enter and Get Points\n7. Save");
+        RvmMessageDialog.ShowInfo("How To Use RVM", "1. Press 0 to Start\n2. Insert Bottle/Can/Paper/Cup\n3. Detect\n4. Press Enter\n5. Enter Mobile Number / Scan QR Code\n6. Press Enter and Get Points\n7. Save");
     }
 
     private void AnnouncementsNav_Click(object sender, RoutedEventArgs e)
@@ -868,6 +937,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void ConnectArduino()
     {
+        compartmentAvailability.ResetConnection();
+        RefreshCompartmentCards();
         try
         {
             serial.Connect(settings.ArduinoPort, settings.ArduinoBaud);
@@ -880,8 +951,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             MachineStateText.Text = "MACHINE: CALIBRATING";
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {settings.ArduinoPort} at {settings.ArduinoBaud} baud");
-            LogTelemetry("[CMD] CALIBRATE");
-            serial.SendCommand("CALIBRATE");
+            LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
+            serial.SendCommand("STATUS");
         }
         catch (Exception ex)
         {
@@ -1036,54 +1107,24 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         if (machineStarted)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(activeUserMobile))
             {
-                int currentPCount = plasticSmallCount + plasticMediumCount + plasticLargeCount;
-                int currentCCount = canSmallCount + canMediumCount + canLargeCount;
-                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId, totalItems, totalPoints, currentPCount, currentCCount);
-                if (statusResp != null)
+                try
                 {
-                    if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
-                    {
-                        activeUserMobile = statusResp.MobileNumber;
-                        string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? "Eco Citizen";
-                        int balance = statusResp.User?.Balance ?? 0;
-                        if (GreetingUserNameText != null) GreetingUserNameText.Text = userName;
-                        if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
-                        if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
-                    }
-
-                    if (statusResp.FinishRequested)
+                    var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
                     {
                         _startHandshakeTimer.Stop();
-                        _inactivityCountdownTimer.Stop();
-
-                        if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
-                        {
-                            activeUserMobile = statusResp.MobileNumber;
-                        }
-
-                        if (totalItems > 0)
-                        {
-                            LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish ({totalItems} items)! Completing session...");
-                            CompleteSessionToWallet(skipRatingDialog: true);
-                        }
-                        else
-                        {
-                            LogTelemetry("[TOUCHLESS 📱] Mobile requested session finish (0 items). Closing session cleanly...");
-                            StopMachine();
-                            StatusText.Text = "Session closed from mobile";
-                            StatusText.Foreground = Brushes.SlateGray;
-                            BottleInfoText.Text = "Session ended without any items deposited.";
-                            ResetSession();
-                        }
+                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
+                        CompleteSessionToWallet();
                         return;
                     }
                 }
+                catch { }
             }
-            catch
+            else
             {
-                // Transient network hiccups ignored in poll
+                _startHandshakeTimer.Stop();
             }
             return;
         }
@@ -1113,10 +1154,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
                     StartMachine();
                 }
-                else if (statusResp.Status == "EXPIRED" || statusResp.Status == "IDLE")
+                else if (statusResp.Status == "EXPIRED")
                 {
-                    _currentStartToken = null;
-                    _startTokenExpiresAt = DateTime.MinValue;
                     await RegisterStartHandshakeAsync();
                 }
             }
@@ -1127,40 +1166,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
     }
 
-    private void ResetInactivityCountdown()
-    {
-        if (!machineStarted || totalItems <= 0) return;
-        _inactivitySecondsRemaining = 15;
-        if (!_inactivityCountdownTimer.IsEnabled)
-        {
-            _inactivityCountdownTimer.Start();
-        }
-    }
-
-    private void InactivityCountdownTimer_Tick(object? sender, EventArgs e)
-    {
-        if (!machineStarted || totalItems <= 0)
-        {
-            _inactivityCountdownTimer.Stop();
-            return;
-        }
-
-        _inactivitySecondsRemaining--;
-        if (_inactivitySecondsRemaining > 0 && _inactivitySecondsRemaining <= 10)
-        {
-            BottleInfoText.Text = $"Insert item • Auto-completing in {_inactivitySecondsRemaining}s";
-        }
-
-        if (_inactivitySecondsRemaining <= 0)
-        {
-            _inactivityCountdownTimer.Stop();
-            LogTelemetry($"[TOUCHLESS ⏱️] 15s Inactivity reached with {totalItems} items. Auto-completing session...");
-            CompleteSessionToWallet();
-        }
-    }
-
+    // Scanning continues until an explicit finish action (Enter, redeem, or mobile).
     public void StartMachine(bool forceSimulator = false)
     {
+        if (!serial.IsConnected && (IsDemoMode || forceSimulator))
+        {
+            foreach (string compartment in new[] { "PLASTIC", "METAL", "PAPER" })
+                ProcessCompartmentStatus($"COMPARTMENT:{compartment};WORKING:OK;BIN:CLEAR");
+        }
         if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
             ConnectArduino();
@@ -1181,9 +1194,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
-        if (!_startHandshakeTimer.IsEnabled)
+        if (string.IsNullOrWhiteSpace(activeUserMobile))
         {
-            _startHandshakeTimer.Start();
+            _startHandshakeTimer.Stop();
+        }
+        else
+        {
+            if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
         }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
@@ -1209,12 +1226,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = false;
         scanTimer.Stop();
-        _inactivityCountdownTimer.Stop();
         activeUserMobile = null;
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-        _currentStartToken = null;
-        _startTokenExpiresAt = DateTime.MinValue;
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
@@ -1235,6 +1250,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         string matUpper = (material ?? "PLASTIC").Trim().ToUpperInvariant();
         string sizeUpper = (size ?? "MEDIUM").Trim().ToUpperInvariant();
+        if (!compartmentAvailability.CanAccept(matUpper)) return;
 
         if (!accept)
         {
@@ -1262,7 +1278,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         totalItems++;
         totalPoints += points;
 
-        IncrementMaterialSizeCounter(result.Material, result.Size);
+        IncrementMaterialSizeCounter(result.Material, result.Size, result.WeightKg);
 
         StatusText.Text = "Accepted";
         StatusText.Foreground = Brushes.LimeGreen;
@@ -1275,7 +1291,6 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
         AcceptedItemVideoWindow.ShowFor(this, result.Material);
-        ResetInactivityCountdown();
 
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
@@ -1343,6 +1358,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
+            compartmentAvailability.ResetConnection();
+            RefreshCompartmentCards();
             ConnectionText.Text = "HARDWARE: ERROR";
             ConnectionText.Foreground = Brushes.OrangeRed;
             StatusDot.Fill = Brushes.OrangeRed;
@@ -1361,8 +1378,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private void ProcessArduinoMessage(string message)
     {
         LogTelemetry($"[RX] {message}");
+        if (ProcessCompartmentStatus(message)) return;
+        // Compartment diagnostics do not reject an item or stop healthy intakes.
+        if (message.StartsWith("FAULT:", StringComparison.OrdinalIgnoreCase)) return;
 
-        if (message == "READY" || message == "STATUS:ONLINE")
+        if (message == "READY" ||
+            message == "RVM:PLASTIC_METAL_PAPER_READY" ||
+            message == "CALIBRATION:OK" ||
+            message.StartsWith("STATUS:READY", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("STATUS:RUNNING", StringComparison.OrdinalIgnoreCase) ||
+            message == "STATUS:ONLINE")
         {
             ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
@@ -1371,7 +1396,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        if (message == "CALIBRATION:START")
+        if (message == "CALIBRATION:START" || message == "CALIBRATION:REMOVE_OBJECTS")
         {
             StatusText.Text = "Calibrating...";
             StatusText.Foreground = Brushes.Gold;
@@ -1436,11 +1461,20 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        if (message == "IR:DETECTED")
+        if (message == "IR:DETECTED" ||
+            message.EndsWith(":OBJECT_DETECTED", StringComparison.OrdinalIgnoreCase))
         {
+            activeScanCompartment = CompartmentAvailability.CompartmentFor(message.Split(':')[0]);
+            if (activeScanCompartment is not null && !compartmentAvailability.CanAccept(activeScanCompartment)) return;
+            pendingBottleResult = null;
+            pendingBottlePoints = 0;
             StatusText.Text = "Scanning...";
             StatusText.Foreground = Brushes.Gold;
-            BottleInfoText.Text = "Bottle detected";
+            BottleInfoText.Text = message.StartsWith("PAPER:", StringComparison.OrdinalIgnoreCase)
+                ? "Paper detected — preparing scale"
+                : message.StartsWith("METAL:", StringComparison.OrdinalIgnoreCase)
+                    ? "Can detected — verifying metal"
+                    : "Plastic bottle detected";
             scanTimer.Stop();
             scanTimer.Start();
             return;
@@ -1476,8 +1510,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        if (message == "BOTTLE:CLEARED")
+        if (message == "BOTTLE:CLEARED" || message.StartsWith("BOTTLE:CLEARED;COMPARTMENT:", StringComparison.OrdinalIgnoreCase))
         {
+            if (message.Contains(';') && pendingBottleResult is not null &&
+                !string.Equals(message.Split(';')[1]["COMPARTMENT:".Length..],
+                    CompartmentAvailability.CompartmentFor(pendingBottleResult.Material), StringComparison.OrdinalIgnoreCase)) return;
+            activeScanCompartment = null;
             CommitPendingBottle();
             return;
         }
@@ -1523,6 +1561,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void ProcessArduinoError(string message)
     {
+        if (message.StartsWith("ERROR:PLASTIC_", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("ERROR:METAL_", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("ERROR:PAPER_", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("ERROR:HX711_", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("ERROR:UNSTABLE_CALIBRATION_", StringComparison.OrdinalIgnoreCase) ||
+            message == "ERROR:COMPARTMENT_BUSY") return;
         if (message == "ERROR:CLEAR_TIMEOUT")
         {
             pendingBottleResult = null;
@@ -1550,6 +1594,21 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
+        if (message == "ERROR:CALIBRATION_FAILED" ||
+            message == "ERROR:ULTRASONIC_CALIBRATION_FAILED" ||
+            message == "ERROR:PAPER_SCALE_NOT_READY" ||
+            message == "ERROR:NOT_CALIBRATED")
+        {
+            machineStarted = false;
+            StatusText.Text = "Hardware calibration required";
+            StatusText.Foreground = Brushes.OrangeRed;
+            BottleInfoText.Text = message == "ERROR:PAPER_SCALE_NOT_READY"
+                ? "Check HX711 wiring and load-cell power, then calibrate"
+                : "Empty all compartments, check ultrasonic wiring, then calibrate";
+            MachineStateText.Text = "MACHINE: NOT CALIBRATED";
+            return;
+        }
+
         rejectedCount++;
         RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
 
@@ -1561,7 +1620,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             "ERROR:NO_DISTANCE" => "Could not measure bottle length",
             "ERROR:SCAN_TIMEOUT" => "Scan timed out. Remove bottle and try again",
             "ERROR:CALIBRATION_FAILED" => "Calibration failed. Keep pipe empty and restart",
+            "ERROR:ULTRASONIC_CALIBRATION_FAILED" => "Check all four ultrasonic sensors",
             "ERROR:NOT_CALIBRATED" => "Hardware not calibrated",
+            "ERROR:PLASTIC_ARRIVAL_TIMEOUT" => "Plastic did not reach the sizing chamber",
+            "ERROR:METAL_ARRIVAL_TIMEOUT" => "Can did not reach the sizing chamber",
+            "ERROR:PAPER_WEIGHT_TIMEOUT" => "Paper reached the inlet but no stable weight was measured",
+            "ERROR:PAPER_SCALE_NOT_READY" => "HX711 load cell is not responding",
+            "ERROR:PLASTIC_INVALID_SENSOR_PATTERN" => "Plastic sizing sensors produced an invalid pattern",
+            "ERROR:METAL_INVALID_SENSOR_PATTERN" => "Metal sizing sensors produced an invalid pattern",
             _ => "Hardware scan error"
         };
     }
@@ -1570,6 +1636,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         BottleResult result = ParseBottleResult(message);
 
+        if (!compartmentAvailability.CanAccept(result.Material))
+        {
+            pendingBottleResult = null;
+            pendingBottlePoints = 0;
+            return;
+        }
         if (!machineStarted)
         {
             return;
@@ -1580,6 +1652,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         if (!accepted)
         {
+            pendingBottleResult = null;
+            pendingBottlePoints = 0;
             rejectedCount++;
             RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
 
@@ -1608,6 +1682,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
+        if (!compartmentAvailability.CanAccept(pendingBottleResult.Material))
+        {
+            pendingBottleResult = null;
+            pendingBottlePoints = 0;
+            return;
+        }
         BottleResult result = pendingBottleResult;
         int points = pendingBottlePoints;
         pendingBottleResult = null;
@@ -1615,16 +1695,18 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         totalItems++;
         totalPoints += points;
 
-        IncrementMaterialSizeCounter(result.Material, result.Size);
+        IncrementMaterialSizeCounter(result.Material, result.Size, result.WeightKg);
 
         suppressNextCleanupError = true;
 
         StatusText.Text = "Accepted";
         StatusText.Foreground = Brushes.LimeGreen;
         string itemDescription = result.Material.ToLowerInvariant();
-        BottleInfoText.Text = result.DurationMs > 0
-            ? $"{result.Size} {itemDescription} - {points} points | Length: {result.DurationMs} ms"
-            : $"{result.Size} {itemDescription} - {points} points";
+        BottleInfoText.Text = result.Material.Contains("PAPER", StringComparison.OrdinalIgnoreCase) && result.WeightKg > 0
+            ? $"Paper: {result.WeightKg:0.000} kg - {points} points"
+            : result.DurationMs > 0
+                ? $"{result.Size} {itemDescription} - {points} points | Length: {result.DurationMs} ms"
+                : $"{result.Size} {itemDescription} - {points} points";
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
@@ -1632,7 +1714,6 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
         AcceptedItemVideoWindow.ShowFor(this, result.Material);
-        ResetInactivityCountdown();
 
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
@@ -1663,7 +1744,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     curPaper,
                     0, // glass
                     curPoints,
-                    0.0,
+                    result.WeightKg,
                     result.Size,
                     result.Material,
                     pSmall, pMed, pLg,
@@ -1688,6 +1769,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private int GetPoints(BottleResult result)
     {
+        if (result.Material.Contains("PAPER", StringComparison.OrdinalIgnoreCase) && result.WeightKg > 0)
+        {
+            return Math.Max(1, (int)Math.Round(result.WeightKg * PointRulesCache.PaperPerKg));
+        }
+
         // 1. Check live synced PointRulesCache first
         int cached = PointRulesCache.GetPoints(result.Size, result.Material);
         if (cached > 0) return cached;
@@ -1716,11 +1802,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         };
     }
 
-    public void CompleteSessionToWallet() => CompleteSessionToWallet(false);
-
-    public void CompleteSessionToWallet(bool skipRatingDialog)
+    public void CompleteSessionToWallet()
     {
-        _inactivityCountdownTimer.Stop();
         _startHandshakeTimer.Stop();
 
         if (!machineStarted)
@@ -1777,23 +1860,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         {
             // Touchless flow: Citizen scanned QR to authenticate upfront!
             phoneNumber = activeUserMobile;
-            if (!skipRatingDialog)
+            var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
             {
-                var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
-                {
-                    Owner = this
-                };
-                ratingWindow.ShowDialog();
-                userRating = ratingWindow.Rating;
-                userFeedback = ratingWindow.FeedbackText;
-                feedbackSubmitted = ratingWindow.FeedbackSubmitted;
-            }
-            else
-            {
-                userRating = 5;
-                userFeedback = "Touchless Mobile App";
-                feedbackSubmitted = true;
-            }
+                Owner = this
+            };
+            ratingWindow.ShowDialog();
+            userRating = ratingWindow.Rating;
+            userFeedback = ratingWindow.FeedbackText;
+            feedbackSubmitted = ratingWindow.FeedbackSubmitted;
             LogTelemetry($"[TOUCHLESS 🚀] Auto-claiming session for QR user: {phoneNumber} (+{currentTotalPoints} pts)");
         }
         else
@@ -1870,7 +1944,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     paperCount, // paperCount
                     0, // glassCount
                     currentTotalPoints,
-                    0.0, // weightKg
+                    0.0,
                     "MEDIUM",
                     "PLASTIC",
                     pSmall,
@@ -1925,9 +1999,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-        _currentStartToken = null;
-        _startTokenExpiresAt = DateTime.MinValue;
-        _isRegisteringHandshake = false;
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
@@ -1936,14 +2008,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             canSmallCount = canMediumCount = canLargeCount = tetraPakSmallCount = tetraPakMediumCount = tetraPakLargeCount = rejectedCount = 0;
         TotalItemsText.Text = PlasticSmallCountText.Text = PlasticMediumCountText.Text = PlasticLargeCountText.Text =
             CanSmallCountText.Text = CanMediumCountText.Text = CanLargeCountText.Text =
-            TetraPakSmallCountText.Text = TetraPakMediumCountText.Text = TetraPakLargeCountText.Text = RejectedCountText.Text =
-            PlasticTotalCountText.Text = CanTotalCountText.Text = TetraPakTotalCountText.Text = RejectedTotalCountText.Text = "0";
+            RejectedCountText.Text =
+            PlasticTotalCountText.Text = CanTotalCountText.Text = RejectedTotalCountText.Text = "0";
         TotalPointsText.Text = "0";
+        paperTotalWeightKg = 0;
+        PaperWeightText.Text = PaperTotalWeightText.Text = "0.000";
         UpdateImpactMetrics();
         SimulatorStateChanged?.Invoke();
     }
 
-    private void IncrementMaterialSizeCounter(string material, string size)
+    private void IncrementMaterialSizeCounter(string material, string size, double weightKg)
     {
         if (material.Equals("PLASTIC", StringComparison.OrdinalIgnoreCase))
         {
@@ -1961,10 +2035,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
         else if (material.Contains("UBC", StringComparison.OrdinalIgnoreCase) || material.Contains("TETRA", StringComparison.OrdinalIgnoreCase) || material.Contains("CARTON", StringComparison.OrdinalIgnoreCase) || material.Contains("PAPER", StringComparison.OrdinalIgnoreCase))
         {
-            if (size == "SMALL") TetraPakSmallCountText.Text = (++tetraPakSmallCount).ToString();
-            else if (size == "MEDIUM") TetraPakMediumCountText.Text = (++tetraPakMediumCount).ToString();
-            else if (size == "LARGE") TetraPakLargeCountText.Text = (++tetraPakLargeCount).ToString();
-            TetraPakTotalCountText.Text = (tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount).ToString();
+            if (size == "SMALL") tetraPakSmallCount++;
+            else if (size == "MEDIUM") tetraPakMediumCount++;
+            else if (size == "LARGE") tetraPakLargeCount++;
+            else if (size == "WEIGHT") tetraPakSmallCount++;
+            double acceptedWeight = double.IsFinite(weightKg) && weightKg > 0 ? weightKg : 0;
+            paperTotalWeightKg += acceptedWeight;
+            PaperWeightText.Text = acceptedWeight.ToString("0.000");
+            PaperTotalWeightText.Text = paperTotalWeightKg.ToString("0.000");
         }
     }
 
@@ -2062,6 +2140,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     if (int.TryParse(pair[1], out int emptyDistance))
                     {
                         result.EmptyDistanceCm = emptyDistance;
+                    }
+                    break;
+
+                case "WEIGHT_KG":
+                    if (double.TryParse(pair[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double weightKg))
+                    {
+                        result.WeightKg = Math.Max(0, weightKg);
                     }
                     break;
             }

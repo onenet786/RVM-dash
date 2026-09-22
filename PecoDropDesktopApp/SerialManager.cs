@@ -25,7 +25,7 @@ public class SerialManager : IDisposable
         }
     }
 
-    public void Connect(string port, int baudRate = 9600)
+    public void Connect(string port, int baudRate = 115200)
     {
         lock (_portLock)
         {
@@ -53,7 +53,7 @@ public class SerialManager : IDisposable
                     _port.ErrorReceived += OnSerialErrorReceived;
                     _port.Open();
 
-                    // Pulse DTR/RTS to force hardware reset on Arduino Uno
+                    // Pulse DTR/RTS to force hardware reset on the Arduino Mega
                     try
                     {
                         _port.DtrEnable = false;
@@ -72,10 +72,10 @@ public class SerialManager : IDisposable
                     }
                     catch { }
 
-                    // Send soft reset to Arduino upon connection to force clean state machine sync
+                    // DTR already resets the board and starts its purge/calibration.
+                    // A second RESET would cancel that startup sequence.
                     try
                     {
-                        _port.WriteLine("RESET");
                         _port.WriteLine("STATUS");
                     }
                     catch { }

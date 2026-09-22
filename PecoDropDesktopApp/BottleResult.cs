@@ -8,4 +8,5 @@ public class BottleResult
     public int DurationMs { get; set; }
     public int ChangeCm { get; set; }
     public int EmptyDistanceCm { get; set; }
+    public double WeightKg { get; set; }
 }

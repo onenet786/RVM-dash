@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PecoDrop RVM — Arduino Mega 2560 Shield PCB CAD & Engineering Suite</title>
+  <meta name="description" content="Interactive Hardware Engineering, Schematic, and PCB Design Guide for the PecoDrop 3-Chamber Reverse Vending Machine (Arduino Mega 2560 Shield).">
+  <style>
+    :root {
+      --bg-dark: #070a14;
+      --card-bg: #0d1424;
+      --card-border: #1e293b;
+      --cyan: #00d2ff;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --rose: #f43f5e;
+      --purple: #a855f7;
+      --blue: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-accent: #38bdf8;
+      --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header {
+      background: rgba(13, 20, 36, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #0284c7, #00d2ff);
+      color: #070a14;
+      font-weight: 900;
+      font-size: 0.9rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      letter-spacing: 1px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--cyan);
+    }
+
+    /* Nav Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      background: #090e1c;
+      padding: 0.3rem;
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--blue);
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hero / Status Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(13, 20, 36, 0.9));
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-banner::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--cyan), var(--emerald));
+    }
+
+    .hero-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .spec-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .pill {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      color: var(--text-accent);
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      align-content: center;
+    }
+
+    .kpi-card {
+      background: rgba(9, 14, 28, 0.7);
+      border: 1px solid var(--card-border);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .kpi-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--cyan);
+    }
+
+    .kpi-lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 0.2rem;
+    }
+
+    /* Interactive Image Viewer */
+    .cad-viewer-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .viewer-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cad-toggle-btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .cad-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-main);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cad-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .cad-btn.active {
+      background: var(--cyan);
+      color: #070a14;
+      border-color: var(--cyan);
+      font-weight: 700;
+    }
+
+    .viewer-viewport {
+      position: relative;
+      background: #050811;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 520px;
+    }
+
+    .viewer-viewport img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+      transition: transform 0.3s ease;
+      cursor: zoom-in;
+    }
+
+    .viewer-viewport img.zoomed {
+      transform: scale(1.6);
+      cursor: zoom-out;
+    }
+
+    .zoom-hint {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .card-head {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.5rem;
+    }
+
+    /* Search & Tables */
+    .search-toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      background: #090e1c;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 280px;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: var(--cyan);
+      color: #070a14;
+      border-color: var(--cyan);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    thead {
+      background: #090e1c;
+      color: var(--text-accent);
+      border-bottom: 2px solid var(--card-border);
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #141e33;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .badge-ch1 { color: var(--cyan); font-weight: 700; }
+    .badge-ch2 { color: var(--amber); font-weight: 700; }
+    .badge-ch3 { color: var(--emerald); font-weight: 700; }
+    .badge-pwr { color: var(--purple); font-weight: 700; }
+
+    /* Interactive Calculator */
+    .calc-box {
+      background: #090e1c;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+    }
+
+    .calc-slider {
+      width: 50%;
+      accent-color: var(--cyan);
+    }
+
+    .meter-bar {
+      height: 10px;
+      background: #1e293b;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 1rem 0 0.5rem 0;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 35%;
+      background: linear-gradient(to right, var(--emerald), var(--cyan));
+      border-radius: 5px;
+      transition: width 0.3s ease;
+    }
+
+    /* Checklist */
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.8rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #141e33;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      margin-top: 0.3rem;
+      accent-color: var(--emerald);
+      width: 18px;
+      height: 18px;
+    }
+
+    .checklist-text h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .checklist-text p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 3rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero-banner { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .brand-box { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand-box">
+      <div class="brand-badge">PECODROP CAD</div>
+      <div>
+        <div class="brand-title">Arduino Mega 2560 Shield Suite</div>
+        <div class="brand-sub">Rev 2.1 • Production Ready • Executive Mechatronics Suite</div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('cad')">CAD & Layout</button>
+      <button class="tab-btn" onclick="switchTab('pinout')">Pinout & Netlist</button>
+      <button class="tab-btn" onclick="switchTab('power')">Power & Thermals</button>
+      <button class="tab-btn" onclick="switchTab('bom')">BOM Explorer</button>
+      <button class="tab-btn" onclick="switchTab('sop')">Commissioning SOP</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Status -->
+    <section class="hero-banner">
+      <div>
+        <h1 class="hero-title">Arduino Mega 2560 Mezzanine Carrier Board</h1>
+        <p class="hero-desc">
+          Engineered specifically for the PecoDrop 3-Chamber Smart Reverse Vending Machine. This shield integrates dual-rail galvanic isolation, TVS flyback motor clamping, optocoupled 12V inductive proximity sensing, and keyed polarized connectors to eradicate loose DuPont wiring in 24/7 industrial kiosks.
+        </p>
+        <div class="spec-pills">
+          <span class="pill">Board: 101.60 × 53.34 mm</span>
+          <span class="pill">Stackup: 2-Layer FR-4 (4-Layer Optional)</span>
+          <span class="pill">Servo Rail: 5V @ 10A (15A Surge)</span>
+          <span class="pill">Opto Isolation: 5000 VRMS</span>
+          <span class="pill">Firmware: 115200 Baud (RVM_Arduino.ino)</span>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-val">8×</div>
+          <div class="kpi-lbl">HC-SR04 Arrays</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">6×</div>
+          <div class="kpi-lbl">Gate Servos</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">24-Bit</div>
+          <div class="kpi-lbl">HX711 Strain ADC</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">0</div>
+          <div class="kpi-lbl">Loose Jumpers</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: CAD & SCHEMATICS -->
+    <div id="cad" class="tab-content active">
+      <div class="cad-viewer-card">
+        <div class="viewer-header">
+          <div class="viewer-title">
+            <span>⚡ High-Definition Engineering Drawings</span>
+          </div>
+          <div class="cad-toggle-btn-group">
+            <button id="btn-cu-bot" class="cad-btn" onclick="switchCadView('cu-bot')">⚡ Bottom Copper (B.Cu)</button>
+            <button id="btn-cu-mirror" class="cad-btn" onclick="switchCadView('cu-mirror')">🖨️ Mirrored (Toner Transfer)</button>
+            <button id="btn-cu-top" class="cad-btn" onclick="switchCadView('cu-top')">🔶 Top Copper (F.Cu)</button>
+            <button id="btn-print" class="cad-btn" onclick="switchCadView('print')">📑 4-Panel 1:1 Sheet</button>
+            <button id="btn-pcb" class="cad-btn active" onclick="switchCadView('pcb')">🖥️ 2D CAD Board</button>
+            <button id="btn-sch" class="cad-btn" onclick="switchCadView('sch')">📐 Schematic (Rev 2.1)</button>
+          </div>
+        </div>
+
+        <div class="viewer-viewport">
+          <img id="cad-img" src="images/rvm_arduino_mega_shield_pcb_layout.png" alt="Arduino Mega Shield PCB Layout" onclick="toggleZoom(this)">
+          <div class="zoom-hint">Click image to toggle 1.6× zoom</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <div class="card-head">🎯 Mechanical & Form Factor Alignment</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            The PCB matches the exact footprint of the Arduino Mega 2560 Rev3. Female header receptacles on the bottom side mate firmly over the Mega pins, while the 4× M3 mounting holes align with the enclosure standoffs to prevent vibration fatigue.
+          </p>
+          <ul style="color: var(--text-main); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
+            <li><b>Header Clearance:</b> 11mm stacking height clears ATmega2560 MCU and USB Type-B jack.</li>
+            <li><b>M3 Standoffs:</b> 4x non-plated chassis holes at exact Arduino Rev3 coordinates.</li>
+            <li><b>High-Current Edge:</b> Screw terminals located on the left edge for shortest wiring harness to 12V PSU and 10A buck converter.</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <div class="card-head">🛡️ Industrial Noise Immunity & Failsafes</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            Commercial RVM kiosks operate in high EMI environments with continuous mechanical cycling. The board incorporates master-tier hardening techniques:
+          </p>
+          <ul style="color: var(--text-main); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
+            <li><b>Star Ground Topology:</b> PGND (motors) and DGND (logic) isolate high motor switching currents from sensor lines.</li>
+            <li><b>TVS Back-EMF Diode:</b> Clamps inductive flyback voltage spikes from 6 MG996R motors.</li>
+            <li><b>Optocoupled LJ12A3 Sensor:</b> Eliminates 12V back-feed risk to the ATmega2560 microcontroller.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PINOUT & NETLIST -->
+    <div id="pinout" class="tab-content">
+      <div class="info-card">
+        <div class="card-head">📋 Master Pin Allocation & Netlist Explorer</div>
+
+        <div class="search-toolbar">
+          <input type="text" id="pinSearch" class="search-input" placeholder="Search Pin, Net, Chamber or Connector..." oninput="filterPins()">
+          <div class="filter-chips">
+            <span class="chip active" onclick="setPinFilter('ALL')">All Pins</span>
+            <span class="chip" onclick="setPinFilter('PLASTIC')">Plastic (CH1)</span>
+            <span class="chip" onclick="setPinFilter('METAL')">Metal (CH2)</span>
+            <span class="chip" onclick="setPinFilter('PAPER')">Paper (CH3)</span>
+            <span class="chip" onclick="setPinFilter('PWM')">PWM Servos</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table id="pinTable">
+            <thead>
+              <tr>
+                <th>Mega Pin</th>
+                <th>Net Name</th>
+                <th>Chamber</th>
+                <th>Hardware Connector</th>
+                <th>Signal Type</th>
+                <th>Firmware Role</th>
+              </tr>
+            </thead>
+            <tbody id="pinTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: POWER & THERMALS -->
+    <div id="power" class="tab-content">
+      <div class="grid-2">
+        <div class="info-card">
+          <div class="card-head">⚡ Dual-Rail Power Distribution Architecture</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+            To ensure zero ATmega2560 brownout watchdog resets, the board separates the motor power domain from the digital logic domain:
+          </p>
+          <div style="background: #090e1c; padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border); font-size: 0.85rem; font-family: monospace;">
+            <b>RAIL 1: +5V_SERVO (TB_SERVO_PWR)</b><br>
+            • Voltage: 5.0V – 5.2V DC (Dedicated 10A Buck)<br>
+            • Max Transient Current: 15.0A (6x Servos in simultaneous stall)<br>
+            • Protection: SMBJ6.0A TVS + 3x 1000µF Low-ESR Bulk Caps<br><br>
+            <b>RAIL 2: +5V_LOGIC (TB_5V_LOGIC)</b><br>
+            • Voltage: 5.0V DC (Clean 3A Buck)<br>
+            • Continuous Current: ~0.85A (Mega2560 + 8x HC-SR04 + HX711)<br>
+            • Filtering: Ferrite Bead BLM21PG + 100µF Tantalum + 100nF MLCC
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-head">🧮 Interactive Current & Brownout Calculator</div>
+          <p style="color: var(--text-muted); font-size: 0.85rem;">
+            Simulate dynamic current draw based on the number of simultaneous active servos and ultrasonic pings:
+          </p>
+
+          <div class="calc-box">
+            <div class="calc-row">
+              <label>Simultaneous Moving Servos (0 to 6):</label>
+              <input type="range" id="activeServos" min="0" max="6" value="2" class="calc-slider" oninput="updatePowerBudget()">
+              <span id="activeServosVal" style="font-weight: bold; color: var(--cyan); width: 24px;">2</span>
+            </div>
+
+            <div class="calc-row">
+              <label>Mechanical Load Condition:</label>
+              <select id="loadCond" style="background:#1e293b; color:var(--text-main); border:1px solid #334155; padding:0.3rem 0.6rem; border-radius:4px;" onchange="updatePowerBudget()">
+                <option value="1.2">Normal Gate Swing (1.2A / motor)</option>
+                <option value="2.2">Stalled / High Friction (2.2A / motor)</option>
+              </select>
+            </div>
+
+            <div class="meter-bar">
+              <div id="pwrFill" class="meter-fill"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-top:0.5rem;">
+              <span>Total Rail Current: <b id="totalCurrent">3.25 A</b></span>
+              <span>10A Buck Load: <b id="buckLoad">32.5%</b></span>
+              <span>Brownout Safety: <b id="safetyStatus" style="color:var(--emerald);">EXCELLENT</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: BOM EXPLORER -->
+    <div id="bom" class="tab-content">
+      <div class="info-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+          <div class="card-head" style="margin-bottom: 0; border: none; padding: 0;">
+            📦 Complete Production Bill of Materials (BOM) &amp; SMT Assembly Reference
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <a href="rvm_mega_shield_bom.csv" download="PecoDrop_RVM_Mega_Shield_BOM_Rev2.1.csv" class="cad-btn active" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;">
+              ⬇️ Download BOM (.CSV)
+            </a>
+            <button onclick="window.print()" class="cad-btn">
+              🖨️ Print BOM
+            </button>
+          </div>
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Production-validated industrial components with Manufacturer Part Numbers (MPNs) and LCSC Part Codes ready for automated pick-and-place assembly (JLCPCB / PCBWay / MacroFab):
+        </p>
+
+        <div class="search-toolbar">
+          <input type="text" id="bomSearchInput" class="search-input" placeholder="Search Designator, Footprint, MPN, or LCSC #..." onkeyup="filterBomGuideTable()">
+        </div>
+
+        <div class="table-container">
+          <table id="bomGuideTable">
+            <thead>
+              <tr>
+                <th>Designator</th>
+                <th>Qty</th>
+                <th>Component Description</th>
+                <th>Package / Footprint</th>
+                <th>Manufacturer Part # (MPN)</th>
+                <th>LCSC Part #</th>
+                <th>Functional Role / Circuit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><b>U1</b></td><td>1</td><td>Optocoupler Phototransistor 5000 VRMS</td><td>DIP-4 / SOP-4</td><td>Everlight EL817C</td><td><code>C4998</code></td><td>Galvanic isolation for 12V inductive can sensor (Pin 32)</td></tr>
+              <tr><td><b>D1</b></td><td>1</td><td>TVS Diode 6.0V 600W Unidirectional</td><td>DO-214AA (SMB)</td><td>Littelfuse SMBJ6.0A</td><td><code>C2832814</code></td><td>Clamps motor back-EMF voltage spikes on 5V_SERVO rail</td></tr>
+              <tr><td><b>D2</b></td><td>1</td><td>Fast Switching Diode 100V 300mA</td><td>SOD-123</td><td>1N4148W</td><td><code>C81598</code></td><td>Optocoupler LED reverse polarity clamping</td></tr>
+              <tr><td><b>D3</b></td><td>1</td><td>Fast Switching Diode 100V 300mA</td><td>SOD-123</td><td>1N4148W</td><td><code>C81598</code></td><td>Flyback freewheeling diode protection</td></tr>
+              <tr><td><b>C1</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 1 Servos</td></tr>
+              <tr><td><b>C2</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 2 Servos</td></tr>
+              <tr><td><b>C3</b></td><td>1</td><td>Aluminum Electrolytic 1000µF 16V Low-ESR</td><td>Radial Φ10×16mm</td><td>Panasonic EEU-FR1C102</td><td><code>C137837</code></td><td>Bulk charge reservoir for Chamber 3 Servos</td></tr>
+              <tr><td><b>C4</b></td><td>1</td><td>Tantalum Capacitor 100µF 16V Low-ESR</td><td>Case D (7343)</td><td>AVX TAJD107K016RNJ</td><td><code>C7171</code></td><td>Low-frequency decoupling on 5V_LOGIC rail</td></tr>
+              <tr><td><b>C5–C18</b></td><td>14</td><td>Ceramic Capacitor 100nF (0.1µF) 50V X7R</td><td>0805 SMD</td><td>Murata GRM21BR71H104KA01L</td><td><code>C49678</code></td><td>High-frequency bypass per sensor and servo header</td></tr>
+              <tr><td><b>FB1</b></td><td>1</td><td>Ferrite Bead 600Ω @ 100MHz 3A</td><td>0805 SMD</td><td>Murata BLM21PG601SN1D</td><td><code>C23177</code></td><td>Isolates high-frequency servo PWM harmonics from logic rail</td></tr>
+              <tr><td><b>R1</b></td><td>1</td><td>Thick Film Resistor 2.2kΩ 0.5W 1%</td><td>1206 SMD</td><td>Yageo RC1206FR-072K2L</td><td><code>C4460</code></td><td>Optocoupler LED current-limiting resistor from 12V supply</td></tr>
+              <tr><td><b>R2</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Logic Power LED current limiter</td></tr>
+              <tr><td><b>R3</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Servo Power LED current limiter</td></tr>
+              <tr><td><b>R4</b></td><td>1</td><td>Thick Film Resistor 330Ω 0.25W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F3300T5E</td><td><code>C17630</code></td><td>Heartbeat LED current limiter (Pin 13 pulse)</td></tr>
+              <tr><td><b>R5</b></td><td>1</td><td>Thick Film Resistor 100Ω 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1000T5E</td><td><code>C17414</code></td><td>HX711 Serial Clock transmission line damping (Pin 38)</td></tr>
+              <tr><td><b>R6</b></td><td>1</td><td>Thick Film Resistor 100Ω 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1000T5E</td><td><code>C17414</code></td><td>HX711 Serial Data transmission line damping (Pin 37)</td></tr>
+              <tr><td><b>R7</b></td><td>1</td><td>Thick Film Resistor 10kΩ 0.125W 1%</td><td>0805 SMD</td><td>Uniroyal 0805W8F1002T5E</td><td><code>C17415</code></td><td>Optocoupler phototransistor collector pull-up resistor</td></tr>
+              <tr><td><b>LED1</b></td><td>1</td><td>SMD LED Green (565nm) 20mA</td><td>0805 SMD</td><td>Everlight 17-215SURC</td><td><code>C84267</code></td><td>LED_PWR_LOGIC (Indicates 5V MCU rail active)</td></tr>
+              <tr><td><b>LED2</b></td><td>1</td><td>SMD LED Blue (470nm) 20mA</td><td>0805 SMD</td><td>Everlight 19-217/BHC</td><td><code>C72043</code></td><td>LED_PWR_SERVO (Indicates 5V 10A servo rail active)</td></tr>
+              <tr><td><b>LED3</b></td><td>1</td><td>SMD LED Amber (590nm) 20mA</td><td>0805 SMD</td><td>Everlight 19-217/Y5C</td><td><code>C72044</code></td><td>LED_HEARTBEAT (Pin 13 firmware activity pulse)</td></tr>
+              <tr><td><b>SW1</b></td><td>1</td><td>Tactile Pushbutton Switch SPST 6×6mm</td><td>SMD / THT</td><td>Omron B3F-1000</td><td><code>C115357</code></td><td>SW_RESET (Manual hardware reset for ATmega2560)</td></tr>
+              <tr><td><b>TB1</b></td><td>1</td><td>Screw Terminal Block 2-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-02P</td><td><code>C406450</code></td><td>TB_12V (Main DC 12V Industrial Power Input)</td></tr>
+              <tr><td><b>TB2</b></td><td>1</td><td>Screw Terminal Block 2-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-02P</td><td><code>C406450</code></td><td>TB_SERVO_PWR (5V 10A Buck Converter Input)</td></tr>
+              <tr><td><b>TB3</b></td><td>1</td><td>Screw Terminal Block 3-Pin 5.08mm 16A</td><td>THT 5.08mm</td><td>Degson DG128-5.08-03P</td><td><code>C406451</code></td><td>TB_INDUCTIVE (12V, NPN Signal, GND for LJ12A3 Sensor)</td></tr>
+              <tr><td><b>J_SRV1–6</b></td><td>6</td><td>Polarized Pin Header 1×3 2.54mm Keyed</td><td>2.54mm THT</td><td>Wurth Elektronik 61300311121</td><td><code>C2897384</code></td><td>6x Servo Motor Headers [GND, +5V_SERVO, PWM Signal]</td></tr>
+              <tr><td><b>J_US1–8</b></td><td>8</td><td>JST-XH Shrouded Header 4-Pin 2.50mm</td><td>2.50mm Male</td><td>JST B4B-XH-A</td><td><code>C157934</code></td><td>8x HC-SR04 Ultrasonic Headers [VCC, TRIG, ECHO, GND]</td></tr>
+              <tr><td><b>J_HX</b></td><td>1</td><td>Gold Header Socket 1×4 2.54mm Pitch</td><td>2.54mm Female</td><td>Amphenol 68000-104HLF</td><td><code>C124376</code></td><td>HX711 24-Bit ADC Breakout Carrier Socket</td></tr>
+              <tr><td><b>HDR_MEGA</b></td><td>1</td><td>Arduino Mega Stacking Header Kit (Long Lead)</td><td>Stackable Headers</td><td>Adafruit PRT-09372</td><td>Custom</td><td>Bottom-side male header pins mating with Mega 2560 Rev3</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: SOP -->
+    <div id="sop" class="tab-content">
+      <div class="info-card">
+        <div class="card-head">🔧 Assembly, Quality Control & Field Commissioning Checklist</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+          Mandatory step-by-step verification checklist for mechatronics technicians before deploying the shield into commercial kiosk cabinets:
+        </p>
+
+        <div class="checklist-item">
+          <input type="checkbox" id="chk1">
+          <div class="checklist-text">
+            <h4>1. Cold Impedance & Polarity Verification</h4>
+            <p>Verify resistance between +5V_SERVO and PGND is > 10 kΩ. Confirm TVS diode (D1) and electrolytic caps (C1-C3) are not in reverse orientation.</p>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <input type="checkbox" id="chk2">
+          <div class="checklist-text">
+            <h4>2. Bench Power Supply Smoke Test (Unseated from Mega)</h4>
+            <p>Apply 12V to TB_12V, 5.1V to TB_SERVO_PWR, and 5.0V to TB_5V_LOGIC. Verify Green Logic LED and Blue Servo LED illuminate steadily with < 50mA idle current.</p>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <input type="checkbox" id="chk3">
+          <div class="checklist-text">
+            <h4>3. Optocoupler Isolation Pulse Test</h4>
+            <p>Ground TB_INDUCTIVE SIG pin. Verify Amber Inductive LED illuminates and voltage at testpoint TP_IND_SIG drops to < 0.2V.</p>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <input type="checkbox" id="chk4">
+          <div class="checklist-text">
+            <h4>4. Mating & M3 Standoff Rigidity Check</h4>
+            <p>Seat shield firmly onto Arduino Mega 2560 Rev3. Tighten 4x M3 hex standoffs with nylon isolation washers. Verify zero mechanical wobble.</p>
+          </div>
+        </div>
+
+        <div class="checklist-item">
+          <input type="checkbox" id="chk5">
+          <div class="checklist-text">
+            <h4>5. Live Serial Firmware Baseline Calibration</h4>
+            <p>Connect USB to Kiosk PC at 115200 baud. Send CALIBRATE command. Verify all 8 ultrasonic sensors return clean baselines and the HX711 returns 0.0g tare.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>PecoDrop Smart Reverse Vending Machine (RVM) Mechatronics Suite • Document Ref: PCB-RVM-MEGA-REV2.1</p>
+    <p style="margin-top:0.3rem; font-size:0.75rem; color:#64748b;">Compatible with PecoDropDesktopApp (.NET 8.0 WPF) and Arduino Mega 2560 Firmware</p>
+  </footer>
+
+  <script>
+    // Pinout Data
+    const pinData = [
+      { pin: "D9", net: "P_ENTR_TRIG", ch: "PLASTIC", con: "J_P_ENTR (Pin 2)", type: "5V TTL Out", role: "Plastic entrance ultrasonic 10µs trigger pulse" },
+      { pin: "D10", net: "P_ENTR_ECHO", ch: "PLASTIC", con: "J_P_ENTR (Pin 3)", type: "5V TTL In", role: "Plastic entrance echo pulse (10k pull-down)" },
+      { pin: "D11", net: "P_IRIS_PWM", ch: "PLASTIC", con: "J_P_IRIS (Pin 3)", type: "50Hz PWM", role: "Plastic upper iris gate servo (10° to 120°)" },
+      { pin: "D12", net: "P_DROP_PWM", ch: "PLASTIC", con: "J_P_DROP (Pin 3)", type: "50Hz PWM", role: "Plastic bottom trapdoor drop servo" },
+      { pin: "D22", net: "P_BOT_TRIG", ch: "PLASTIC", con: "J_P_BOT (Pin 2)", type: "5V TTL Out", role: "Plastic sizing array: bottom trigger" },
+      { pin: "D23", net: "P_BOT_ECHO", ch: "PLASTIC", con: "J_P_BOT (Pin 3)", type: "5V TTL In", role: "Plastic sizing array: bottom echo" },
+      { pin: "D24", net: "P_MID_TRIG", ch: "PLASTIC", con: "J_P_MID (Pin 2)", type: "5V TTL Out", role: "Plastic sizing array: middle trigger" },
+      { pin: "D41", net: "P_MID_ECHO", ch: "PLASTIC", con: "J_P_MID (Pin 3)", type: "5V TTL In", role: "Plastic sizing array: middle echo" },
+      { pin: "D42", net: "P_TOP_TRIG", ch: "PLASTIC", con: "J_P_TOP (Pin 2)", type: "5V TTL Out", role: "Plastic sizing array: top trigger" },
+      { pin: "D43", net: "P_TOP_ECHO", ch: "PLASTIC", con: "J_P_TOP (Pin 3)", type: "5V TTL In", role: "Plastic sizing array: top echo" },
+
+      { pin: "D25", net: "M_ENTR_TRIG", ch: "METAL", con: "J_M_ENTR (Pin 2)", type: "5V TTL Out", role: "Metal can entrance ultrasonic trigger" },
+      { pin: "D26", net: "M_ENTR_ECHO", ch: "METAL", con: "J_M_ENTR (Pin 3)", type: "5V TTL In", role: "Metal can entrance ultrasonic echo" },
+      { pin: "D27", net: "M_IRIS_PWM", ch: "METAL", con: "J_M_IRIS (Pin 3)", type: "50Hz PWM", role: "Can upper iris gate servo" },
+      { pin: "D28", net: "M_DROP_PWM", ch: "METAL", con: "J_M_DROP (Pin 3)", type: "50Hz PWM", role: "Can bottom drop gate servo" },
+      { pin: "D29", net: "M_BOT_TRIG", ch: "METAL", con: "J_M_BOT (Pin 2)", type: "5V TTL Out", role: "Can sizing array: bottom trigger" },
+      { pin: "D30", net: "M_BOT_ECHO", ch: "METAL", con: "J_M_BOT (Pin 3)", type: "5V TTL In", role: "Can sizing array: bottom echo" },
+      { pin: "D31", net: "M_MID_TRIG", ch: "METAL", con: "J_M_MID (Pin 2)", type: "5V TTL Out", role: "Can sizing array: middle trigger" },
+      { pin: "D44", net: "M_MID_ECHO", ch: "METAL", con: "J_M_MID (Pin 3)", type: "5V TTL In", role: "Can sizing array: middle echo" },
+      { pin: "D45", net: "M_TOP_TRIG", ch: "METAL", con: "J_M_TOP (Pin 2)", type: "5V TTL Out", role: "Can sizing array: top trigger" },
+      { pin: "D46", net: "M_TOP_ECHO", ch: "METAL", con: "J_M_TOP (Pin 3)", type: "5V TTL In", role: "Can sizing array: top echo" },
+      { pin: "D32", net: "CAN_INDUCTIVE", ch: "METAL", con: "Opto U1 (PC817)", type: "Active LOW", role: "Inductive proximity purity trigger" },
+
+      { pin: "D33", net: "PP_ENTR_TRIG", ch: "PAPER", con: "J_PP_ENTR (Pin 2)", type: "5V TTL Out", role: "Paper intake top ultrasonic trigger" },
+      { pin: "D34", net: "PP_ENTR_ECHO", ch: "PAPER", con: "J_PP_ENTR (Pin 3)", type: "5V TTL In", role: "Paper intake top ultrasonic echo" },
+      { pin: "D35", net: "PP_IRIS_PWM", ch: "PAPER", con: "J_PP_IRIS (Pin 3)", type: "50Hz PWM", role: "Paper upper intake flap servo" },
+      { pin: "D36", net: "PP_DROP_PWM", ch: "PAPER", con: "J_PP_DROP (Pin 3)", type: "50Hz PWM", role: "Paper bottom dump trapdoor servo" },
+      { pin: "D37", net: "HX711_DOUT", ch: "PAPER", con: "J_HX711 (Pin 2)", type: "Serial In", role: "24-bit ADC Serial Data (Tare & Mass)" },
+      { pin: "D38", net: "HX711_SCK", ch: "PAPER", con: "J_HX711 (Pin 3)", type: "Serial Out", role: "24-bit ADC Serial Clock (Bit-banged)" },
+      { pin: "D39", net: "PP_BOT_TRIG", ch: "PAPER", con: "J_PP_BOT (Pin 2)", type: "5V TTL Out", role: "Paper tray arrival confirmation trigger" },
+      { pin: "D40", net: "PP_BOT_ECHO", ch: "PAPER", con: "J_PP_BOT (Pin 3)", type: "5V TTL In", role: "Paper tray arrival confirmation echo" }
+    ];
+
+    let currentFilter = "ALL";
+
+    function renderPins(list) {
+      const tbody = document.getElementById("pinTableBody");
+      tbody.innerHTML = "";
+      list.forEach(item => {
+        let chBadge = item.ch === "PLASTIC" ? "badge-ch1" : (item.ch === "METAL" ? "badge-ch2" : "badge-ch3");
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${item.pin}</b></td>
+            <td><code>${item.net}</code></td>
+            <td class="${chBadge}">${item.ch}</td>
+            <td>${item.con}</td>
+            <td><span class="pill" style="padding:0.15rem 0.4rem;">${item.type}</span></td>
+            <td style="color:var(--text-muted);">${item.role}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function filterPins() {
+      const query = document.getElementById("pinSearch").value.toUpperCase();
+      const filtered = pinData.filter(item => {
+        const matchesFilter = (currentFilter === "ALL") ||
+          (currentFilter === "PWM" ? item.type.includes("PWM") : item.ch === currentFilter);
+        const matchesQuery = !query || 
+          item.pin.includes(query) || 
+          item.net.includes(query) || 
+          item.ch.includes(query) || 
+          item.con.toUpperCase().includes(query) ||
+          item.role.toUpperCase().includes(query);
+        return matchesFilter && matchesQuery;
+      });
+      renderPins(filtered);
+    }
+
+    function setPinFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+      event.target.classList.add("active");
+      filterPins();
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      event.target.classList.add("active");
+    }
+
+    // CAD Image Switch
+    function switchCadView(mode) {
+      const img = document.getElementById("cad-img");
+      const btnCuBot = document.getElementById("btn-cu-bot");
+      const btnCuMirror = document.getElementById("btn-cu-mirror");
+      const btnCuTop = document.getElementById("btn-cu-top");
+      const btnPrint = document.getElementById("btn-print");
+      const btnPcb = document.getElementById("btn-pcb");
+      const btnSch = document.getElementById("btn-sch");
+
+      [btnCuBot, btnCuMirror, btnCuTop, btnPrint, btnPcb, btnSch].forEach(b => { if(b) b.classList.remove("active"); });
+
+      if (mode === 'cu-bot') {
+        img.src = "images/rvm_arduino_mega_shield_pcb_copper_bottom.png";
+        if (btnCuBot) btnCuBot.classList.add("active");
+      } else if (mode === 'cu-mirror') {
+        img.src = "images/rvm_arduino_mega_shield_pcb_copper_bottom_mirror.png";
+        if (btnCuMirror) btnCuMirror.classList.add("active");
+      } else if (mode === 'cu-top') {
+        img.src = "images/rvm_arduino_mega_shield_pcb_copper_top.png";
+        if (btnCuTop) btnCuTop.classList.add("active");
+      } else if (mode === 'print') {
+        img.src = "images/rvm_arduino_mega_shield_pcb_print_1to1.png";
+        if (btnPrint) btnPrint.classList.add("active");
+      } else if (mode === 'pcb') {
+        img.src = "images/rvm_arduino_mega_shield_pcb_layout.png";
+        if (btnPcb) btnPcb.classList.add("active");
+      } else {
+        img.src = "images/rvm_arduino_mega_shield_schematic.png";
+        if (btnSch) btnSch.classList.add("active");
+      }
+      img.classList.remove("zoomed");
+    }
+
+    function filterBomGuideTable() {
+      const input = document.getElementById('bomSearchInput');
+      const filter = input.value.toUpperCase();
+      const table = document.getElementById('bomGuideTable');
+      if (!table) return;
+      const tr = table.getElementsByTagName('tr');
+
+      for (let i = 1; i < tr.length; i++) {
+        let textContent = tr[i].textContent || tr[i].innerText;
+        if (textContent.toUpperCase().indexOf(filter) > -1) {
+          tr[i].style.display = "";
+        } else {
+          tr[i].style.display = "none";
+        }
+      }
+    }
+
+    function toggleZoom(img) {
+      img.classList.toggle("zoomed");
+    }
+
+    // Power Budget Calculator
+    function updatePowerBudget() {
+      const servos = parseInt(document.getElementById("activeServos").value);
+      document.getElementById("activeServosVal").innerText = servos;
+      const motorLoad = parseFloat(document.getElementById("loadCond").value);
+
+      const quiescentLogic = 0.85; // Mega + 8x ultrasonics + HX711
+      const servoCurrent = servos * motorLoad;
+      const total = quiescentLogic + servoCurrent;
+      const pct = (servoCurrent / 10.0) * 100;
+
+      document.getElementById("totalCurrent").innerText = total.toFixed(2) + " A";
+      document.getElementById("buckLoad").innerText = pct.toFixed(1) + "%";
+
+      const fill = document.getElementById("pwrFill");
+      fill.style.width = Math.min(pct, 100) + "%";
+
+      const status = document.getElementById("safetyStatus");
+      if (pct > 80) {
+        status.innerText = "WARNING: HIGH LOAD";
+        status.style.color = "var(--rose)";
+        fill.style.background = "var(--rose)";
+      } else if (pct > 50) {
+        status.innerText = "MODERATE";
+        status.style.color = "var(--amber)";
+        fill.style.background = "var(--amber)";
+      } else {
+        status.innerText = "EXCELLENT";
+        status.style.color = "var(--emerald)";
+        fill.style.background = "linear-gradient(to right, var(--emerald), var(--cyan))";
+      }
+    }
+
+    // Initial Load
+    renderPins(pinData);
+    updatePowerBudget();
+  </script>
+</body>
+</html>
