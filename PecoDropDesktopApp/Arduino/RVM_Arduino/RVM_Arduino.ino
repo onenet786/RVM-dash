@@ -13,9 +13,23 @@
 
 // Set each flag false when that compartment is connected, then upload again.
 // Set all three false when all three compartments are connected.
-const bool PLASTIC_DISABLED = true;
-const bool METAL_DISABLED = true;
+const bool PLASTIC_DISABLED = false;
+const bool METAL_DISABLED = false;
 const bool PAPER_DISABLED = false;
+// Digital obstacle sensors: LOW means blocked. Change polarity for your modules.
+// Enable only installed bin sensors. Plastic is currently not connected.
+const bool PLASTIC_BIN_SENSOR_ENABLED = false;
+const bool METAL_BIN_SENSOR_ENABLED = true;
+const bool PAPER_BIN_SENSOR_ENABLED = true;
+const byte PLASTIC_BIN_PIN = 47;
+const byte METAL_BIN_PIN = 48;
+const byte PAPER_BIN_PIN = 49;
+const byte MQ6_DIGITAL_PIN = 50;
+const byte BIN_BLOCKED_STATE = LOW;
+const byte MQ6_ALARM_STATE = LOW;
+const unsigned long BIN_BLOCK_MS = 500UL;
+const unsigned long BIN_CLEAR_MS = 2000UL;
+const unsigned long MQ6_DEBOUNCE_MS = 1000UL;
 const byte METAL_DETECTED_STATE = LOW;
 const byte IRIS_CLOSED_ANGLE = 178;
 const byte IRIS_OPEN_ANGLE = 10;
@@ -30,10 +44,13 @@ const unsigned long ECHO_TIMEOUT_US = 20000UL;
 // On AVR, an unsigned threshold converts that negative delta to a large value.
 const int DETECTION_CHANGE_CM = 3;
 const byte REQUIRED_DETECTIONS = 3;
-const byte ENTRANCE_CONFIRM_READINGS = 5;
+const byte ENTRANCE_CONFIRM_READINGS = 3;
 const byte ENTRANCE_CLEAR_READINGS = 5;
 const byte ENTRANCE_CLEAR_TOLERANCE_CM = 2;
-const unsigned long ENTRANCE_HOLD_MS = 600;
+const unsigned long ENTRANCE_HOLD_MS = 200;
+// Direct Servo.write commands already request full-speed travel.
+// Hold the iris open long enough for insertion; keep processing STOP commands.
+const unsigned long IRIS_MIN_OPEN_MS = 3000UL;
 const unsigned long ENTRANCE_CLEAR_MS = 1000;
 const byte SIZE_READING_SAMPLES = 3;
 const byte REQUIRED_SIZE_CHANGES = 2;
@@ -43,6 +60,26 @@ const unsigned long CLEAR_TIMEOUT_MS = 5000UL;
 const float PAPER_COUNTS_PER_GRAM = 420.0f;
 const float PAPER_MIN_WEIGHT_G = 20.0f;
 const float PAPER_CLEAR_WEIGHT_G = 8.0f;
+const unsigned long AUTO_RECALIBRATE_RETRY_MS = 1000UL;
+const byte AUTO_RECALIBRATE_SAMPLES = 3;
+const byte CALIBRATION_SAMPLES = 3;
+const unsigned long PURGE_OPEN_MS = 1000UL;
+const unsigned long GATE_SETTLE_MS = 700UL;
+
+struct AutoRecovery {
+  bool active;
+  byte channel;
+  byte rounds;
+  unsigned long lastAttemptMs;
+  unsigned long scaleWaitSince;
+  long sums[4];
+  int nearest[4];
+  int farthest[4];
+  byte weightSamples;
+  long weightSum;
+  long weightMin;
+  long weightMax;
+};
 
 Servo plasticIris, plasticDrop, metalIris, metalDrop, paperIris, paperDrop;
 
@@ -77,6 +114,15 @@ struct Compartment {
   unsigned long entranceStateSince;
   int candidateMinCm;
   int candidateMaxCm;
+  bool workingFailed;
+  bool binFull;
+  bool binCandidate;
+  unsigned long binCandidateSince;
+  byte missingEntranceReadings;
+  bool hasEmptyCalibration;
+  AutoRecovery recovery;
+  bool purging;
+  unsigned long purgeStartedMs;
 };
 
 Compartment plastic = {
@@ -101,7 +147,160 @@ long paperTareRaw = 0;
 bool paperScaleReady = false;
 String serialBuffer;
 bool entranceDebug = false;
-bool recoveringSensorFault = false;
+bool calibrating = false;
+bool calibrationCancelled = false;
+Compartment* activeCompartment = NULL;
+bool activeCycleAborted = false;
+bool mq6Alarm = false;
+bool mq6Candidate = false;
+unsigned long mq6CandidateSince = 0;
+unsigned long lastStatusMs = 0;
+bool hardwareStatusDirty = true;
+
+bool compartmentDisabled(const Compartment& c) {
+  return &c == &plastic ? PLASTIC_DISABLED : (&c == &metal ? METAL_DISABLED : PAPER_DISABLED);
+}
+
+bool binSensorEnabled(const Compartment& c) {
+  return &c == &plastic ? PLASTIC_BIN_SENSOR_ENABLED :
+         (&c == &metal ? METAL_BIN_SENSOR_ENABLED : PAPER_BIN_SENSOR_ENABLED);
+}
+
+bool compartmentAvailable(const Compartment& c) {
+  return !compartmentDisabled(c) && !c.workingFailed && !c.binFull && !c.purging;
+}
+
+void closeCompartment(Compartment& c) {
+  c.purging = false;
+  c.detectionCount = c.entranceClearCount = 0;
+  c.entranceArmed = false;
+  if (compartmentDisabled(c)) return;
+  c.irisServo->write(IRIS_CLOSED_ANGLE);
+  c.bottomGateServo->write(&c == &paper ? PAPER_DROP_CLOSED_ANGLE : DROP_CLOSED_ANGLE);
+}
+
+byte binPin(const Compartment& c) {
+  return &c == &plastic ? PLASTIC_BIN_PIN : (&c == &metal ? METAL_BIN_PIN : PAPER_BIN_PIN);
+}
+
+bool binInputBlocked(const Compartment& c) {
+  return binSensorEnabled(c) && digitalRead(binPin(c)) == BIN_BLOCKED_STATE;
+}
+
+void beginPurge(Compartment& c) {
+  if (compartmentDisabled(c)) return;
+  c.detectionCount = c.entranceClearCount = 0;
+  c.entranceArmed = false;
+  c.irisServo->write(IRIS_CLOSED_ANGLE);
+  // Do not release into a blocked bin, including during sensor debounce.
+  if ((binSensorEnabled(c) && c.binFull) || binInputBlocked(c)) {
+    closeCompartment(c);
+    return;
+  }
+  c.purging = true;
+  c.purgeStartedMs = millis();
+  c.bottomGateServo->write(&c == &paper ? PAPER_DROP_OPEN_ANGLE : DROP_OPEN_ANGLE);
+  Serial.print("PURGE:"); Serial.print(c.name); Serial.println(";STATE:OPEN");
+}
+
+void servicePurge(Compartment& c) {
+  if (!c.purging) return;
+  if (binInputBlocked(c) ||
+      millis() - c.purgeStartedMs >= PURGE_OPEN_MS) {
+    closeCompartment(c);
+    c.recovery.lastAttemptMs = millis();
+  }
+}
+
+void reportCompartment(const Compartment& c) {
+  Serial.print("COMPARTMENT:"); Serial.print(c.name);
+  Serial.print(";WORKING:");
+  Serial.print(compartmentDisabled(c) || c.workingFailed ||
+               !c.hasEmptyCalibration || calibrating ? "FAILED" : "OK");
+  Serial.print(";BIN:"); Serial.println(c.binFull ? "FULL" : "CLEAR");
+}
+
+void failCompartment(Compartment& c, const char* reason) {
+  if (c.workingFailed) return;
+  c.workingFailed = true;
+  c.recovery = AutoRecovery();
+  c.recovery.lastAttemptMs = millis();
+  if (activeCompartment == &c) activeCycleAborted = true;
+  closeCompartment(c);
+  Serial.print("FAULT:"); Serial.print(c.name);
+  Serial.print(';'); Serial.println(reason);
+  reportCompartment(c);
+  beginPurge(c);
+}
+
+void reportHardwareStatus() {
+  reportCompartment(plastic);
+  reportCompartment(metal);
+  reportCompartment(paper);
+  Serial.println(mq6Alarm ? "MQ6:WARNING" : "MQ6:CLEAR");
+  hardwareStatusDirty = false;
+}
+
+void pollBin(Compartment& c, byte pin) {
+  if (!binSensorEnabled(c)) {
+    // An uninstalled sensor cannot block intake, recovery, or a gate purge.
+    if (c.binFull) hardwareStatusDirty = true;
+    c.binFull = false;
+    c.binCandidate = false;
+    c.binCandidateSince = millis();
+    return;
+  }
+  bool blocked = digitalRead(pin) == BIN_BLOCKED_STATE;
+  if (blocked != c.binCandidate) {
+    c.binCandidate = blocked;
+    c.binCandidateSince = millis();
+  }
+  if (blocked != c.binFull && millis() - c.binCandidateSince >=
+      (blocked ? BIN_BLOCK_MS : BIN_CLEAR_MS)) {
+    c.binFull = blocked;
+    if (blocked) {
+      if (activeCompartment == &c) activeCycleAborted = true;
+      closeCompartment(c);
+    }
+    hardwareStatusDirty = true;
+  }
+}
+
+void pollSensors() {
+  servicePurge(plastic);
+  servicePurge(metal);
+  servicePurge(paper);
+  pollBin(plastic, PLASTIC_BIN_PIN);
+  pollBin(metal, METAL_BIN_PIN);
+  pollBin(paper, PAPER_BIN_PIN);
+  bool alarm = digitalRead(MQ6_DIGITAL_PIN) == MQ6_ALARM_STATE;
+  if (alarm != mq6Candidate) {
+    mq6Candidate = alarm;
+    mq6CandidateSince = millis();
+  }
+  if (alarm != mq6Alarm && millis() - mq6CandidateSince >= MQ6_DEBOUNCE_MS) {
+    mq6Alarm = alarm;
+    // Warning only: MQ6 never stops the machine or disables a compartment.
+    hardwareStatusDirty = true;
+  }
+}
+
+bool cycleRunning() {
+  return machineRunning && !activeCycleAborted &&
+         (activeCompartment == NULL || compartmentAvailable(*activeCompartment));
+}
+
+void handleSerial();
+
+bool waitActive(unsigned long durationMs) {
+  unsigned long started = millis();
+  while (millis() - started < durationMs) {
+    handleSerial();
+    if (!cycleRunning()) return false;
+    delay(5);
+  }
+  return cycleRunning();
+}
 
 int readUltrasonicCm(byte trigPin, byte echoPin);
 int readStableUltrasonicCm(byte trigPin, byte echoPin, byte samples);
@@ -117,6 +316,7 @@ void processSizedItem(Compartment& c);
 void recoverSizingFault(Compartment& c);
 bool sizedCompartmentEmpty(Compartment& c);
 void processPaper();
+bool waitForIrisOpenHold(unsigned long openedAt);
 bool paperAtBottom();
 bool waitForPaperWeight(float& grams);
 bool waitForPaperClear();
@@ -128,6 +328,7 @@ void calibrateAll();
 void makeSafe();
 void handleSerial();
 void executeCommand(String command);
+void autoRecalibrate(Compartment& c);
 
 void setupSizedCompartment(Compartment& c) {
   pinMode(c.ultrasonicTrigPin, OUTPUT);
@@ -162,14 +363,16 @@ void setupPaper() {
 
 void setup() {
   Serial.begin(115200);
+  pinMode(PLASTIC_BIN_PIN, INPUT_PULLUP);
+  pinMode(METAL_BIN_PIN, INPUT_PULLUP);
+  pinMode(PAPER_BIN_PIN, INPUT_PULLUP);
+  pinMode(MQ6_DIGITAL_PIN, INPUT_PULLUP);
   if (!PLASTIC_DISABLED) setupSizedCompartment(plastic);
   if (!METAL_DISABLED) {
     setupSizedCompartment(metal);
     pinMode(metal.materialSensorPin, INPUT_PULLUP);
   }
   if (!PAPER_DISABLED) setupPaper();
-  makeSafe();
-  delay(500);
   calibrateAll();
   if (calibrated) {
     if (!PLASTIC_DISABLED && !METAL_DISABLED && !PAPER_DISABLED)
@@ -186,22 +389,31 @@ void loop() {
     delay(20);
     return;
   }
-  // IDLE: gates remain closed. Only entrance/top ultrasonics are checked here.
-  // Sizing ultrasonics are read only after an entrance sensor opens its iris.
-  if (!PLASTIC_DISABLED && updateDetection(plastic)) processSizedItem(plastic);
-  else {
-    delay(30);
-    if (!METAL_DISABLED && updateDetection(metal)) processSizedItem(metal);
-    else {
-      delay(30);
-      if (!PAPER_DISABLED && updateDetection(paper)) processPaper();
-    }
+  // A fault/full bin only removes its own compartment from the intake loop.
+  Compartment* compartments[] = { &plastic, &metal, &paper };
+  for (byte i = 0; i < 3 && machineRunning; i++) {
+    Compartment& c = *compartments[i];
+    autoRecalibrate(c);
+    if (!compartmentAvailable(c) || !updateDetection(c)) continue;
+    activeCompartment = &c;
+    activeCycleAborted = false;
+    if (&c == &paper) processPaper();
+    else processSizedItem(c);
+    activeCompartment = NULL;
+    activeCycleAborted = false;
   }
   delay(40);
 }
 
 bool updateDetection(Compartment& c) {
   int distance = readUltrasonicCm(c.ultrasonicTrigPin, c.ultrasonicEchoPin);
+  if (distance <= 0) {
+    c.detectionCount = 0;
+    if (++c.missingEntranceReadings >= 3) failCompartment(c, "ENTRANCE_SENSOR");
+    return false;
+  }
+  c.missingEntranceReadings = 0;
+  if (!compartmentAvailable(c)) return false;
   // Compare with the empty distance saved during calibration. Either a
   // nearer or farther valid echo can indicate an object at the entrance.
   bool detected = distance > 0 && c.emptyDistanceCm > 0 &&
@@ -252,11 +464,13 @@ bool updateDetection(Compartment& c) {
 void processSizedItem(Compartment& c) {
   Serial.print(c.name); Serial.println(":OBJECT_DETECTED");
   c.irisServo->write(IRIS_OPEN_ANGLE);
-  delay(700);
+  unsigned long irisOpenedAt = millis();
+  if (!waitActive(700)) return;
   Serial.print(c.name); Serial.println(":WAITING_FOR_BOTTOM");
   if (!waitForSizingItem(c)) {
     c.irisServo->write(IRIS_CLOSED_ANGLE);
-    if (machineRunning) {
+    if (cycleRunning()) {
+      failCompartment(c, "ARRIVAL_TIMEOUT");
       Serial.print("ERROR:"); Serial.print(c.name); Serial.println("_ARRIVAL_TIMEOUT");
       Serial.print(c.name); Serial.println(":ARRIVAL_SENSOR_SNAPSHOT");
       readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin, c.bottomSizeEchoPin, c.bottomSizeEmptyCm);
@@ -271,15 +485,16 @@ void processSizedItem(Compartment& c) {
   unsigned long settleStarted = millis();
   while (millis() - settleStarted < BOTTLE_SETTLE_MS) {
     handleSerial();
-    if (!machineRunning) return;
+    if (!cycleRunning()) return;
     delay(10);
   }
   // Measure with the same gate positions used for empty calibration.
+  if (!waitForIrisOpenHold(irisOpenedAt)) return;
   c.irisServo->write(IRIS_CLOSED_ANGLE);
-  delay(700);
+  if (!waitActive(700)) return;
   Serial.print(c.name); Serial.println(":SIZING_START");
   const char* size = calculateSize(c);
-  if (!machineRunning) return; // A STOP during sizing must not release an item.
+  if (!cycleRunning()) return; // A STOP during sizing must not release an item.
   if (strcmp(size, "INVALID") == 0) {
     c.irisServo->write(IRIS_CLOSED_ANGLE);
     Serial.print("ERROR:"); Serial.print(c.name); Serial.println("_INVALID_SENSOR_PATTERN");
@@ -287,17 +502,22 @@ void processSizedItem(Compartment& c) {
     return;
   }
   bool accepted = (&c != &metal) || metalDetectedStable();
+  handleSerial();
+  if (!cycleRunning()) return;
   Serial.print("SIZE:"); Serial.print(size); Serial.print(";MATERIAL:");
   Serial.println(accepted ? c.material : "REJECT");
   c.irisServo->write(IRIS_CLOSED_ANGLE);
-  delay(150);
+  if (!waitActive(150)) return;
   c.bottomGateServo->write(DROP_OPEN_ANGLE);
-  delay(900);
+  if (!waitActive(900)) return;
   bool cleared = waitForSizingClear(c);
   c.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  Serial.println(cleared ? "BOTTLE:CLEARED" : "ERROR:CLEAR_TIMEOUT");
+  if (cleared && cycleRunning()) {
+    Serial.print("BOTTLE:CLEARED;COMPARTMENT:"); Serial.println(c.name);
+  }
+  else if (cycleRunning()) failCompartment(c, "CLEAR_TIMEOUT");
   c.detectionCount = 0;
-  delay(600);
+  if (!waitActive(600)) return;
 }
 
 // Recovery must see real echoes near the old empty baselines. A missing or
@@ -317,49 +537,112 @@ bool sizedCompartmentEmpty(Compartment& c) {
 }
 
 void recoverSizingFault(Compartment& c) {
-  recoveringSensorFault = true;
-  calibrated = false;
-  makeSafe();
-  // No SIZE event: an invalid scan must not award credit.
-  Serial.print(c.name); Serial.println(":RELEASING_INVALID_BOTTLE");
-  c.bottomGateServo->write(DROP_OPEN_ANGLE);
-  unsigned long started = millis();
-  while (machineRunning && millis() - started < 1500UL) {
-    handleSerial();
-    delay(10);
-  }
-  c.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  delay(700);
-  Serial.println("RECOVERY:VERIFYING_EMPTY");
-  started = millis();
-  byte emptyScans = 0;
-  bool empty = false;
-  while (machineRunning && millis() - started < 8000UL) {
-    handleSerial();
-    if (!machineRunning) break;
-    bool clear = PLASTIC_DISABLED || sizedCompartmentEmpty(plastic);
-    if (!METAL_DISABLED) clear = sizedCompartmentEmpty(metal) && clear;
-    if (!PAPER_DISABLED) {
-      int paperTop = readUltrasonicCm(paper.ultrasonicTrigPin, paper.ultrasonicEchoPin);
-      int paperBottom = readUltrasonicCm(paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin);
-      clear = clear && paperTop > 0 && paperBottom > 0 &&
-              abs(paperTop - paper.emptyDistanceCm) <= ENTRANCE_CLEAR_TOLERANCE_CM &&
-              abs(paperBottom - paper.bottomEmptyDistanceCm) <= ENTRANCE_CLEAR_TOLERANCE_CM;
-    }
-    emptyScans = clear ? emptyScans + 1 : 0;
-    if (emptyScans >= 3) { empty = true; break; }
-  }
-  recoveringSensorFault = false;
-  if (!machineRunning) return;
-  if (!empty) {
-    machineRunning = false;
-    makeSafe();
-    Serial.println("ERROR:SENSOR_FAULT_REMOVE_OBJECTS_AND_CALIBRATE");
+  // Keep only this compartment unavailable until empty recovery succeeds.
+  // Purge without credit, then require stable empty readings before recovery.
+  failCompartment(c, "INVALID_SENSOR_PATTERN");
+}
+
+void retryAutoRecalibration(Compartment& c) {
+  c.recovery = AutoRecovery();
+  c.recovery.lastAttemptMs = millis();
+  Serial.print("RECOVERY:"); Serial.print(c.name);
+  Serial.println(";STATE:WAITING_FOR_EMPTY");
+}
+
+void autoRecalibrate(Compartment& c) {
+  // Work on one reading per loop, between normal intake checks. Never stop or
+  // recalibrate healthy compartments, and never learn a trapped item as empty.
+  if (compartmentDisabled(c) || c.purging || !c.workingFailed || !c.hasEmptyCalibration ||
+      !machineRunning || calibrating || activeCompartment != NULL) return;
+  AutoRecovery& r = c.recovery;
+  if (c.binFull) {
+    r = AutoRecovery();
+    r.lastAttemptMs = millis();
     return;
   }
-  Serial.println("BOTTLE:CLEARED");
-  Serial.println("RECOVERY:AUTO_CALIBRATING");
-  calibrateAll();
+  if (!r.active) {
+    if (millis() - r.lastAttemptMs < AUTO_RECALIBRATE_RETRY_MS) return;
+    r.active = true;
+    closeCompartment(c);
+    Serial.print("RECOVERY:"); Serial.print(c.name);
+    Serial.println(";STATE:AUTO_RECALIBRATING");
+  }
+
+  byte channels = &c == &paper ? 2 : 4;
+  if (r.rounds < AUTO_RECALIBRATE_SAMPLES) {
+    byte trig = c.ultrasonicTrigPin, echo = c.ultrasonicEchoPin;
+    int baseline = c.emptyDistanceCm;
+    if (&c == &paper && r.channel == 1) {
+      trig = c.bottomUltrasonicTrigPin; echo = c.bottomUltrasonicEchoPin;
+      baseline = c.bottomEmptyDistanceCm;
+    } else if (r.channel == 1) {
+      trig = c.bottomSizeTrigPin; echo = c.bottomSizeEchoPin; baseline = c.bottomSizeEmptyCm;
+    } else if (r.channel == 2) {
+      trig = c.middleSizeTrigPin; echo = c.middleSizeEchoPin; baseline = c.middleSizeEmptyCm;
+    } else if (r.channel == 3) {
+      trig = c.topSizeTrigPin; echo = c.topSizeEchoPin; baseline = c.topSizeEmptyCm;
+    }
+    int cm = readUltrasonicCm(trig, echo);
+    if (c.binFull || cm <= 0 || baseline <= 0 ||
+        abs(cm - baseline) > ENTRANCE_CLEAR_TOLERANCE_CM) {
+      retryAutoRecalibration(c);
+      return;
+    }
+    byte channel = r.channel;
+    if (r.rounds == 0) r.nearest[channel] = r.farthest[channel] = cm;
+    r.nearest[channel] = min(r.nearest[channel], cm);
+    r.farthest[channel] = max(r.farthest[channel], cm);
+    if (r.farthest[channel] - r.nearest[channel] > 2) {
+      retryAutoRecalibration(c);
+      return;
+    }
+    r.sums[channel] += cm;
+    if (++r.channel == channels) { r.channel = 0; r.rounds++; }
+    r.scaleWaitSince = millis();
+    return;
+  }
+
+  if (&c == &paper && r.weightSamples < AUTO_RECALIBRATE_SAMPLES) {
+    // Do not wait a second on a disconnected HX711 on every main-loop pass.
+    if (!paperScaleReady || digitalRead(c.loadCellDoutPin) != LOW) {
+      if (millis() - r.scaleWaitSince >= 1000UL) retryAutoRecalibration(c);
+      return;
+    }
+    long raw;
+    if (!readHx711Raw(raw) ||
+        fabs((float)(raw - paperTareRaw) / PAPER_COUNTS_PER_GRAM) > PAPER_CLEAR_WEIGHT_G) {
+      retryAutoRecalibration(c);
+      return;
+    }
+    if (r.weightSamples == 0) r.weightMin = r.weightMax = raw;
+    r.weightMin = min(r.weightMin, raw);
+    r.weightMax = max(r.weightMax, raw);
+    if (fabs((float)(r.weightMax - r.weightMin) / PAPER_COUNTS_PER_GRAM) > 5.0f) {
+      retryAutoRecalibration(c);
+      return;
+    }
+    r.weightSum += raw;
+    r.weightSamples++;
+    r.scaleWaitSince = millis();
+    return;
+  }
+
+  // Commit all candidate baselines together, only after every channel passes.
+  c.emptyDistanceCm = r.sums[0] / AUTO_RECALIBRATE_SAMPLES;
+  if (&c == &paper) {
+    c.bottomEmptyDistanceCm = r.sums[1] / AUTO_RECALIBRATE_SAMPLES;
+    paperTareRaw = r.weightSum / AUTO_RECALIBRATE_SAMPLES;
+  } else {
+    c.bottomSizeEmptyCm = r.sums[1] / AUTO_RECALIBRATE_SAMPLES;
+    c.middleSizeEmptyCm = r.sums[2] / AUTO_RECALIBRATE_SAMPLES;
+    c.topSizeEmptyCm = r.sums[3] / AUTO_RECALIBRATE_SAMPLES;
+  }
+  c.workingFailed = false;
+  c.missingEntranceReadings = 0;
+  closeCompartment(c);
+  r = AutoRecovery();
+  Serial.print("RECOVERY:"); Serial.print(c.name); Serial.println(";STATE:OK");
+  reportCompartment(c);
 }
 
 // Return -1 for an unreliable reading, 0 for clear, and 1 for occupied.
@@ -392,7 +675,7 @@ const char* calculateSize(Compartment& c) {
   // Allow the bottle to settle, requiring two matching valid scans.
   for (byte attempt = 0; attempt < 4; attempt++) {
     handleSerial();
-    if (!machineRunning) return "INVALID";
+    if (!cycleRunning()) return "INVALID";
     int bottom = readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin,
                               c.bottomSizeEchoPin, c.bottomSizeEmptyCm);
     int middle = readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin,
@@ -425,7 +708,7 @@ bool waitForSizingItem(Compartment& c) {
   byte bottomChangeCount = 0;
   while (millis() - started < ARRIVAL_TIMEOUT_MS) {
     handleSerial();
-    if (!machineRunning) return false;
+    if (!cycleRunning()) return false;
     // DEBUG ON exposes arrival readings while the iris is still open.
     bool bottomOccupied;
     if (entranceDebug) {
@@ -451,18 +734,13 @@ bool waitForSizingClear(Compartment& c) {
   byte clearCount = 0;
   while (millis() - started < CLEAR_TIMEOUT_MS) {
     handleSerial();
-    if (!machineRunning) return false;
-    bool bottomClear = !sizeLevelChanged(c.bottomSizeTrigPin,
-                                         c.bottomSizeEchoPin,
-                                         c.bottomSizeEmptyCm);
-    delay(30);
-    bool middleClear = !sizeLevelChanged(c.middleSizeTrigPin,
-                                         c.middleSizeEchoPin,
-                                         c.middleSizeEmptyCm);
-    delay(30);
-    bool topClear = !sizeLevelChanged(c.topSizeTrigPin,
-                                      c.topSizeEchoPin,
-                                      c.topSizeEmptyCm);
+    if (!cycleRunning()) return false;
+    bool bottomClear = readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin,
+                                         c.bottomSizeEchoPin, c.bottomSizeEmptyCm) == 0;
+    bool middleClear = readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin,
+                                         c.middleSizeEchoPin, c.middleSizeEmptyCm) == 0;
+    bool topClear = readSizeLevel(c, "TOP", c.topSizeTrigPin,
+                                      c.topSizeEchoPin, c.topSizeEmptyCm) == 0;
     bool clear = bottomClear && middleClear && topClear;
     clearCount = clear ? clearCount + 1 : 0;
     if (clearCount >= 5) return true;
@@ -480,28 +758,41 @@ bool metalDetectedStable() {
   return count >= 9;
 }
 
+bool waitForIrisOpenHold(unsigned long openedAt) {
+  while (millis() - openedAt < IRIS_MIN_OPEN_MS) {
+    handleSerial();
+    if (!cycleRunning()) return false;
+    delay(10);
+  }
+  return cycleRunning();
+}
+
 void processPaper() {
   Serial.println("PAPER:OBJECT_DETECTED");
   paper.irisServo->write(IRIS_OPEN_ANGLE);
-  delay(700);
+  // Weigh after the insertion window so the final reading includes the item.
+  if (!waitForIrisOpenHold(millis())) return;
   float grams = 0.0f;
   if (!waitForPaperWeight(grams)) {
     paper.irisServo->write(IRIS_CLOSED_ANGLE);
-    if (machineRunning) Serial.println("ERROR:PAPER_WEIGHT_TIMEOUT");
+    if (cycleRunning()) failCompartment(paper, "WEIGHT_TIMEOUT");
     paper.detectionCount = 0;
     return;
   }
+  handleSerial();
+  if (!cycleRunning()) return;
   paper.irisServo->write(IRIS_CLOSED_ANGLE);
   Serial.print("SIZE:WEIGHT;MATERIAL:PAPER;WEIGHT_KG:");
   Serial.println(grams / 1000.0f, 3);
-  delay(150);
+  if (!waitActive(150)) return;
   paper.bottomGateServo->write(PAPER_DROP_OPEN_ANGLE);
-  delay(900);
+  if (!waitActive(900)) return;
   bool cleared = waitForPaperClear();
   paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
-  Serial.println(cleared ? "BOTTLE:CLEARED" : "ERROR:CLEAR_TIMEOUT");
+  if (cleared && cycleRunning()) Serial.println("BOTTLE:CLEARED;COMPARTMENT:PAPER");
+  else if (cycleRunning()) failCompartment(paper, "CLEAR_TIMEOUT");
   paper.detectionCount = 0;
-  delay(600);
+  if (!waitActive(600)) return;
 }
 
 bool paperAtBottom() {
@@ -517,16 +808,20 @@ bool waitForPaperWeight(float& grams) {
   float previous = 0.0f;
   while (millis() - started < ARRIVAL_TIMEOUT_MS) {
     handleSerial();
-    if (!machineRunning) return false;
+    if (!cycleRunning()) return false;
     // The entrance ultrasonic detects the object; the load cell measures it.
     // Start weighing without waiting for the bottom ultrasonic to confirm it.
     float current = readPaperGrams(3);
+    if (isnan(current)) {
+      if (cycleRunning()) failCompartment(paper, "LOAD_CELL");
+      return false;
+    }
     if (current >= PAPER_MIN_WEIGHT_G) {
       stableCount = abs(current - previous) <= 5.0f ? stableCount + 1 : 0;
       previous = current;
       if (stableCount >= 3) {
         grams = readPaperGrams(8);
-        return !isnan(grams) && grams >= PAPER_MIN_WEIGHT_G;
+        return cycleRunning() && !isnan(grams) && grams >= PAPER_MIN_WEIGHT_G;
       }
     } else {
       stableCount = 0;
@@ -548,8 +843,10 @@ bool waitForPaperClear() {
   byte clearCount = 0;
   while (millis() - started < CLEAR_TIMEOUT_MS) {
     handleSerial();
-    if (!machineRunning) return false;
-    bool clear = !paperAtBottom() && readPaperGrams(2) <= PAPER_CLEAR_WEIGHT_G;
+    if (!cycleRunning()) return false;
+    int bottom = readUltrasonicCm(paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin);
+    bool clear = bottom > 0 && abs(bottom - paper.bottomEmptyDistanceCm) <= ENTRANCE_CLEAR_TOLERANCE_CM &&
+                 readPaperGrams(2) <= PAPER_CLEAR_WEIGHT_G;
     clearCount = clear ? clearCount + 1 : 0;
     if (clearCount >= 4) return true;
     delay(40);
@@ -572,6 +869,7 @@ bool sizeLevelChanged(byte trigPin, byte echoPin, int emptyDistanceCm) {
 }
 
 int readUltrasonicCm(byte trigPin, byte echoPin) {
+  pollSensors();
   // Space all ultrasonic triggers, including transitions between sensors.
   static unsigned long lastTriggerMs = 0;
   unsigned long elapsed = millis() - lastTriggerMs;
@@ -591,6 +889,8 @@ int readStableUltrasonicCm(byte trigPin, byte echoPin, byte samples) {
   byte valid = 0;
   int nearest = MAX_DISTANCE_CM, farthest = 0;
   for (byte i = 0; i < samples; i++) {
+    handleSerial();
+    if (calibrationCancelled) return -1;
     int distance = readUltrasonicCm(trigPin, echoPin);
     if (distance > 0) {
       total += distance;
@@ -598,7 +898,10 @@ int readStableUltrasonicCm(byte trigPin, byte echoPin, byte samples) {
       nearest = min(nearest, distance);
       farthest = max(farthest, distance);
     }
-    delay(60);
+    if (distance <= 0 || farthest - nearest > 2) {
+      Serial.print("ERROR:UNSTABLE_CALIBRATION_TRIG:"); Serial.println(trigPin);
+      return -1;
+    }
   }
   // A baseline averaged from jumping echoes can create phantom objects.
   // Require every sample and at most 2 cm spread before enabling motion.
@@ -613,12 +916,17 @@ bool waitForHx711Ready(unsigned long timeoutMs) {
   unsigned long started = millis();
   while (digitalRead(paper.loadCellDoutPin) == HIGH &&
          millis() - started < timeoutMs) {
+    if (calibrating) handleSerial();
+    else pollSensors();
+    if (calibrating && calibrationCancelled) return false;
+    if (activeCompartment != NULL && !cycleRunning()) return false;
     delay(1);
   }
   return digitalRead(paper.loadCellDoutPin) == LOW;
 }
 
 bool readHx711Raw(long& raw) {
+  if (calibrating && calibrationCancelled) return false;
   if (!waitForHx711Ready(1000UL)) {
     Serial.println("ERROR:HX711_NOT_READY_DOUT_HIGH");
     return false;
@@ -671,61 +979,87 @@ float readPaperGrams(byte samples) {
   return grams > 0.0f ? grams : 0.0f;
 }
 
+bool waitCalibration(unsigned long durationMs) {
+  unsigned long started = millis();
+  while (millis() - started < durationMs) {
+    handleSerial();
+    if (calibrationCancelled) return false;
+    delay(5);
+  }
+  return !calibrationCancelled;
+}
+
 void calibrateAll() {
+  calibrationCancelled = false;
+  calibrating = true;
   machineRunning = false;
   calibrated = false;
   paperScaleReady = false;
-  makeSafe();
+  plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
+  reportHardwareStatus();
   Serial.println("CALIBRATION:REMOVE_OBJECTS");
-  delay(1000);
+  // First commanded bottom-gate position at startup is OPEN (unless bin full).
+  // Open all enabled gates together, then close and settle before measuring.
+  beginPurge(plastic);
+  beginPurge(metal);
+  beginPurge(paper);
+  if (!waitCalibration(PURGE_OPEN_MS + GATE_SETTLE_MS)) {
+    calibrating = false;
+    makeSafe();
+    return;
+  }
   if (!PLASTIC_DISABLED) {
     plastic.emptyDistanceCm = readStableUltrasonicCm(
-      plastic.ultrasonicTrigPin, plastic.ultrasonicEchoPin, 7);
-    delay(100);
+      plastic.ultrasonicTrigPin, plastic.ultrasonicEchoPin, CALIBRATION_SAMPLES);
     plastic.bottomSizeEmptyCm = readStableUltrasonicCm(
-      plastic.bottomSizeTrigPin, plastic.bottomSizeEchoPin, 5);
-    delay(100);
+      plastic.bottomSizeTrigPin, plastic.bottomSizeEchoPin, CALIBRATION_SAMPLES);
     plastic.middleSizeEmptyCm = readStableUltrasonicCm(
-      plastic.middleSizeTrigPin, plastic.middleSizeEchoPin, 5);
-    delay(100);
+      plastic.middleSizeTrigPin, plastic.middleSizeEchoPin, CALIBRATION_SAMPLES);
     plastic.topSizeEmptyCm = readStableUltrasonicCm(
-      plastic.topSizeTrigPin, plastic.topSizeEchoPin, 5);
+      plastic.topSizeTrigPin, plastic.topSizeEchoPin, CALIBRATION_SAMPLES);
   }
   if (!METAL_DISABLED) {
-    delay(100);
     metal.emptyDistanceCm = readStableUltrasonicCm(
-      metal.ultrasonicTrigPin, metal.ultrasonicEchoPin, 7);
-    delay(100);
+      metal.ultrasonicTrigPin, metal.ultrasonicEchoPin, CALIBRATION_SAMPLES);
     metal.bottomSizeEmptyCm = readStableUltrasonicCm(
-      metal.bottomSizeTrigPin, metal.bottomSizeEchoPin, 5);
-    delay(100);
+      metal.bottomSizeTrigPin, metal.bottomSizeEchoPin, CALIBRATION_SAMPLES);
     metal.middleSizeEmptyCm = readStableUltrasonicCm(
-      metal.middleSizeTrigPin, metal.middleSizeEchoPin, 5);
-    delay(100);
+      metal.middleSizeTrigPin, metal.middleSizeEchoPin, CALIBRATION_SAMPLES);
     metal.topSizeEmptyCm = readStableUltrasonicCm(
-      metal.topSizeTrigPin, metal.topSizeEchoPin, 5);
-    delay(100);
+      metal.topSizeTrigPin, metal.topSizeEchoPin, CALIBRATION_SAMPLES);
   }
   if (!PAPER_DISABLED) {
     paper.emptyDistanceCm = readStableUltrasonicCm(
-      paper.ultrasonicTrigPin, paper.ultrasonicEchoPin, 7);
-    delay(100);
+      paper.ultrasonicTrigPin, paper.ultrasonicEchoPin, CALIBRATION_SAMPLES);
     paper.bottomEmptyDistanceCm = readStableUltrasonicCm(
-      paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin, 7);
-    delay(500);
+      paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin, CALIBRATION_SAMPLES);
     long tare;
-    paperScaleReady = readHx711Average(12, tare);
+    paperScaleReady = readHx711Average(5, tare);
     if (paperScaleReady) paperTareRaw = tare;
   }
-  calibrated = (!PLASTIC_DISABLED || !METAL_DISABLED || !PAPER_DISABLED) &&
-               (PLASTIC_DISABLED || (plastic.emptyDistanceCm > 0 &&
-                plastic.bottomSizeEmptyCm > 0 && plastic.middleSizeEmptyCm > 0 &&
-                plastic.topSizeEmptyCm > 0)) &&
-               (METAL_DISABLED || (metal.emptyDistanceCm > 0 &&
-                metal.bottomSizeEmptyCm > 0 && metal.middleSizeEmptyCm > 0 &&
-                metal.topSizeEmptyCm > 0)) &&
-               (PAPER_DISABLED || (paper.emptyDistanceCm > 0 &&
-                paper.bottomEmptyDistanceCm > 0 && paperScaleReady));
+  if (calibrationCancelled) {
+    calibrating = false;
+    makeSafe();
+    return;
+  }
+  plastic.workingFailed = PLASTIC_DISABLED || plastic.emptyDistanceCm <= 0 ||
+    plastic.bottomSizeEmptyCm <= 0 || plastic.middleSizeEmptyCm <= 0 || plastic.topSizeEmptyCm <= 0;
+  metal.workingFailed = METAL_DISABLED || metal.emptyDistanceCm <= 0 ||
+    metal.bottomSizeEmptyCm <= 0 || metal.middleSizeEmptyCm <= 0 || metal.topSizeEmptyCm <= 0;
+  paper.workingFailed = PAPER_DISABLED || paper.emptyDistanceCm <= 0 ||
+    paper.bottomEmptyDistanceCm <= 0 || !paperScaleReady;
+  plastic.hasEmptyCalibration = !plastic.workingFailed;
+  metal.hasEmptyCalibration = !metal.workingFailed;
+  paper.hasEmptyCalibration = !paper.workingFailed;
+  plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
+  plastic.missingEntranceReadings = metal.missingEntranceReadings = paper.missingEntranceReadings = 0;
+  calibrated = !plastic.workingFailed || !metal.workingFailed || !paper.workingFailed;
+  calibrating = false;
+  pollSensors();
+  reportHardwareStatus();
+  if (plastic.workingFailed) beginPurge(plastic);
+  if (metal.workingFailed) beginPurge(metal);
+  if (paper.workingFailed) beginPurge(paper);
   Serial.print("MODE:PLASTIC:"); Serial.print(PLASTIC_DISABLED ? "DISABLED" : "ENABLED");
   Serial.print(";METAL:"); Serial.print(METAL_DISABLED ? "DISABLED" : "ENABLED");
   Serial.print(";PAPER:"); Serial.println(PAPER_DISABLED ? "DISABLED" : "ENABLED");
@@ -760,6 +1094,10 @@ void calibrateAll() {
 }
 
 void makeSafe() {
+  plastic.purging = metal.purging = paper.purging = false;
+  plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
+  plastic.recovery.lastAttemptMs = metal.recovery.lastAttemptMs =
+    paper.recovery.lastAttemptMs = millis();
   plastic.detectionCount = metal.detectionCount = paper.detectionCount = 0;
   plastic.entranceClearCount = metal.entranceClearCount = paper.entranceClearCount = 0;
   plastic.entranceArmed = metal.entranceArmed = paper.entranceArmed = false;
@@ -772,12 +1110,18 @@ void makeSafe() {
 }
 
 void handleSerial() {
+  pollSensors();
+  if (!calibrating && (hardwareStatusDirty || millis() - lastStatusMs >= 2000UL)) {
+    lastStatusMs = millis();
+    reportHardwareStatus();
+  }
   while (Serial.available() > 0) {
     char ch = (char)Serial.read();
     if (ch == '\n' || ch == '\r') {
       if (serialBuffer.length() > 0) {
-        executeCommand(serialBuffer);
+        String command = serialBuffer;
         serialBuffer = "";
+        executeCommand(command);
       }
     } else if (serialBuffer.length() < 40) serialBuffer += ch;
   }
@@ -786,8 +1130,8 @@ void handleSerial() {
 void executeCommand(String command) {
   command.trim();
   command.toUpperCase();
-  if (recoveringSensorFault && (command == "START" || command == "CALIBRATE")) {
-    Serial.println("ERROR:RECOVERY_IN_PROGRESS");
+  if ((calibrating || activeCompartment != NULL) && (command == "START" || command == "CALIBRATE" || command == "SCALE")) {
+    Serial.println("ERROR:COMPARTMENT_BUSY");
     return;
   }
   if (command == "DEBUG ON" || command == "DEBUG OFF") {
@@ -813,11 +1157,13 @@ void executeCommand(String command) {
     machineRunning = calibrated;
     Serial.println(machineRunning ? "MACHINE:STARTED" : "ERROR:NOT_CALIBRATED");
   } else if (command == "STOP" || command == "RESET") {
+    if (calibrating) calibrationCancelled = true;
     machineRunning = false;
     makeSafe();
     Serial.println(command == "STOP" ? "MACHINE:STOPPED" : "RESET:OK");
   } else if (command == "CALIBRATE") calibrateAll();
   else if (command == "STATUS") {
+    reportHardwareStatus();
     Serial.print("STATUS:");
     Serial.print(calibrated ? (machineRunning ? "RUNNING" : "READY") : "NOT_CALIBRATED");
     Serial.print(";PLASTIC_CM:"); Serial.print(plastic.emptyDistanceCm);

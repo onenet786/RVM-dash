@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Database, Activity, RefreshCw, Palette, Sun, Moon, Leaf, Check, 
-  Server, HardDrive, MapPin, LogOut, ShieldCheck, Menu, Building2, 
-  Cpu, Layers, ChevronDown, Radio, AlertTriangle
+  Activity, Palette, Sun, Moon, Leaf, Check, 
+  LogOut, Menu, Building2, ChevronDown
 } from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
 
@@ -23,31 +22,6 @@ export default function Navbar({
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showClientMenu, setShowClientMenu] = useState(false);
-  const [assetSummary, setAssetSummary] = useState({
-    totalActive: 5,
-    onlineCount: 3,
-    offlineCount: 2,
-    activeAlerts: 4
-  });
-
-  const fetchAssetSummary = async () => {
-    try {
-      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const clientParam = selectedClientId && selectedClientId !== 'ALL' ? `?clientId=${selectedClientId}` : '';
-      const res = await fetch(`/api/analytics/machines/summary${clientParam}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setAssetSummary(data);
-      }
-    } catch (e) {}
-  };
-
-  useEffect(() => {
-    fetchAssetSummary();
-    const interval = setInterval(fetchAssetSummary, 15000);
-    return () => clearInterval(interval);
-  }, [selectedClientId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -55,10 +29,6 @@ export default function Navbar({
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const isOnline = health?.status === 'online';
-  const serverHost = health?.serverHost || '127.0.0.1:5432';
-  const dbName = health?.database || 'rvmpg';
 
   const themesList = [
     { id: 'isp-eco', label: 'ISP Eco Vanguard (Default)', icon: Leaf, color: 'bg-[#0B5D3B]', desc: 'Official ISP Environmental Solutions Brand' },
@@ -88,13 +58,6 @@ export default function Navbar({
   ];
 
   const selectedClientObj = clients.find(c => c.id === selectedClientId) || clients[0];
-
-  const stations = [
-    { id: 'ALL', label: 'Cumulative (All)', icon: Layers, count: assetSummary.totalActive ?? 0 },
-    { id: 'RVM_NEW', label: 'RVM New (Multi-Sensor)', icon: Cpu, count: assetSummary.byStation?.rvmNew ?? 0 },
-    { id: 'PECODROP', label: 'PecoDrop (Count & Weigh)', icon: Activity, count: assetSummary.byStation?.pecodrop ?? 0 },
-    { id: 'RVM_OLD', label: 'RVM Old (Legacy)', icon: Radio, count: assetSummary.byStation?.rvmOld ?? 0 },
-  ];
 
   return (
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border transition-colors duration-300 shadow-md">
@@ -280,64 +243,6 @@ export default function Navbar({
           )}
         </div>
       </div>
-
-      {/* Operational Control Strip (Station Selector & Fleet Asset Telemetry) */}
-      <div className="px-3 sm:px-6 py-1.5 bg-[#062c1b] border-t border-[#146c43]/40 flex flex-col md:flex-row items-center justify-between gap-2 overflow-hidden">
-        
-        {/* Machine Station Selector (Segmented Pill - No ugly scrollbars!) */}
-        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400/80 mr-1 hidden sm:inline">Station:</span>
-          <div className="bg-[#042013] border border-[#146c43]/60 p-0.5 rounded-xl flex items-center gap-1 shadow-inner shrink-0">
-            {stations.map(st => {
-              const isSelected = stationFilter === st.id;
-              const Icon = st.icon;
-              return (
-                <button
-                  key={st.id}
-                  onClick={() => setStationFilter(st.id)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                    isSelected
-                      ? 'bg-emerald-500 text-slate-950 shadow-md font-black ring-1 ring-white/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                  title={`Filter dashboard to ${st.label}`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{st.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                    isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-emerald-500/20 text-emerald-300'
-                  }`}>
-                    {st.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Right Status Indicators & Asset Counters */}
-        <div className="flex items-center justify-between md:justify-end gap-2.5 w-full md:w-auto shrink-0">
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#042013] border border-[#146c43]/60 rounded-xl text-xs font-mono">
-            <span className="text-slate-300 font-bold">Fleet:</span>
-            <span className="text-white font-extrabold">{assetSummary.totalActive} Total</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-emerald-400 font-extrabold">🟢 {assetSummary.onlineCount} Online</span>
-            <span className="text-slate-500">/</span>
-            <span className="text-rose-400 font-bold">🔴 {assetSummary.offlineCount} Offline</span>
-            <span className="text-slate-500">•</span>
-            <span className="text-amber-400 font-bold flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              {assetSummary.activeAlerts} Alerts
-            </span>
-          </div>
-
-          <span className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 bg-[#042013] border border-[#146c43]/60 rounded-xl text-[11px] font-mono font-extrabold text-emerald-300">
-            PostgreSQL rvmpg
-          </span>
-        </div>
-
-      </div>
-
     </header>
   );
 }

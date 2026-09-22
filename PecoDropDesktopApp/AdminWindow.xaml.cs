@@ -53,7 +53,7 @@ public partial class AdminWindow : Window
             CfgLatitude.Text = raw.GetValueOrDefault("Latitude", "");
             CfgLongitude.Text = raw.GetValueOrDefault("Longitude", "");
             CfgArduinoPort.Text = raw.GetValueOrDefault("ArduinoPort", "COM16");
-            CfgArduinoBaud.Text = raw.GetValueOrDefault("ArduinoBaud", "9600");
+            CfgArduinoBaud.Text = raw.GetValueOrDefault("ArduinoBaud", "115200");
             CfgCameraPort.Text = raw.GetValueOrDefault("CameraPort", "COM31");
             CfgCameraBaud.Text = raw.GetValueOrDefault("CameraBaud", "921600");
             CfgAdsFolder.Text = raw.GetValueOrDefault("AdvertisementVideoFolder", @"Ads\Advertisements");
@@ -146,7 +146,7 @@ public partial class AdminWindow : Window
         try
         {
             string port = CfgArduinoPort.Text.Trim();
-            int baud = int.TryParse(CfgArduinoBaud.Text.Trim(), out int b) ? b : 9600;
+            int baud = int.TryParse(CfgArduinoBaud.Text.Trim(), out int b) ? b : 115200;
 
             if (Application.Current.MainWindow is MainWindow mainWin)
             {

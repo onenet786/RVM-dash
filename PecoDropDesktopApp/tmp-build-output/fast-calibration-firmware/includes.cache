@@ -1,0 +1,595 @@
+[
+  {
+    "added_include_path": "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino"
+  },
+  {
+    "added_include_path": "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega"
+  },
+  {
+    "compile": {
+      "source_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "Servo.h"
+  },
+  {
+    "added_include_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src"
+  },
+  {
+    "compile": {
+      "source_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\sketch\\RVM_Arduino.ino.cpp.merged.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\avr\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\avr\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\avr\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\avr\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\esp32\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\esp32\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\esp32\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\esp32\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\mbed\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\mbed\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\mbed\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\mbed\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\megaavr\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\megaavr\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\megaavr\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\megaavr\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\nrf52\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\nrf52\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\nrf52\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\nrf52\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\renesas\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\renesas\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\renesas\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\renesas\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\sam\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\sam\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\sam\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\sam\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\samd\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\samd\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\samd\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\samd\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\stm32f4\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\stm32f4\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\stm32f4\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\stm32f4\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\xmc\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\xmc\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\xmc\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\xmc\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\zephyr\\Servo.cpp",
+      "depfile_path": "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\zephyr\\Servo.cpp.libsdetect.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\aac\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-IC:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src",
+        "C:\\Users\\aac\\Documents\\Arduino\\libraries\\Servo\\src\\zephyr\\Servo.cpp",
+        "-o",
+        "nul",
+        "-MMD",
+        "-MF",
+        "D:\\RVM-dash-12Sep2026\\RVM-dash\\PecoDropDesktopApp\\tmp-build-output\\fast-calibration-firmware\\libraries\\Servo\\zephyr\\Servo.cpp.libsdetect.d"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  }
+]
