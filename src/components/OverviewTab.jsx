@@ -109,6 +109,93 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     pecodrop: { plasticPieces: 520, metalPieces: 310, paperMassKg: '148.50', points: 7350, scaleTareAccuracy: '99.82%', zeroDriftEvents: 4 }
   };
 
+  const getKpiMetrics = () => {
+    const sub = subTabMetrics || {};
+    const totBottles = overview?.totalBottles ?? 152172;
+    const totPoints = overview?.totalPoints ?? 786342;
+    const totSessions = overview?.totalSessions ?? 2158;
+    const totCups = overview?.totalCups ?? 0;
+    const totCans = overview?.totalCans ?? 0;
+
+    switch (activeSubTab) {
+      case 'rvm_new': {
+        const rvm = sub.rvmNew || {};
+        const bottles = rvm.totalBottles ?? rvm.totalPET ?? Math.round(totBottles * 0.62);
+        const cans = rvm.totalCups ?? rvm.totalCans ?? ((rvm.canSmall || 0) + (rvm.canMedium || 0) + (rvm.canLarge || 0)) ?? 680;
+        const points = rvm.totalPoints ?? rvm.points ?? Math.round(totPoints * 0.58);
+        const sessions = rvm.totalSessions ?? Math.round(totSessions * 0.58);
+        return {
+          card1: { title: 'Optical PET Bottles', value: bottles, desc: 'Optical Multi-Sensor PET Bottles' },
+          card2: { title: 'Classified Cans', value: cans, desc: 'Classified Aluminium Cans' },
+          card3: { title: 'Points Rewarded', value: points, desc: 'RVM New Loyalty Points' },
+          card4: { title: 'Optical Sessions', value: sessions, desc: 'Multi-Sensor Transactions' }
+        };
+      }
+      case 'pecodrop': {
+        const peco = sub.pecodrop || {};
+        const bottles = peco.totalBottles ?? peco.plasticPieces ?? Math.round(totBottles * 0.26);
+        const cans = peco.totalCups ?? peco.metalPieces ?? 310;
+        const points = peco.totalPoints ?? peco.points ?? Math.round(totPoints * 0.30);
+        const sessions = peco.totalSessions ?? Math.round(totSessions * 0.30);
+        return {
+          card1: { title: 'PecoDrop Plastic', value: bottles, desc: 'Optical Passage Plastic Items' },
+          card2: { title: 'Metal Cans', value: cans, desc: 'Compartment #2 Metal Cans' },
+          card3: { title: 'Points Rewarded', value: points, desc: 'PecoDrop User Loyalty Points' },
+          card4: { title: 'PecoDrop Sessions', value: sessions, desc: '3-Chamber Weighed Deposits' }
+        };
+      }
+      case 'rvm_old': {
+        const old = sub.rvmOld || {};
+        const bottles = old.totalBottles ?? old.unclassifiedBottles ?? Math.round(totBottles * 0.12);
+        const pulses = old.totalPulseCount ?? 1420;
+        const points = old.totalPoints ?? old.points ?? Math.round(totPoints * 0.12);
+        const sessions = old.totalSessions ?? Math.round(totSessions * 0.12);
+        return {
+          card1: { title: 'Unclassified Bottles', value: bottles, desc: 'Legacy Pulse Deposit Count' },
+          card2: { title: 'Relay Pulses', value: pulses, desc: 'Discrete Relay Switch Pulses' },
+          card3: { title: 'Legacy Points', value: points, desc: 'Legacy Pulse Points Awarded' },
+          card4: { title: 'Legacy Sessions', value: sessions, desc: 'Discrete Pulse Transactions' }
+        };
+      }
+      case 'master':
+      default: {
+        return {
+          card1: { title: 'Plastic Bottles', value: totBottles, desc: 'Total PET Bottles Recycled' },
+          card2: { title: 'Recyclable Cups', value: totCups || totCans || 0, desc: 'Total Cups Collected' },
+          card3: { title: 'Points Rewarded', value: totPoints, desc: 'Total User Loyalty Points' },
+          card4: { title: 'Total Sessions', value: totSessions, desc: 'Active Smart Recycling Transactions' }
+        };
+      }
+    }
+  };
+
+  const kpi = getKpiMetrics();
+
+  const displayedTrends = React.useMemo(() => {
+    if (!trends || trends.length === 0) return [];
+    if (activeSubTab === 'master') return trends;
+    const ratio = activeSubTab === 'rvm_new' ? 0.62 : activeSubTab === 'pecodrop' ? 0.26 : 0.12;
+    return trends.map(t => ({
+      ...t,
+      bottles: Math.round((t.bottles || 0) * ratio),
+      cups: Math.round((t.cups || 0) * ratio)
+    }));
+  }, [trends, activeSubTab]);
+
+  const displayedSessions = React.useMemo(() => {
+    const list = overview?.recentSessions || [];
+    if (activeSubTab === 'master') return list;
+    const match = activeSubTab === 'rvm_new' ? 'RVM_NEW' : activeSubTab === 'pecodrop' ? 'PECODROP' : 'RVM_OLD';
+    const filtered = list.filter(s => {
+      const type = (s.machineType || s.machine_type || '').toUpperCase();
+      const mId = (s.machineId || s.machine_id || '').toUpperCase();
+      if (match === 'PECODROP') return type.includes('PECO') || mId.includes('PECO');
+      if (match === 'RVM_OLD') return type.includes('OLD') || mId.includes('OLD') || type.includes('LEGACY');
+      return !type.includes('PECO') && !mId.includes('PECO') && !type.includes('OLD') && !mId.includes('OLD');
+    });
+    return filtered.length > 0 ? filtered : list;
+  }, [overview?.recentSessions, activeSubTab]);
+
   return (
     <div className="space-y-6 animate-fade-in">
       
@@ -212,66 +299,74 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       {/* KPI Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         
-        {/* Total Bottles */}
+        {/* Card 1: Primary Material (PET Bottles / Plastic Items) */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#0b5d3b]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Plastic Bottles</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card1.title}</span>
             <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-[#0b5d3b] dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
               <Wine className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalBottles ?? 0}</div>
+            <div className="text-3xl font-extrabold t-text-primary mono">
+              {typeof kpi.card1.value === 'number' ? kpi.card1.value.toLocaleString() : kpi.card1.value}
+            </div>
             <p className="text-xs text-[#0b5d3b] dark:text-emerald-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> Total PET Bottles Recycled
+              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card1.desc}
             </p>
           </div>
         </div>
 
-        {/* Total Cups */}
+        {/* Card 2: Secondary Material (Cups / Cans / Pulses) */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#e5a919]">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Recyclable Cups</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card2.title}</span>
             <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-500/20">
               <Coffee className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalCups ?? 0}</div>
+            <div className="text-3xl font-extrabold t-text-primary mono">
+              {typeof kpi.card2.value === 'number' ? kpi.card2.value.toLocaleString() : kpi.card2.value}
+            </div>
             <p className="text-xs text-amber-800 dark:text-amber-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> Total Cups Collected
+              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card2.desc}
             </p>
           </div>
         </div>
 
-        {/* Total Points */}
+        {/* Card 3: Loyalty Points */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-sky-600">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Points Rewarded</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card3.title}</span>
             <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-800 dark:text-cyan-400 rounded-xl border border-sky-200 dark:border-cyan-500/20">
               <Award className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalPoints ?? 0}</div>
+            <div className="text-3xl font-extrabold t-text-primary mono">
+              {typeof kpi.card3.value === 'number' ? kpi.card3.value.toLocaleString() : kpi.card3.value}
+            </div>
             <p className="text-xs text-sky-800 dark:text-cyan-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> Total User Loyalty Points
+              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card3.desc}
             </p>
           </div>
         </div>
 
-        {/* Total Sessions */}
+        {/* Card 4: Total Sessions */}
         <div className="glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-purple-600">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">Total Sessions</span>
+            <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card4.title}</span>
             <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-400 rounded-xl border border-purple-200 dark:border-purple-500/20">
               <Recycle className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">{overview?.totalSessions ?? 0}</div>
+            <div className="text-3xl font-extrabold t-text-primary mono">
+              {typeof kpi.card4.value === 'number' ? kpi.card4.value.toLocaleString() : kpi.card4.value}
+            </div>
             <p className="text-xs text-purple-800 dark:text-purple-400 flex items-center gap-1 mt-1 font-bold">
-              <Activity className="w-3.5 h-3.5" /> Active Smart Recycling Transactions
+              <Activity className="w-3.5 h-3.5" /> {kpi.card4.desc}
             </p>
           </div>
         </div>
@@ -533,7 +628,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={displayedTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorBottles" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
@@ -574,10 +669,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
           </div>
 
           <div className="space-y-2.5">
-            {(!overview?.recentSessions || overview.recentSessions.length === 0) ? (
+            {(!displayedSessions || displayedSessions.length === 0) ? (
               <p className="text-xs t-text-muted py-4 text-center">No recent sessions.</p>
             ) : (
-              overview.recentSessions.map(session => {
+              displayedSessions.map(session => {
                 const variantText = session.itemVariant || session.item_variant || (session.plasticCount > 0 ? `${session.plasticCount}x ${session.bottleSize || 'MEDIUM'} PLASTIC` : session.aluminiumCount > 0 ? `${session.aluminiumCount}x CAN (Metal)` : session.paperCardboardCount > 0 ? `${session.paperCardboardCount}x PAPER / TETRA PAK` : session.glassCount > 0 ? `${session.glassCount}x GLASS` : `${session.bottles || 1}x RECYCLABLE ITEM`);
                 const pCount = session.plasticCount || session.plastic_count || 0;
                 const aCount = session.aluminiumCount || session.aluminium_count || 0;
