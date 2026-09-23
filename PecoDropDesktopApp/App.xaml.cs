@@ -249,6 +249,11 @@ public partial class App : Application
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Debug.WriteLine($"Dispatcher UI exception: {e.Exception}");
+        if (e.Exception is InvalidOperationException invEx && invEx.Message.Contains("DialogResult"))
+        {
+            e.Handled = true;
+            return;
+        }
         RvmMessageDialog.ShowError("RVM System Error", $"An unexpected error occurred:\n\n{e.Exception.Message}");
         e.Handled = true;
     }

@@ -159,8 +159,17 @@ public sealed class RvmMessageDialog : Window
         };
         okButton.Click += (_, _) =>
         {
-            DialogResult = true;
-            Close();
+            try
+            {
+                if (IsLoaded)
+                {
+                    DialogResult = true;
+                }
+            }
+            catch
+            {
+                try { Close(); } catch { }
+            }
         };
 
         buttonsPanel.Children.Add(okButton);

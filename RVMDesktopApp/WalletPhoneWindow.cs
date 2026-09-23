@@ -55,6 +55,7 @@ public sealed class WalletPhoneWindow : Window
     private readonly TextBlock _countdownText = new();
     private DispatcherTimer? _countdownTimer;
     private int _secondsRemaining = 8;
+    private DispatcherTimer? _closeTimer;
 
     // Controls for Step 3: Thank You / Completion
     private readonly StackPanel _thankYouStack = new();
@@ -123,6 +124,7 @@ public sealed class WalletPhoneWindow : Window
         {
             StopCountdownTimer();
             StopQrTimer();
+            StopCloseTimer();
         };
         Loaded += async (_, _) =>
         {
@@ -476,8 +478,7 @@ public sealed class WalletPhoneWindow : Window
                 // Do NOT credit fallback account! Session is closed without reward.
                 PhoneNumber = string.Empty;
                 FeedbackSubmitted = false;
-                DialogResult = false;
-                Close();
+                SafeSetDialogResult(false);
             }
         };
         Grid.SetColumn(cancelButton, 0);
@@ -788,8 +789,7 @@ public sealed class WalletPhoneWindow : Window
             {
                 PhoneNumber = string.Empty;
                 FeedbackSubmitted = false;
-                DialogResult = false;
-                Close();
+                SafeSetDialogResult(false);
             }
             e.Handled = true;
             return;
@@ -987,24 +987,58 @@ public sealed class WalletPhoneWindow : Window
         CompleteAndClose();
     }
 
+    private void StopCloseTimer()
+    {
+        if (_closeTimer != null)
+        {
+            _closeTimer.Stop();
+            _closeTimer = null;
+        }
+    }
+
+    private void SafeSetDialogResult(bool? result)
+    {
+        try
+        {
+            if (IsLoaded)
+            {
+                DialogResult = result;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            try { Close(); } catch { }
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        StopCountdownTimer();
+        StopQrTimer();
+        StopCloseTimer();
+        base.OnClosed(e);
+    }
+
     private void CompleteAndClose()
     {
+        if (!IsLoaded) return;
         _currentStep = WindowStep.Completed;
         _ratingBodyStack.Visibility = Visibility.Collapsed;
         _ratingFooterBorder.Visibility = Visibility.Collapsed;
         _thankYouStack.Visibility = Visibility.Visible;
 
         // Brief delay to let citizen view the "Thank You" celebration, then close
-        var closeTimer = new DispatcherTimer
+        StopCloseTimer();
+        _closeTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(900)
         };
-        closeTimer.Tick += (_, _) =>
+        _closeTimer.Tick += (_, _) =>
         {
-            closeTimer.Stop();
-            DialogResult = true;
+            StopCloseTimer();
+            SafeSetDialogResult(true);
         };
-        closeTimer.Start();
+        _closeTimer.Start();
     }
 
     private async Task StartQrSessionAsync()
@@ -1079,6 +1113,7 @@ public sealed class WalletPhoneWindow : Window
                 IsAutoFallbackExpired = true;
 
                 await Task.Delay(1200);
+                if (!IsLoaded) return;
                 CompleteAndClose();
                 return;
             }

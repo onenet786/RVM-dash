@@ -372,6 +372,11 @@ public sealed class RatingFeedbackWindow : Window
         };
         _countdownTimer.Tick += (_, _) =>
         {
+            if (!IsLoaded)
+            {
+                StopCountdownTimer();
+                return;
+            }
             _secondsRemaining--;
             if (_secondsRemaining <= 0)
             {
@@ -395,17 +400,38 @@ public sealed class RatingFeedbackWindow : Window
         }
     }
 
+    private void SafeSetDialogResult(bool? result)
+    {
+        try
+        {
+            if (IsLoaded)
+            {
+                DialogResult = result;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            try { Close(); } catch { }
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        StopCountdownTimer();
+        base.OnClosed(e);
+    }
+
     private void Skip()
     {
         StopCountdownTimer();
         FeedbackSubmitted = false;
-        DialogResult = true;
+        SafeSetDialogResult(true);
     }
 
     private void Submit()
     {
         StopCountdownTimer();
         FeedbackSubmitted = true;
-        DialogResult = true;
+        SafeSetDialogResult(true);
     }
 }

@@ -225,7 +225,17 @@ public sealed class AdminLoginWindow : Window
 
         if (DatabaseManager.VerifyAdminCredentials(username, password))
         {
-            DialogResult = true;
+            try
+            {
+                if (IsLoaded)
+                {
+                    DialogResult = true;
+                }
+            }
+            catch
+            {
+                try { Close(); } catch { }
+            }
         }
         else
         {
