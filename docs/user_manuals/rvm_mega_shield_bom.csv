@@ -7,7 +7,7 @@ C1,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-
 C2,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-FR1C102,C137837,Servo rail bulk charge reservoir (Chamber 2)
 C3,1,Aluminum Electrolytic Cap 1000uF 16V Low-ESR,Radial D10x16mm,Panasonic EEU-FR1C102,C137837,Servo rail bulk charge reservoir (Chamber 3)
 C4,1,Tantalum Capacitor 100uF 16V Low-ESR,Case D (7343),AVX TAJD107K016RNJ,C7171,Logic rail bulk decoupling
-C5-C18,14,Ceramic Capacitor 100nF (0.1uF) 50V X7R,0805 SMD,Murata GRM21BR71H104KA01L,C49678,High-frequency bypass per sensor/servo port
+C5-C22,18,Ceramic Capacitor 100nF (0.1uF) 50V X7R,0805 SMD,Murata GRM21BR71H104KA01L,C49678,High-frequency bypass per sensor/servo/bin port
 FB1,1,Ferrite Bead 600 Ohm @ 100MHz 3A,0805 SMD,Murata BLM21PG601SN1D,C23177,Logic rail high-frequency RF filter
 R1,1,Thick Film Resistor 2.2k Ohm 0.5W 1%,1206 SMD,Yageo RC1206FR-072K2L,C4460,Optocoupler LED current limit from 12V
 R2,1,Thick Film Resistor 330 Ohm 0.25W 1%,0805 SMD,Uniroyal 0805W8F3300T5E,C17630,Logic Power LED current limit
@@ -25,5 +25,7 @@ TB2,1,Screw Terminal Block 2-Pin 5.08mm 16A,Through-Hole 5.08mm,Degson DG128-5.0
 TB3,1,Screw Terminal Block 3-Pin 5.08mm 16A,Through-Hole 5.08mm,Degson DG128-5.08-03P,C406451,TB_INDUCTIVE LJ12A3 Sensor Input
 J_SRV1-6,6,Polarized Pin Header 1x3 2.54mm Keyed,Through-Hole 2.54mm,Wurth Elektronik 61300311121,C2897384,6x Gate Servo Connectors [GND, VCC, SIG]
 J_US1-8,8,JST-XH Shrouded Header 4-Pin 2.50mm,2.50mm Shrouded Male,JST B4B-XH-A,C157934,8x Ultrasonic HC-SR04 Ports [VCC, TRIG, ECHO, GND]
+J_BIN1-3,3,JST-XH Shrouded Header 3-Pin 2.50mm,2.50mm Shrouded Male,JST B3B-XH-A,C157933,3x Bin Full Optical Sensors [5V, SIG (D47/D48/D49), GND]
+J_MQ6,1,JST-XH Shrouded Header 3-Pin 2.50mm,2.50mm Shrouded Male,JST B3B-XH-A,C157933,MQ-6 Hazardous Gas / Smoke Alarm Sensor [5V, DOUT (D50), GND]
 J_HX,1,Pin Header Socket 1x4 2.54mm Gold-Plated,Female Socket 2.54mm,Amphenol 68000-104HLF,C124376,HX711 24-bit ADC Breakout Sub-carrier Socket
 HDR_MEGA,1,Arduino Mega Stacking Header Kit (Long Lead),Stackable Through-Hole,Adafruit / SparkFun PRT-09372,Custom,Bottom-side Mating Headers into Mega 2560

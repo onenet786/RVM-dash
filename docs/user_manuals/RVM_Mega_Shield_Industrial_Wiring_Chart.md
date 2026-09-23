@@ -1,4 +1,4 @@
-# PECODROP RVM — Complete Hardware Wiring & Shield Guide (REV 6.0)
+# PECODROP RVM — Complete Hardware Wiring & Shield Guide (REV 8.0)
 
 Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RVM_Arduino.ino`](file:///d:/GIT-HUB/RVM-dash/PecoDropDesktopApp/Arduino/RVM_Arduino/RVM_Arduino.ino).
 
@@ -9,7 +9,7 @@ Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RV
 ### Chamber 1 (Plastic Bottle Sizing & Sort)
 | Subsystem Component | Sensor Pin | Arduino Mega Pin | Wire Color Code | Terminal Label |
 | :--- | :--- | :--- | :--- | :--- |
-| **Entrance Ultrasonic** | `VCC` | `+5V` | Red | `CH1_VCC` |
+| **Entrance Ultrasonic** | `VCC` | `+5V_LOGIC` | Red | `CH1_VCC` |
 | | `TRIG` | **Pin 9** | Yellow | `CH1_ENTR_TRIG` |
 | | `ECHO` | **Pin 10** | Green | `CH1_ENTR_ECHO` |
 | | `GND` | `GND` | Black | `CH1_GND` |
@@ -23,6 +23,9 @@ Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RV
 | | `VCC (+5V Servo)` | `+5V_SERVO` (Ext Reg) | Red | `5V_SERVO_BUS` |
 | | `GND` | `GND` | Brown | `COMMON_GND` |
 | **Drop Gate Servo Motor** | `SIGNAL (PWM)` | **Pin 12** | Orange | `CH1_DROP_PWM` |
+| **[NEW] Bin Full Optical Sensor** | `SIGNAL` | **Pin 47** | Purple/Yellow | `CH1_BIN_FULL` |
+| | `VCC` | `+5V_LOGIC` | Red | `+5V_LOGIC` |
+| | `GND` | `GND` | Black | `COMMON_GND` |
 
 ---
 
@@ -42,6 +45,9 @@ Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RV
 | | `GND` | `GND` | Blue | `COMMON_GND` |
 | **Iris Servo Motor** | `SIGNAL (PWM)` | **Pin 27** | Orange | `CH2_IRIS_PWM` |
 | **Drop Gate Servo Motor** | `SIGNAL (PWM)` | **Pin 28** | Orange | `CH2_DROP_PWM` |
+| **[NEW] Bin Full Optical Sensor** | `SIGNAL` | **Pin 48** | Purple/Yellow | `CH2_BIN_FULL` |
+| | `VCC` | `+5V_LOGIC` | Red | `+5V_LOGIC` |
+| | `GND` | `GND` | Black | `COMMON_GND` |
 
 ---
 
@@ -56,6 +62,18 @@ Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RV
 | | `SCK` | **Pin 38** | Yellow | `HX711_SCK` |
 | **Iris Servo Motor** | `SIGNAL (PWM)` | **Pin 35** | Orange | `CH3_IRIS_PWM` |
 | **Drop Gate Servo Motor** | `SIGNAL (PWM)` | **Pin 36** | Orange | `CH3_DROP_PWM` |
+| **[NEW] Bin Full Optical Sensor** | `SIGNAL` | **Pin 49** | Purple/Yellow | `CH3_BIN_FULL` |
+| | `VCC` | `+5V_LOGIC` | Red | `+5V_LOGIC` |
+| | `GND` | `GND` | Black | `COMMON_GND` |
+
+---
+
+### Environmental Safety Module
+| Subsystem Component | Sensor Pin | Arduino Mega Pin | Wire Color Code | Terminal Label |
+| :--- | :--- | :--- | :--- | :--- |
+| **[NEW] MQ-6 Gas / Smoke Sensor** | `DOUT` | **Pin 50** | Purple | `ENV_MQ6_ALARM` |
+| | `VCC` | `+5V_LOGIC` | Red | `+5V_LOGIC` |
+| | `GND` | `GND` | Black | `COMMON_GND` |
 
 ---
 
@@ -68,4 +86,4 @@ Strict 1:1 hardware pin matching for [`PecoDropDesktopApp/Arduino/RVM_Arduino/RV
 2. **Inductive Sensor Power (+12V)**:
    - Standard industrial NPN/PNP inductive proximity sensors (e.g. LJ12A3-4-Z/BX) require **6V to 36V DC** to operate reliably. Connect their VCC to the **12V power supply**.
 3. **Common Ground**:
-   - Tie the 12V Ground, 5V Servo Ground, and Arduino Mega Ground together to form a **single unified ground plane**.
+   - Tie 12V PSU Ground, 5V Servo Ground, and Arduino Mega Ground together at the PCB central star ground net-tie.

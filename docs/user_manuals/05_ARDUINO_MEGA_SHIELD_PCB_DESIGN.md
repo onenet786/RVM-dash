@@ -1,7 +1,7 @@
 # PecoDrop Reverse Vending Machine (RVM) — Arduino Mega 2560 Mezzanine Shield PCB Design Manual
 
 > **Document Type:** Master Hardware Engineering & Embedded Systems Specification  
-> **Document Ref:** PCB-RVM-MEGA-2560-REV2.1  
+> **Document Ref:** PCB-RVM-MEGA-2560-REV8.0  
 > **Target Audience:** Executive / Lead Embedded Systems Engineers, Mechatronics Designers, PCB Layout Specialists  
 > **Compatible Controller:** Atmel ATmega2560 (Arduino Mega 2560 Rev3) @ 16 MHz  
 > **Firmware Reference:** `PecoDropDesktopApp/Arduino/RVM_Arduino/RVM_Arduino.ino`  
@@ -56,12 +56,16 @@ graph TD
         RAIL_SERVO --> SERVOS["6x High-Torque Servos (Pins 11, 12, 27, 28, 35, 36)"]
         RAIL_LOGIC --> ULTRASONICS["8x HC-SR04 Ultrasonic Sensors (JST-XH 4-Pin)"]
         RAIL_LOGIC --> HX711["HX711 24-bit Strain Gauge ADC (Pins 37/38)"]
+        RAIL_LOGIC --> BINS["3x Bin Full Optical Sensors (Pins 47, 48, 49) [NEW]"]
+        RAIL_LOGIC --> MQ6["MQ-6 Hazardous Gas / Smoke Sensor (Pin 50) [NEW]"]
         TB_12V --> OPTO["PC817 Optocoupler Isolation (Pin 32 Metal Can Sensor)"]
     end
 
     MEGA_HDRS --> SERVOS
     MEGA_HDRS --> ULTRASONICS
     MEGA_HDRS --> HX711
+    MEGA_HDRS --> BINS
+    MEGA_HDRS --> MQ6
     MEGA_HDRS --> OPTO
 
     STAR_TIE((Star Net-Tie)) -.->|Single Point Link| PGND[PGND Servo Ground]
@@ -166,6 +170,10 @@ Every pin on the Arduino Mega 2560 has an assigned, dedicated function on this s
 | **D38** | `HX711_SCK` | `J_HX711` (4-pin 0.1") | Pin 3 | Output | 5V TTL | 24-bit ADC Serial Clock Output (Bit-banged) |
 | **D39** | `PP_BOT_TRIG` | `J_PP_BOT` (JST-XH 4P) | Pin 2 | Output | 5V TTL | Paper tray arrival confirmation trigger |
 | **D40** | `PP_BOT_ECHO` | `J_PP_BOT` (JST-XH 4P) | Pin 3 | Input | 5V TTL | Paper tray arrival confirmation echo |
+| **D47** | `P_BIN_FULL` | `J_P_BIN` (JST-XH 3P) | Pin 2 (SIG) | Input | 5V TTL | Plastic bin optical full sensor (`INPUT_PULLUP`, Active LOW = Full) [NEW] |
+| **D48** | `M_BIN_FULL` | `J_M_BIN` (JST-XH 3P) | Pin 2 (SIG) | Input | 5V TTL | Metal bin optical full sensor (`INPUT_PULLUP`, Active LOW = Full) [NEW] |
+| **D49** | `PP_BIN_FULL` | `J_PP_BIN` (JST-XH 3P) | Pin 2 (SIG) | Input | 5V TTL | Paper bin optical full sensor (`INPUT_PULLUP`, Active LOW = Full) [NEW] |
+| **D50** | `MQ6_GAS_ALARM`| `J_MQ6` (JST-XH 3P) | Pin 2 (SIG) | Input | 5V TTL | MQ-6 Hazardous Gas / Smoke Alarm (`INPUT_PULLUP`, Active LOW = Alarm) [NEW] |
 | **D20** | `I2C_SDA` | `J_I2C` Header | Pin 3 | Bidirectional | 5V TTL | Auxiliary I2C Serial Data (Optional OLED / Sensors) |
 | **D21** | `I2C_SCL` | `J_I2C` Header | Pin 4 | Output | 5V TTL | Auxiliary I2C Serial Clock |
 | **RESET**| `MCU_RESET` | `SW_RESET` Pushbutton | Pin 1 | Input | Active LOW | Hardware manual restart tactile switch |
