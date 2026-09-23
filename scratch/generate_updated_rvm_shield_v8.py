@@ -144,7 +144,11 @@ def build_all_pads():
 
 def build_tracks():
     tracks = []
-    # 1. High-Current 5V Servo Rail (2.2mm width)
+    
+    # -------------------------------------------------------------------------
+    # A. POWER RAILS & COMMON GROUND
+    # -------------------------------------------------------------------------
+    # High-Current 5V Servo Rail (2.2mm width)
     tracks.append({'net': '5V_SERVO', 'layer': 'bot', 'width': 2.2, 'pts': [(6.0, 28.0), (18.0, 28.0), (18.0, 21.0), (77.0, 21.0)]})
     tracks.append({'net': '5V_SERVO', 'layer': 'bot', 'width': 2.0, 'pts': [(48.54, 21.0), (48.54, 16.50)]})  # M_IRIS
     tracks.append({'net': '5V_SERVO', 'layer': 'bot', 'width': 2.0, 'pts': [(57.54, 21.0), (57.54, 16.50)]})  # M_DROP
@@ -153,34 +157,75 @@ def build_tracks():
     tracks.append({'net': '5V_SERVO', 'layer': 'bot', 'width': 2.0, 'pts': [(18.0, 28.0), (18.0, 44.0), (48.54, 44.0), (48.54, 46.50)]}) # P_IRIS
     tracks.append({'net': '5V_SERVO', 'layer': 'bot', 'width': 2.0, 'pts': [(48.54, 44.0), (57.54, 44.0), (57.54, 46.50)]}) # P_DROP
 
-    # 2. 12V Inductive Sensor Rail
+    # 12V Inductive Sensor Rail
     tracks.append({'net': '12V_RAW', 'layer': 'top', 'width': 1.4, 'pts': [(6.0, 42.0), (14.0, 42.0), (14.0, 31.0), (46.0, 31.0), (46.0, 27.50)]})
 
-    # 3. Clean 5V Logic Bus
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.2, 'pts': [(42.66, 2.40), (42.66, 7.0), (22.0, 7.0), (22.0, 46.50)]})
+    # Clean 5V Logic Bus
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.4, 'pts': [(42.66, 2.40), (42.66, 7.0), (22.0, 7.0), (22.0, 46.50)]})
     tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 46.50), (34.0, 46.50)]})
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 38.50), (34.0, 38.50), (46.0, 38.50)]}) # To P_BIN
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 27.50), (34.0, 27.50), (55.0, 27.50)]}) # To M_BIN
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 38.50), (34.0, 38.50), (46.0, 38.50)]})
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 27.50), (34.0, 27.50), (55.0, 27.50)]})
     tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(22.0, 16.50), (34.0, 16.50)]})
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.2, 'pts': [(42.66, 7.0), (67.0, 7.0), (67.0, 46.50), (79.0, 46.50)]})
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(67.0, 34.50), (79.0, 34.50)]}) # To PP_BIN
-    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(67.0, 25.00), (76.0, 25.00)]}) # To ENV_MQ6
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.4, 'pts': [(42.66, 7.0), (67.0, 7.0), (67.0, 46.50), (79.0, 46.50)]})
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(67.0, 34.50), (79.0, 34.50)]})
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.0, 'pts': [(67.0, 25.00), (76.0, 25.00)]})
+    tracks.append({'net': '5V_LOGIC', 'layer': 'bot', 'width': 1.2, 'pts': [(67.0, 7.0), (100.04, 7.0), (100.04, 5.08)]})
 
-    # 4. Top PWM Signals (D9, D10, D11, D12)
-    tracks.append({'net': 'D9',  'layer': 'top', 'width': 0.65, 'pts': [(24.54, 46.50), (24.54, 49.50), (46.04, 49.50), (46.04, 51.10)]})
-    tracks.append({'net': 'D10', 'layer': 'top', 'width': 0.65, 'pts': [(27.08, 46.50), (27.08, 48.70), (48.58, 48.70), (48.58, 51.10)]})
-    tracks.append({'net': 'D11', 'layer': 'top', 'width': 0.65, 'pts': [(46.00, 46.50), (46.00, 47.90), (51.12, 47.90), (51.12, 51.10)]})
-    tracks.append({'net': 'D12', 'layer': 'top', 'width': 0.65, 'pts': [(55.00, 46.50), (55.00, 47.90), (53.66, 47.90), (53.66, 51.10)]})
+    # Ground Return Bus
+    tracks.append({'net': 'GND', 'layer': 'bot', 'width': 1.5, 'pts': [(6.0, 42.0), (6.0, 28.0), (12.0, 28.0), (45.20, 28.0), (45.20, 2.40)]})
+    tracks.append({'net': 'GND', 'layer': 'bot', 'width': 1.5, 'pts': [(45.20, 2.40), (47.74, 2.40), (97.50, 2.40), (97.50, 5.08)]})
+    tracks.append({'net': 'GND', 'layer': 'bot', 'width': 1.2, 'pts': [(58.74, 51.10), (58.74, 46.50), (31.62, 46.50)]})
 
-    # 5. [NEW] Bin Full & MQ-6 Telemetry Traces to 2x18 Header
-    # D47 Plastic Bin Sensor
-    tracks.append({'net': 'D47', 'layer': 'top', 'width': 0.65, 'pts': [(48.54, 38.50), (48.54, 40.64), (97.50, 40.64)]})
-    # D48 Metal Bin Sensor
-    tracks.append({'net': 'D48', 'layer': 'top', 'width': 0.65, 'pts': [(57.54, 27.50), (57.54, 43.18), (100.04, 43.18)]})
-    # D49 Paper Bin Sensor
-    tracks.append({'net': 'D49', 'layer': 'top', 'width': 0.65, 'pts': [(81.54, 34.50), (81.54, 43.18), (97.50, 43.18)]})
-    # D50 MQ6 Gas Alarm Sensor
-    tracks.append({'net': 'D50', 'layer': 'top', 'width': 0.65, 'pts': [(78.54, 25.00), (78.54, 45.72), (100.04, 45.72)]})
+    # -------------------------------------------------------------------------
+    # B. TOP ARDUINO MEGA DIGITAL & PWM SIGNALS (Pins 9 to 12)
+    # -------------------------------------------------------------------------
+    tracks.append({'net': 'D9',  'layer': 'bot', 'width': 0.70, 'pts': [(24.54, 46.50), (24.54, 49.50), (46.04, 49.50), (46.04, 51.10)]})
+    tracks.append({'net': 'D10', 'layer': 'bot', 'width': 0.70, 'pts': [(27.08, 46.50), (27.08, 48.70), (48.58, 48.70), (48.58, 51.10)]})
+    tracks.append({'net': 'D11', 'layer': 'bot', 'width': 0.70, 'pts': [(46.00, 46.50), (46.00, 47.90), (51.12, 47.90), (51.12, 51.10)]})
+    tracks.append({'net': 'D12', 'layer': 'bot', 'width': 0.70, 'pts': [(55.00, 46.50), (55.00, 47.90), (53.66, 47.90), (53.66, 51.10)]})
+
+    # -------------------------------------------------------------------------
+    # C. ALL 25 FIELD SIGNALS ROUTED TO MEGA 2X18 RIGHT HEADER (Pins 22 to 50)
+    # -------------------------------------------------------------------------
+    signal_routes = [
+        # Net, src_xy, dest_xy, channel_x
+        ('D22', (36.54, 46.50), (100.04, 10.16), 88.0), # CH1 Sizing Bot Trig
+        ('D23', (39.08, 46.50), (97.50, 10.16),  87.0), # CH1 Sizing Bot Echo
+        ('D24', (24.54, 38.50), (100.04, 12.70), 89.0), # CH1 Sizing Mid Trig
+        ('D25', (24.54, 27.50), (97.50, 12.70),  86.0), # CH2 Entrance Sonar Trig
+        ('D26', (27.08, 27.50), (100.04, 15.24), 90.0), # CH2 Entrance Sonar Echo
+        ('D27', (46.00, 16.50), (97.50, 15.24),  85.0), # CH2 Iris Servo PWM
+        ('D28', (55.00, 16.50), (100.04, 17.78), 91.0), # CH2 Drop Gate Servo PWM
+        ('D29', (36.54, 27.50), (97.50, 17.78),  84.0), # CH2 Sizing Bot Trig
+        ('D30', (39.08, 27.50), (100.04, 20.32), 92.0), # CH2 Sizing Bot Echo
+        ('D31', (24.54, 16.50), (97.50, 20.32),  83.0), # CH2 Sizing Mid Trig
+        ('D32', (48.54, 27.50), (100.04, 22.86), 93.0), # CH2 Inductive Sensor
+        ('D33', (69.54, 46.50), (97.50, 22.86),  82.0), # CH3 Paper Top Sonar Trig
+        ('D34', (72.08, 46.50), (100.04, 25.40), 94.0), # CH3 Paper Top Sonar Echo
+        ('D35', (67.00, 16.50), (97.50, 25.40),  81.0), # CH3 Paper Iris Servo PWM
+        ('D36', (76.00, 16.50), (100.04, 27.94), 95.0), # CH3 Paper Drop Servo PWM
+        ('D37', (69.54, 34.50), (97.50, 27.94),  80.0), # CH3 HX711 DOUT
+        ('D38', (72.08, 34.50), (100.04, 30.48), 95.5), # CH3 HX711 SCK
+        ('D39', (81.54, 46.50), (97.50, 30.48),  87.5), # CH3 Paper Bot Sonar Trig
+        ('D40', (84.08, 46.50), (100.04, 33.02), 96.0), # CH3 Paper Bot Sonar Echo
+        ('D41', (27.08, 38.50), (97.50, 33.02),  86.5), # CH1 Sizing Mid Echo
+        ('D42', (36.54, 38.50), (100.04, 35.56), 94.5), # CH1 Sizing Top Trig
+        ('D43', (39.08, 38.50), (97.50, 35.56),  85.5), # CH1 Sizing Top Echo
+        ('D44', (27.08, 16.50), (100.04, 38.10), 93.5), # CH2 Sizing Mid Echo
+        ('D45', (36.54, 16.50), (97.50, 38.10),  84.5), # CH2 Sizing Top Trig
+        ('D46', (39.08, 16.50), (100.04, 40.64), 92.5), # CH2 Sizing Top Echo
+        ('D47', (48.54, 38.50), (97.50, 40.64),  88.5), # [NEW] Plastic Bin Sensor (Pin 47)
+        ('D48', (57.54, 27.50), (100.04, 43.18), 91.5), # [NEW] Metal Bin Sensor (Pin 48)
+        ('D49', (81.54, 34.50), (97.50, 43.18),  89.5), # [NEW] Paper Bin Sensor (Pin 49)
+        ('D50', (78.54, 25.00), (100.04, 45.72), 90.5), # [NEW] MQ-6 Gas Alarm (Pin 50)
+    ]
+
+    for net, src, dest, ch_x in signal_routes:
+        sx, sy = src
+        dx, dy = dest
+        # Orthogonal 3-segment routing with chamfers
+        pts = [(sx, sy), (ch_x, sy), (ch_x, dy), (dx, dy)]
+        tracks.append({'net': net, 'layer': 'bot', 'width': 0.65, 'pts': pts})
 
     return tracks
 
@@ -381,14 +426,14 @@ def generate_cad_layout(pads, tracks):
     for y in np.arange(2.0, H_BOARD-2.0, 4.0):
         ax.axhline(y, color='#112240', linewidth=0.5, linestyle=':', zorder=2)
 
-    # Draw Copper Tracks
+    # Draw Copper Tracks with clear distinction
     for trk in tracks:
-        col = '#0284c7' if trk['layer'] == 'bot' else '#f59e0b'
-        lw = trk['width'] * 2.0
+        col = '#00d2ff' if '5V' in trk['net'] or 'GND' in trk['net'] else '#f59e0b'
+        lw = trk['width'] * 1.8
         xs, ys = zip(*trk['pts'])
-        ax.plot(xs, ys, color=col, linewidth=lw, solid_capstyle='round', solid_joinstyle='round', alpha=0.6, zorder=3)
+        ax.plot(xs, ys, color=col, linewidth=lw, solid_capstyle='round', solid_joinstyle='round', alpha=0.7, zorder=3)
 
-    # Chamber Compartment Silkscreen Outlines (Positioned clean with zero pad overlap)
+    # Silkscreen zone boundaries
     c1_zone = FancyBboxPatch((20, 36.5), 41, 12.0, boxstyle="round,pad=0.4,rounding_size=1.2",
                              facecolor="none", edgecolor="#38bdf8", linewidth=1.0, linestyle="--", zorder=4)
     ax.add_patch(c1_zone)
@@ -405,9 +450,15 @@ def generate_cad_layout(pads, tracks):
     ax.text(65, 47.5, "CH3: PAPER & CARTON [33,34,35,36, HX:37,38, 39,40 + D49]", fontsize=6.2, fontweight='bold', color="#10b981", zorder=5)
     ax.text(65, 23.5, "ENV: MQ-6 ALARM (PIN 50)", fontsize=6.2, fontweight='bold', color="#c084fc", zorder=5)
 
-    # Power Silkscreen
     ax.text(3, 49, "12V IN (TB1)", fontsize=6.5, fontweight='bold', color="#f59e0b", zorder=5)
     ax.text(3, 35, "5V_SERVO (TB2)", fontsize=6.5, fontweight='bold', color="#f43f5e", zorder=5)
+
+    # Component Outlines / Silkscreen Boxes
+    for name, bx, by, nets in CONNECTORS:
+        w = len(nets) * 2.54 + 1.6 if 'TB_' not in name else len(nets) * 5.08 + 2.0
+        h = 5.0 if 'TB_' not in name else 8.0
+        s_box = Rectangle((bx - 1.0, by - h/2), w, h, facecolor="none", edgecolor="#ffffff", linewidth=0.5, zorder=4)
+        ax.add_patch(s_box)
 
     # Draw all pads
     for p in pads:
@@ -420,19 +471,12 @@ def generate_cad_layout(pads, tracks):
         ax.add_patch(c_out)
         ax.add_patch(c_in)
 
-    # Component Outlines / Silkscreen Boxes
-    for name, bx, by, nets in CONNECTORS:
-        w = len(nets) * 2.54 + 1.6 if 'TB_' not in name else len(nets) * 5.08 + 2.0
-        h = 5.0 if 'TB_' not in name else 8.0
-        s_box = Rectangle((bx - 1.0, by - h/2), w, h, facecolor="none", edgecolor="#ffffff", linewidth=0.5, zorder=4)
-        ax.add_patch(s_box)
-
-    # Labels for new and critical field connections
+    # Pin labels for critical connections
     annot_list = [
-        ("CH1_BIN\n(Pin 47)", 48.5, 41.50, "#c084fc"),
-        ("CH2_BIN\n(Pin 48)", 57.5, 30.50, "#c084fc"),
-        ("CH3_BIN\n(Pin 49)", 81.5, 37.50, "#c084fc"),
-        ("ENV_MQ6\n(Pin 50)", 78.5, 27.50, "#c084fc"),
+        ("CH1_BIN (Pin 47)", 48.5, 41.50, "#c084fc"),
+        ("CH2_BIN (Pin 48)", 57.5, 30.50, "#c084fc"),
+        ("CH3_BIN (Pin 49)", 81.5, 37.50, "#c084fc"),
+        ("ENV_MQ6 (Pin 50)", 78.5, 27.50, "#c084fc"),
         ("CH2_IND (D32)", 48.5, 24.50, "#f59e0b"),
         ("CH3_HX (37/38)", 70.0, 31.50, "#10b981"),
         ("P_IRIS (11)", 48.5, 49.00, "#38bdf8"),
@@ -445,7 +489,6 @@ def generate_cad_layout(pads, tracks):
     for lbl, x, y, col in annot_list:
         ax.text(x, y, lbl, fontsize=5.2, fontweight='bold', color=col, ha='center', va='center', zorder=8)
 
-    # Board Title & Layer Legend
     ax.text(W_BOARD/2, H_BOARD + 2.5, "PECODROP RVM — ARDUINO MEGA SHIELD 2D PHYSICAL CAD LAYOUT (REV 8.0)",
             color='#38bdf8', fontsize=12, fontweight='bold', ha='center')
 
@@ -455,7 +498,7 @@ def generate_cad_layout(pads, tracks):
     print(f"[CAD LAYOUT GENERATED]: {layout_path}")
 
 # -----------------------------------------------------------------------------
-# 4. GENERATE 1:1 TRUE SCALE ETCHING MASKS (MIRROR & DIRECT) WITH TRACKS
+# 4. GENERATE 1:1 TRUE SCALE ETCHING MASKS (MIRROR & DIRECT) WITH FULL TRACKS
 # -----------------------------------------------------------------------------
 def generate_copper_etch_masks(pads, tracks):
     # 1. Mirrored Toner Transfer (B.Cu Mirror)
@@ -472,13 +515,12 @@ def generate_copper_etch_masks(pads, tracks):
                            facecolor="#000000", edgecolor="#000000", zorder=1)
     ax.add_patch(board)
 
-    # Tracks on bottom layer (white isolation lines or copper paths)
+    # All tracks rendered as solid white lines on black background
     for trk in tracks:
-        if trk['layer'] == 'bot':
-            xs, ys = zip(*trk['pts'])
-            ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.5, solid_capstyle='round', solid_joinstyle='round', zorder=2)
+        xs, ys = zip(*trk['pts'])
+        ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.6, solid_capstyle='round', solid_joinstyle='round', zorder=2)
 
-    # Pads
+    # All pads rendered with white annular rings and black drill centers
     for p in pads:
         c_ring = Circle((p['x'], p['y']), p['r_out'], facecolor='#ffffff', edgecolor='none', zorder=3)
         c_hole = Circle((p['x'], p['y']), p['r_in'], facecolor='#000000', edgecolor='none', zorder=4)
@@ -503,9 +545,8 @@ def generate_copper_etch_masks(pads, tracks):
                            facecolor="#000000", edgecolor="#000000", zorder=1)
     ax.add_patch(board)
     for trk in tracks:
-        if trk['layer'] == 'bot':
-            xs, ys = zip(*trk['pts'])
-            ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.5, solid_capstyle='round', solid_joinstyle='round', zorder=2)
+        xs, ys = zip(*trk['pts'])
+        ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.6, solid_capstyle='round', solid_joinstyle='round', zorder=2)
     for p in pads:
         c_ring = Circle((p['x'], p['y']), p['r_out'], facecolor='#ffffff', edgecolor='none', zorder=3)
         c_hole = Circle((p['x'], p['y']), p['r_in'], facecolor='#000000', edgecolor='none', zorder=4)
@@ -530,9 +571,8 @@ def generate_copper_etch_masks(pads, tracks):
                            facecolor="#ffffff", edgecolor="#000000", linewidth=1.0, zorder=1)
     ax.add_patch(board)
     for trk in tracks:
-        if trk['layer'] == 'top':
-            xs, ys = zip(*trk['pts'])
-            ax.plot(xs, ys, color='#000000', linewidth=trk['width'] * 1.5, solid_capstyle='round', solid_joinstyle='round', zorder=2)
+        xs, ys = zip(*trk['pts'])
+        ax.plot(xs, ys, color='#000000', linewidth=trk['width'] * 1.6, solid_capstyle='round', solid_joinstyle='round', zorder=2)
     for p in pads:
         c_ring = Circle((p['x'], p['y']), p['r_out'], facecolor='#000000', edgecolor='none', zorder=3)
         c_hole = Circle((p['x'], p['y']), p['r_in'], facecolor='#ffffff', edgecolor='none', zorder=4)
@@ -567,9 +607,8 @@ def generate_print_sheet_pdf(pads, tracks):
                                facecolor="#000000", edgecolor="#000000", zorder=1)
         ax.add_patch(board)
         for trk in tracks:
-            if trk['layer'] == 'bot':
-                xs, ys = zip(*trk['pts'])
-                ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.5, solid_capstyle='round', solid_joinstyle='round', zorder=2)
+            xs, ys = zip(*trk['pts'])
+            ax.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.6, solid_capstyle='round', solid_joinstyle='round', zorder=2)
         for p in pads:
             c_ring = Circle((p['x'], p['y']), p['r_out'], facecolor='#ffffff', edgecolor='none', zorder=3)
             c_hole = Circle((p['x'], p['y']), p['r_in'], facecolor='#000000', edgecolor='none', zorder=4)
@@ -625,9 +664,8 @@ def generate_print_sheet_pdf(pads, tracks):
                                facecolor="#000000", edgecolor="#000000", zorder=1)
         ax1.add_patch(board)
         for trk in tracks:
-            if trk['layer'] == 'bot':
-                xs, ys = zip(*trk['pts'])
-                ax1.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.5, solid_capstyle='round', solid_joinstyle='round', zorder=2)
+            xs, ys = zip(*trk['pts'])
+            ax1.plot(xs, ys, color='#ffffff', linewidth=trk['width'] * 1.6, solid_capstyle='round', solid_joinstyle='round', zorder=2)
         for p in pads:
             c_ring = Circle((p['x'], p['y']), p['r_out'], facecolor='#ffffff', edgecolor='none', zorder=3)
             c_hole = Circle((p['x'], p['y']), p['r_in'], facecolor='#000000', edgecolor='none', zorder=4)
@@ -658,9 +696,9 @@ def generate_print_sheet_pdf(pads, tracks):
                                 facecolor="#0a192f", edgecolor="#00d2ff", linewidth=2.5, zorder=1)
         ax2.add_patch(board2)
         for trk in tracks:
-            col = '#0284c7' if trk['layer'] == 'bot' else '#f59e0b'
+            col = '#00d2ff' if '5V' in trk['net'] or 'GND' in trk['net'] else '#f59e0b'
             xs, ys = zip(*trk['pts'])
-            ax2.plot(xs, ys, color=col, linewidth=trk['width'] * 2.0, solid_capstyle='round', solid_joinstyle='round', alpha=0.6, zorder=3)
+            ax2.plot(xs, ys, color=col, linewidth=trk['width'] * 1.8, solid_capstyle='round', solid_joinstyle='round', alpha=0.7, zorder=3)
         for p in pads:
             is_gnd = (p['net'] == 'GND')
             is_pwr = ('5V' in p['net'] or '12V' in p['net'])
@@ -722,15 +760,14 @@ def export_production_gerbers(pads, tracks):
         b_cu.append(f"{ap}\nX{x_int}Y{y_int}D03*\n")
     # Bottom Tracks
     for trk in tracks:
-        if trk['layer'] == 'bot':
-            ap = 'D23*' if trk['width'] > 2.0 else ('D22*' if trk['width'] > 1.0 else 'D21*')
-            b_cu.append(f"{ap}\n")
-            pts = trk['pts']
-            x0, y0 = int(round(pts[0][0] * 10000)), int(round(pts[0][1] * 10000))
-            b_cu.append(f"X{x0}Y{y0}D02*\n")
-            for pt in pts[1:]:
-                xi, yi = int(round(pt[0] * 10000)), int(round(pt[1] * 10000))
-                b_cu.append(f"X{xi}Y{yi}D01*\n")
+        ap = 'D23*' if trk['width'] > 2.0 else ('D22*' if trk['width'] > 1.0 else 'D21*')
+        b_cu.append(f"{ap}\n")
+        pts = trk['pts']
+        x0, y0 = int(round(pts[0][0] * 10000)), int(round(pts[0][1] * 10000))
+        b_cu.append(f"X{x0}Y{y0}D02*\n")
+        for pt in pts[1:]:
+            xi, yi = int(round(pt[0] * 10000)), int(round(pt[1] * 10000))
+            b_cu.append(f"X{xi}Y{yi}D01*\n")
     b_cu.append("M02*\n")
     gerber_files['RVM_Mega_Shield-B_Cu.gbr'] = "".join(b_cu)
 
@@ -741,17 +778,15 @@ def export_production_gerbers(pads, tracks):
         x_int = int(round(p['x'] * 10000))
         y_int = int(round(p['y'] * 10000))
         f_cu.append(f"{ap}\nX{x_int}Y{y_int}D03*\n")
-    # Top Tracks
     for trk in tracks:
-        if trk['layer'] == 'top':
-            ap = 'D22*' if trk['width'] > 1.0 else 'D21*'
-            f_cu.append(f"{ap}\n")
-            pts = trk['pts']
-            x0, y0 = int(round(pts[0][0] * 10000)), int(round(pts[0][1] * 10000))
-            f_cu.append(f"X{x0}Y{y0}D02*\n")
-            for pt in pts[1:]:
-                xi, yi = int(round(pt[0] * 10000)), int(round(pt[1] * 10000))
-                f_cu.append(f"X{xi}Y{yi}D01*\n")
+        ap = 'D22*' if trk['width'] > 1.0 else 'D21*'
+        f_cu.append(f"{ap}\n")
+        pts = trk['pts']
+        x0, y0 = int(round(pts[0][0] * 10000)), int(round(pts[0][1] * 10000))
+        f_cu.append(f"X{x0}Y{y0}D02*\n")
+        for pt in pts[1:]:
+            xi, yi = int(round(pt[0] * 10000)), int(round(pt[1] * 10000))
+            f_cu.append(f"X{xi}Y{yi}D01*\n")
     f_cu.append("M02*\n")
     gerber_files['RVM_Mega_Shield-F_Cu.gbr'] = "".join(f_cu)
 
