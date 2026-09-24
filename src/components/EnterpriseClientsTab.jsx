@@ -277,6 +277,17 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <a
+            href="/PecoDrop_Enterprise_User_Guide.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            download="PecoDrop_Enterprise_User_Guide.pdf"
+            className="px-3.5 py-2.5 rounded-2xl border t-border t-bg t-text-primary hover:text-emerald-500 font-bold text-xs flex items-center gap-2 shadow-sm transition-all"
+            title="Download Bilingual Employee User Guide (English & Urdu Nastaliq)"
+          >
+            <Download className="w-4 h-4 text-emerald-500" />
+            <span className="hidden sm:inline">User Guide (PDF / اردو)</span>
+          </a>
           <button
             onClick={fetchOrganizations}
             disabled={loading}
