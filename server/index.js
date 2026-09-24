@@ -8758,9 +8758,9 @@ app.get('/claim', (req, res) => {
       <p class="subtitle">${isStartMode ? 'مشین شروع کریں اور انعامات حاصل کریں' : 'ری سائیکلنگ انعامات حاصل کریں'}</p>
 
       <div class="reward-box">
-        <div class="points-val">${isStartMode ? 'READY' : '+' + points}</div>
-        <div class="points-lbl">${isStartMode ? 'TOUCHLESS QR ACTIVATION' : 'ECO POINTS EARNED'}</div>
-        <div class="machine-info">Machine: ${machine} • ${isStartMode ? 'Scan to Start' : 'Session: ' + sessionId.slice(-8)}</div>
+        <div class="points-val">${isStartMode ? 'READY' : (points && points !== '0' ? '+' + points : 'WALLET')}</div>
+        <div class="points-lbl">${isStartMode ? 'TOUCHLESS QR ACTIVATION' : (points && points !== '0' ? 'ECO POINTS EARNED' : 'MY ECO REWARDS')}</div>
+        <div class="machine-info">${sessionId ? 'Machine: ' + machine + ' • Session: ' + sessionId.slice(-8) : 'PecoDrop Enterprise Touchless Portal'}</div>
       </div>
 
       <!-- Google 1-Tap & Instant Corporate/Citizen Login -->
@@ -8771,26 +8771,35 @@ app.get('/claim', (req, res) => {
         </button>
 
         <!-- Active Logged In Google / Enterprise Badge -->
-        <div id="activeUserBadge" style="display: none; background: #F1F5F9; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 10px 14px; text-align: left; margin-bottom: 8px;">
+        <div id="activeUserBadge" style="display: none; background: #F1F5F9; border: 1.5px solid #CBD5E1; border-radius: 12px; padding: 12px 14px; text-align: left; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 18px;">👤</span>
+              <span style="font-size: 20px;">👤</span>
               <div>
-                <div id="badgeUserName" style="font-weight: 800; font-size: 13px; color: #0F172A;">Ahmed Raza</div>
-                <div id="badgeUserType" style="font-size: 11px; font-weight: 700; color: #15803D;">🏢 Bank Alfalah • Finance & Accounts</div>
+                <div id="badgeUserName" style="font-weight: 800; font-size: 13.5px; color: #0F172A;">Employee</div>
+                <div id="badgeUserType" style="font-size: 11px; font-weight: 700; color: #15803D;">🏢 Verified Corporate Member</div>
               </div>
             </div>
             <button type="button" onclick="switchGoogleAccount()" style="font-size: 11px; color: #64748B; background: transparent; border: none; cursor: pointer; text-decoration: underline;">Switch</button>
           </div>
+
+          <!-- Live Balance Banner in Badge -->
+          <div style="margin-top: 10px; padding: 8px 10px; background: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase;">Available Wallet Balance:</span>
+            <span id="liveWalletBalance" style="font-size: 16px; font-weight: 900; color: #15803D;">0 pts</span>
+          </div>
         </div>
 
+        ${sessionId || isStartMode ? `
         <div style="display: flex; align-items: center; gap: 10px; margin: 12px 0 10px; color: #94A3B8; font-size: 11px; font-weight: 700;">
           <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
           <span>OR CLAIM VIA PHONE NUMBER</span>
           <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
         </div>
+        ` : ''}
       </div>
 
+      ${sessionId || isStartMode ? `
       <div class="input-group">
         <label class="input-lbl" for="phoneInput">Mobile Phone Number / موبائل نمبر</label>
         <input type="tel" id="phoneInput" class="phone-input" placeholder="0300 1234567" autocomplete="tel" maxlength="15" />
@@ -8801,17 +8810,91 @@ app.get('/claim', (req, res) => {
       </button>
 
       <p class="footer-note">${isStartMode ? 'Once started, kiosk intake door will unlock. Items deposited will link directly to your wallet.' : 'Points will be credited instantly to your eco wallet and shown on the kiosk screen.'}</p>
+      ` : ''}
     </div>
 
     <div id="successSection" class="success-panel">
       <div class="success-icon">${isStartMode ? '♻️' : '🎉'}</div>
       <div class="success-title">${isStartMode ? 'Kiosk Started!' : 'Points Claimed!'}</div>
       <p id="successMsg" class="success-msg">${isStartMode ? 'The machine intake door is now open. Drop your bottles and cans!' : 'Your eco wallet has been credited.'}</p>
-      <div class="reward-box" style="margin-bottom: 0;">
+      <div class="reward-box" style="margin-bottom: 16px;">
         <div id="creditedPts" class="points-val">${isStartMode ? 'ACTIVE' : '+' + points}</div>
         <div class="points-lbl">${isStartMode ? 'INSERT CONTAINERS NOW' : 'ADDED TO YOUR WALLET'}</div>
       </div>
     </div>
+
+    <!-- TOUCHLESS REWARDS & VOUCHER REDEMPTION STORE -->
+    <div id="redemptionStoreSection" style="margin-top: 20px; border-top: 1.5px solid #E2EAE0; padding-top: 18px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <h3 style="font-size: 15px; font-weight: 900; color: #064E3B;">🎁 Redeem Rewards & Vouchers</h3>
+          <p style="font-size: 11px; color: #64748B;">Spend points instantly for corporate perks & discounts</p>
+        </div>
+        <span id="storeBalanceBadge" style="font-size: 12px; font-weight: 800; background: #DCFCE7; color: #15803D; padding: 4px 8px; border-radius: 8px;">0 pts</span>
+      </div>
+
+      <!-- Perks Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        
+        <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; background: #F8FAFC; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 24px; margin-bottom: 4px;">☕</div>
+            <div style="font-weight: 800; font-size: 12px; color: #0F172A;">Cafeteria Voucher</div>
+            <div style="font-size: 10px; color: #64748B;">Hot beverage / meal discount</div>
+          </div>
+          <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 900; font-size: 12px; color: #B45309;">50 pts</span>
+            <button type="button" onclick="redeemPerk('Cafeteria Coffee Voucher', 50)" style="background: #15803D; color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;">Redeem</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; background: #F8FAFC; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 24px; margin-bottom: 4px;">📱</div>
+            <div style="font-weight: 800; font-size: 12px; color: #0F172A;">Mobile Airtime</div>
+            <div style="font-size: 10px; color: #64748B;">Rs. 100 mobile load card</div>
+          </div>
+          <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 900; font-size: 12px; color: #B45309;">100 pts</span>
+            <button type="button" onclick="redeemPerk('Mobile Airtime Voucher', 100)" style="background: #15803D; color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;">Redeem</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; background: #F8FAFC; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 24px; margin-bottom: 4px;">🛒</div>
+            <div style="font-weight: 800; font-size: 12px; color: #0F172A;">Shopping Discount</div>
+            <div style="font-size: 10px; color: #64748B;">Rs. 200 retail voucher</div>
+          </div>
+          <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 900; font-size: 12px; color: #B45309;">200 pts</span>
+            <button type="button" onclick="redeemPerk('Shopping Discount Voucher', 200)" style="background: #15803D; color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;">Redeem</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; background: #F8FAFC; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 24px; margin-bottom: 4px;">🌳</div>
+            <div style="font-weight: 800; font-size: 12px; color: #0F172A;">Plant a Tree</div>
+            <div style="font-size: 10px; color: #64748B;">Official ESG Certificate</div>
+          </div>
+          <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 900; font-size: 12px; color: #B45309;">150 pts</span>
+            <button type="button" onclick="redeemPerk('Tree Planting Certificate', 150)" style="background: #15803D; color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer;">Redeem</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Active Vouchers List -->
+      <div id="vouchersSection" style="display: none; background: #FEF9C3; border: 1.5px solid #FDE047; border-radius: 12px; padding: 12px; margin-bottom: 10px;">
+        <div style="font-size: 12px; font-weight: 800; color: #854D0E; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>🎟️</span> <span>MY ACTIVE VOUCHERS & CODES</span>
+        </div>
+        <div id="vouchersList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -8824,17 +8907,44 @@ app.get('/claim', (req, res) => {
 
     // Check cached Google / Enterprise User
     let currentGoogleUser = null;
+    let userBalance = 0;
+
     try {
       const savedG = localStorage.getItem('rvm_google_user');
       if (savedG) {
         currentGoogleUser = JSON.parse(savedG);
         updateUserBadgeDisplay(currentGoogleUser);
+        fetchLiveUserBalance(currentGoogleUser.email);
       }
     } catch {}
 
     const savedPhone = localStorage.getItem('peco_saved_phone');
     if (savedPhone) {
-      document.getElementById('phoneInput').value = savedPhone;
+      const pEl = document.getElementById('phoneInput');
+      if (pEl) pEl.value = savedPhone;
+    }
+
+    renderSavedVouchers();
+
+    async function fetchLiveUserBalance(identifier) {
+      if (!identifier) return;
+      try {
+        const res = await fetch('/api/get-points?userId=' + encodeURIComponent(identifier));
+        const data = await res.json();
+        if (data && data.success && typeof data.points !== 'undefined') {
+          userBalance = data.points;
+          updateBalanceUI(userBalance);
+        }
+      } catch (e) {
+        console.warn('Could not fetch live balance:', e);
+      }
+    }
+
+    function updateBalanceUI(bal) {
+      const el1 = document.getElementById('liveWalletBalance');
+      const el2 = document.getElementById('storeBalanceBadge');
+      if (el1) el1.innerText = bal.toLocaleString() + ' pts';
+      if (el2) el2.innerText = bal.toLocaleString() + ' pts available';
     }
 
     function updateUserBadgeDisplay(user) {
@@ -8852,20 +8962,23 @@ app.get('/claim', (req, res) => {
         badgeType.innerText = '🌿 Verified Eco Citizen (' + user.email + ')';
         badgeType.style.color = '#15803D';
       }
-      // Set phone input to email/id for fallback
-      document.getElementById('phoneInput').value = user.email;
+      const pEl = document.getElementById('phoneInput');
+      if (pEl) pEl.value = user.email;
     }
 
     function switchGoogleAccount() {
       localStorage.removeItem('rvm_google_user');
       currentGoogleUser = null;
+      userBalance = 0;
+      updateBalanceUI(0);
       document.getElementById('activeUserBadge').style.display = 'none';
       document.getElementById('googleLoginBtn').style.display = 'flex';
-      document.getElementById('phoneInput').value = '';
+      const pEl = document.getElementById('phoneInput');
+      if (pEl) pEl.value = '';
     }
 
     async function triggerGoogleLogin() {
-      const emailInput = prompt("Sign in with Google / Corporate Work Email:\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
+      const emailInput = prompt("Sign in with Google / Corporate Work Email:\\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
       if (!emailInput || !emailInput.includes('@')) return;
 
       const nameInput = emailInput.split('@')[0].replace(/[._-]/g, ' ').toUpperCase();
@@ -8880,6 +8993,7 @@ app.get('/claim', (req, res) => {
           currentGoogleUser = data.user;
           localStorage.setItem('rvm_google_user', JSON.stringify(data.user));
           updateUserBadgeDisplay(data.user);
+          await fetchLiveUserBalance(data.user.email);
           // Auto-trigger claim if session is pending
           if (!isStartMode && sessionId) {
             submitClaim();
@@ -8892,6 +9006,90 @@ app.get('/claim', (req, res) => {
       }
     }
 
+    async function redeemPerk(itemName, pointsCost) {
+      const targetUser = currentGoogleUser ? currentGoogleUser.email : (document.getElementById('phoneInput') ? document.getElementById('phoneInput').value.trim() : '');
+      if (!targetUser) {
+        alert('Please sign in with your Corporate Google email first to redeem rewards.');
+        triggerGoogleLogin();
+        return;
+      }
+
+      if (userBalance < pointsCost) {
+        alert('Insufficient points. You have ' + userBalance + ' pts, but this reward costs ' + pointsCost + ' pts.');
+        return;
+      }
+
+      const confirmed = confirm('Redeem "' + itemName + '" for ' + pointsCost + ' points?');
+      if (!confirmed) return;
+
+      try {
+        const resp = await fetch('/api/redemptions/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: targetUser,
+            points: pointsCost,
+            itemName: itemName,
+            note: 'Redeemed via PecoDrop Touchless Web Portal'
+          })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          userBalance = data.newBalance;
+          updateBalanceUI(userBalance);
+          saveVoucherLocally({
+            code: data.redemption.voucher_code,
+            item: itemName,
+            points: pointsCost,
+            date: new Date().toLocaleDateString()
+          });
+          alert('🎉 Congratulations! Redeemed ' + itemName + '!\\n\\nVoucher Code: ' + data.redemption.voucher_code + '\\nShow this code at the office cafeteria or cashier.');
+        } else {
+          alert('Redemption failed: ' + (data.error || 'Could not complete transaction'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function saveVoucherLocally(vouch) {
+      let list = [];
+      try {
+        list = JSON.parse(localStorage.getItem('my_peco_vouchers') || '[]');
+      } catch {}
+      list.unshift(vouch);
+      localStorage.setItem('my_peco_vouchers', JSON.stringify(list));
+      renderSavedVouchers();
+    }
+
+    function renderSavedVouchers() {
+      let list = [];
+      try {
+        list = JSON.parse(localStorage.getItem('my_peco_vouchers') || '[]');
+      } catch {}
+      const section = document.getElementById('vouchersSection');
+      const container = document.getElementById('vouchersList');
+      if (!section || !container) return;
+
+      if (list.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      container.innerHTML = list.slice(0, 3).map(v => \`
+        <div style="background: #FFFFFF; border-radius: 8px; padding: 8px 10px; border: 1px solid #FDE68A; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 800; font-size: 11.5px; color: #0F172A;">\${v.item}</div>
+            <div style="font-size: 10px; color: #64748B;">\${v.date} • Used \${v.points} pts</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-family: monospace; font-weight: 900; font-size: 13px; color: #B45309; background: #FEF3C7; padding: 2px 6px; border-radius: 4px; border: 1px dashed #F59E0B;">\${v.code}</span>
+          </div>
+        </div>
+      \`).join('');
+    }
+
     async function submitStart() {
       const phoneInput = document.getElementById('phoneInput');
       const btn = document.getElementById('claimBtn');
@@ -8899,7 +9097,7 @@ app.get('/claim', (req, res) => {
 
       if (!targetUser) {
         alert('Please enter your mobile phone or sign in with Google');
-        phoneInput.focus();
+        if (phoneInput) phoneInput.focus();
         return;
       }
 
@@ -8934,16 +9132,18 @@ app.get('/claim', (req, res) => {
     async function submitClaim() {
       const phoneInput = document.getElementById('phoneInput');
       const btn = document.getElementById('claimBtn');
-      const targetUser = currentGoogleUser ? currentGoogleUser.email : phoneInput.value.trim();
+      const targetUser = currentGoogleUser ? currentGoogleUser.email : (phoneInput ? phoneInput.value.trim() : '');
 
       if (!targetUser) {
         alert('Please enter your mobile number or sign in with Google');
-        phoneInput.focus();
+        if (phoneInput) phoneInput.focus();
         return;
       }
 
-      btn.disabled = true;
-      btn.innerText = 'Crediting Points...';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Crediting Points...';
+      }
 
       try {
         const resp = await fetch('/api/session/claim-points', {
@@ -8962,15 +9162,20 @@ app.get('/claim', (req, res) => {
             welcomeMsg += ' (Credited to ' + currentGoogleUser.organization.name + ')';
           }
           document.getElementById('successMsg').innerText = welcomeMsg;
+          await fetchLiveUserBalance(targetUser);
         } else {
           alert('Error: ' + (data.error || 'Could not claim points.'));
-          btn.disabled = false;
-          btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+          }
         }
       } catch (err) {
         alert('Connection error: ' + err.message);
-        btn.disabled = false;
-        btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'CLAIM NOW • پوائنٹس کلیم کریں';
+        }
       }
     }
   </script>
