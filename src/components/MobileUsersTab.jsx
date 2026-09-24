@@ -21,7 +21,6 @@ export default function MobileUsersTab() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'online', 'offline'
-  const [userTypeFilter, setUserTypeFilter] = useState('all'); // 'all', 'CITIZEN', 'ENTERPRISE'
   const [selectedUser, setSelectedUser] = useState(null);
   const [userHistory, setUserHistory] = useState([]);
   const [userRedemptions, setUserRedemptions] = useState([]);
@@ -35,9 +34,17 @@ export default function MobileUsersTab() {
       const res = await fetch('/api/analytics/mobile-users');
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.users || []);
+        // Public Mobile App users only (enterprise staff belong in Enterprise Clients tab)
+        const citizenOnly = (data.users || []).filter(u => 
+          (u.userType || 'CITIZEN') === 'CITIZEN' && !u.orgId && !u.orgName
+        );
+        setUsers(citizenOnly);
         if (data.stats) {
-          setStats(data.stats);
+          setStats({
+            ...data.stats,
+            totalUsers: citizenOnly.length,
+            onlineNow: citizenOnly.filter(u => u.isOnline).length
+          });
         }
       }
     } catch (err) {
@@ -97,15 +104,7 @@ export default function MobileUsersTab() {
       (u.fullName && u.fullName.toLowerCase().includes(query)) ||
       (u.mobile && u.mobile.toLowerCase().includes(query)) ||
       (u.email && u.email.toLowerCase().includes(query)) ||
-      (u.nic && u.nic.toLowerCase().includes(query)) ||
-      (u.orgName && u.orgName.toLowerCase().includes(query)) ||
-      (u.deptName && u.deptName.toLowerCase().includes(query)) ||
-      (u.employeeId && u.employeeId.toLowerCase().includes(query));
-
-    if (userTypeFilter !== 'all') {
-      const uType = u.userType || (u.orgName || u.orgId ? 'ENTERPRISE' : 'CITIZEN');
-      if (uType !== userTypeFilter) return false;
-    }
+      (u.nic && u.nic.toLowerCase().includes(query));
 
     if (statusFilter === 'online') return matchesQuery && u.isOnline;
     if (statusFilter === 'offline') return matchesQuery && !u.isOnline;
@@ -275,41 +274,6 @@ export default function MobileUsersTab() {
           )}
         </div>
 
-        {/* Persona / User Type Filter */}
-        <div className="flex items-center gap-1.5 p-1 t-bg-sec rounded-xl border t-border self-stretch sm:self-auto justify-center">
-          <button
-            onClick={() => setUserTypeFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              userTypeFilter === 'all' 
-                ? 'bg-emerald-500 text-slate-950 shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
-            }`}
-          >
-            All Accounts
-          </button>
-          <button
-            onClick={() => setUserTypeFilter('CITIZEN')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              userTypeFilter === 'CITIZEN' 
-                ? 'bg-emerald-500 text-slate-950 shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
-            }`}
-          >
-            🌿 Citizens
-          </button>
-          <button
-            onClick={() => setUserTypeFilter('ENTERPRISE')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              userTypeFilter === 'ENTERPRISE' 
-                ? 'bg-blue-500 text-white shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
-            }`}
-          >
-            <Building2 className="w-3 h-3" />
-            🏢 Enterprise Staff
-          </button>
-        </div>
-
         {/* Status Filter Buttons */}
         <div className="flex items-center gap-1.5 p-1 t-bg-sec rounded-xl border t-border self-stretch sm:self-auto justify-center">
           <button
@@ -409,27 +373,17 @@ export default function MobileUsersTab() {
                               {user.isOnline && (
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" title="Online Now"></span>
                               )}
-                              {(user.userType === 'ENTERPRISE' || user.orgName) && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                                  <Building2 className="w-2.5 h-2.5" />
-                                  Enterprise
-                                </span>
-                              )}
-                              {user.authProvider === 'google' && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Google 1-Tap OAuth Verified">
+                              {user.authProvider === 'google' ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Google 1-Tap Login Verified">
                                   Google
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Registered Mobile App Citizen">
+                                  App User
                                 </span>
                               )}
                             </div>
-                            {user.orgName && (
-                              <div className="text-[11px] font-semibold text-blue-400 flex items-center gap-1 mt-0.5">
-                                <Building2 className="w-3 h-3 text-blue-400/80" />
-                                <span>{user.orgName}</span>
-                                {user.deptName && <span className="text-blue-300/80">• {user.deptName}</span>}
-                                {user.employeeId && <span className="mono text-[10px] px-1 py-0.2 bg-blue-500/10 rounded text-blue-300">ID: {user.employeeId}</span>}
-                              </div>
-                            )}
-                            <div className="text-[11px] t-text-muted mono">
+                            <div className="text-[11px] t-text-muted mono mt-0.5">
                               @{user.username} {user.dob ? `• DOB: ${user.dob}` : ''} {user.nic && user.nic !== '-' ? `• NIC: ${user.nic}` : ''}
                             </div>
                           </div>
@@ -566,15 +520,13 @@ export default function MobileUsersTab() {
                         Online Now
                       </span>
                     )}
-                    {(selectedUser.userType === 'ENTERPRISE' || selectedUser.orgName) && (
-                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30 flex items-center gap-1">
-                        <Building2 className="w-2.5 h-2.5" />
-                        Enterprise Staff
-                      </span>
-                    )}
-                    {selectedUser.authProvider === 'google' && (
+                    {selectedUser.authProvider === 'google' ? (
                       <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
                         Google Verified
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                        Mobile App User
                       </span>
                     )}
                   </h3>
@@ -582,14 +534,6 @@ export default function MobileUsersTab() {
                     <span>Mobile: {selectedUser.mobile}</span>
                     <span>•</span>
                     <span>Member ID: {selectedUser.id}</span>
-                    {selectedUser.orgName && (
-                      <>
-                        <span>•</span>
-                        <span className="text-blue-400 font-semibold">{selectedUser.orgName}</span>
-                        {selectedUser.deptName && <span className="text-blue-300">({selectedUser.deptName})</span>}
-                        {selectedUser.employeeId && <span className="text-blue-300">[ID: {selectedUser.employeeId}]</span>}
-                      </>
-                    )}
                   </p>
                 </div>
               </div>

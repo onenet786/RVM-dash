@@ -4932,6 +4932,64 @@ app.post('/api/enterprise/employees/bulk-import', optionalAuth, async (req, res)
   }
 });
 
+// 7b. Get Enrolled Staff Roster for Enterprise Client
+app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const pool = getPgPool();
+    if (pool) {
+      const q = await pool.query(`
+        SELECT 
+          u.user_id, u.username, u.full_name, u.email, u.mobile,
+          u.employee_id, u.auth_provider, u.points_balance, u.created_at, u.last_active,
+          d.dept_id, d.name AS dept_name
+        FROM users u
+        LEFT JOIN departments d ON u.dept_id = d.dept_id
+        WHERE u.org_id = $1 OR u.org_id = $2
+        ORDER BY u.created_at DESC;
+      `, [orgId, orgId.startsWith('ORG_') ? orgId.replace(/^ORG_/, '') : `ORG_${orgId}`]);
+
+      return res.json({
+        success: true,
+        employees: q.rows.map(r => ({
+          userId: r.user_id,
+          username: r.username,
+          fullName: r.full_name || r.username,
+          email: r.email,
+          mobile: r.mobile,
+          employeeId: r.employee_id || '-',
+          authProvider: r.auth_provider || 'google',
+          pointsBalance: Number(r.points_balance) || 0,
+          deptId: r.dept_id,
+          deptName: r.dept_name || 'General',
+          lastActive: r.last_active,
+          createdAt: r.created_at
+        }))
+      });
+    }
+
+    // In-memory fallback
+    const emps = Array.from(inMemoryUsers.values())
+      .filter(u => u.orgId === orgId || u.orgId === `ORG_${orgId}` || (u.email && u.email.endsWith('@' + orgId.toLowerCase())))
+      .map(u => ({
+        userId: u.userId,
+        username: u.username,
+        fullName: u.fullName || u.username,
+        email: u.email,
+        mobile: u.mobile,
+        employeeId: u.employeeId || 'EMP-01',
+        authProvider: u.authProvider || 'google',
+        pointsBalance: u.pointsBalance || 0,
+        deptName: u.deptName || 'General',
+        createdAt: u.createdAt
+      }));
+
+    res.json({ success: true, employees: emps });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 8. Organization Real-Time ESG Sustainability Report
 app.get('/api/enterprise/stats/:orgId', optionalAuth, async (req, res) => {
   try {

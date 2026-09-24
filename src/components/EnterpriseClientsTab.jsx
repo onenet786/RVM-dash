@@ -15,6 +15,9 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState(null);
   const [orgDepartments, setOrgDepartments] = useState([]);
+  const [orgEmployees, setOrgEmployees] = useState([]);
+  const [activeOrgSubTab, setActiveOrgSubTab] = useState('departments'); // 'departments' | 'staff' | 'upload'
+  const [staffSearchQuery, setStaffSearchQuery] = useState('');
   const [orgStats, setOrgStats] = useState(null);
   const [loadingOrgDetails, setLoadingOrgDetails] = useState(false);
   
@@ -70,10 +73,13 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
     setShowAddDept(false);
     setShowBulkUpload(false);
     setUploadResult(null);
+    setStaffSearchQuery('');
+    setActiveOrgSubTab('departments');
     try {
-      const [deptRes, statsRes] = await Promise.all([
+      const [deptRes, statsRes, empRes] = await Promise.all([
         fetch(`/api/enterprise/departments/${org.org_id}`),
-        fetch(`/api/enterprise/stats/${org.org_id}`)
+        fetch(`/api/enterprise/stats/${org.org_id}`),
+        fetch(`/api/enterprise/employees/${org.org_id}`)
       ]);
       if (deptRes.ok) {
         const dData = await deptRes.json();
@@ -82,6 +88,10 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
       if (statsRes.ok) {
         const sData = await statsRes.json();
         setOrgStats(sData.stats || null);
+      }
+      if (empRes.ok) {
+        const empData = await empRes.json();
+        setOrgEmployees(empData.employees || []);
       }
     } catch (err) {
       console.error('Error fetching org details:', err);
@@ -470,136 +480,298 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               </div>
             )}
 
-            {/* Departments Section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-extrabold text-sm t-text-primary flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-emerald-500" /> Company Departments & Leaderboard
-                </h4>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowBulkUpload(!showBulkUpload)}
-                    className="px-3 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-bold flex items-center gap-1.5 transition-all"
-                  >
-                    <Upload className="w-3.5 h-3.5" /> Bulk Import Staff (CSV)
-                  </button>
+            {/* Sub-tab Navigation */}
+            <div className="flex items-center gap-2 border-b t-border pb-3">
+              <button
+                onClick={() => setActiveOrgSubTab('departments')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  activeOrgSubTab === 'departments'
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Departments ({orgDepartments.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveOrgSubTab('staff')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  activeOrgSubTab === 'staff'
+                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Corporate Staff Roster ({orgEmployees.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveOrgSubTab('upload')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ml-auto ${
+                  activeOrgSubTab === 'upload'
+                    ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Bulk CSV Onboarding</span>
+              </button>
+            </div>
+
+            {/* TAB 1: DEPARTMENTS */}
+            {activeOrgSubTab === 'departments' && (
+              <div className="space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-sm t-text-primary flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-500" /> Company Departments & Leaderboard
+                  </h4>
                   <button
                     onClick={() => setShowAddDept(!showAddDept)}
-                    className="px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Dept
                   </button>
                 </div>
-              </div>
 
-              {/* Add Dept Sub-form */}
-              {showAddDept && (
-                <form onSubmit={handleCreateDepartment} className="p-4 rounded-2xl t-bg border t-border space-y-3 animate-in fade-in">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input
-                      type="text"
-                      placeholder="Department Name (e.g., Marketing)"
-                      value={newDeptName}
-                      onChange={(e) => setNewDeptName(e.target.value)}
-                      className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="Manager Name (Optional)"
-                      value={newDeptManager}
-                      onChange={(e) => setNewDeptManager(e.target.value)}
-                      className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Monthly Target (kg)"
-                      value={newDeptTarget}
-                      onChange={(e) => setNewDeptTarget(Number(e.target.value))}
-                      className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowAddDept(false)} className="px-3 py-1.5 text-xs font-bold t-text-muted">Cancel</button>
-                    <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow">Save Department</button>
-                  </div>
-                </form>
-              )}
-
-              {/* Bulk Upload Sub-form */}
-              {showBulkUpload && (
-                <div className="p-4 rounded-2xl t-bg border t-border space-y-3 animate-in fade-in">
-                  <div>
-                    <h5 className="font-bold text-xs t-text-primary flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-blue-500" /> Paste Employee Roster (.csv or tab-separated)
-                    </h5>
-                    <p className="text-[11px] t-text-muted mt-0.5">
-                      Columns format: <code>Full Name, Email Address, Department, EmployeeID, Phone</code>
-                    </p>
-                  </div>
-
-                  <textarea
-                    rows={4}
-                    value={csvText}
-                    onChange={(e) => setCsvText(e.target.value)}
-                    placeholder={"Ali Khan, ali@bankalfalah.com, Operations, EMP-101\nSara Raza, sara@bankalfalah.com, Finance, EMP-102"}
-                    className="w-full p-3 font-mono text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-blue-500"
-                  />
-
-                  {uploadResult && (
-                    <div className={`p-3 rounded-xl text-xs font-bold ${uploadResult.success ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'}`}>
-                      {uploadResult.message || uploadResult.error}
+                {/* Add Dept Sub-form */}
+                {showAddDept && (
+                  <form onSubmit={handleCreateDepartment} className="p-4 rounded-2xl t-bg border t-border space-y-3 animate-in fade-in">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Department Name (e.g., Marketing)"
+                        value={newDeptName}
+                        onChange={(e) => setNewDeptName(e.target.value)}
+                        className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Manager Name (Optional)"
+                        value={newDeptManager}
+                        onChange={(e) => setNewDeptManager(e.target.value)}
+                        className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Monthly Target (kg)"
+                        value={newDeptTarget}
+                        onChange={(e) => setNewDeptTarget(Number(e.target.value))}
+                        className="px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-emerald-500"
+                      />
                     </div>
-                  )}
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => setShowAddDept(false)} className="px-3 py-1.5 text-xs font-bold t-text-muted">Cancel</button>
+                      <button type="submit" className="px-4 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-xl shadow">Save Department</button>
+                    </div>
+                  </form>
+                )}
 
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowBulkUpload(false)} className="px-3 py-1.5 text-xs font-bold t-text-muted">Cancel</button>
+                {/* Departments Table */}
+                <div className="border t-border rounded-2xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b t-border t-bg t-text-muted uppercase tracking-wider text-[10px] font-bold">
+                        <th className="py-2.5 px-3">Department</th>
+                        <th className="py-2.5 px-3">Manager</th>
+                        <th className="py-2.5 px-3 text-center">Enrolled Staff</th>
+                        <th className="py-2.5 px-3 text-right">Paper Recycled</th>
+                        <th className="py-2.5 px-3 text-right">Points Earned</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y t-border">
+                      {orgDepartments.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-6 text-center t-text-muted">
+                            No departments recorded yet. Click "+ Add Dept" to create the first unit.
+                          </td>
+                        </tr>
+                      ) : (
+                        orgDepartments.map((dept) => (
+                          <tr key={dept.dept_id} className="hover:t-bg-hover">
+                            <td className="py-2.5 px-3 font-bold t-text-primary">{dept.name}</td>
+                            <td className="py-2.5 px-3 t-text-muted">{dept.manager_name || '—'}</td>
+                            <td className="py-2.5 px-3 text-center font-bold">{dept.employees_count || 0}</td>
+                            <td className="py-2.5 px-3 text-right font-black text-amber-500">{(dept.recycled_paper_kg || 0).toLocaleString()} kg</td>
+                            <td className="py-2.5 px-3 text-right font-black text-emerald-500">{(dept.total_points || 0).toLocaleString()} pts</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: ENROLLED CORPORATE STAFF */}
+            {activeOrgSubTab === 'staff' && (
+              <div className="space-y-4 animate-in fade-in">
+                {/* Touchless Notice Banner */}
+                <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 text-xs">
+                  <Sparkles className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-blue-300">
+                      Zero App Installation • Touchless Web Claim Architecture
+                    </div>
+                    <div className="text-blue-200/80 leading-relaxed text-[11px]">
+                      Employees of <strong className="text-white">{selectedOrg.name}</strong> do not need to download or install any mobile application. When recycling at corporate PecoDrop kiosks, they scan the screen QR code with their default smartphone camera and authenticate instantly via Corporate Google SSO.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Staff Search Bar */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 t-text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search employees by name, email, department, or employee ID..."
+                      value={staffSearchQuery}
+                      onChange={(e) => setStaffSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setActiveOrgSubTab('upload')}
+                    className="px-3 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Import Staff</span>
+                  </button>
+                </div>
+
+                {/* Staff Roster Table */}
+                {(() => {
+                  const filteredStaff = orgEmployees.filter(emp => {
+                    const q = staffSearchQuery.toLowerCase().trim();
+                    if (!q) return true;
+                    return (
+                      (emp.fullName && emp.fullName.toLowerCase().includes(q)) ||
+                      (emp.email && emp.email.toLowerCase().includes(q)) ||
+                      (emp.deptName && emp.deptName.toLowerCase().includes(q)) ||
+                      (emp.employeeId && emp.employeeId.toLowerCase().includes(q))
+                    );
+                  });
+
+                  return (
+                    <div className="border t-border rounded-2xl overflow-hidden">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b t-border t-bg t-text-muted uppercase tracking-wider text-[10px] font-bold">
+                            <th className="py-2.5 px-3">Employee Name & Email</th>
+                            <th className="py-2.5 px-3">Department</th>
+                            <th className="py-2.5 px-3">Employee ID</th>
+                            <th className="py-2.5 px-3 text-center">Access Method</th>
+                            <th className="py-2.5 px-3 text-right">Points Earned</th>
+                            <th className="py-2.5 px-3 text-right">Joined</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y t-border">
+                          {filteredStaff.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="py-8 text-center t-text-muted">
+                                <Users className="w-8 h-8 mx-auto mb-2 opacity-30 text-blue-400" />
+                                <p className="font-semibold">No employees enrolled yet for {selectedOrg.name}</p>
+                                <p className="text-[11px] mt-1">Click "Bulk CSV Onboard" above or have employees scan the kiosk to auto-enroll.</p>
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredStaff.map((emp) => (
+                              <tr key={emp.userId || emp.email} className="hover:t-bg-hover">
+                                <td className="py-2.5 px-3">
+                                  <div className="font-bold t-text-primary flex items-center gap-1.5">
+                                    <span>{emp.fullName || emp.username}</span>
+                                  </div>
+                                  <div className="text-[11px] t-text-muted mono flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    <span>{emp.email}</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    {emp.deptName || 'General'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 mono font-semibold text-slate-300">
+                                  {emp.employeeId || '—'}
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Touchless Web SSO via standard phone camera">
+                                    <span>⚡</span> Web Claim (No App)
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-extrabold text-amber-400 mono">
+                                  {(emp.pointsBalance || 0).toLocaleString()} pts
+                                </td>
+                                <td className="py-2.5 px-3 text-right text-xs t-text-muted mono">
+                                  {emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : '—'}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* TAB 3: BULK CSV ONBOARDING */}
+            {activeOrgSubTab === 'upload' && (
+              <div className="p-4 rounded-2xl t-bg border t-border space-y-4 animate-in fade-in">
+                <div>
+                  <h5 className="font-bold text-sm t-text-primary flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-purple-400" />
+                    Bulk Enroll Employees via CSV
+                  </h5>
+                  <p className="text-xs t-text-muted mt-1 leading-relaxed">
+                    Paste your company employee roster below. Staff members will be pre-enrolled with their corporate email and department so their recycling at PecoDrop kiosks is immediately recognized.
+                  </p>
+                  <p className="text-[11px] text-blue-400 font-mono mt-1">
+                    Columns: <code>Full Name, Email Address, Department, EmployeeID, Phone</code>
+                  </p>
+                </div>
+
+                <textarea
+                  rows={6}
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  placeholder={`Ali Khan, ali@${selectedOrg.domain}, Operations, EMP-101\nSara Raza, sara@${selectedOrg.domain}, Finance & Accounts, EMP-102\nBilal Tariq, bilal@${selectedOrg.domain}, IT Infrastructure, EMP-103`}
+                  className="w-full p-3 font-mono text-xs rounded-xl t-bg-sec border t-border t-text-primary outline-none focus:border-purple-500"
+                />
+
+                {uploadResult && (
+                  <div className={`p-3 rounded-xl text-xs font-bold ${uploadResult.success ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}`}>
+                    {uploadResult.message || uploadResult.error}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-[11px] t-text-muted">
+                    No apps required for employees. Enrolled staff log in via Google 1-Tap.
+                  </span>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setActiveOrgSubTab('departments')} 
+                      className="px-4 py-2 text-xs font-bold t-text-muted hover:t-text-primary"
+                    >
+                      Back
+                    </button>
                     <button 
                       type="button" 
                       onClick={handleBulkImport}
                       disabled={uploadingCsv || !csvText.trim()}
-                      className="px-4 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow disabled:opacity-50"
+                      className="px-5 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-lg disabled:opacity-50 transition-all"
                     >
-                      {uploadingCsv ? 'Importing Roster...' : 'Upload & Enroll Employees'}
+                      {uploadingCsv ? 'Processing Bulk Import...' : 'Import & Enroll Roster'}
                     </button>
                   </div>
                 </div>
-              )}
-
-              {/* Departments Table */}
-              <div className="border t-border rounded-2xl overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b t-border t-bg t-text-muted uppercase tracking-wider text-[10px] font-bold">
-                      <th className="py-2.5 px-3">Department</th>
-                      <th className="py-2.5 px-3">Manager</th>
-                      <th className="py-2.5 px-3 text-center">Enrolled Staff</th>
-                      <th className="py-2.5 px-3 text-right">Paper Recycled</th>
-                      <th className="py-2.5 px-3 text-right">Points Earned</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y t-border">
-                    {orgDepartments.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-6 text-center t-text-muted">
-                          No departments recorded yet. Click "+ Add Dept" to create the first unit.
-                        </td>
-                      </tr>
-                    ) : (
-                      orgDepartments.map((dept) => (
-                        <tr key={dept.dept_id} className="hover:t-bg-hover">
-                          <td className="py-2.5 px-3 font-bold t-text-primary">{dept.name}</td>
-                          <td className="py-2.5 px-3 t-text-muted">{dept.manager_name || '—'}</td>
-                          <td className="py-2.5 px-3 text-center font-bold">{dept.employees_count || 0}</td>
-                          <td className="py-2.5 px-3 text-right font-black text-amber-500">{(dept.recycled_paper_kg || 0).toLocaleString()} kg</td>
-                          <td className="py-2.5 px-3 text-right font-black text-emerald-500">{(dept.total_points || 0).toLocaleString()} pts</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
               </div>
-            </div>
+            )}
 
           </div>
         </div>
