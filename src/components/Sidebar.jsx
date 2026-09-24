@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText, Building2
 } from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
 
@@ -40,7 +40,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
     if (isClientAdmin) {
-      return ['overview', 'reporting_hub', 'mobile_users', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+      return ['overview', 'reporting_hub', 'enterprise_clients', 'mobile_users', 'esg_impact', 'analytics', 'machines', 'advertisements'];
     }
     if (isSuperAdmin) return ['*'];
     if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
@@ -69,6 +69,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   const navItems = [
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
     { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText },
+    { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
     { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },

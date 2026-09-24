@@ -16,6 +16,7 @@ const DbSwitcherTab = lazy(() => import('./components/DbSwitcherTab'));
 const SecurityTab = lazy(() => import('./components/SecurityTab'));
 const EnvironmentalImpactTab = lazy(() => import('./components/EnvironmentalImpactTab'));
 const MobileUsersTab = lazy(() => import('./components/MobileUsersTab'));
+const EnterpriseClientsTab = lazy(() => import('./components/EnterpriseClientsTab'));
 const DataTable = lazy(() => import('./components/DataTable'));
 const ReportingHubTab = lazy(() => import('./components/ReportingHubTab'));
 
@@ -219,6 +220,10 @@ export default function App() {
 
     if (activeTab === 'reporting_hub') {
       return <ReportingHubTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
+    }
+
+    if (activeTab === 'enterprise_clients') {
+      return <EnterpriseClientsTab currentUser={currentUser} selectedClientId={selectedClientId} />;
     }
 
     if (activeTab === 'mobile_users' || activeTab === 'col_users') {
