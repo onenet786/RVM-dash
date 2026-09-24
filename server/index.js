@@ -4684,7 +4684,10 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
             COUNT(DISTINCT u.user_id) AS total_employees,
             COALESCE(SUM(u.points_balance), 0) AS total_points,
             COUNT(DISTINCT d.dept_id) AS departments_count,
+            COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
             COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg,
+            COALESCE(SUM(s.tetrapak_weight_grams) / 1000.0, 0) AS total_tetra_kg,
             COUNT(DISTINCT b.machine_id) AS active_kiosks
           FROM organizations o
           LEFT JOIN users u ON u.org_id = o.org_id
@@ -4694,23 +4697,35 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
           GROUP BY o.org_id
           ORDER BY o.created_at DESC;
         `);
-        orgs = resDb.rows.map(r => ({
-          org_id: r.org_id,
-          name: r.name,
-          domain: r.domain,
-          logo_url: r.logo_url,
-          contact_email: r.contact_email,
-          contact_phone: r.contact_phone,
-          monthly_budget: Number(r.monthly_budget) || 100000,
-          monthly_target_kg: Number(r.monthly_target_kg) || 1000.0,
-          status: r.status,
-          total_employees: Number(r.total_employees) || 0,
-          total_points: Number(r.total_points) || 0,
-          departments_count: Number(r.departments_count) || 0,
-          total_paper_kg: parseFloat(Number(r.total_paper_kg || 0).toFixed(2)),
-          active_kiosks: Number(r.active_kiosks) || 0,
-          created_at: r.created_at
-        }));
+        orgs = resDb.rows.map(r => {
+          const bottles = Number(r.total_bottles) || 0;
+          const cans = Number(r.total_cans) || 0;
+          const paperKg = parseFloat(Number(r.total_paper_kg || 0).toFixed(2));
+          const tetraKg = parseFloat(Number(r.total_tetra_kg || 0).toFixed(2));
+          const totalRecycledKg = parseFloat(((bottles * 0.025) + (cans * 0.015) + paperKg + tetraKg).toFixed(2));
+
+          return {
+            org_id: r.org_id,
+            name: r.name,
+            domain: r.domain,
+            logo_url: r.logo_url,
+            contact_email: r.contact_email,
+            contact_phone: r.contact_phone,
+            monthly_budget: Number(r.monthly_budget) || 100000,
+            monthly_target_kg: Number(r.monthly_target_kg) || 1000.0,
+            status: r.status,
+            total_employees: Number(r.total_employees) || 0,
+            total_points: Number(r.total_points) || 0,
+            departments_count: Number(r.departments_count) || 0,
+            total_bottles: bottles,
+            total_cans: cans,
+            total_paper_kg: paperKg,
+            total_tetra_kg: tetraKg,
+            total_recycled_kg: totalRecycledKg,
+            active_kiosks: Number(r.active_kiosks) || 0,
+            created_at: r.created_at
+          };
+        });
       } catch (err) {
         console.warn('[Get Enterprise Orgs Warning]', err.message);
       }
@@ -4722,7 +4737,11 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
         total_employees: 12,
         total_points: 14500,
         departments_count: inMemoryDepartments.filter(d => d.org_id === o.org_id).length,
+        total_bottles: 520,
+        total_cans: 310,
         total_paper_kg: 840.5,
+        total_tetra_kg: 45.0,
+        total_recycled_kg: 898.15,
         active_kiosks: 2
       }));
     }
@@ -4810,7 +4829,10 @@ app.get('/api/enterprise/departments/:orgId', optionalAuth, async (req, res) => 
             d.*,
             COUNT(DISTINCT u.user_id) AS employees_count,
             COALESCE(SUM(u.points_balance), 0) AS total_points,
-            COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS recycled_paper_kg
+            COALESCE(SUM(s.plastic_count), 0) AS recycled_bottles,
+            COALESCE(SUM(s.aluminium_count), 0) AS recycled_cans,
+            COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS recycled_paper_kg,
+            COALESCE(SUM(s.tetrapak_weight_grams) / 1000.0, 0) AS recycled_tetra_kg
           FROM departments d
           LEFT JOIN users u ON u.dept_id = d.dept_id
           LEFT JOIN recycling_sessions s ON s.user_id = u.user_id
@@ -4818,17 +4840,29 @@ app.get('/api/enterprise/departments/:orgId', optionalAuth, async (req, res) => 
           GROUP BY d.dept_id
           ORDER BY d.monthly_target_kg DESC;
         `, [orgId]);
-        departments = resDb.rows.map(r => ({
-          dept_id: r.dept_id,
-          org_id: r.org_id,
-          name: r.name,
-          manager_name: r.manager_name || '',
-          manager_email: r.manager_email || '',
-          monthly_target_kg: Number(r.monthly_target_kg) || 250.0,
-          employees_count: Number(r.employees_count) || 0,
-          total_points: Number(r.total_points) || 0,
-          recycled_paper_kg: parseFloat(Number(r.recycled_paper_kg || 0).toFixed(2))
-        }));
+        departments = resDb.rows.map(r => {
+          const bottles = Number(r.recycled_bottles) || 0;
+          const cans = Number(r.recycled_cans) || 0;
+          const paperKg = parseFloat(Number(r.recycled_paper_kg || 0).toFixed(2));
+          const tetraKg = parseFloat(Number(r.recycled_tetra_kg || 0).toFixed(2));
+          const totalKg = parseFloat(((bottles * 0.025) + (cans * 0.015) + paperKg + tetraKg).toFixed(2));
+
+          return {
+            dept_id: r.dept_id,
+            org_id: r.org_id,
+            name: r.name,
+            manager_name: r.manager_name || '',
+            manager_email: r.manager_email || '',
+            monthly_target_kg: Number(r.monthly_target_kg) || 250.0,
+            employees_count: Number(r.employees_count) || 0,
+            total_points: Number(r.total_points) || 0,
+            recycled_bottles: bottles,
+            recycled_cans: cans,
+            recycled_paper_kg: paperKg,
+            recycled_tetra_kg: tetraKg,
+            recycled_total_kg: totalKg
+          };
+        });
       } catch { }
     }
     if (departments.length === 0) {
@@ -4836,7 +4870,11 @@ app.get('/api/enterprise/departments/:orgId', optionalAuth, async (req, res) => 
         ...d,
         employees_count: 5,
         total_points: 4200,
-        recycled_paper_kg: 280.0
+        recycled_bottles: 210,
+        recycled_cans: 140,
+        recycled_paper_kg: 280.0,
+        recycled_tetra_kg: 15.0,
+        recycled_total_kg: 292.35
       }));
     }
     res.json({ success: true, departments });
@@ -4944,10 +4982,15 @@ app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
         SELECT 
           u.user_id, u.username, u.full_name, u.email, u.mobile,
           u.employee_id, u.auth_provider, u.points_balance, u.created_at, u.last_active,
-          d.dept_id, d.name AS dept_name
+          d.dept_id, d.name AS dept_name,
+          COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
+          COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
+          COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg
         FROM users u
         LEFT JOIN departments d ON u.dept_id = d.dept_id
+        LEFT JOIN recycling_sessions s ON s.user_id = u.user_id
         WHERE u.org_id = $1 OR u.org_id = $2
+        GROUP BY u.user_id, u.username, u.full_name, u.email, u.mobile, u.employee_id, u.auth_provider, u.points_balance, u.created_at, u.last_active, d.dept_id, d.name
         ORDER BY u.created_at DESC;
       `, [orgId, orgId.startsWith('ORG_') ? orgId.replace(/^ORG_/, '') : `ORG_${orgId}`]);
 
@@ -4962,6 +5005,9 @@ app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
           employeeId: r.employee_id || '-',
           authProvider: r.auth_provider || 'google',
           pointsBalance: Number(r.points_balance) || 0,
+          bottles: Number(r.total_bottles) || 0,
+          cans: Number(r.total_cans) || 0,
+          paperKg: parseFloat(Number(r.total_paper_kg || 0).toFixed(2)),
           deptId: r.dept_id,
           deptName: r.dept_name || 'General',
           lastActive: r.last_active,
@@ -4999,11 +5045,16 @@ app.get('/api/enterprise/stats/:orgId', optionalAuth, async (req, res) => {
     const pool = getPgPool();
     let stats = {
       orgId,
+      bottles: 520,
+      cans: 310,
       paperKg: 1250.0,
+      plasticKg: 13.0,
+      canKg: 4.65,
+      totalKg: 1267.65,
       treesSaved: 21.2,
-      waterSavedLiters: 32500,
-      co2SavedKg: 1875.0,
-      energySavedKwh: 5000,
+      waterSavedLiters: 34060,
+      co2SavedKg: 1935.0,
+      energySavedKwh: 5139,
       totalEmployees: 48,
       activeEmployees: 34,
       totalPointsEarned: 62500,
@@ -5014,7 +5065,10 @@ app.get('/api/enterprise/stats/:orgId', optionalAuth, async (req, res) => {
       try {
         const aggRes = await pool.query(`
           SELECT 
+            COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
             COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg,
+            COALESCE(SUM(s.tetrapak_weight_grams) / 1000.0, 0) AS total_tetra_kg,
             COALESCE(SUM(s.points_earned), 0) AS total_points,
             COUNT(DISTINCT u.user_id) AS total_employees,
             COUNT(DISTINCT CASE WHEN s.created_at > NOW() - INTERVAL '30 days' THEN u.user_id END) AS active_employees
@@ -5026,12 +5080,27 @@ app.get('/api/enterprise/stats/:orgId', optionalAuth, async (req, res) => {
 
         if (aggRes.rows.length > 0) {
           const r = aggRes.rows[0];
+          const bottles = Number(r.total_bottles) || 0;
+          const cans = Number(r.total_cans) || 0;
           const paper = parseFloat(Number(r.total_paper_kg || 0).toFixed(2));
+          const tetra = parseFloat(Number(r.total_tetra_kg || 0).toFixed(2));
+          const plasticKg = parseFloat((bottles * 0.025).toFixed(2));
+          const canKg = parseFloat((cans * 0.015).toFixed(2));
+          const totalMassKg = parseFloat((paper + plasticKg + canKg + tetra).toFixed(2));
+
+          stats.bottles = bottles;
+          stats.cans = cans;
           stats.paperKg = paper;
+          stats.tetraKg = tetra;
+          stats.plasticKg = plasticKg;
+          stats.canKg = canKg;
+          stats.totalKg = totalMassKg;
+
+          // Multi-Material Environmental Equations (EPA & ISO 14044 Lifecycle Assessment standards)
           stats.treesSaved = parseFloat((paper * 0.017).toFixed(1));
-          stats.waterSavedLiters = Math.round(paper * 26);
-          stats.co2SavedKg = parseFloat((paper * 1.5).toFixed(1));
-          stats.energySavedKwh = Math.round(paper * 4.0);
+          stats.waterSavedLiters = Math.round((paper * 26) + (bottles * 3));
+          stats.co2SavedKg = parseFloat(((paper * 1.5) + (plasticKg * 1.4) + (canKg * 9.0)).toFixed(1));
+          stats.energySavedKwh = Math.round((paper * 4.0) + (plasticKg * 5.7) + (canKg * 14.0));
           stats.totalEmployees = Number(r.total_employees) || stats.totalEmployees;
           stats.activeEmployees = Number(r.active_employees) || stats.activeEmployees;
           stats.totalPointsEarned = Number(r.total_points) || stats.totalPointsEarned;

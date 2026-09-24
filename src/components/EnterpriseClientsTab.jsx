@@ -240,9 +240,12 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
   // Aggregated KPIs across all enterprise clients
   const totalClients = organizations.length;
   const totalEmployees = organizations.reduce((acc, o) => acc + (o.total_employees || 0), 0);
-  const totalPaperKg = organizations.reduce((acc, o) => acc + (o.total_paper_kg || 0), 0);
+  const totalPaperKg = parseFloat(organizations.reduce((acc, o) => acc + (o.total_paper_kg || 0), 0).toFixed(1));
+  const totalBottles = organizations.reduce((acc, o) => acc + (o.total_bottles || 0), 0);
+  const totalCans = organizations.reduce((acc, o) => acc + (o.total_cans || 0), 0);
+  const totalMassKg = parseFloat(organizations.reduce((acc, o) => acc + (o.total_recycled_kg || o.total_paper_kg || 0), 0).toFixed(1));
   const totalTrees = parseFloat((totalPaperKg * 0.017).toFixed(1));
-  const totalCo2Kg = parseFloat((totalPaperKg * 1.5).toFixed(1));
+  const totalCo2Kg = parseFloat(((totalPaperKg * 1.5) + (totalBottles * 0.035) + (totalCans * 0.135)).toFixed(1));
 
   const filteredOrgs = organizations.filter(o => 
     o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -260,13 +263,16 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5" /> Multi-Tenant B2B Enterprise Engine
             </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+              🧴 PET Bottles • 🥫 Cans • 📄 Paper
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black t-text-primary tracking-tight flex items-center gap-2.5">
             <Building2 className="w-8 h-8 text-emerald-500" /> Enterprise Corporate Clients & ESG
           </h1>
-          <p className="text-xs sm:text-sm t-text-muted mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm t-text-muted mt-1 max-w-3xl">
             Manage corporate client tenants, automated domain routing (<code className="px-1.5 py-0.5 rounded bg-slate-500/10 font-bold">@company.com</code>), 
-            department leaderboards, bulk employee rosters, and ESG sustainability audit compliance.
+            department leaderboards, touchless staff claims, and multi-material recycling audit compliance.
           </p>
         </div>
 
@@ -288,45 +294,57 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         </div>
       </div>
 
-      {/* 2. Top Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-500/15 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
-            <Building2 className="w-6 h-6" />
+      {/* 2. Top Metric Cards (5 Cards covering all materials) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+            <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Corporate Clients</div>
-            <div className="text-2xl font-black t-text-primary">{totalClients} <span className="text-xs font-semibold text-emerald-500">Active</span></div>
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Corporate Clients</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalClients} <span className="text-[11px] font-semibold text-emerald-500">Active</span></div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/20 text-purple-500 flex items-center justify-center shrink-0">
-            <Users className="w-6 h-6" />
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/20 text-purple-500 flex items-center justify-center shrink-0">
+            <Users className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Enrolled Staff</div>
-            <div className="text-2xl font-black t-text-primary">{totalEmployees.toLocaleString()}</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Enrolled Staff</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalEmployees.toLocaleString()}</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-            <FileText className="w-6 h-6" />
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Paper Recycled</div>
-            <div className="text-2xl font-black t-text-primary">{totalPaperKg.toLocaleString()} <span className="text-xs font-semibold text-amber-500">kg</span></div>
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Paper Recycled</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalPaperKg.toLocaleString()} <span className="text-xs font-semibold text-amber-500">kg</span></div>
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
-            <TreePine className="w-6 h-6" />
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/20 text-cyan-500 flex items-center justify-center shrink-0">
+            <span className="text-lg">🧴</span>
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Trees Saved (ESG)</div>
-            <div className="text-2xl font-black text-emerald-500">{totalTrees} <span className="text-xs font-semibold t-text-muted">🌳</span></div>
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Bottles & Cans</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary">
+              {(totalBottles + totalCans).toLocaleString()} <span className="text-[10px] font-normal t-text-muted block sm:inline">({totalBottles} PET / {totalCans} Cans)</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 col-span-2 md:col-span-1">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+            <TreePine className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Trees Saved (ESG)</div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-500">{totalTrees} <span className="text-xs font-semibold t-text-muted">🌳</span></div>
           </div>
         </div>
       </div>
@@ -365,7 +383,8 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredOrgs.map((org) => {
-            const progressPct = Math.min(100, Math.round(((org.total_paper_kg || 0) / (org.monthly_target_kg || 1)) * 100));
+            const currentRecycledKg = org.total_recycled_kg || org.total_paper_kg || 0;
+            const progressPct = Math.min(100, Math.round((currentRecycledKg / (org.monthly_target_kg || 1)) * 100));
             return (
               <div 
                 key={org.org_id}
@@ -390,14 +409,30 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                     </span>
                   </div>
 
+                  {/* Multi-Material Badges (Bottles, Cans, Paper) */}
+                  <div className="grid grid-cols-3 gap-1.5 mb-3 text-[11px]">
+                    <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center">
+                      <div className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400">🧴 Bottles</div>
+                      <div className="font-black t-text-primary">{(org.total_bottles || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                      <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400">🥫 Cans</div>
+                      <div className="font-black t-text-primary">{(org.total_cans || 0).toLocaleString()}</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                      <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">📄 Paper</div>
+                      <div className="font-black t-text-primary">{(org.total_paper_kg || 0).toLocaleString()} <span className="text-[9px]">kg</span></div>
+                    </div>
+                  </div>
+
                   {/* Monthly Recycling Target Progress Bar */}
-                  <div className="space-y-1.5 my-4 p-3 rounded-2xl t-bg border t-border">
+                  <div className="space-y-1.5 my-3 p-3 rounded-2xl t-bg border t-border">
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="font-bold t-text-muted flex items-center gap-1">
-                        <FileText className="w-3 h-3 text-amber-500" /> Monthly ESG Target
+                        <FileText className="w-3 h-3 text-emerald-500" /> Monthly ESG Target
                       </span>
                       <span className="font-black t-text-primary">
-                        {(org.total_paper_kg || 0).toLocaleString()} / {(org.monthly_target_kg || 0).toLocaleString()} kg
+                        {currentRecycledKg.toLocaleString()} / {(org.monthly_target_kg || 0).toLocaleString()} kg
                       </span>
                     </div>
                     <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
@@ -480,24 +515,32 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               </div>
             </div>
 
-            {/* Impact Metric Cards for this client */}
+            {/* Impact Metric Cards for this client (Multi-Material) */}
             {orgStats && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
-                  <div className="text-[10px] font-bold uppercase t-text-muted">Paper Recycled</div>
-                  <div className="text-lg font-black text-amber-500">{orgStats.paperKg.toLocaleString()} kg</div>
+                  <div className="text-[10px] font-bold uppercase t-text-muted">Total Diverted</div>
+                  <div className="text-base sm:text-lg font-black text-emerald-500">{(orgStats.totalKg || orgStats.paperKg || 0).toLocaleString()} kg</div>
+                </div>
+                <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
+                  <div className="text-[10px] font-bold uppercase t-text-muted">PET Bottles</div>
+                  <div className="text-base sm:text-lg font-black text-cyan-500">{(orgStats.bottles || 0).toLocaleString()} <span className="text-xs">🧴</span></div>
+                </div>
+                <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
+                  <div className="text-[10px] font-bold uppercase t-text-muted">Metal Cans</div>
+                  <div className="text-base sm:text-lg font-black text-amber-500">{(orgStats.cans || 0).toLocaleString()} <span className="text-xs">🥫</span></div>
+                </div>
+                <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
+                  <div className="text-[10px] font-bold uppercase t-text-muted">Paper & Fiber</div>
+                  <div className="text-base sm:text-lg font-black text-blue-500">{(orgStats.paperKg || 0).toLocaleString()} kg</div>
                 </div>
                 <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
                   <div className="text-[10px] font-bold uppercase t-text-muted">Trees Saved</div>
-                  <div className="text-lg font-black text-emerald-500">{orgStats.treesSaved} 🌳</div>
+                  <div className="text-base sm:text-lg font-black text-emerald-500">{orgStats.treesSaved} 🌳</div>
                 </div>
                 <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
-                  <div className="text-[10px] font-bold uppercase t-text-muted">Water Preserved</div>
-                  <div className="text-lg font-black text-cyan-500">{orgStats.waterSavedLiters.toLocaleString()} L</div>
-                </div>
-                <div className="p-3.5 rounded-2xl t-bg border t-border text-center">
-                  <div className="text-[10px] font-bold uppercase t-text-muted">Active Staff</div>
-                  <div className="text-lg font-black t-text-primary">{orgStats.activeEmployees} / {orgStats.totalEmployees}</div>
+                  <div className="text-[10px] font-bold uppercase t-text-muted">CO₂ Avoided</div>
+                  <div className="text-base sm:text-lg font-black text-teal-500">{(orgStats.co2SavedKg || 0).toLocaleString()} kg</div>
                 </div>
               </div>
             )}
@@ -597,15 +640,18 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                       <tr className="border-b t-border t-bg t-text-muted uppercase tracking-wider text-[10px] font-bold">
                         <th className="py-2.5 px-3">Department</th>
                         <th className="py-2.5 px-3">Manager</th>
-                        <th className="py-2.5 px-3 text-center">Enrolled Staff</th>
-                        <th className="py-2.5 px-3 text-right">Paper Recycled</th>
-                        <th className="py-2.5 px-3 text-right">Points Earned</th>
+                        <th className="py-2.5 px-3 text-center">Staff</th>
+                        <th className="py-2.5 px-3 text-center">🧴 PET</th>
+                        <th className="py-2.5 px-3 text-center">🥫 Cans</th>
+                        <th className="py-2.5 px-3 text-right">📄 Paper</th>
+                        <th className="py-2.5 px-3 text-right">Total Mass</th>
+                        <th className="py-2.5 px-3 text-right">Points</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y t-border">
                       {orgDepartments.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-6 text-center t-text-muted">
+                          <td colSpan={8} className="py-6 text-center t-text-muted">
                             No departments recorded yet. Click "+ Add Dept" to create the first unit.
                           </td>
                         </tr>
@@ -615,7 +661,10 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                             <td className="py-2.5 px-3 font-bold t-text-primary">{dept.name}</td>
                             <td className="py-2.5 px-3 t-text-muted">{dept.manager_name || '—'}</td>
                             <td className="py-2.5 px-3 text-center font-bold">{dept.employees_count || 0}</td>
+                            <td className="py-2.5 px-3 text-center font-bold text-cyan-400">{(dept.recycled_bottles || 0).toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-center font-bold text-amber-400">{(dept.recycled_cans || 0).toLocaleString()}</td>
                             <td className="py-2.5 px-3 text-right font-black text-amber-500">{(dept.recycled_paper_kg || 0).toLocaleString()} kg</td>
+                            <td className="py-2.5 px-3 text-right font-black text-emerald-400">{(dept.recycled_total_kg || dept.recycled_paper_kg || 0).toLocaleString()} kg</td>
                             <td className="py-2.5 px-3 text-right font-black text-emerald-500">{(dept.total_points || 0).toLocaleString()} pts</td>
                           </tr>
                         ))
@@ -637,7 +686,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                       Zero App Installation • Touchless Web Claim Architecture
                     </div>
                     <div className="text-blue-200/80 leading-relaxed text-[11px]">
-                      Employees of <strong className="text-white">{selectedOrg.name}</strong> do not need to download or install any mobile application. When recycling at corporate PecoDrop kiosks, they scan the screen QR code with their default smartphone camera and authenticate instantly via Corporate Google SSO.
+                      Employees of <strong className="text-white">{selectedOrg.name}</strong> do not need to download or install any mobile application. When recycling PET bottles, cans, or paper at corporate PecoDrop kiosks, they scan the kiosk screen QR code with their default smartphone camera and authenticate instantly via Corporate Google SSO.
                     </div>
                   </div>
                 </div>
@@ -684,15 +733,17 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                             <th className="py-2.5 px-3">Employee Name & Email</th>
                             <th className="py-2.5 px-3">Department</th>
                             <th className="py-2.5 px-3">Employee ID</th>
-                            <th className="py-2.5 px-3 text-center">Access Method</th>
+                            <th className="py-2.5 px-3 text-center">🧴 PET</th>
+                            <th className="py-2.5 px-3 text-center">🥫 Cans</th>
+                            <th className="py-2.5 px-3 text-right">📄 Paper</th>
                             <th className="py-2.5 px-3 text-right">Points Earned</th>
-                            <th className="py-2.5 px-3 text-right">Joined</th>
+                            <th className="py-2.5 px-3 text-center">Access Method</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y t-border">
                           {filteredStaff.length === 0 ? (
                             <tr>
-                              <td colSpan={6} className="py-8 text-center t-text-muted">
+                              <td colSpan={8} className="py-8 text-center t-text-muted">
                                 <Users className="w-8 h-8 mx-auto mb-2 opacity-30 text-blue-400" />
                                 <p className="font-semibold">No employees enrolled yet for {selectedOrg.name}</p>
                                 <p className="text-[11px] mt-1">Click "Bulk CSV Onboard" above or have employees scan the kiosk to auto-enroll.</p>
@@ -718,16 +769,22 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                                 <td className="py-2.5 px-3 mono font-semibold text-slate-300">
                                   {emp.employeeId || '—'}
                                 </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-cyan-400">
+                                  {(emp.bottles || 0).toLocaleString()}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-bold text-amber-400">
+                                  {(emp.cans || 0).toLocaleString()}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-black text-amber-500">
+                                  {(emp.paperKg || 0).toLocaleString()} kg
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-extrabold text-emerald-400 mono">
+                                  {(emp.pointsBalance || 0).toLocaleString()} pts
+                                </td>
                                 <td className="py-2.5 px-3 text-center">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Touchless Web SSO via standard phone camera">
                                     <span>⚡</span> Web Claim (No App)
                                   </span>
-                                </td>
-                                <td className="py-2.5 px-3 text-right font-extrabold text-amber-400 mono">
-                                  {(emp.pointsBalance || 0).toLocaleString()} pts
-                                </td>
-                                <td className="py-2.5 px-3 text-right text-xs t-text-muted mono">
-                                  {emp.createdAt ? new Date(emp.createdAt).toLocaleDateString() : '—'}
                                 </td>
                               </tr>
                             ))
@@ -823,21 +880,42 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               <p className="text-sm text-slate-600">This certifies that</p>
               <h3 className="text-3xl font-black text-slate-900 tracking-tight">{selectedOrg.name}</h3>
               <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
-                has actively participated in the Smart Recycling & Circular Economy Initiative through the PecoDrop Enterprise program.
+                has demonstrated outstanding environmental stewardship by diverting recyclable materials—including Paper/Cardboard, PET Plastic Bottles, and Metal Cans—via smart touchless PecoDrop Reverse Vending and Digital Weighing Systems.
               </p>
 
-              <div className="grid grid-cols-3 gap-3 my-6 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+              {/* Multi-Material Audit Stats */}
+              <div className="grid grid-cols-3 gap-3 my-4 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
                 <div>
-                  <div className="text-[11px] font-bold text-slate-500 uppercase">Total Paper Diverted</div>
-                  <div className="text-xl font-black text-emerald-700">{(selectedOrg.total_paper_kg || 1250).toLocaleString()} kg</div>
+                  <div className="text-[11px] font-bold text-slate-500 uppercase">📄 Paper Diverted</div>
+                  <div className="text-xl font-black text-emerald-700">{(selectedOrg.total_paper_kg || 0).toLocaleString()} kg</div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-slate-500 uppercase">Living Trees Saved</div>
-                  <div className="text-xl font-black text-emerald-700">{Math.round((selectedOrg.total_paper_kg || 1250) * 0.017)} Trees</div>
+                  <div className="text-[11px] font-bold text-slate-500 uppercase">🧴 PET Bottles</div>
+                  <div className="text-xl font-black text-cyan-700">{(selectedOrg.total_bottles || 0).toLocaleString()} pcs</div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-slate-500 uppercase">CO₂ Offset Equivalent</div>
-                  <div className="text-xl font-black text-emerald-700">{Math.round((selectedOrg.total_paper_kg || 1250) * 1.5)} kg CO₂</div>
+                  <div className="text-[11px] font-bold text-slate-500 uppercase">🥫 Aluminium Cans</div>
+                  <div className="text-xl font-black text-amber-700">{(selectedOrg.total_cans || 0).toLocaleString()} pcs</div>
+                </div>
+              </div>
+
+              {/* Lifecycle Impact Equivalent */}
+              <div className="grid grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Trees Preserved</span>
+                  <span className="font-extrabold text-emerald-600 text-sm">{Math.round((selectedOrg.total_paper_kg || 0) * 0.017)} Trees 🌳</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">CO₂ Avoided</span>
+                  <span className="font-extrabold text-teal-600 text-sm">
+                    {Math.round(((selectedOrg.total_paper_kg || 0) * 1.5) + ((selectedOrg.total_bottles || 0) * 0.035) + ((selectedOrg.total_cans || 0) * 0.135))} kg
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Total Mass Diverted</span>
+                  <span className="font-extrabold text-blue-600 text-sm">
+                    {(selectedOrg.total_recycled_kg || selectedOrg.total_paper_kg || 0).toLocaleString()} kg
+                  </span>
                 </div>
               </div>
             </div>
@@ -934,7 +1012,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold t-text-primary mb-1">Monthly Target (kg Paper)</label>
+                  <label className="block text-xs font-bold t-text-primary mb-1">Monthly Target (Total kg Diverted)</label>
                   <input
                     type="number"
                     value={newOrg.monthly_target_kg}
