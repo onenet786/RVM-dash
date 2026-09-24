@@ -6,6 +6,40 @@ import {
   BarChart3, ShieldCheck, Sparkles, Trash2, Edit3, ArrowUpRight
 } from 'lucide-react';
 
+function OrgLogo({ url, name = '', size = "w-12 h-12" }) {
+  const [hasError, setHasError] = useState(false);
+
+  const getGradient = (n = '') => {
+    const lower = n.toLowerCase();
+    if (lower.includes('alfalah')) return 'from-red-600 to-rose-700 text-white';
+    if (lower.includes('engro')) return 'from-emerald-600 to-teal-700 text-white';
+    if (lower.includes('punjab') || lower.includes('ucp')) return 'from-blue-600 to-indigo-700 text-white';
+    if (lower.includes('metro')) return 'from-amber-500 to-yellow-600 text-slate-950 font-black';
+    return 'from-emerald-500 to-cyan-600 text-white';
+  };
+
+  const initial = (name || 'E').charAt(0).toUpperCase();
+
+  if (url && !hasError && !url.includes('wikimedia.org')) {
+    return (
+      <div className={`${size} rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}>
+        <img
+          src={url}
+          alt={name}
+          className="w-full h-full object-contain"
+          onError={() => setHasError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${size} rounded-2xl bg-gradient-to-br ${getGradient(name)} flex items-center justify-center shrink-0 shadow-sm border border-white/20 select-none font-black text-base tracking-wider`}>
+      {initial}
+    </div>
+  );
+}
+
 export default function EnterpriseClientsTab({ currentUser, selectedClientId = 'ALL' }) {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -341,13 +375,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                   {/* Top: Logo + Name + Status */}
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-sm">
-                        {org.logo_url ? (
-                          <img src={org.logo_url} alt={org.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <Building2 className="w-6 h-6 text-slate-700" />
-                        )}
-                      </div>
+                      <OrgLogo url={org.logo_url} name={org.name} size="w-12 h-12" />
                       <div>
                         <h3 className="font-extrabold text-sm sm:text-base t-text-primary group-hover:text-emerald-500 transition-colors">
                           {org.name}
@@ -419,13 +447,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 border-b t-border pb-5">
               <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 p-1.5 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
-                  {selectedOrg.logo_url ? (
-                    <img src={selectedOrg.logo_url} alt={selectedOrg.name} className="w-full h-full object-contain" />
-                  ) : (
-                    <Building2 className="w-8 h-8 text-slate-700" />
-                  )}
-                </div>
+                <OrgLogo url={selectedOrg.logo_url} name={selectedOrg.name} size="w-14 h-14" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl sm:text-2xl font-black t-text-primary">{selectedOrg.name}</h2>

@@ -270,7 +270,7 @@ let inMemoryOrganizations = [
     org_id: 'ORG_ALFALAH',
     name: 'Bank Alfalah Limited',
     domain: 'bankalfalah.com',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Bank_Alfalah_logo.png',
+    logo_url: null,
     contact_email: 'sustainability@bankalfalah.com',
     contact_phone: '+92 42 111 225 111',
     monthly_budget: 250000,
@@ -282,7 +282,7 @@ let inMemoryOrganizations = [
     org_id: 'ORG_ENGRO',
     name: 'Engro Corporation',
     domain: 'engro.com',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Engro_Corporation_logo.svg/320px-Engro_Corporation_logo.svg.png',
+    logo_url: null,
     contact_email: 'csr@engro.com',
     contact_phone: '+92 21 111 211 211',
     monthly_budget: 200000,
@@ -294,7 +294,7 @@ let inMemoryOrganizations = [
     org_id: 'ORG_UCP',
     name: 'University of Central Punjab',
     domain: 'ucp.edu.pk',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/en/9/91/University_of_Central_Punjab_logo.png',
+    logo_url: null,
     contact_email: 'green.campus@ucp.edu.pk',
     contact_phone: '+92 42 35880007',
     monthly_budget: 150000,
@@ -306,7 +306,7 @@ let inMemoryOrganizations = [
     org_id: 'ORG_METRO',
     name: 'Metro Cash & Carry',
     domain: 'metro.pk',
-    logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Metro_logo.svg/320px-Metro_logo.svg.png',
+    logo_url: null,
     contact_email: 'eco@metro.pk',
     contact_phone: '+92 42 111 786 638',
     monthly_budget: 180000,
@@ -601,11 +601,13 @@ async function initProductionPostgresSchemas() {
 
       INSERT INTO organizations (org_id, name, domain, logo_url, contact_email, monthly_budget, monthly_target_kg, status)
       VALUES 
-        ('ORG_ALFALAH', 'Bank Alfalah Limited', 'bankalfalah.com', 'https://upload.wikimedia.org/wikipedia/commons/4/4b/Bank_Alfalah_logo.png', 'sustainability@bankalfalah.com', 250000, 2500.00, 'active'),
-        ('ORG_ENGRO', 'Engro Corporation', 'engro.com', 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Engro_Corporation_logo.svg/320px-Engro_Corporation_logo.svg.png', 'csr@engro.com', 200000, 2000.00, 'active'),
-        ('ORG_UCP', 'University of Central Punjab', 'ucp.edu.pk', 'https://upload.wikimedia.org/wikipedia/en/9/91/University_of_Central_Punjab_logo.png', 'green.campus@ucp.edu.pk', 150000, 1500.00, 'active'),
-        ('ORG_METRO', 'Metro Cash & Carry', 'metro.pk', 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Metro_logo.svg/320px-Metro_logo.svg.png', 'eco@metro.pk', 180000, 1800.00, 'active')
+        ('ORG_ALFALAH', 'Bank Alfalah Limited', 'bankalfalah.com', NULL, 'sustainability@bankalfalah.com', 250000, 2500.00, 'active'),
+        ('ORG_ENGRO', 'Engro Corporation', 'engro.com', NULL, 'csr@engro.com', 200000, 2000.00, 'active'),
+        ('ORG_UCP', 'University of Central Punjab', 'ucp.edu.pk', NULL, 'green.campus@ucp.edu.pk', 150000, 1500.00, 'active'),
+        ('ORG_METRO', 'Metro Cash & Carry', 'metro.pk', NULL, 'eco@metro.pk', 180000, 1800.00, 'active')
       ON CONFLICT (org_id) DO NOTHING;
+
+      UPDATE organizations SET logo_url = NULL WHERE logo_url LIKE '%wikimedia%';
 
       INSERT INTO departments (dept_id, org_id, name, monthly_target_kg)
       VALUES
