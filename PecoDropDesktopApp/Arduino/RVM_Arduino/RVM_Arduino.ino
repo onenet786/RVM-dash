@@ -1,5 +1,7 @@
 #include <Servo.h>
 #include <math.h>
+#include <string.h>
+#include <ctype.h>
 #include <util/atomic.h>
 
 // Arduino Mega pin map:
@@ -39,7 +41,11 @@ const byte DROP_OPEN_ANGLE = 170;
 const byte PAPER_DROP_CLOSED_ANGLE = 175;
 const byte PAPER_DROP_OPEN_ANGLE = 100;
 const unsigned int MAX_DISTANCE_CM = 200;
-const unsigned long ECHO_TIMEOUT_US = 20000UL;
+// Optimized echo timeout: 12500 us covers ~215 cm max acoustic roundtrip.
+// Prevents lengthy 20 ms stalls when sensors are disconnected or out of range.
+const unsigned long ECHO_TIMEOUT_US = 12500UL;
+// Optimal HC-SR04 ping interval (25 ms) prevents ghost echoes while boosting sampling speed by >2.4x.
+const unsigned long ULTRASONIC_PING_INTERVAL_MS = 25UL;
 // Keep signed: a farther echo gives a negative delta, not an occupied level.
 // On AVR, an unsigned threshold converts that negative delta to a large value.
 const int DETECTION_CHANGE_CM = 3;
@@ -145,7 +151,9 @@ bool machineRunning = false;
 bool calibrated = false;
 long paperTareRaw = 0;
 bool paperScaleReady = false;
-String serialBuffer;
+// Fixed static buffer avoids dynamic heap allocation & SRAM fragmentation on ATmega2560
+char serialBuffer[64];
+byte serialBufIdx = 0;
 bool entranceDebug = false;
 bool calibrating = false;
 bool calibrationCancelled = false;
@@ -324,10 +332,10 @@ bool readHx711Raw(long& raw);
 bool waitForHx711Ready(unsigned long timeoutMs);
 bool readHx711Average(byte samples, long& raw);
 float readPaperGrams(byte samples);
+bool reTarePaperScaleIfEmpty();
 void calibrateAll();
 void makeSafe();
-void handleSerial();
-void executeCommand(String command);
+void executeCommand(char* command);
 void autoRecalibrate(Compartment& c);
 
 void setupSizedCompartment(Compartment& c) {
@@ -386,7 +394,7 @@ void setup() {
 void loop() {
   handleSerial();
   if (!machineRunning || !calibrated) {
-    delay(20);
+    delay(10);
     return;
   }
   // A fault/full bin only removes its own compartment from the intake loop.
@@ -402,7 +410,8 @@ void loop() {
     activeCompartment = NULL;
     activeCycleAborted = false;
   }
-  delay(40);
+  // Fast loop cycle: ultrasonic pings already throttle execution rate cleanly.
+  delay(5);
 }
 
 bool updateDetection(Compartment& c) {
@@ -698,7 +707,7 @@ const char* calculateSize(Compartment& c) {
     else if (bottom == 1 && middle == 0 && top == 0) size = "SMALL";
     if (strcmp(size, "INVALID") != 0 && strcmp(size, previous) == 0) return size;
     previous = size;
-    delay(150);
+    delay(80);
   }
   return "INVALID";
 }
@@ -740,7 +749,7 @@ bool waitForSizingClear(Compartment& c) {
     bool middleClear = readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin,
                                          c.middleSizeEchoPin, c.middleSizeEmptyCm) == 0;
     bool topClear = readSizeLevel(c, "TOP", c.topSizeTrigPin,
-                                      c.topSizeEchoPin, c.topSizeEmptyCm) == 0;
+                                       c.topSizeEchoPin, c.topSizeEmptyCm) == 0;
     bool clear = bottomClear && middleClear && topClear;
     clearCount = clear ? clearCount + 1 : 0;
     if (clearCount >= 5) return true;
@@ -751,11 +760,13 @@ bool waitForSizingClear(Compartment& c) {
 
 bool metalDetectedStable() {
   byte count = 0;
-  for (byte i = 0; i < 12; i++) {
+  for (byte i = 0; i < 10; i++) {
+    handleSerial();
+    if (!cycleRunning()) return false;
     if (digitalRead(metal.materialSensorPin) == METAL_DETECTED_STATE) count++;
-    delay(15);
+    delay(10);
   }
-  return count >= 9;
+  return count >= 7;
 }
 
 bool waitForIrisOpenHold(unsigned long openedAt) {
@@ -863,17 +874,21 @@ bool sizeLevelChanged(byte trigPin, byte echoPin, int emptyDistanceCm) {
     if (distance > 0 && emptyDistanceCm - distance >= DETECTION_CHANGE_CM) {
       changedReadings++;
     }
-    delay(25);
   }
   return changedReadings >= REQUIRED_SIZE_CHANGES;
 }
 
 int readUltrasonicCm(byte trigPin, byte echoPin) {
   pollSensors();
-  // Space all ultrasonic triggers, including transitions between sensors.
+  // Space all ultrasonic triggers to prevent acoustic echo overlaps.
   static unsigned long lastTriggerMs = 0;
   unsigned long elapsed = millis() - lastTriggerMs;
-  if (elapsed < 60UL) delay(60UL - elapsed);
+  if (elapsed < ULTRASONIC_PING_INTERVAL_MS) {
+    while (millis() - lastTriggerMs < ULTRASONIC_PING_INTERVAL_MS) {
+      handleSerial();
+      delayMicroseconds(250);
+    }
+  }
   lastTriggerMs = millis();
   digitalWrite(trigPin, LOW); delayMicroseconds(2);
   digitalWrite(trigPin, HIGH); delayMicroseconds(10);
@@ -881,7 +896,7 @@ int readUltrasonicCm(byte trigPin, byte echoPin) {
   unsigned long duration = pulseIn(echoPin, HIGH, ECHO_TIMEOUT_US);
   if (duration == 0) return -1;
   int distance = (int)(duration / 58UL);
-  return distance > 0 && distance <= MAX_DISTANCE_CM ? distance : -1;
+  return (distance > 0 && distance <= MAX_DISTANCE_CM) ? distance : -1;
 }
 
 int readStableUltrasonicCm(byte trigPin, byte echoPin, byte samples) {
@@ -916,8 +931,8 @@ bool waitForHx711Ready(unsigned long timeoutMs) {
   unsigned long started = millis();
   while (digitalRead(paper.loadCellDoutPin) == HIGH &&
          millis() - started < timeoutMs) {
-    if (calibrating) handleSerial();
-    else pollSensors();
+    handleSerial();
+    pollSensors();
     if (calibrating && calibrationCancelled) return false;
     if (activeCompartment != NULL && !cycleRunning()) return false;
     delay(1);
@@ -977,6 +992,21 @@ float readPaperGrams(byte samples) {
   float grams = (float)(raw - paperTareRaw) /
                 PAPER_COUNTS_PER_GRAM;
   return grams > 0.0f ? grams : 0.0f;
+}
+
+// Re-tare paper scale automatically if bottom sensor confirms tray is completely empty.
+bool reTarePaperScaleIfEmpty() {
+  if (PAPER_DISABLED || !paperScaleReady) return false;
+  int bottom = readUltrasonicCm(paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin);
+  if (bottom > 0 && paper.bottomEmptyDistanceCm > 0 &&
+      abs(bottom - paper.bottomEmptyDistanceCm) <= ENTRANCE_CLEAR_TOLERANCE_CM) {
+    long newTare = 0;
+    if (readHx711Average(3, newTare)) {
+      paperTareRaw = newTare;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool waitCalibration(unsigned long durationMs) {
@@ -1093,20 +1123,46 @@ void calibrateAll() {
   }
 }
 
+// Complete hardware safe state: invoked on STOP, RESET, fault abort, or session closure.
+// Ensures servos close, active cycles abort immediately, and detection counters are fully cleared.
 void makeSafe() {
+  activeCycleAborted = true;
+  activeCompartment = NULL;
+
   plastic.purging = metal.purging = paper.purging = false;
   plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
   plastic.recovery.lastAttemptMs = metal.recovery.lastAttemptMs =
     paper.recovery.lastAttemptMs = millis();
+
+  // Reset all entrance detection tracking cleanly so the next session starts fresh
   plastic.detectionCount = metal.detectionCount = paper.detectionCount = 0;
   plastic.entranceClearCount = metal.entranceClearCount = paper.entranceClearCount = 0;
   plastic.entranceArmed = metal.entranceArmed = paper.entranceArmed = false;
-  if (!PLASTIC_DISABLED) plastic.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!PLASTIC_DISABLED) plastic.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  if (!METAL_DISABLED) metal.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!METAL_DISABLED) metal.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  if (!PAPER_DISABLED) paper.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!PAPER_DISABLED) paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
+  plastic.entranceStateSince = metal.entranceStateSince = paper.entranceStateSince = millis();
+  plastic.candidateMinCm = plastic.candidateMaxCm = 0;
+  metal.candidateMinCm = metal.candidateMaxCm = 0;
+  paper.candidateMinCm = paper.candidateMaxCm = 0;
+  plastic.missingEntranceReadings = metal.missingEntranceReadings = paper.missingEntranceReadings = 0;
+
+  // Reset bin bounce candidate state
+  plastic.binCandidate = metal.binCandidate = paper.binCandidate = false;
+  plastic.binCandidateSince = metal.binCandidateSince = paper.binCandidateSince = millis();
+
+  // Ensure servos command physical closed positions
+  if (!PLASTIC_DISABLED) {
+    plastic.irisServo->write(IRIS_CLOSED_ANGLE);
+    plastic.bottomGateServo->write(DROP_CLOSED_ANGLE);
+  }
+  if (!METAL_DISABLED) {
+    metal.irisServo->write(IRIS_CLOSED_ANGLE);
+    metal.bottomGateServo->write(DROP_CLOSED_ANGLE);
+  }
+  if (!PAPER_DISABLED) {
+    paper.irisServo->write(IRIS_CLOSED_ANGLE);
+    paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
+  }
+
+  hardwareStatusDirty = true;
 }
 
 void handleSerial() {
@@ -1118,26 +1174,46 @@ void handleSerial() {
   while (Serial.available() > 0) {
     char ch = (char)Serial.read();
     if (ch == '\n' || ch == '\r') {
-      if (serialBuffer.length() > 0) {
-        String command = serialBuffer;
-        serialBuffer = "";
-        executeCommand(command);
+      if (serialBufIdx > 0) {
+        serialBuffer[serialBufIdx] = '\0';
+        executeCommand(serialBuffer);
+        serialBufIdx = 0;
       }
-    } else if (serialBuffer.length() < 40) serialBuffer += ch;
+    } else if (serialBufIdx < (sizeof(serialBuffer) - 1)) {
+      serialBuffer[serialBufIdx++] = ch;
+    }
   }
 }
 
-void executeCommand(String command) {
-  command.trim();
-  command.toUpperCase();
-  if ((calibrating || activeCompartment != NULL) && (command == "START" || command == "CALIBRATE" || command == "SCALE")) {
+// In-place whitespace trim and uppercase conversion with zero dynamic SRAM heap allocation
+static void cleanCommand(char* str) {
+  char* p = str;
+  while (*p == ' ' || *p == '\t') p++;
+  if (p != str) memmove(str, p, strlen(p) + 1);
+  int len = strlen(str);
+  while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t' || str[len - 1] == '\r' || str[len - 1] == '\n')) {
+    str[--len] = '\0';
+  }
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] >= 'a' && str[i] <= 'z') str[i] = (char)(str[i] - 'a' + 'A');
+  }
+}
+
+void executeCommand(char* rawCommand) {
+  cleanCommand(rawCommand);
+  if (rawCommand[0] == '\0') return;
+
+  if ((calibrating || activeCompartment != NULL) &&
+      (strcmp(rawCommand, "START") == 0 || strcmp(rawCommand, "CALIBRATE") == 0 ||
+       strcmp(rawCommand, "SCALE") == 0 || strcmp(rawCommand, "CLEAR_CHAMBER") == 0)) {
     Serial.println("ERROR:COMPARTMENT_BUSY");
     return;
   }
-  if (command == "DEBUG ON" || command == "DEBUG OFF") {
-    entranceDebug = command == "DEBUG ON";
+
+  if (strcmp(rawCommand, "DEBUG ON") == 0 || strcmp(rawCommand, "DEBUG OFF") == 0) {
+    entranceDebug = (strcmp(rawCommand, "DEBUG ON") == 0);
     Serial.println(entranceDebug ? "DEBUG:ON" : "DEBUG:OFF");
-  } else if (command == "SCALE") {
+  } else if (strcmp(rawCommand, "SCALE") == 0) {
     if (PAPER_DISABLED) {
       Serial.println("ERROR:PAPER_DISABLED");
       return;
@@ -1153,16 +1229,54 @@ void executeCommand(String command) {
       }
       Serial.println();
     }
-  } else if (command == "START") {
-    machineRunning = calibrated;
-    Serial.println(machineRunning ? "MACHINE:STARTED" : "ERROR:NOT_CALIBRATED");
-  } else if (command == "STOP" || command == "RESET") {
+  } else if (strcmp(rawCommand, "TARE") == 0) {
+    if (PAPER_DISABLED) {
+      Serial.println("ERROR:PAPER_DISABLED");
+      return;
+    }
+    long raw;
+    if (readHx711Average(5, raw)) {
+      paperTareRaw = raw;
+      paperScaleReady = true;
+      Serial.print("TARE:OK;TARE_RAW:"); Serial.println(paperTareRaw);
+    } else {
+      Serial.println("ERROR:TARE_FAILED");
+    }
+  } else if (strcmp(rawCommand, "CLEAR_CHAMBER") == 0) {
+    // Supports C# manual clear chamber command (Key 33 / Admin button)
+    beginPurge(plastic);
+    beginPurge(metal);
+    beginPurge(paper);
+    waitActive(PURGE_OPEN_MS + GATE_SETTLE_MS);
+    makeSafe();
+    Serial.println("CHAMBER:CLEARED");
+  } else if (strcmp(rawCommand, "START") == 0) {
+    if (!calibrated) {
+      Serial.println("ERROR:NOT_CALIBRATED");
+      return;
+    }
+    // Cleanly re-arm session state and auto-tare scale if empty
+    makeSafe();
+    activeCycleAborted = false;
+    activeCompartment = NULL;
+    machineRunning = true;
+    if (!PAPER_DISABLED && paperScaleReady) {
+      reTarePaperScaleIfEmpty();
+    }
+    hardwareStatusDirty = true;
+    Serial.println("MACHINE:STARTED");
+  } else if (strcmp(rawCommand, "STOP") == 0 || strcmp(rawCommand, "RESET") == 0) {
     if (calibrating) calibrationCancelled = true;
     machineRunning = false;
     makeSafe();
-    Serial.println(command == "STOP" ? "MACHINE:STOPPED" : "RESET:OK");
-  } else if (command == "CALIBRATE") calibrateAll();
-  else if (command == "STATUS") {
+    // On session reset or closure, re-tare the paper scale if empty so drift doesn't carry to next user
+    if (!PAPER_DISABLED && paperScaleReady) {
+      reTarePaperScaleIfEmpty();
+    }
+    Serial.println(strcmp(rawCommand, "STOP") == 0 ? "MACHINE:STOPPED" : "RESET:OK");
+  } else if (strcmp(rawCommand, "CALIBRATE") == 0) {
+    calibrateAll();
+  } else if (strcmp(rawCommand, "STATUS") == 0) {
     reportHardwareStatus();
     Serial.print("STATUS:");
     Serial.print(calibrated ? (machineRunning ? "RUNNING" : "READY") : "NOT_CALIBRATED");
@@ -1183,5 +1297,7 @@ void executeCommand(String command) {
                  (digitalRead(metal.materialSensorPin) == METAL_DETECTED_STATE ? "DETECTED" : "CLEAR"));
     Serial.print(";PAPER_SCALE:");
     Serial.println(PAPER_DISABLED ? "DISABLED" : (paperScaleReady ? "READY" : "ERROR"));
-  } else Serial.println("ERROR:UNKNOWN_COMMAND");
+  } else {
+    Serial.println("ERROR:UNKNOWN_COMMAND");
+  }
 }
