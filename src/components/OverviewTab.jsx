@@ -13,6 +13,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [focusedKpi, setFocusedKpi] = useState('all'); // 'all' | 'bottles' | 'cups' | 'points' | 'sessions'
 
   // Sub-Tab Architecture: 'master' | 'rvm_new' | 'pecodrop' | 'rvm_old'
   const [activeSubTab, setActiveSubTab] = useState(() => {
@@ -80,14 +81,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     }
   }, [stationFilter, selectedClientId, currentUser]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
-        <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-        <p className="text-sm font-semibold">Loading Heterogeneous Recycling Fleet Metrics...</p>
-      </div>
-    );
-  }
+
 
   const isPostgres = health?.databaseType === 'postgres';
   const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
@@ -173,8 +167,6 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     }
   }, [activeSubTab, subTabMetrics, overview]);
 
-  const [focusedKpi, setFocusedKpi] = useState('all'); // 'all' | 'bottles' | 'cups' | 'points' | 'sessions'
-
   const displayedTrends = React.useMemo(() => {
     if (!trends || trends.length === 0) return [];
     const ratio = activeSubTab === 'rvm_new' ? 0.62 : activeSubTab === 'pecodrop' ? 0.26 : activeSubTab === 'rvm_old' ? 0.12 : 1.0;
@@ -257,6 +249,15 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         };
     }
   }, [focusedKpi]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
+        <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
+        <p className="text-sm font-semibold">Loading Heterogeneous Recycling Fleet Metrics...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
