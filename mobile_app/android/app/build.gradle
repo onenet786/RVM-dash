@@ -140,5 +140,6 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
 }
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
