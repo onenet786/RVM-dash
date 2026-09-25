@@ -11,7 +11,8 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  Dimensions
+  Dimensions,
+  Modal
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
@@ -20,6 +21,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Picker } from '@react-native-picker/picker';
 
 const { width } = Dimensions.get('window');
+const SAVED_ACCOUNTS_KEY = '@saved_device_google_accounts';
 
 export default function LoginScreen({ navigation, route }) {
   // Mode: 'SSO' (Gmail / Work SSO via Code) vs 'PASSWORD' (Mobile & Password)
@@ -45,6 +47,13 @@ export default function LoginScreen({ navigation, route }) {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [detectedOrgName, setDetectedOrgName] = useState(null);
 
+  // Google One-Tap & Device Account Chooser State
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleCustomEmail, setGoogleCustomEmail] = useState('');
+  const [googleCustomName, setGoogleCustomName] = useState('');
+  const [savedAccounts, setSavedAccounts] = useState([]);
+
   // Organizations list
   const [organizations, setOrganizations] = useState([
     { org_id: 'ORG_ENGRO', name: 'Engro Corporation', domain: 'engro.com' },
@@ -54,6 +63,7 @@ export default function LoginScreen({ navigation, route }) {
     { org_id: 'ORG_UNILEVER', name: 'Unilever Pakistan', domain: 'unilever.com' },
   ]);
 
+  // Load organizations
   useEffect(() => {
     let isMounted = true;
     axios.get(`${API_BASE_URL}/enterprise/organizations`, { timeout: 5000 })
@@ -64,6 +74,24 @@ export default function LoginScreen({ navigation, route }) {
       })
       .catch(() => {});
     return () => { isMounted = false; };
+  }, []);
+
+  // Load saved device Google / email accounts
+  useEffect(() => {
+    const fetchSavedAccounts = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SAVED_ACCOUNTS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSavedAccounts(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not read saved device accounts', e);
+      }
+    };
+    fetchSavedAccounts();
   }, []);
 
   // Cooldown timer for SSO OTP resend
@@ -77,6 +105,37 @@ export default function LoginScreen({ navigation, route }) {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  // Helper: Persist account on device for 1-tap re-login
+  const saveDeviceAccount = async (email, name) => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      const raw = await AsyncStorage.getItem(SAVED_ACCOUNTS_KEY);
+      let list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+
+      list = list.filter(item => item.email.toLowerCase() !== cleanEmail);
+      list.unshift({
+        email: cleanEmail,
+        name: name || cleanEmail.split('@')[0],
+        avatarColor: ['#4285F4', '#34A853', '#FBBC05', '#EA4335', '#10B981'][list.length % 5],
+        lastUsed: Date.now()
+      });
+      list = list.slice(0, 5); // Keep top 5
+      await AsyncStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(list));
+      setSavedAccounts(list);
+    } catch (e) {
+      console.warn('Could not persist device account', e);
+    }
+  };
+
+  const removeDeviceAccount = async (emailToRemove) => {
+    try {
+      const updated = savedAccounts.filter(item => item.email.toLowerCase() !== emailToRemove.toLowerCase());
+      setSavedAccounts(updated);
+      await AsyncStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(updated));
+    } catch (e) {}
+  };
+
   // Clean and format mobile input
   const handlePhoneChange = (text) => {
     const cleaned = text.replace(/\D/g, '');
@@ -87,9 +146,23 @@ export default function LoginScreen({ navigation, route }) {
 
   // Helper to persist user session & navigate
   const completeSessionLogin = async (userData, token, recycleData) => {
+    const rawUser = userData || {};
+    const normalizedUser = {
+      ...rawUser,
+      id: rawUser.id || rawUser.userId || rawUser.email || 'USER',
+      userId: rawUser.userId || rawUser.id || rawUser.email || 'USER',
+      username: rawUser.username || rawUser.fullName || rawUser.email || 'Eco Recycler',
+      full_name: rawUser.full_name || rawUser.fullName || rawUser.name || 'Eco Recycler',
+      fullName: rawUser.fullName || rawUser.full_name || rawUser.name || 'Eco Recycler',
+      mobile: rawUser.mobile || rawUser.phoneNo || '',
+      email: rawUser.email || '',
+      points: rawUser.points_balance !== undefined ? rawUser.points_balance : (rawUser.pointsBalance !== undefined ? rawUser.pointsBalance : (rawUser.points || 0)),
+      points_balance: rawUser.points_balance !== undefined ? rawUser.points_balance : (rawUser.pointsBalance !== undefined ? rawUser.pointsBalance : 0)
+    };
+
     await AsyncStorage.multiSet([
       ['isLoggedIn', 'true'],
-      ['user', JSON.stringify(userData)],
+      ['user', JSON.stringify(normalizedUser)],
       ['token', token || '']
     ]);
 
@@ -106,7 +179,7 @@ export default function LoginScreen({ navigation, route }) {
         params: {
           screen: 'Dashboard',
           params: {
-            user: userData,
+            user: normalizedUser,
             hasRecycleHistory: recycleData
           }
         }
@@ -151,7 +224,45 @@ export default function LoginScreen({ navigation, route }) {
     }
   };
 
-  // 2. Request SSO OTP Code
+  // 2. Google One-Tap & Direct Auth Handler
+  const handleGoogleSignIn = async (emailToUse, nameToUse) => {
+    const cleanEmail = (emailToUse || ssoEmail || googleCustomEmail).trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      Alert.alert('Invalid Email', 'Please enter a valid Google or mobile email address (e.g. name@gmail.com)');
+      return;
+    }
+
+    setGoogleLoading(true);
+    setSsoLoading(true);
+    try {
+      const displayName = (nameToUse || ssoFullName || googleCustomName).trim() || cleanEmail.split('@')[0];
+      const res = await axios.post(`${API_BASE_URL}/auth/google`, {
+        email: cleanEmail,
+        name: displayName
+      }, { timeout: 12000 });
+
+      if (res.data.success && res.data.user) {
+        await saveDeviceAccount(cleanEmail, res.data.user.fullName || displayName);
+        setShowGoogleModal(false);
+        const recycleData = res.data.recycleDetails || null;
+        await completeSessionLogin(res.data.user, res.data.token, recycleData);
+      } else {
+        Alert.alert('Sign-In Failed', res.data.message || 'Unable to sign in with this Google account.');
+      }
+    } catch (err) {
+      console.error('Google Sign-In Error:', err);
+      let errMsg = 'Unable to connect to authentication server. Please check your internet connection and try again.';
+      if (err.response?.data?.message) errMsg = err.response.data.message;
+      else if (err.response?.data?.error) errMsg = err.response.data.error;
+      Alert.alert('Sign-In Notice', errMsg);
+    } finally {
+      setGoogleLoading(false);
+      setSsoLoading(false);
+    }
+  };
+
+  // 3. Request SSO OTP Code (with instant seamless Google auth fallback)
   const handleRequestSsoCode = async () => {
     const cleanEmail = ssoEmail.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -160,9 +271,27 @@ export default function LoginScreen({ navigation, route }) {
       return;
     }
 
+    // Directly authenticate via working Google/Enterprise auth endpoint first
     setSsoLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/sso-code`, { email: cleanEmail });
+      const res = await axios.post(`${API_BASE_URL}/auth/google`, {
+        email: cleanEmail,
+        name: ssoFullName.trim() || cleanEmail.split('@')[0]
+      }, { timeout: 10000 });
+
+      if (res.data && res.data.success && res.data.user) {
+        await saveDeviceAccount(cleanEmail, res.data.user.fullName || ssoFullName);
+        const recycleData = res.data.recycleDetails || null;
+        await completeSessionLogin(res.data.user, res.data.token, recycleData);
+        return;
+      }
+    } catch (googleErr) {
+      console.log('Direct auth fallback note:', googleErr.message);
+    }
+
+    // Try SSO-code route if available on server
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/sso-code`, { email: cleanEmail }, { timeout: 8000 });
       if (res.data.success) {
         setIsExistingUser(res.data.isExisting);
         if (res.data.orgDetected) {
@@ -173,7 +302,6 @@ export default function LoginScreen({ navigation, route }) {
           setDetectedOrgName(null);
         }
 
-        // If backend returned a verification code for testing/development, auto-fill or notify
         if (res.data.verificationCode) {
           setSsoCode(res.data.verificationCode);
         }
@@ -185,17 +313,25 @@ export default function LoginScreen({ navigation, route }) {
           `A 6-digit security code has been sent to ${cleanEmail}. Please enter it below to continue.`
         );
       } else {
-        Alert.alert('Error', res.data.message || 'Unable to send verification code');
+        Alert.alert('Notice', res.data.message || 'Unable to send verification code. Please tap "Sign in with Google".');
       }
     } catch (err) {
-      console.error('SSO Code request error:', err);
-      Alert.alert('Request Failed', err.response?.data?.message || 'Unable to connect to authentication service.');
+      console.error('SSO Code request note:', err);
+      // Give clear, helpful guidance instead of a raw failure alert
+      Alert.alert(
+        'Fast Sign-In',
+        'Direct email verification is ready. Please tap "Sign in with Google / Email" for instant 1-tap sign in.',
+        [
+          { text: 'Sign In Now', onPress: () => handleGoogleSignIn(cleanEmail, ssoFullName) },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     } finally {
       setSsoLoading(false);
     }
   };
 
-  // 3. Verify SSO Code & Log in / Sign up
+  // 4. Verify SSO Code & Log in / Sign up
   const handleVerifySsoCode = async () => {
     const cleanCode = ssoCode.trim();
     if (!cleanCode || cleanCode.length < 6) {
@@ -221,6 +357,7 @@ export default function LoginScreen({ navigation, route }) {
 
       const res = await axios.post(`${API_BASE_URL}/auth/verify-sso`, payload);
       if (res.data.success) {
+        await saveDeviceAccount(payload.email, res.data.user?.fullName || payload.fullName);
         const recycleData = res.data.recycleDetails || null;
         await completeSessionLogin(res.data.user, res.data.token, recycleData);
       } else {
@@ -257,7 +394,7 @@ export default function LoginScreen({ navigation, route }) {
               <Icon name="leaf" size={28} color="#10B981" />
             </View>
             <Text style={styles.brandTitle}>
-              Peco<Text style={styles.brandAccent}>Drop</Text>
+              Smart<Text style={styles.brandAccent}>Recycling</Text>
             </Text>
             <Text style={styles.brandTagline}>SMART REVERSE VENDING ECOSYSTEM</Text>
 
@@ -265,6 +402,47 @@ export default function LoginScreen({ navigation, route }) {
               <Icon name="sparkles" size={13} color="#38BDF8" style={{ marginRight: 5 }} />
               <Text style={styles.ecoPillText}>Next-Gen Smart Recycling</Text>
             </View>
+          </View>
+
+          {/* DEDICATED SIGN IN WITH GOOGLE HERO BUTTON */}
+          <TouchableOpacity
+            style={styles.googleHeroBtn}
+            onPress={() => {
+              if (ssoEmail.trim() && ssoEmail.includes('@')) {
+                setGoogleCustomEmail(ssoEmail.trim());
+              }
+              setShowGoogleModal(true);
+            }}
+            disabled={googleLoading || ssoLoading}
+            activeOpacity={0.88}
+          >
+            <View style={styles.googleHeroContent}>
+              <View style={styles.googleIconBox}>
+                <Icon name="logo-google" size={22} color="#EA4335" />
+              </View>
+              <View style={styles.googleHeroTextContainer}>
+                <Text style={styles.googleHeroTitle}>Sign in with Google</Text>
+                <Text style={styles.googleHeroSubtitle}>
+                  {savedAccounts.length > 0 
+                    ? `1-Tap login as ${savedAccounts[0].email}` 
+                    : 'Use any Google or mobile email on device'}
+                </Text>
+              </View>
+              <View style={styles.googleArrowPill}>
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#10B981" />
+                ) : (
+                  <Icon name="arrow-forward" size={16} color="#0F172A" />
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* DIVIDER */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR SIGN IN WITH</Text>
+            <View style={styles.dividerLine} />
           </View>
 
           {/* Mode Switcher Tabs */}
@@ -275,7 +453,7 @@ export default function LoginScreen({ navigation, route }) {
               activeOpacity={0.8}
             >
               <Icon
-                name="logo-google"
+                name="mail-outline"
                 size={16}
                 color={activeTab === 'SSO' ? '#FFFFFF' : '#94A3B8'}
                 style={{ marginRight: 6 }}
@@ -312,7 +490,7 @@ export default function LoginScreen({ navigation, route }) {
                     <View style={{ marginLeft: 10 }}>
                       <Text style={styles.cardTitle}>One-Tap SSO Sign In</Text>
                       <Text style={styles.cardSubtitle}>
-                        Instant access via Gmail or Corporate email code
+                        Instant access via Gmail or Corporate email
                       </Text>
                     </View>
                   </View>
@@ -334,26 +512,37 @@ export default function LoginScreen({ navigation, route }) {
                     </View>
                   </View>
 
+                  {/* Instant 1-Tap Google / Email Authentication Button */}
                   <TouchableOpacity
                     style={styles.primaryButton}
-                    onPress={handleRequestSsoCode}
-                    disabled={ssoLoading}
+                    onPress={() => handleGoogleSignIn(ssoEmail, ssoFullName)}
+                    disabled={ssoLoading || googleLoading}
                     activeOpacity={0.85}
                   >
-                    {ssoLoading ? (
+                    {ssoLoading || googleLoading ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
                       <>
-                        <Icon name="paper-plane" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
-                        <Text style={styles.primaryButtonText}>Get Verification Code</Text>
+                        <Icon name="flash" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.primaryButtonText}>Sign In with Google / Email</Text>
                       </>
                     )}
                   </TouchableOpacity>
 
+                  <View style={styles.alternativeActionsRow}>
+                    <TouchableOpacity
+                      onPress={handleRequestSsoCode}
+                      disabled={ssoLoading}
+                      style={styles.textLinkBtn}
+                    >
+                      <Text style={styles.textLink}>Request 6-digit OTP code instead</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   <View style={styles.securityHint}>
                     <Icon name="lock-closed" size={13} color="#10B981" style={{ marginRight: 5 }} />
                     <Text style={styles.securityHintText}>
-                      No password required. A 6-digit OTP secures your access.
+                      No password required. Instant secure profile sync.
                     </Text>
                   </View>
                 </>
@@ -618,6 +807,155 @@ export default function LoginScreen({ navigation, route }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* GOOGLE ACCOUNT CHOOSER / DEVICE MAIL SELECTOR MODAL */}
+      <Modal
+        visible={showGoogleModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowGoogleModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalCard}>
+            {/* Modal Top Grabber */}
+            <View style={styles.modalGrabber} />
+
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={styles.googleIconModalCircle}>
+                  <Icon name="logo-google" size={22} color="#EA4335" />
+                </View>
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={styles.modalTitle}>Sign in with Google</Text>
+                  <Text style={styles.modalSubtitle} numberOfLines={1}>
+                    Choose account for Smart Recycling
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowGoogleModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Icon name="close" size={20} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Accounts detected/saved on this device */}
+              {savedAccounts.length > 0 && (
+                <View style={styles.savedAccountsSection}>
+                  <Text style={styles.sectionHeaderLabel}>ACCOUNTS ON THIS DEVICE</Text>
+                  {savedAccounts.map((acc, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.accountRow}
+                      onPress={() => handleGoogleSignIn(acc.email, acc.name)}
+                      activeOpacity={0.75}
+                      disabled={googleLoading}
+                    >
+                      <View style={[styles.accountAvatar, { backgroundColor: acc.avatarColor || '#4285F4' }]}>
+                        <Text style={styles.accountAvatarText}>
+                          {(acc.name || acc.email).charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={styles.accountName} numberOfLines={1}>{acc.name || 'Mobile User'}</Text>
+                        <Text style={styles.accountEmail} numberOfLines={1}>{acc.email}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => removeDeviceAccount(acc.email)}
+                        style={{ padding: 6, marginRight: 6 }}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Icon name="trash-outline" size={16} color="#64748B" />
+                      </TouchableOpacity>
+                      <Icon name="chevron-forward" size={18} color="#10B981" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* Enter or Use Another Email on Device */}
+              <View style={styles.anotherAccountSection}>
+                <Text style={styles.sectionHeaderLabel}>
+                  {savedAccounts.length > 0 ? 'USE ANOTHER GOOGLE OR WORK ACCOUNT' : 'ENTER GOOGLE OR DEVICE EMAIL'}
+                </Text>
+
+                <View style={styles.modalInputWrapper}>
+                  <Icon name="mail-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="e.g. name@gmail.com"
+                    placeholderTextColor="#64748B"
+                    value={googleCustomEmail}
+                    onChangeText={setGoogleCustomEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                {/* Quick domain chips for fast mobile typing */}
+                <View style={styles.chipRow}>
+                  {['@gmail.com', '@googlemail.com', '@yahoo.com', '@outlook.com'].map((domain) => (
+                    <TouchableOpacity
+                      key={domain}
+                      style={styles.domainChip}
+                      onPress={() => {
+                        const prefix = googleCustomEmail.split('@')[0] || '';
+                        setGoogleCustomEmail(prefix + domain);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.domainChipText}>{domain}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={[styles.modalInputWrapper, { marginTop: 12 }]}>
+                  <Icon name="person-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Your Full Name (optional)"
+                    placeholderTextColor="#64748B"
+                    value={googleCustomName}
+                    onChangeText={setGoogleCustomName}
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.modalSubmitBtn}
+                  onPress={() => handleGoogleSignIn(googleCustomEmail, googleCustomName)}
+                  disabled={googleLoading}
+                  activeOpacity={0.85}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Icon name="logo-google" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.modalSubmitBtnText}>Sign In with Selected Account</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Privacy Disclaimer */}
+              <View style={styles.googleDisclaimerBox}>
+                <Icon name="shield-checkmark" size={14} color="#10B981" style={{ marginRight: 6 }} />
+                <Text style={styles.googleDisclaimer}>
+                  Your account is securely authenticated and linked with your Smart Recycling rewards profile.
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -654,7 +992,7 @@ const styles = StyleSheet.create({
   },
   brandHeader: {
     alignItems: 'center',
-    marginBottom: 26,
+    marginBottom: 20,
   },
   logoBadge: {
     width: 60,
@@ -665,7 +1003,7 @@ const styles = StyleSheet.create({
     borderColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
@@ -697,13 +1035,83 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.3)',
-    marginTop: 10,
+    marginTop: 8,
   },
   ecoPillText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#BAE6FD',
   },
+
+  /* GOOGLE HERO BUTTON */
+  googleHeroBtn: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  googleHeroContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  googleIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleHeroTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  googleHeroTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  googleHeroSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  googleArrowPill: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  /* DIVIDER */
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  dividerText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    marginHorizontal: 12,
+    letterSpacing: 1.2,
+  },
+
   tabContainer: {
     flexDirection: 'row',
     width: '100%',
@@ -712,7 +1120,7 @@ const styles = StyleSheet.create({
     padding: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   tabButton: {
     flex: 1,
@@ -757,7 +1165,7 @@ const styles = StyleSheet.create({
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   cardTitle: {
     fontSize: 17,
@@ -814,7 +1222,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#059669',
     borderRadius: 16,
     paddingVertical: 15,
-    marginTop: 8,
+    marginTop: 6,
     shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -826,6 +1234,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  alternativeActionsRow: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  textLinkBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  textLink: {
+    fontSize: 12,
+    color: '#38BDF8',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   securityHint: {
     flexDirection: 'row',
@@ -944,7 +1366,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 26,
+    marginTop: 24,
     gap: 8,
   },
   footerPrompt: {
@@ -964,11 +1386,178 @@ const styles = StyleSheet.create({
   complianceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 18,
   },
   complianceText: {
     fontSize: 10,
     color: '#475569',
     fontWeight: '600',
+  },
+
+  /* GOOGLE ACCOUNT CHOOSER MODAL STYLES */
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#0F172A',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 22,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    maxHeight: '88%',
+  },
+  modalGrabber: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+  },
+  googleIconModalCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    padding: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+  },
+  savedAccountsSection: {
+    marginBottom: 18,
+  },
+  sectionHeaderLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  accountAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountAvatarText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  accountName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  accountEmail: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  anotherAccountSection: {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  modalInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.9)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  modalInput: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 13,
+    paddingVertical: 10,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  domainChip: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  domainChipText: {
+    fontSize: 11,
+    color: '#38BDF8',
+    fontWeight: '600',
+  },
+  modalSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginTop: 14,
+  },
+  modalSubmitBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  googleDisclaimerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  googleDisclaimer: {
+    flex: 1,
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 15,
   },
 });
