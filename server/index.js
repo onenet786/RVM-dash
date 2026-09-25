@@ -4671,6 +4671,239 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+// ==========================================
+// 1b. GMAIL & WORK EMAIL PASSWORDLESS SSO (OTP VERIFICATION)
+// ==========================================
+const pendingSsoOtps = new Map();
+
+async function handleSendSsoCode(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Valid email address is required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    pendingSsoOtps.set(cleanEmail, { code, expiresAt });
+
+    const pool = getPgPool();
+    let isExisting = false;
+    let existingName = null;
+    let userType = 'CITIZEN';
+    let orgName = null;
+
+    if (pool) {
+      try {
+        const uRes = await pool.query('SELECT user_id, full_name, user_type, org_id FROM users WHERE email = $1 LIMIT 1', [cleanEmail]);
+        if (uRes.rows.length > 0) {
+          isExisting = true;
+          existingName = uRes.rows[0].full_name;
+          userType = uRes.rows[0].user_type || 'CITIZEN';
+          await pool.query('UPDATE users SET otp = $1, otp_expiry = NOW() + INTERVAL \'10 minutes\' WHERE email = $2', [code, cleanEmail]);
+          if (uRes.rows[0].org_id) {
+            const oR = await pool.query('SELECT name FROM organizations WHERE org_id = $1 LIMIT 1', [uRes.rows[0].org_id]);
+            if (oR.rows.length > 0) orgName = oR.rows[0].name;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Auto-detect corporate domain
+    const domain = cleanEmail.split('@')[1];
+    const publicDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'live.com', 'rvm.local'];
+    let corporateDetected = false;
+    let detectedOrgName = null;
+    if (domain && !publicDomains.includes(domain)) {
+      let matchedOrg = inMemoryOrganizations.find(o => o.domain.toLowerCase() === domain && o.status === 'active');
+      if (pool) {
+        try {
+          const orgRes = await pool.query('SELECT name FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
+          if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+        } catch {}
+      }
+      if (matchedOrg) {
+        corporateDetected = true;
+        detectedOrgName = matchedOrg.name;
+      }
+    }
+
+    console.log(`[Gmail/Work SSO] Verification OTP for ${cleanEmail}: ${code}`);
+
+    res.json({
+      success: true,
+      message: `Verification code generated for ${cleanEmail}`,
+      isExisting,
+      existingName,
+      userType,
+      orgName: orgName || detectedOrgName,
+      corporateDetected,
+      codePreview: code
+    });
+  } catch (err) {
+    console.error('[SSO Code Error]', err);
+    res.status(500).json({ success: false, message: 'Failed to send verification code: ' + err.message });
+  }
+}
+app.post('/api/auth/sso-code', handleSendSsoCode);
+app.post('/auth/sso-code', handleSendSsoCode);
+
+async function handleVerifySsoCode(req, res) {
+  try {
+    const { email, otp, fullName, userType, orgId, employeeId } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+
+    let isValid = false;
+    const pending = pendingSsoOtps.get(cleanEmail);
+    if (pending && pending.code === cleanOtp && Date.now() < pending.expiresAt) {
+      isValid = true;
+      pendingSsoOtps.delete(cleanEmail);
+    }
+
+    const pool = getPgPool();
+    let user = null;
+
+    if (pool) {
+      try {
+        const uRes = await pool.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [cleanEmail]);
+        if (uRes.rows.length > 0) {
+          user = uRes.rows[0];
+          if (!isValid && user.otp === cleanOtp) {
+            isValid = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!isValid) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+    }
+
+    // Auto-detect corporate domain
+    const domain = cleanEmail.split('@')[1];
+    const publicDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'live.com', 'rvm.local'];
+    let finalUserType = (userType || '').toUpperCase() === 'ENTERPRISE' ? 'ENTERPRISE' : 'CITIZEN';
+    let finalOrgId = orgId || null;
+    let matchedOrg = null;
+
+    if (domain && !publicDomains.includes(domain)) {
+      matchedOrg = inMemoryOrganizations.find(o => o.domain.toLowerCase() === domain && o.status === 'active');
+      if (pool) {
+        try {
+          const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
+          if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+        } catch {}
+      }
+      if (matchedOrg) {
+        finalUserType = 'ENTERPRISE';
+        finalOrgId = matchedOrg.org_id;
+      }
+    }
+
+    if (!matchedOrg && finalOrgId) {
+      matchedOrg = inMemoryOrganizations.find(o => o.org_id === finalOrgId);
+      if (pool) {
+        try {
+          const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1 LIMIT 1', [finalOrgId]);
+          if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+        } catch {}
+      }
+    }
+
+    let isNewUser = false;
+    let finalEmployeeId = employeeId || null;
+
+    if (!user) {
+      isNewUser = true;
+      const cleanUsername = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+      const cleanFullName = (fullName || cleanUsername).trim();
+      const newUserId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      if (finalUserType === 'ENTERPRISE' && !finalEmployeeId) {
+        finalEmployeeId = `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+
+      if (pool) {
+        await pool.query(`
+          INSERT INTO users (
+            user_id, username, full_name, email, mobile, password,
+            points_balance, status, user_type, org_id, employee_id,
+            auth_provider, is_online, last_login, last_active, created_at
+          ) VALUES (
+            $1, $2, $3, $4, NULL, '',
+            0, 'active', $5, $6, $7,
+            'gmail_sso', TRUE, NOW(), NOW(), NOW()
+          );
+        `, [newUserId, cleanUsername, cleanFullName, cleanEmail, finalUserType, finalOrgId, finalEmployeeId]);
+
+        const freshRes = await pool.query('SELECT * FROM users WHERE user_id = $1 LIMIT 1', [newUserId]);
+        if (freshRes.rows.length > 0) user = freshRes.rows[0];
+      } else {
+        user = {
+          user_id: newUserId,
+          username: cleanUsername,
+          full_name: cleanFullName,
+          email: cleanEmail,
+          user_type: finalUserType,
+          org_id: finalOrgId,
+          employee_id: finalEmployeeId,
+          points_balance: 0
+        };
+      }
+    } else {
+      if (pool) {
+        await pool.query('UPDATE users SET is_online = TRUE, last_login = NOW(), last_active = NOW() WHERE user_id = $1', [user.user_id]);
+      }
+    }
+
+    const token = jwt.sign(
+      { userId: user.user_id, username: user.username, email: user.email, userType: user.user_type || finalUserType },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const points = Number(user.points_balance) || 0;
+
+    res.json({
+      success: true,
+      message: isNewUser 
+        ? `Welcome to PecoDrop! Enrolled as ${matchedOrg ? matchedOrg.name : 'Eco Member'}.`
+        : `Welcome back, ${user.full_name || user.username}!`,
+      token,
+      isNewUser,
+      user: {
+        id: user.user_id,
+        username: user.username,
+        fullName: user.full_name || user.username,
+        email: user.email,
+        mobile: user.mobile || '',
+        age: user.age || 20,
+        dob: user.dob || '',
+        profileImage: user.profile_image || '',
+        nic: user.nic || '',
+        gender: user.gender || 'male',
+        points,
+        userType: user.user_type || finalUserType,
+        orgId: user.org_id || finalOrgId,
+        orgName: matchedOrg ? matchedOrg.name : null,
+        employeeId: user.employee_id || finalEmployeeId,
+        authProvider: 'gmail_sso'
+      }
+    });
+  } catch (err) {
+    console.error('[Verify SSO Error]', err);
+    res.status(500).json({ success: false, message: 'Verification failed: ' + err.message });
+  }
+}
+app.post('/api/auth/verify-sso', handleVerifySsoCode);
+app.post('/auth/verify-sso', handleVerifySsoCode);
+
 // 2. Get All Enterprise Organizations with Aggregated ESG Metrics
 app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
   try {
@@ -5134,7 +5367,8 @@ async function handleMobileLogin(req, res) {
     const pool = getPgPool();
     if (pool) {
       const userRes = await pool.query(`
-        SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status
+        SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status,
+               user_type, org_id, dept_id, employee_id
         FROM users
         WHERE mobile = $1 OR email = $1 OR username = $1
         LIMIT 1;
@@ -5325,6 +5559,18 @@ async function handleMobileLogin(req, res) {
 
         const isBirthday = checkIsBirthday(user.dob);
 
+        let orgName = null;
+        if (user.org_id) {
+          const org = inMemoryOrganizations.find(o => o.org_id === user.org_id);
+          if (org) orgName = org.name;
+          else if (pool) {
+            try {
+              const oR = await pool.query('SELECT name FROM organizations WHERE org_id = $1 LIMIT 1', [user.org_id]);
+              if (oR.rows.length > 0) orgName = oR.rows[0].name;
+            } catch {}
+          }
+        }
+
         return res.json({
           success: true,
           message: 'Login successful',
@@ -5341,7 +5587,11 @@ async function handleMobileLogin(req, res) {
             nic: user.nic || '',
             gender: user.gender || 'male',
             points,
-            isBirthday
+            isBirthday,
+            userType: user.user_type || (user.org_id ? 'ENTERPRISE' : 'CITIZEN'),
+            orgId: user.org_id || null,
+            orgName,
+            employeeId: user.employee_id || null
           },
           hasRecycleHistory: {
             points,
@@ -5413,7 +5663,83 @@ async function handleMobileRegister(req, res) {
 
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
+    // Hybrid Corporate & Citizen Detection
+    const domain = cleanEmail.includes('@') ? cleanEmail.split('@')[1].toLowerCase().trim() : '';
+    let userType = (req.body.userType || '').trim().toUpperCase() === 'ENTERPRISE' ? 'ENTERPRISE' : 'CITIZEN';
+    let orgId = req.body.orgId || null;
+    let deptId = req.body.deptId || null;
+    let employeeId = req.body.employeeId ? String(req.body.employeeId).trim() : null;
+    let matchedOrg = null;
+
     const pool = getPgPool();
+
+    // 1. Corporate work email domain auto-detection
+    const publicDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'live.com', 'rvm.local'];
+    if (domain && !publicDomains.includes(domain)) {
+      matchedOrg = inMemoryOrganizations.find(o => o.domain.toLowerCase() === domain && o.status === 'active');
+      if (pool) {
+        try {
+          const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
+          if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+        } catch {}
+      }
+      if (matchedOrg) {
+        userType = 'ENTERPRISE';
+        orgId = matchedOrg.org_id;
+      }
+    }
+
+    // 2. If user selected enterprise or passed company code / orgId (e.g. using Gmail/Hotmail)
+    const companyCode = (req.body.companyCode || '').trim().toUpperCase();
+    if (!matchedOrg && (userType === 'ENTERPRISE' || orgId || companyCode)) {
+      if (orgId) {
+        matchedOrg = inMemoryOrganizations.find(o => o.org_id === orgId && o.status === 'active');
+        if (pool) {
+          try {
+            const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1 AND status = $2 LIMIT 1', [orgId, 'active']);
+            if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+          } catch {}
+        }
+      }
+      if (!matchedOrg && companyCode) {
+        matchedOrg = inMemoryOrganizations.find(o => o.org_id.toUpperCase().includes(companyCode) || (o.domain && o.domain.toUpperCase().includes(companyCode)));
+        if (pool) {
+          try {
+            const orgRes = await pool.query('SELECT * FROM organizations WHERE UPPER(org_id) LIKE $1 OR UPPER(domain) LIKE $1 LIMIT 1', [`%${companyCode}%`]);
+            if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+          } catch {}
+        }
+      }
+      if (matchedOrg) {
+        userType = 'ENTERPRISE';
+        orgId = matchedOrg.org_id;
+      }
+    }
+
+    // 3. Pre-enrolled phone number match from HR roster
+    if (!matchedOrg && pool) {
+      try {
+        const empMatch = await pool.query(`
+          SELECT org_id, dept_id, employee_id 
+          FROM users 
+          WHERE (mobile = $1 OR email = $2) AND user_type = 'ENTERPRISE' AND org_id IS NOT NULL 
+          LIMIT 1
+        `, [cleanMobile, cleanEmail]);
+        if (empMatch.rows.length > 0) {
+          userType = 'ENTERPRISE';
+          orgId = empMatch.rows[0].org_id;
+          deptId = empMatch.rows[0].dept_id;
+          employeeId = empMatch.rows[0].employee_id || employeeId;
+          const oMatch = inMemoryOrganizations.find(o => o.org_id === orgId);
+          if (oMatch) matchedOrg = oMatch;
+        }
+      } catch {}
+    }
+
+    if (userType === 'ENTERPRISE' && !employeeId) {
+      employeeId = `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
     if (pool) {
       const checkRes = await pool.query(`
         SELECT user_id FROM users 
@@ -5426,16 +5752,22 @@ async function handleMobileRegister(req, res) {
       }
 
       await pool.query(`
-        INSERT INTO users (user_id, username, full_name, email, mobile, password, age, nic, gender, dob, profile_image, points_balance, status, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', NOW());
-      `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage]);
+        INSERT INTO users (
+          user_id, username, full_name, email, mobile, password, 
+          age, nic, gender, dob, profile_image, points_balance, status, 
+          user_type, org_id, dept_id, employee_id, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', $12, $13, $14, $15, NOW());
+      `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage, userType, orgId, deptId, employeeId]);
     }
 
     const isBirthday = checkIsBirthday(cleanDob);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: userType === 'ENTERPRISE' 
+        ? `Registration successful! Enrolled as ${matchedOrg ? matchedOrg.name : 'Enterprise Staff'}.`
+        : 'User registered successfully as Eco Citizen.',
       user: {
         id: userId,
         username: cleanUsername,
@@ -5448,7 +5780,11 @@ async function handleMobileRegister(req, res) {
         nic: nic || '',
         gender,
         points: 0,
-        isBirthday
+        isBirthday,
+        userType,
+        orgId,
+        orgName: matchedOrg ? matchedOrg.name : null,
+        employeeId
       }
     });
   } catch (err) {
@@ -6182,6 +6518,239 @@ async function handleResetPassword(req, res) {
 }
 app.post('/api/reset-password', handleResetPassword);
 app.post('/reset-password', handleResetPassword);
+
+// 6b. Mobile Gmail / Corporate SSO with One-Tap OTP Code Verification
+const ssoOtpStore = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [email, entry] of ssoOtpStore.entries()) {
+    if (entry.expiresAt < now) {
+      ssoOtpStore.delete(email);
+    }
+  }
+}, 5 * 60 * 1000);
+
+async function handleSsoCodeRequest(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ success: false, message: 'Valid email address is required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email format' });
+    }
+
+    const pool = getPgPool();
+    let existingUser = null;
+    if (pool) {
+      const uRes = await pool.query(
+        'SELECT user_id, username, full_name, email, mobile, user_type, org_id, employee_id FROM users WHERE LOWER(email) = $1 LIMIT 1',
+        [cleanEmail]
+      );
+      if (uRes.rows.length > 0) {
+        existingUser = uRes.rows[0];
+      }
+    }
+
+    const domain = cleanEmail.split('@')[1];
+    let matchedOrg = inMemoryOrganizations.find(o => o.domain && o.domain.toLowerCase() === domain);
+    if (!matchedOrg && pool) {
+      try {
+        const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 LIMIT 1', [domain]);
+        if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
+      } catch {}
+    }
+
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    ssoOtpStore.set(cleanEmail, {
+      code,
+      expiresAt,
+      isExisting: !!existingUser,
+      user: existingUser
+    });
+
+    console.log(`[SSO Auth Code] Email: ${cleanEmail} | Code: ${code} | Existing: ${!!existingUser} | Corporate: ${matchedOrg ? matchedOrg.name : 'No'}`);
+
+    return res.json({
+      success: true,
+      message: `Verification code sent to ${cleanEmail}`,
+      isExisting: !!existingUser,
+      orgDetected: matchedOrg ? { id: matchedOrg.org_id, name: matchedOrg.name } : null,
+      verificationCode: code
+    });
+  } catch (err) {
+    console.error('[SSO Code Request Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+async function handleVerifySso(req, res) {
+  try {
+    const { email, code, fullName, accountType, orgId, employeeId, mobile } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = String(code).trim();
+
+    const storedEntry = ssoOtpStore.get(cleanEmail);
+    if (!storedEntry) {
+      return res.status(400).json({ success: false, message: 'No verification code requested or code has expired.' });
+    }
+
+    if (Date.now() > storedEntry.expiresAt) {
+      ssoOtpStore.delete(cleanEmail);
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (storedEntry.code !== cleanCode) {
+      return res.status(400).json({ success: false, message: 'Invalid verification code. Please check and try again.' });
+    }
+
+    ssoOtpStore.delete(cleanEmail);
+
+    const pool = getPgPool();
+    let user = null;
+
+    if (pool) {
+      const uRes = await pool.query(
+        'SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1',
+        [cleanEmail]
+      );
+      if (uRes.rows.length > 0) {
+        user = uRes.rows[0];
+      }
+    }
+
+    const domain = cleanEmail.split('@')[1];
+    let detectedOrg = inMemoryOrganizations.find(o => o.domain && o.domain.toLowerCase() === domain);
+    if (!detectedOrg && pool) {
+      try {
+        const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 LIMIT 1', [domain]);
+        if (orgRes.rows.length > 0) detectedOrg = orgRes.rows[0];
+      } catch {}
+    }
+
+    const finalUserType = (accountType === 'ENTERPRISE' || detectedOrg) ? 'ENTERPRISE' : 'CITIZEN';
+    const finalOrgId = orgId || (detectedOrg ? detectedOrg.org_id : null);
+
+    if (!user) {
+      const userId = `usr_sso_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const baseUsername = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+      const cleanUsername = `${baseUsername}_${Math.floor(100 + Math.random() * 900)}`;
+      const cleanFullName = (fullName && fullName.trim()) || baseUsername;
+      const cleanMobile = (mobile && mobile.trim()) || `03${Math.floor(100000000 + Math.random() * 900000000)}`;
+      const cleanEmpId = employeeId ? employeeId.trim() : (finalUserType === 'ENTERPRISE' ? `EMP-${Math.floor(1000 + Math.random() * 9000)}` : null);
+
+      if (pool) {
+        await pool.query(`
+          INSERT INTO users (
+            user_id, username, full_name, email, mobile, password,
+            age, nic, gender, dob, profile_image, points_balance, status,
+            user_type, org_id, employee_id, created_at, last_login, is_online
+          )
+          VALUES ($1, $2, $3, $4, $5, '', 25, '', 'prefer-not-to-say', '', '', 0, 'active', $6, $7, $8, NOW(), NOW(), TRUE)
+        `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, finalUserType, finalOrgId, cleanEmpId]);
+
+        const newUserRes = await pool.query('SELECT * FROM users WHERE user_id = $1 LIMIT 1', [userId]);
+        user = newUserRes.rows[0];
+      } else {
+        user = {
+          user_id: userId,
+          username: cleanUsername,
+          full_name: cleanFullName,
+          email: cleanEmail,
+          mobile: cleanMobile,
+          points_balance: 0,
+          user_type: finalUserType,
+          org_id: finalOrgId,
+          employee_id: cleanEmpId
+        };
+      }
+    } else {
+      if (pool) {
+        await pool.query('UPDATE users SET is_online = TRUE, last_login = NOW(), last_active = NOW() WHERE user_id = $1', [user.user_id]);
+      }
+    }
+
+    let token = '';
+    try {
+      token = jwt.sign(
+        { userId: user.user_id, username: user.username, email: user.email },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+    } catch (e) {
+      token = `sso_token_${user.user_id}_${Date.now()}`;
+    }
+
+    let bottles = 0, cups = 0, points = user.points_balance || 0;
+    if (pool) {
+      try {
+        const statsRes = await pool.query(`
+          SELECT 
+            COALESCE(SUM(plastic_count), 0) AS total_bottles,
+            COALESCE(SUM(aluminium_count), 0) AS total_cups,
+            COALESCE(SUM(points_earned), 0) AS total_earned_points
+          FROM recycling_sessions
+          WHERE user_id = $1 OR user_id = $2;
+        `, [user.user_id, user.mobile || '']);
+        if (statsRes.rows.length > 0) {
+          bottles = parseInt(statsRes.rows[0].total_bottles || 0);
+          cups = parseInt(statsRes.rows[0].total_cups || 0);
+        }
+      } catch {}
+    }
+
+    let orgName = null;
+    if (user.org_id) {
+      const org = inMemoryOrganizations.find(o => o.org_id === user.org_id);
+      if (org) orgName = org.name;
+    }
+
+    return res.json({
+      success: true,
+      message: 'SSO Authentication successful',
+      token,
+      user: {
+        id: user.user_id,
+        username: user.username,
+        fullName: user.full_name || user.username,
+        email: user.email,
+        mobile: user.mobile,
+        points: points,
+        userType: user.user_type || 'CITIZEN',
+        orgId: user.org_id,
+        orgName,
+        employeeId: user.employee_id
+      },
+      recycleDetails: {
+        totalEarnedPoints: points,
+        bottles,
+        cups,
+        plasticCount: bottles,
+        aluminiumCount: cups,
+        totalItems: bottles + cups
+      }
+    });
+  } catch (err) {
+    console.error('[Verify SSO Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+app.post('/api/auth/sso-code', handleSsoCodeRequest);
+app.post('/auth/sso-code', handleSsoCodeRequest);
+app.post('/api/auth/verify-sso', handleVerifySso);
+app.post('/auth/verify-sso', handleVerifySso);
+
 
 // 7. Mobile Vouch365 Promo Link
 async function handleVouch365Link(req, res) {

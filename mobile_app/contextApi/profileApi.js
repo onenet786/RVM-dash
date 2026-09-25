@@ -21,7 +21,11 @@ export const registerUser = async (userData) => {
       nic: userData.nic,
       email: userData.email,
       password: userData.password,
-      gender: userData.gender || 'male' // Default to male if not specified
+      gender: userData.gender || 'male', // Default to male if not specified
+      userType: userData.userType || 'CITIZEN',
+      orgId: userData.orgId || null,
+      companyCode: userData.companyCode || '',
+      employeeId: userData.employeeId || ''
     };
 
     const response = await api.post('/register', requestData, {

@@ -1,20 +1,17 @@
-// VerifyOTP.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  ImageBackground,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  Alert, 
+  ActivityIndicator, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
   ToastAndroid,
-  Animated,
-  Vibration
+  StatusBar
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -30,376 +27,375 @@ export default function VerifyOTP({ navigation, route }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoadingResend, setIsLoadingResend] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const rotateAnim = useRef(new Animated.Value(0)).current;
 
-  // Animation functions
-  const startAnimation = () => {
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
-  const stopAnimation = () => {
-    rotateAnim.stopAnimation();
-    rotateAnim.setValue(0);
-  };
-
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  // Resend OTP function
   const handleResendOtp = async () => {
     if (countdown > 0 || isLoadingResend) return;
-
     setIsLoadingResend(true);
-    startAnimation();
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/resend-otp`, {
-        email: email,
-      });
-
-      const data = response.data;
-
-      if (response.status === 200 || data.success) {
-        // Show notification
-        showNotification();
-        
-        // Vibrate for feedback
-        Vibration.vibrate(100);
-        
-        // Start countdown
-        setCountdown(30);
-        startCountdown();
-        
-        ToastAndroid.show('OTP has been resent to your email', ToastAndroid.LONG);
+      const response = await axios.post(`${API_BASE_URL}/resend-otp`, { email });
+      if (response.status === 200 || response.data?.success) {
+        setCountdown(45);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show('New OTP has been sent to your email', ToastAndroid.LONG);
+        }
       } else {
-        Alert.alert('Error', data.message || 'Failed to resend OTP');
+        Alert.alert('Error', response.data?.message || 'Failed to resend OTP');
       }
     } catch (error) {
       console.error('Resend OTP error:', error);
-      let errorMessage = 'Failed to resend OTP. Please try again.';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to resend OTP. Please try again.');
     } finally {
       setIsLoadingResend(false);
-      stopAnimation();
     }
-  };
-
-  // Countdown timer
-  const startCountdown = () => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  // Show notification
-  const showNotification = () => {
-    console.log('Notification: OTP has been resent to', email);
-    // You can add actual push notification here
   };
 
   const handleVerifyOTP = async () => {
-    if (!otp.trim() || otp.length !== 4) {
-      Alert.alert('Error', 'Please enter a valid 4-digit OTP');
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length < 4 || cleanOtp.length > 8) {
+      Alert.alert('Invalid Code', 'Please enter a valid verification code');
       return;
     }
 
-    if (!newPassword.trim()) {
-      Alert.alert('Error', 'Please enter new password');
+    if (!newPassword.trim() || newPassword.length < 6) {
+      Alert.alert('Password Too Short', 'New password must be at least 6 characters long');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert('Password Mismatch', 'Passwords do not match');
       return;
     }
 
     setLoading(true);
     try {
       const response = await axios.post(`${API_BASE_URL}/reset-password`, {
-        email: email,
-        otp: otp,
+        email: email.trim().toLowerCase(),
+        otp: cleanOtp,
         newPassword: newPassword
       });
-      console.log('Reset password response:', response.data);
+
       if (response.data.success) {
-        ToastAndroid.show('Password reset successfully', ToastAndroid.LONG);
-        navigation.navigate('Login');
+        if (Platform.OS === 'android') {
+          ToastAndroid.show('Password reset successfully! Please sign in.', ToastAndroid.LONG);
+        }
+        Alert.alert('Success', 'Password reset successfully! Please sign in.', [
+          { text: 'Sign In', onPress: () => navigation.navigate('Login') }
+        ]);
       } else {
         Alert.alert('Error', response.data.message || 'Failed to reset password');
       }
     } catch (error) {
       console.error('Reset password error:', error);
-      let errorMessage = 'Failed to reset password. Please try again.';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-      
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Reset Failed', error.response?.data?.message || 'Failed to reset password. Please check your OTP code.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ImageBackground
-      source={require('../assets/images/loginbg.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#070C16" />
+      <View style={styles.glowTopRight} pointerEvents="none" />
+      <View style={styles.glowBottomLeft} pointerEvents="none" />
+
       <KeyboardAvoidingView
-        style={styles.container}
+        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.content}>
-           <Text style={styles.title}>Verify OTP</Text>
-            <Text style={styles.subtitle}>
-              Enter the 4-digit OTP sent to {email}
-            </Text>
+        {/* Nav Header */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Icon name="arrow-back" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Verify OTP</Text>
+          <View style={{ width: 40 }} />
         </View>
+
         <ScrollView 
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.content}>
-           
+          <View style={styles.glassCard}>
+            <View style={styles.iconCircle}>
+              <Icon name="shield-checkmark-outline" size={32} color="#10B981" />
+            </View>
 
-            {/* OTP Input */}
-            <View style={styles.inputContainer}>
-              <Icon name="key-outline" size={20} color="#fff" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter OTP"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                value={otp}
-                onChangeText={setOtp}
-                keyboardType="number-pad"
-                maxLength={4}
-              />
-              <Text
+            <Text style={styles.title}>Enter Security Code</Text>
+            <Text style={styles.subtitle}>
+              We sent a verification code to <Text style={{ color: '#BAE6FD', fontWeight: 'bold' }}>{email}</Text>
+            </Text>
+
+            {/* OTP Code */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>VERIFICATION CODE</Text>
+              <View style={styles.inputWrapper}>
+                <Icon name="key-outline" size={20} color="#10B981" style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.textInput, styles.otpInput]}
+                  placeholder="123456"
+                  placeholderTextColor="#475569"
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </View>
+            </View>
+
+            {/* Resend Link */}
+            <View style={styles.resendRow}>
+              <TouchableOpacity
+                onPress={handleResendOtp}
                 disabled={countdown > 0 || isLoadingResend}
-                style={styles.resendTouchable}
               >
-                <Animated.View style={[
-                  styles.animatedIcon,
-                  { transform: [{ rotate: rotateInterpolate }] }
-                ]}>
-                  <Icon 
-                    name="refresh-outline" 
-                    size={20} 
-                    color={countdown > 0 || isLoadingResend ? "rgba(255, 255, 255, 0.5)" : "#fff"} 
+                <Text style={[styles.resendText, (countdown > 0 || isLoadingResend) && { color: '#64748B' }]}>
+                  {isLoadingResend ? 'Sending...' : countdown > 0 ? `Resend code in ${countdown}s` : 'Resend Code'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* New Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>NEW PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <Icon name="lock-closed-outline" size={18} color="#64748B" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Enter new password"
+                  placeholderTextColor="#64748B"
+                  secureTextEntry={!showPassword}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                  <Icon
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color="#94A3B8"
                   />
-                </Animated.View>
-              </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Resend Text Option */}
-            <TouchableOpacity 
-              onPress={handleResendOtp}
-              disabled={countdown > 0 || isLoadingResend}
-              style={styles.resendTextContainer}
-            >
-              <Text style={[
-                styles.resendText,
-                (countdown > 0 || isLoadingResend) && styles.resendTextDisabled
-              ]}>
-                {isLoadingResend ? 'Sending OTP...' : 
-                 countdown > 0 ? `Resend OTP in ${countdown}s` : 
-                 "Didn't receive OTP? Resend"}
-              </Text>
-            </TouchableOpacity>
-
-            {/* New Password Input */}
-            <View style={styles.inputContainer}>
-              <Icon name="lock-closed-outline" size={20} color="#fff" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="New Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                secureTextEntry={!showPassword}
-                value={newPassword}
-                onChangeText={setNewPassword}
-              />
-              <TouchableOpacity 
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
-                <Icon 
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
-                  size={20} 
-                  color="#fff" 
+            {/* Confirm New Password */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>CONFIRM NEW PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <Icon name="shield-checkmark-outline" size={18} color="#64748B" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Re-type new password"
+                  placeholderTextColor="#64748B"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
                 />
-              </TouchableOpacity>
-            </View>
-
-            {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <Icon name="lock-closed-outline" size={20} color="#fff" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-              <TouchableOpacity 
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={styles.eyeIcon}
-              >
-                <Icon 
-                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} 
-                  size={20} 
-                  color="#fff" 
-                />
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeBtn}>
+                  <Icon
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color="#94A3B8"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.resetButton, loading && styles.disabledButton]}
+              style={styles.primaryButton}
               onPress={handleVerifyOTP}
               disabled={loading}
+              activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.resetButtonText}>Reset Password</Text>
+                <>
+                  <Icon name="checkmark-done" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.primaryButtonText}>Update Password & Sign In</Text>
+                </>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { 
-    flex: 1 
+  container: {
+    flex: 1,
+    backgroundColor: '#070C16',
   },
-  container: { 
-    flex: 1 
+  glowTopRight: {
+    position: 'absolute',
+    top: -80,
+    right: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
   },
-  scrollContainer: { 
-    flexGrow: 1, 
-    justifyContent: 'center',
-    paddingBottom: 50 
+  glowBottomLeft: {
+    position: 'absolute',
+    bottom: -60,
+    left: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(14, 165, 233, 0.10)',
   },
-  content: { 
-    padding: 24, 
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#67B7D1',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: 'rgba(0, 0, 0, 0.7)',
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-    fontWeight: "bold"
-  },
-  inputContainer: {
-    width: '100%',
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#67B7D1',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 35,
+    paddingBottom: 15,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    marginVertical: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 5,
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 22,
+    justifyContent: 'center',
+    paddingBottom: 40,
+  },
+  glassCard: {
+    width: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  inputGroup: {
+    width: '100%',
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 12,
   },
   inputIcon: {
     marginRight: 10,
   },
-  input: {
+  textInput: {
     flex: 1,
-    padding: 15,
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 14,
+    paddingVertical: 12,
   },
-  resendTouchable: {
-    padding: 5,
-    marginLeft: 5,
-  },
-  animatedIcon: {
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eyeIcon: {
-    padding: 5,
-  },
-  countdownText: {
-    color: 'rgba(0, 0, 0, 0.7)',
-    fontSize: 12,
+  otpInput: {
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 10,
+    color: '#10B981',
     textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10,
-    fontWeight: '500',
   },
-  resendTextContainer: {
-    marginBottom: 20,
+  resendRow: {
+    width: '100%',
+    alignItems: 'flex-end',
+    marginBottom: 14,
+    marginTop: -4,
   },
   resendText: {
-    color: '#67B7D1',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#10B981',
   },
-  resendTextDisabled: {
-    color: 'rgba(103, 183, 209, 0.5)',
+  eyeBtn: {
+    padding: 8,
   },
-  resetButton: {
+  primaryButton: {
     width: '100%',
-    backgroundColor: '#67B7D1',
-    paddingVertical: 15,
-    borderRadius: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 15,
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    borderRadius: 16,
+    paddingVertical: 15,
+    marginTop: 8,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  resetButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  backButton: {
-    padding: 10,
-  },
-  backButtonText: {
-    color: '#67B7D1',
-    fontSize: 16,
-    fontWeight: '500',
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

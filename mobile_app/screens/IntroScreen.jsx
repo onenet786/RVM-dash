@@ -1,4 +1,4 @@
-import { View, Image, StyleSheet, Dimensions, StatusBar, Platform } from 'react-native';
+import { View, Image, StyleSheet, Dimensions, StatusBar, TouchableOpacity } from 'react-native';
 import React, { useEffect } from 'react';
 import startScreen from "../assets/images/startscreen.png";
 import { useNavigation } from '@react-navigation/native';
@@ -8,22 +8,25 @@ const IntroScreen = () => {
   
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.navigate('Login'); // Replace 'Login' with your actual login screen name
-    }, 3000);
+      navigation.navigate('Login');
+    }, 2500);
     
     return () => clearTimeout(timer);
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      {/* Status bar hidden on the splash screen */}
+    <TouchableOpacity 
+      style={styles.container} 
+      activeOpacity={0.9} 
+      onPress={() => navigation.navigate('Login')}
+    >
       <StatusBar hidden />
       <Image 
         source={startScreen} 
         style={styles.image} 
-        resizeMode="contain" // Changed from "cover" to "contain"
+        resizeMode="contain"
       />
-    </View>
+    </TouchableOpacity>
   );
 };
 
