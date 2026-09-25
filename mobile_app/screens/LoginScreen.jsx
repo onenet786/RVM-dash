@@ -148,11 +148,6 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // 3. Continue with Facebook
-  const handleContinueWithFacebook = () => {
-    Alert.alert('Facebook Sign-In', 'Facebook login service is being linked with your Smart Recycling profile.');
-  };
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -256,19 +251,6 @@ export default function LoginScreen({ navigation }) {
                   <Text style={styles.socialBtnText}>Continue with Google</Text>
                 </>
               )}
-            </TouchableOpacity>
-
-            {/* Continue with Facebook Button */}
-            <TouchableOpacity
-              style={styles.socialBtn}
-              onPress={handleContinueWithFacebook}
-              disabled={googleLoading || loading}
-              activeOpacity={0.8}
-            >
-              <View style={styles.socialIconContainer}>
-                <MaterialCommunityIcons name="facebook" size={22} color="#1877F2" />
-              </View>
-              <Text style={styles.socialBtnText}>Continue with Facebook</Text>
             </TouchableOpacity>
 
             {/* Footer: Forgot password? & Join now */}

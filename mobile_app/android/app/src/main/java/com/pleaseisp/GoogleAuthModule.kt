@@ -1,5 +1,6 @@
 package com.pleaseisp
 
+import android.accounts.AccountManager
 import android.app.Activity
 import android.content.Intent
 import com.facebook.react.bridge.*
@@ -13,6 +14,7 @@ class GoogleAuthModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext), ActivityEventListener {
 
     private val RC_SIGN_IN = 9001
+    private val RC_ACCOUNT_PICKER = 9002
     private var signInPromise: Promise? = null
     private var googleSignInClient: GoogleSignInClient? = null
 
@@ -45,9 +47,27 @@ class GoogleAuthModule(reactContext: ReactApplicationContext) :
                 val signInIntent = googleSignInClient!!.signInIntent
                 activity.startActivityForResult(signInIntent, RC_SIGN_IN)
             } catch (e: Exception) {
-                signInPromise?.reject("E_INTENT_FAILED", e.message)
-                signInPromise = null
+                // Fallback to system account picker
+                launchAccountPicker(activity)
             }
+        }
+    }
+
+    private fun launchAccountPicker(activity: Activity) {
+        try {
+            val intent = AccountManager.newChooseAccountIntent(
+                null,
+                null,
+                arrayOf("com.google"),
+                null,
+                null,
+                null,
+                null
+            )
+            activity.startActivityForResult(intent, RC_ACCOUNT_PICKER)
+        } catch (e: Exception) {
+            signInPromise?.reject("E_PICKER_FAILED", e.message)
+            signInPromise = null
         }
     }
 
@@ -80,17 +100,41 @@ class GoogleAuthModule(reactContext: ReactApplicationContext) :
                 map.putString("photoUrl", account.photoUrl?.toString() ?: "")
                 map.putString("idToken", account.idToken ?: "")
                 signInPromise?.resolve(map)
+                signInPromise = null
             } catch (e: ApiException) {
                 if (e.statusCode == 12501 || e.statusCode == 12502) {
+                    // User pressed back / cancelled
                     signInPromise?.reject("E_CANCELLED", "User cancelled account selection")
+                    signInPromise = null
+                } else if (e.statusCode == 10 || e.statusCode == 7 || e.statusCode == 8) {
+                    // Code 10 is DEVELOPER_ERROR (SHA-1 fingerprint not yet registered in Google Console)
+                    // Automatically fallback to native Android Account Picker without error
+                    launchAccountPicker(activity)
                 } else {
-                    signInPromise?.reject("E_SIGN_IN_FAILED", "Google sign-in error code: ${e.statusCode}")
+                    // Fallback to native Account Picker
+                    launchAccountPicker(activity)
                 }
             } catch (e: Exception) {
-                signInPromise?.reject("E_UNKNOWN", e.message)
-            } finally {
-                signInPromise = null
+                launchAccountPicker(activity)
             }
+        } else if (requestCode == RC_ACCOUNT_PICKER) {
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+                if (accountName != null && accountName.isNotEmpty()) {
+                    val map = Arguments.createMap()
+                    map.putString("email", accountName)
+                    map.putString("name", accountName.split("@")[0])
+                    map.putString("id", accountName)
+                    map.putString("photoUrl", "")
+                    map.putString("idToken", "")
+                    signInPromise?.resolve(map)
+                } else {
+                    signInPromise?.reject("E_NO_ACCOUNT", "No account selected")
+                }
+            } else {
+                signInPromise?.reject("E_CANCELLED", "User cancelled account selection")
+            }
+            signInPromise = null
         }
     }
 
