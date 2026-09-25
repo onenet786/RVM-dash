@@ -21,12 +21,23 @@
 - **`RVMDesktopApp`** -> **GENERAL PUBLIC**
   - Path: `d:\GIT-HUB\RVM-dash\RVMDesktopApp`
   - Purpose: Dedicated for the general public at public shopping malls, metro/transit stations, commercial hubs, and municipal parks.
-  - Materials: Standard public container intake (primarily PET bottles & beverage cans).
-  - Features: Citizen gamification, instant mobile wallet payouts (EasyPaisa, JazzCash, mobile load), public consumer merchant coupons, and national leaderboards.
+  - Materials: Standard public container intake:
+    - 🧴 **PLASTIC**: PET / HDPE bottles (S, M, L counts + Total pcs)
+    - 🥫 **CAN**: Beverage cans (S, M, L counts + Total pcs)
+    - 🧃 **UBC**: Tetra Pak cartons (S, M, L counts + Total pcs)
+    - 🚫 **REJECT**: Rejected items counter + Total pcs
+  - Features: Citizen gamification, instant mobile wallet payouts (EasyPaisa, JazzCash, mobile load), public consumer merchant coupons, live session container breakdown with integrated reward balance, and national/kiosk leaderboards.
   - Confidential Hotkeys (Buffer Sequence):
     - `1122`: Activates Demo Mode & opens Demo Testing simulator window.
     - `1218`: Confidential System Restart dialogue (Yes / No / Cancel).
     - `1219`: Confidential System Shutdown dialogue (Yes / No / Cancel).
+  - Launch Command: `powershell -ExecutionPolicy Bypass -File .\RVMDesktopApp\launch-kiosk.ps1`
+  - **Conversational & Architectural Rule ("RVM" Reference)**:
+    - Whenever the user refers to **"RVM"**, strictly map to `RVMDesktopApp` (never confuse with enterprise `PecoDropDesktopApp`).
+    - Use this conversation as the canonical baseline for UI dimensions and layout:
+      - Live Session Container Breakdown cards must remain compact without hardcoded excessive `MinHeight` or empty flexible spacer rows that push items off-screen.
+      - Maintain dynamic adaptive height management (`UpdateAdaptiveLayoutHeights()` in `MainWindow.xaml.cs`) so that Instruction Video and How-To guides scale proportionally on $\le 1200$px displays (1080p landscape/laptops) and $\ge 1600$px tall kiosk displays without clipping the breakdown or leaderboard cards.
+      - Idle mode smooth zoom expands video to 50% screen height and seamlessly restores when user touches screen or presses `0`.
 
 ## Core Development Guidelines
 1. **Never Mix Logic**: Keep code, database configs, serial ports, UI views, and ad playlists strictly separated between `PecoDropDesktopApp` and `RVMDesktopApp`.
