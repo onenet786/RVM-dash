@@ -78,8 +78,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private DateTime _lastInteractionTime = DateTime.Now;
     private Point _lastMousePosition;
     private bool _isIdleExpandedMode = false;
-    private const double DefaultInstructionHeight = 490.0;
-    private const double DefaultHowToUseHeight = 185.0;
+    private double _currentInstructionHeight = 490.0;
+    private double _currentHowToUseHeight = 185.0;
 
     // -------------------------------------------------------------
     // DYNAMIC INSTRUCTION DISPLAY STATES
@@ -171,6 +171,39 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         _inactivityCountdownTimer.Interval = TimeSpan.FromSeconds(1);
         _inactivityCountdownTimer.Tick += InactivityCountdownTimer_Tick;
         _ = RegisterStartHandshakeAsync();
+
+        UpdateAdaptiveLayoutHeights();
+        SizeChanged += (s, args) => UpdateAdaptiveLayoutHeights();
+    }
+
+    private void UpdateAdaptiveLayoutHeights()
+    {
+        double winHeight = ActualHeight > 0 ? ActualHeight : (SystemParameters.PrimaryScreenHeight > 0 ? SystemParameters.PrimaryScreenHeight : 1080.0);
+
+        if (winHeight <= 1200.0)
+        {
+            double topAvail = winHeight * 0.67;
+            // Reserve space for Header (~60px), Hardware bar (~30px), Lower Dashboard (~175px), paddings & spacers (~35px)
+            double budget = Math.Max(260.0, topAvail - 300.0);
+            _currentInstructionHeight = Math.Round(budget * 0.68, 0);
+            _currentHowToUseHeight = Math.Round(budget * 0.32, 0);
+        }
+        else if (winHeight <= 1500.0)
+        {
+            _currentInstructionHeight = 360.0;
+            _currentHowToUseHeight = 150.0;
+        }
+        else
+        {
+            _currentInstructionHeight = 490.0;
+            _currentHowToUseHeight = 185.0;
+        }
+
+        if (!_isIdleExpandedMode)
+        {
+            InstructionContainer.Height = _currentInstructionHeight;
+            HowToUseContainer.Height = _currentHowToUseHeight;
+        }
     }
 
     private void OnNetworkStatusChanged(NetworkStatus status, string? error)
@@ -684,7 +717,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (HowToUseSpacerRow1 != null) HowToUseSpacerRow1.Height = new GridLength(16);
         if (HowToUseRow != null) HowToUseRow.Height = GridLength.Auto;
         HowToUseContainer.BeginAnimation(HeightProperty, null);
-        HowToUseContainer.Height = DefaultHowToUseHeight;
+        HowToUseContainer.Height = _currentHowToUseHeight;
         HowToUseContainer.Opacity = 1.0;
 
         // 4. Set Top Dashboard to Auto and Bottom Signage to Star - strictly non-overlapping!
@@ -708,7 +741,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         // 1. Zoom out instructional video container back to default height and 1.0 scale
         var heightAnim = new DoubleAnimation
         {
-            To = DefaultInstructionHeight,
+            To = _currentInstructionHeight,
             Duration = TimeSpan.FromMilliseconds(650),
             EasingFunction = easeInOut
         };
@@ -756,7 +789,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (HowToUseRow != null) HowToUseRow.Height = GridLength.Auto;
         if (HowToUseSpacerRow2 != null) HowToUseSpacerRow2.Height = new GridLength(6);
         HowToUseContainer.BeginAnimation(HeightProperty, null);
-        HowToUseContainer.Height = DefaultHowToUseHeight;
+        HowToUseContainer.Height = _currentHowToUseHeight;
         HowToUseContainer.Opacity = 1.0;
 
         // 6. Restore Lower Dashboard (Row 4: Live Session Breakdown + Top 5 Leaderboard)

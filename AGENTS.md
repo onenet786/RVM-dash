@@ -4,18 +4,33 @@
 - **`PecoDropDesktopApp`** -> **ENTERPRISE / CORPORATE CLIENTS**
   - Path: `d:\GIT-HUB\RVM-dash\PecoDropDesktopApp`
   - Purpose: Dedicated for corporate campuses, private offices, factories, and university workplaces (e.g., Engro, Unilever, PepsiCo, Banks).
-  - Materials: Multi-material recycling — Plastic (PET), Aluminum Cans (Metal), and Document/Office Paper (by weight in Kg via HX711 load cell).
+  - Physical Architecture & Appearance:
+    - Dual Landscape Displays: Screen 1 (Left: Video & Instructions), Screen 2 (Right: Interactive Kiosk & Live Leaderboard).
+    - Left Console: Integrated Optical QR Code scanner window & digital keypad for employee authentication.
+    - 3 Illuminated Shape Intake Apertures:
+      - ⭕ **Circle (Neon Magenta / Pink Glow)**: Plastic PET Bottles.
+      - 🔺 **Triangle (Neon Emerald Green Glow)**: Aluminum & Metal Beverage Cans.
+      - 🟦 **Square (Neon Cyan Blue Glow)**: Office Paper & Documents (weighed in grams/kg via HX711 load cell).
   - Features: Corporate employee greeting, department tracking, cafeteria discounts, internal corporate perks, and CSR/ESG environmental metrics.
+  - Confidential Hotkeys (Buffer Sequence):
+    - `1122`: Activates Demo Mode & opens Demo Testing simulator window.
+    - `1218`: Confidential System Restart dialogue (Yes / No / Cancel).
+    - `1219`: Confidential System Shutdown dialogue (Yes / No / Cancel).
+  - **Conversational Rule**: Whenever the user asks about or mentions "pecodrop" / "PecoDrop", always refer to and maintain this exact physical kiosk identity (dual displays, QR scanner, ⭕ Circle Plastic, 🔺 Triangle Cans, 🟦 Square Paper) and enterprise corporate workflow.
 
 - **`RVMDesktopApp`** -> **GENERAL PUBLIC**
   - Path: `d:\GIT-HUB\RVM-dash\RVMDesktopApp`
   - Purpose: Dedicated for the general public at public shopping malls, metro/transit stations, commercial hubs, and municipal parks.
   - Materials: Standard public container intake (primarily PET bottles & beverage cans).
   - Features: Citizen gamification, instant mobile wallet payouts (EasyPaisa, JazzCash, mobile load), public consumer merchant coupons, and national leaderboards.
+  - Confidential Hotkeys (Buffer Sequence):
+    - `1122`: Activates Demo Mode & opens Demo Testing simulator window.
+    - `1218`: Confidential System Restart dialogue (Yes / No / Cancel).
+    - `1219`: Confidential System Shutdown dialogue (Yes / No / Cancel).
 
 ## Core Development Guidelines
 1. **Never Mix Logic**: Keep code, database configs, serial ports, UI views, and ad playlists strictly separated between `PecoDropDesktopApp` and `RVMDesktopApp`.
-2. **Context Awareness**: Whenever the user asks to modify, run, build, or debug a desktop app, verify whether the task targets the Enterprise client (`PecoDropDesktopApp`) or the Public system (`RVMDesktopApp`).
+2. **Context Awareness**: Whenever the user asks to modify, run, build, or debug a desktop app, verify whether the task targets the Enterprise client (`PecoDropDesktopApp`) or the Public system (`RVMDesktopApp`). Always maintain the physical PecoDrop context when PecoDrop is referenced.
 
 ---
 
