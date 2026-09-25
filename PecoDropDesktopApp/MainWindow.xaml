@@ -597,7 +597,7 @@
                                         <!-- Header Title -->
                                         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
                                             <TextBlock Text="✦ " FontSize="12" Foreground="#FACC15"/>
-                                            <TextBlock Text="HOW TO USE RVM • " FontSize="13" FontWeight="Black" Foreground="#99F6E4"/>
+                                            <TextBlock Text="HOW TO USE PECO DROP • " FontSize="13" FontWeight="Black" Foreground="#99F6E4"/>
                                             <TextBlock Text="طریقہ کار" FontFamily="{StaticResource UrduFont}" FontSize="14" FontWeight="Black" Foreground="#99F6E4"/>
                                             <TextBlock Text=" ✦" FontSize="12" Foreground="#FACC15"/>
                                         </StackPanel>

@@ -123,8 +123,57 @@ public partial class SecondaryAdWindow : Window
         PlayNextVideo();
     }
 
+    private string _demoSecretSequence = "";
+    private DateTime _lastDemoSecretTime = DateTime.MinValue;
+
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        char digit = e.Key switch
+        {
+            Key.D0 or Key.NumPad0 => '0',
+            Key.D1 or Key.NumPad1 => '1',
+            Key.D2 or Key.NumPad2 => '2',
+            Key.D3 or Key.NumPad3 => '3',
+            Key.D4 or Key.NumPad4 => '4',
+            Key.D5 or Key.NumPad5 => '5',
+            Key.D6 or Key.NumPad6 => '6',
+            Key.D7 or Key.NumPad7 => '7',
+            Key.D8 or Key.NumPad8 => '8',
+            Key.D9 or Key.NumPad9 => '9',
+            _ => '\0'
+        };
+
+        if (digit != '\0')
+        {
+            DateTime nowSeq = DateTime.Now;
+            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 4000)
+            {
+                _demoSecretSequence = "";
+            }
+            _lastDemoSecretTime = nowSeq;
+            _demoSecretSequence += digit;
+            if (_demoSecretSequence.Length > 8)
+            {
+                _demoSecretSequence = _demoSecretSequence[^8..];
+            }
+
+            if (_demoSecretSequence.EndsWith("1218"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                SystemPowerDialog.PromptAndRestart(this);
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("1219"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                SystemPowerDialog.PromptAndShutdown(this);
+                return;
+            }
+        }
+
         if (e.Key == Key.Escape)
         {
             e.Handled = true;

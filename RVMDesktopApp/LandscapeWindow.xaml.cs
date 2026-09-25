@@ -293,6 +293,28 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 e.Handled = true;
                 return;
             }
+
+            if (_demoSecretSequence.EndsWith("1218"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                digit8PressCount = 0;
+                LogTelemetry("[HOTKEY] System restart dialogue triggered via secret code 1218");
+                e.Handled = true;
+                SystemPowerDialog.PromptAndRestart(this);
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("1219"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                digit8PressCount = 0;
+                LogTelemetry("[HOTKEY] System shutdown dialogue triggered via secret code 1219");
+                e.Handled = true;
+                SystemPowerDialog.PromptAndShutdown(this);
+                return;
+            }
         }
         if (e.Key == Key.D1 || e.Key == Key.NumPad1)
         {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,21 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [lastGoogleUser, setLastGoogleUser] = useState(null);
+
+  useEffect(() => {
+    // Check if user previously signed in via Google on this device
+    AsyncStorage.getItem('@last_google_user').then(val => {
+      if (val) {
+        try {
+          const parsed = JSON.parse(val);
+          if (parsed && parsed.email) {
+            setLastGoogleUser(parsed);
+          }
+        } catch {}
+      }
+    });
+  }, []);
 
   // Helper to persist user session & navigate
   const completeSessionLogin = async (userData, token, recycleData) => {
@@ -109,40 +124,65 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // 2. Native Google Sign-In (Pops up native Android Account Chooser)
-  const handleContinueWithGoogle = async () => {
+  // Helper to authenticate Google account on backend & save for 1-tap next time
+  const authenticateGoogleUser = async (googleAccount) => {
+    setGoogleLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/google`, {
+        email: googleAccount.email,
+        name: googleAccount.name || googleAccount.email.split('@')[0],
+        picture: googleAccount.photoUrl || '',
+        idToken: googleAccount.idToken || ''
+      }, { timeout: 12000 });
+
+      if (res.data && res.data.success && res.data.user) {
+        // Save as last google user for instant 1-tap next time
+        const userToSave = {
+          email: googleAccount.email,
+          name: googleAccount.name || (res.data.user.full_name || res.data.user.name || googleAccount.email.split('@')[0]),
+          photoUrl: googleAccount.photoUrl || ''
+        };
+        await AsyncStorage.setItem('@last_google_user', JSON.stringify(userToSave));
+        setLastGoogleUser(userToSave);
+
+        const recycleData = res.data.recycleDetails || null;
+        await completeSessionLogin(res.data.user, res.data.token, recycleData);
+      } else {
+        Alert.alert('Google Sign-In', res.data?.message || 'Could not authenticate Google account.');
+      }
+    } catch (error) {
+      console.warn('Google sign-in error:', error);
+      Alert.alert('Google Sign-In', error.response?.data?.message || error.message || 'Authentication failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // 2. Native Google Sign-In (Directly launches single native account picker if needed)
+  const handleContinueWithGoogle = async (forcePicker = false) => {
+    // If previously signed in on this device and user didn't ask to switch, log in directly without dialog
+    if (lastGoogleUser && !forcePicker) {
+      await authenticateGoogleUser(lastGoogleUser);
+      return;
+    }
+
     setGoogleLoading(true);
     try {
       if (!GoogleAuth || !GoogleAuth.signIn) {
         throw new Error('Google Auth service is initializing. Please try again.');
       }
 
-      // Calls native Android GoogleSignInClient -> shows native "Choose an account" dialog
+      // Shows single native Android Account Chooser dialog (zero double popups)
       const googleAccount = await GoogleAuth.signIn();
-
       if (googleAccount && googleAccount.email) {
-        // Authenticate with server
-        const res = await axios.post(`${API_BASE_URL}/auth/google`, {
-          email: googleAccount.email,
-          name: googleAccount.name || googleAccount.email.split('@')[0],
-          picture: googleAccount.photoUrl || '',
-          idToken: googleAccount.idToken || ''
-        }, { timeout: 12000 });
-
-        if (res.data && res.data.success && res.data.user) {
-          const recycleData = res.data.recycleDetails || null;
-          await completeSessionLogin(res.data.user, res.data.token, recycleData);
-        } else {
-          Alert.alert('Google Sign-In', res.data?.message || 'Could not authenticate Google account.');
-        }
+        await authenticateGoogleUser(googleAccount);
       }
     } catch (error) {
       if (error.code === 'E_CANCELLED' || error.message?.includes('cancelled')) {
-        // User cancelled account selection
         return;
       }
       console.warn('Google sign-in note:', error);
-      Alert.alert('Google Sign-In', error.message || 'Sign in with Google cancelled or unavailable');
+      Alert.alert('Google Sign-In', error.message || 'Sign in with Google cancelled');
     } finally {
       setGoogleLoading(false);
     }
@@ -237,7 +277,7 @@ export default function LoginScreen({ navigation }) {
             {/* Continue with Google Button */}
             <TouchableOpacity
               style={styles.socialBtn}
-              onPress={handleContinueWithGoogle}
+              onPress={() => handleContinueWithGoogle(false)}
               disabled={googleLoading || loading}
               activeOpacity={0.8}
             >
@@ -248,10 +288,25 @@ export default function LoginScreen({ navigation }) {
                   <View style={styles.socialIconContainer}>
                     <Icon name="logo-google" size={20} color="#EA4335" />
                   </View>
-                  <Text style={styles.socialBtnText}>Continue with Google</Text>
+                  <Text style={styles.socialBtnText} numberOfLines={1}>
+                    {lastGoogleUser
+                      ? `Continue as ${lastGoogleUser.name || lastGoogleUser.email}`
+                      : 'Continue with Google'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Switch Account link if user was previously signed in */}
+            {lastGoogleUser && (
+              <TouchableOpacity
+                onPress={() => handleContinueWithGoogle(true)}
+                disabled={googleLoading || loading}
+                style={styles.switchAccountBtn}
+              >
+                <Text style={styles.switchAccountText}>Switch or use another account</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Footer: Forgot password? & Join now */}
             <View style={styles.footerRow}>
@@ -370,6 +425,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#374151',
+    marginHorizontal: 36,
+    textAlign: 'center',
+  },
+  switchAccountBtn: {
+    alignSelf: 'center',
+    marginTop: -8,
+    marginBottom: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  switchAccountText: {
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   footerRow: {
     flexDirection: 'row',

@@ -268,9 +268,88 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private int digit8PressCount = 0;
     private DateTime lastDigit8PressTime = DateTime.MinValue;
     private DateTime lastDigit3PressTime = DateTime.MinValue;
+    private string _demoSecretSequence = "";
+    private DateTime _lastDemoSecretTime = DateTime.MinValue;
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        // Secret code 1122 to open Demo Testing simulator
+        char digit = e.Key switch
+        {
+            Key.D0 or Key.NumPad0 => '0',
+            Key.D1 or Key.NumPad1 => '1',
+            Key.D2 or Key.NumPad2 => '2',
+            Key.D3 or Key.NumPad3 => '3',
+            Key.D4 or Key.NumPad4 => '4',
+            Key.D5 or Key.NumPad5 => '5',
+            Key.D6 or Key.NumPad6 => '6',
+            Key.D7 or Key.NumPad7 => '7',
+            Key.D8 or Key.NumPad8 => '8',
+            Key.D9 or Key.NumPad9 => '9',
+            _ => '\0'
+        };
+
+        if (digit != '\0')
+        {
+            DateTime nowSeq = DateTime.Now;
+            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 4000)
+            {
+                _demoSecretSequence = "";
+            }
+            _lastDemoSecretTime = nowSeq;
+            _demoSecretSequence += digit;
+            if (_demoSecretSequence.Length > 8)
+            {
+                _demoSecretSequence = _demoSecretSequence[^8..];
+            }
+
+            if (_demoSecretSequence.EndsWith("001"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                LogTelemetry("[DEMO HOTKEY] Demo Mode activated via sequence '001'");
+                DemoTestingWindow.CloseIfOpen();
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("1122"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                LogTelemetry("[HOTKEY] Demo testing simulator opened via secret code 1122");
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
+                DemoTestingWindow.OpenOrBringToFront(this);
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("1218"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                digit8PressCount = 0;
+                LogTelemetry("[HOTKEY] System restart dialogue triggered via secret code 1218");
+                e.Handled = true;
+                SystemPowerDialog.PromptAndRestart(this);
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("1219"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                digit8PressCount = 0;
+                LogTelemetry("[HOTKEY] System shutdown dialogue triggered via secret code 1219");
+                e.Handled = true;
+                SystemPowerDialog.PromptAndShutdown(this);
+                return;
+            }
+        }
+
         if (e.Key == Key.D1 || e.Key == Key.NumPad1)
         {
             DateTime now = DateTime.Now;

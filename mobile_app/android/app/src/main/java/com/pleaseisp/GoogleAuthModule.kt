@@ -33,24 +33,8 @@ class GoogleAuthModule(reactContext: ReactApplicationContext) :
         }
 
         signInPromise = promise
-
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .requestProfile()
-            .build()
-
-        googleSignInClient = GoogleSignIn.getClient(activity, gso)
-
-        // Clear any previous sign-in cache so the native account picker always shows
-        googleSignInClient?.signOut()?.addOnCompleteListener {
-            try {
-                val signInIntent = googleSignInClient!!.signInIntent
-                activity.startActivityForResult(signInIntent, RC_SIGN_IN)
-            } catch (e: Exception) {
-                // Fallback to system account picker
-                launchAccountPicker(activity)
-            }
-        }
+        // Directly launch single native Google account picker so the user only ever sees ONE prompt
+        launchAccountPicker(activity)
     }
 
     private fun launchAccountPicker(activity: Activity) {
