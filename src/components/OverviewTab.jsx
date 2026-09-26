@@ -14,6 +14,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [focusedKpi, setFocusedKpi] = useState('all'); // 'all' | 'bottles' | 'cups' | 'points' | 'sessions'
+  const [activeMachineFilter, setActiveMachineFilter] = useState('ALL');
 
   // Sub-Tab Architecture: 'master' | 'rvm_new' | 'pecodrop' | 'rvm_old'
   const [activeSubTab, setActiveSubTab] = useState(() => {
@@ -83,9 +84,6 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     }
   }, [stationFilter, selectedClientId, currentUser, activeMachineFilter]);
 
-
-
-  const [activeMachineFilter, setActiveMachineFilter] = useState('ALL');
 
   const isPostgres = health?.databaseType === 'postgres';
   const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
