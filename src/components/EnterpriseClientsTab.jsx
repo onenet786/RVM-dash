@@ -121,26 +121,32 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
     currentUser?.isSuperAdmin === true;
 
   const [selectedOrgIds, setSelectedOrgIds] = useState([]);
-  const [deleteModal, setDeleteModal] = useState({ show: false, org: null, isBulk: false, loading: false });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', org: null, loading: false });
   const [deleteAlert, setDeleteAlert] = useState(null);
 
   const handleOpenDeleteSingle = (e, org) => {
-    e.stopPropagation();
-    setDeleteModal({ show: true, org, isBulk: false, loading: false });
+    if (e && e.stopPropagation) e.stopPropagation();
+    setDeleteModal({ isOpen: true, mode: 'single', org, loading: false });
   };
 
   const handleOpenDeleteBulk = () => {
     if (selectedOrgIds.length === 0) return;
-    setDeleteModal({ show: true, org: null, isBulk: true, loading: false });
+    setDeleteModal({ isOpen: true, mode: 'bulk', org: null, loading: false });
   };
 
   const handleConfirmDelete = async () => {
     setDeleteModal(prev => ({ ...prev, loading: true }));
     try {
-      if (deleteModal.isBulk) {
+      const token = localStorage.getItem('rvm_token') || sessionStorage.getItem('rvm_token');
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      };
+
+      if (deleteModal.mode === 'bulk') {
         const res = await fetch('/api/enterprise/organizations/bulk-delete', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify({ orgIds: selectedOrgIds })
         });
         const data = await res.json();
@@ -149,14 +155,15 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         setSelectedOrgIds([]);
       } else if (deleteModal.org) {
         const res = await fetch(`/api/enterprise/organizations/${encodeURIComponent(deleteModal.org.org_id)}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: authHeaders
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete client');
         setDeleteAlert({ type: 'success', text: `Enterprise client "${deleteModal.org.name}" deleted successfully.` });
         setSelectedOrgIds(prev => prev.filter(id => id !== deleteModal.org.org_id));
       }
-      setDeleteModal({ show: false, org: null, isBulk: false, loading: false });
+      setDeleteModal({ isOpen: false, mode: 'single', org: null, loading: false });
       fetchOrganizations();
     } catch (err) {
       setDeleteAlert({ type: 'error', text: err.message });
@@ -164,8 +171,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
     }
   };
 
-  const toggleSelectOrg = (e, orgId) => {
-    e.stopPropagation();
+  const toggleSelectOrg = (orgId) => {
     setSelectedOrgIds(prev => 
       prev.includes(orgId) ? prev.filter(id => id !== orgId) : [...prev, orgId]
     );
@@ -538,56 +544,59 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
       </div>
 
       {/* 2. Top Metric Cards (5 Cards covering all materials) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 min-h-[84px]">
           <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Corporate Clients</div>
-            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalClients} <span className="text-[11px] font-semibold text-emerald-500">Active</span></div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted truncate">Corporate Clients</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary mt-0.5">{totalClients} <span className="text-[11px] font-semibold text-emerald-500">Active</span></div>
           </div>
         </div>
 
-        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 min-h-[84px]">
           <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/20 text-purple-500 flex items-center justify-center shrink-0">
             <Users className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Enrolled Staff</div>
-            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalEmployees.toLocaleString()}</div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted truncate">Enrolled Staff</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary mt-0.5">{totalEmployees.toLocaleString()}</div>
           </div>
         </div>
 
-        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 min-h-[84px]">
           <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Paper Recycled</div>
-            <div className="text-xl sm:text-2xl font-black t-text-primary">{totalPaperKg.toLocaleString()} <span className="text-xs font-semibold text-amber-500">kg</span></div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted truncate">Paper Recycled</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary mt-0.5">{totalPaperKg.toLocaleString()} <span className="text-xs font-semibold text-amber-500">kg</span></div>
           </div>
         </div>
 
-        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 min-h-[84px]">
           <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/20 text-cyan-500 flex items-center justify-center shrink-0">
             <span className="text-lg">🧴</span>
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Bottles & Cans</div>
-            <div className="text-xl sm:text-2xl font-black t-text-primary">
-              {(totalBottles + totalCans).toLocaleString()} <span className="text-[10px] font-normal t-text-muted block sm:inline">({totalBottles} PET / {totalCans} Cans)</span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted truncate">Bottles & Cans</div>
+            <div className="text-xl sm:text-2xl font-black t-text-primary mt-0.5">
+              {(totalBottles + totalCans).toLocaleString()}
+            </div>
+            <div className="text-[10px] font-semibold t-text-muted truncate">
+              {totalBottles} PET / {totalCans} Cans
             </div>
           </div>
         </div>
 
-        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 col-span-2 md:col-span-1">
+        <div className="p-4 rounded-3xl t-bg-sec border t-border shadow-sm flex items-center gap-3.5 min-h-[84px] col-span-2 md:col-span-1">
           <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
             <TreePine className="w-5 h-5" />
           </div>
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Trees Saved (ESG)</div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-500">{totalTrees} <span className="text-xs font-semibold t-text-muted">🌳</span></div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider t-text-muted truncate">Trees Saved (ESG)</div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">{totalTrees} <span className="text-xs font-semibold t-text-muted">🌳</span></div>
           </div>
         </div>
       </div>
@@ -610,7 +619,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
       )}
 
       {/* 3. Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl t-bg-sec border t-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl t-bg-sec border t-border shadow-sm">
         <div className="flex-1 relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 t-text-muted" />
           <input
@@ -622,26 +631,29 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
           />
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 justify-between sm:justify-end">
+        <div className="flex items-center gap-2.5 shrink-0 justify-between sm:justify-end">
           {isSuperAdmin && filteredOrgs.length > 0 && (
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => toggleSelectAll(filteredOrgs)}
-                className="px-2.5 py-1.5 rounded-xl border t-border t-bg-hover text-xs font-bold t-text-secondary hover:t-text-primary flex items-center gap-1.5 transition-all"
+                className="px-3 py-2 rounded-xl border t-border bg-slate-500/5 hover:bg-slate-500/15 text-xs font-bold t-text-secondary hover:t-text-primary flex items-center gap-2 transition-all cursor-pointer select-none"
                 title="Select / Deselect all visible clients"
               >
-                {selectedOrgIds.length === filteredOrgs.length ? (
-                  <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Square className="w-3.5 h-3.5 text-slate-400" />
-                )}
+                <input
+                  type="checkbox"
+                  checked={selectedOrgIds.length === filteredOrgs.length && filteredOrgs.length > 0}
+                  onChange={() => {}}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 accent-emerald-600 pointer-events-none"
+                />
                 <span>Select All</span>
               </button>
 
               {selectedOrgIds.length > 0 && (
                 <button
+                  type="button"
                   onClick={handleOpenDeleteBulk}
-                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/25 transition-all animate-fade-in"
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-rose-600/25 transition-all animate-fade-in"
                   title="Delete all selected enterprise clients"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -651,7 +663,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             </div>
           )}
 
-          <span className="text-xs font-bold t-text-muted pr-2">
+          <span className="px-3 py-1.5 rounded-xl bg-slate-500/10 text-xs font-bold t-text-muted">
             Showing {filteredOrgs.length} of {organizations.length} Clients
           </span>
         </div>
@@ -676,51 +688,44 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
           {filteredOrgs.map((org) => {
             const currentRecycledKg = org.total_recycled_kg || org.total_paper_kg || 0;
             const progressPct = Math.min(100, Math.round((currentRecycledKg / (org.monthly_target_kg || 1)) * 100));
+            const isSelected = selectedOrgIds.includes(org.org_id);
             return (
               <div 
                 key={org.org_id}
-                className="p-6 rounded-3xl t-bg-sec border t-border hover:border-emerald-500/40 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between group"
+                className={`p-5 sm:p-6 rounded-3xl t-bg-sec border transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between group ${
+                  isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 't-border hover:border-emerald-500/40'
+                }`}
               >
                 <div>
-                  {/* Top: Logo + Name + Status + Delete */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
+                  {/* Top Meta Bar: Checkbox + Status Badge + Super Admin Trash Action */}
+                  <div className="flex items-center justify-between gap-2 pb-3 mb-3.5 border-b t-border">
+                    <div className="flex items-center gap-2">
                       {isSuperAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSelectOrg(org.org_id);
-                          }}
-                          className="p-1 rounded hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-500 transition-colors"
-                          title={selectedOrgIds.includes(org.org_id) ? "Deselect client" : "Select client for bulk actions"}
+                        <label 
+                          onClick={(e) => e.stopPropagation()} 
+                          className="flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-emerald-500 transition-colors select-none"
+                          title="Select client for bulk actions"
                         >
-                          {selectedOrgIds.includes(org.org_id) ? (
-                            <CheckSquare className="w-5 h-5 text-emerald-500" />
-                          ) : (
-                            <Square className="w-5 h-5 text-slate-400" />
-                          )}
-                        </button>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOrg(org.org_id)}
+                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 accent-emerald-600 cursor-pointer"
+                          />
+                          <span className="text-[11px] font-bold t-text-muted">Select</span>
+                        </label>
                       )}
-                      <OrgLogo url={org.logo_url} name={org.name} size="w-12 h-12" />
-                      <div>
-                        <h3 className="font-extrabold text-sm sm:text-base t-text-primary group-hover:text-emerald-500 transition-colors">
-                          {org.name}
-                        </h3>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">
-                          @{org.domain}
-                        </span>
-                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
                         {org.status}
                       </span>
                       {isSuperAdmin && (
                         <button
                           type="button"
                           onClick={(e) => handleOpenDeleteSingle(e, org)}
-                          className="p-1.5 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all shrink-0"
                           title={`Delete enterprise client ${org.name}`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -729,29 +734,44 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                     </div>
                   </div>
 
+                  {/* Organization Identity Header */}
+                  <div className="flex items-center gap-3.5 mb-4 min-w-0">
+                    <OrgLogo url={org.logo_url} name={org.name} size="w-12 h-12" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-extrabold text-sm sm:text-base t-text-primary group-hover:text-emerald-500 transition-colors truncate" title={org.name}>
+                        {org.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 truncate max-w-[200px]" title={`@${org.domain}`}>
+                          @{org.domain}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Multi-Material Badges (Bottles, Cans, Paper) */}
-                  <div className="grid grid-cols-3 gap-1.5 mb-3 text-[11px]">
-                    <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center">
-                      <div className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400">🧴 Bottles</div>
-                      <div className="font-black t-text-primary">{(org.total_bottles || 0).toLocaleString()}</div>
+                  <div className="grid grid-cols-3 gap-2 mb-3.5 text-[11px]">
+                    <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 text-center">
+                      <div className="text-[10px] font-bold text-cyan-700 dark:text-cyan-400">🧴 Bottles</div>
+                      <div className="font-black text-xs sm:text-sm t-text-primary mt-0.5 truncate">{(org.total_bottles || 0).toLocaleString()}</div>
                     </div>
-                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                      <div className="text-[10px] font-bold text-amber-600 dark:text-amber-400">🥫 Cans</div>
-                      <div className="font-black t-text-primary">{(org.total_cans || 0).toLocaleString()}</div>
+                    <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-center">
+                      <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400">🥫 Cans</div>
+                      <div className="font-black text-xs sm:text-sm t-text-primary mt-0.5 truncate">{(org.total_cans || 0).toLocaleString()}</div>
                     </div>
-                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                      <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">📄 Paper</div>
-                      <div className="font-black t-text-primary">{(org.total_paper_kg || 0).toLocaleString()} <span className="text-[9px]">kg</span></div>
+                    <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-center">
+                      <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">📄 Paper</div>
+                      <div className="font-black text-xs sm:text-sm t-text-primary mt-0.5 truncate">{(org.total_paper_kg || 0).toLocaleString()} <span className="text-[9px] font-medium">kg</span></div>
                     </div>
                   </div>
 
                   {/* Monthly Recycling Target Progress Bar */}
-                  <div className="space-y-1.5 my-3 p-3 rounded-2xl t-bg border t-border">
+                  <div className="space-y-1.5 mb-3.5 p-3 rounded-2xl t-bg border t-border">
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className="font-bold t-text-muted flex items-center gap-1">
-                        <FileText className="w-3 h-3 text-emerald-500" /> Monthly ESG Target
+                      <span className="font-bold t-text-muted flex items-center gap-1.5 shrink-0">
+                        <FileText className="w-3.5 h-3.5 text-emerald-500" /> Monthly ESG Target
                       </span>
-                      <span className="font-black t-text-primary">
+                      <span className="font-black t-text-primary mono text-xs shrink-0">
                         {currentRecycledKg.toLocaleString()} / {(org.monthly_target_kg || 0).toLocaleString()} kg
                       </span>
                     </div>
@@ -764,37 +784,41 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                   </div>
 
                   {/* Quick Stat Tags */}
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-4">
-                    <div className="p-2 rounded-xl t-bg border t-border">
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3.5">
+                    <div className="p-2 rounded-2xl t-bg border t-border">
                       <div className="text-[10px] font-bold t-text-muted">Staff</div>
-                      <div className="font-black t-text-primary">{org.total_employees || 0}</div>
+                      <div className="font-black text-xs sm:text-sm t-text-primary mt-0.5 truncate">{org.total_employees || 0}</div>
                     </div>
-                    <div className="p-2 rounded-xl t-bg border t-border">
+                    <div className="p-2 rounded-2xl t-bg border t-border">
                       <div className="text-[10px] font-bold t-text-muted">Depts</div>
-                      <div className="font-black t-text-primary">{org.departments_count || 0}</div>
+                      <div className="font-black text-xs sm:text-sm t-text-primary mt-0.5 truncate">{org.departments_count || 0}</div>
                     </div>
-                    <div className="p-2 rounded-xl t-bg border t-border">
+                    <div className="p-2 rounded-2xl t-bg border t-border">
                       <div className="text-[10px] font-bold t-text-muted">ESG Points</div>
-                      <div className="font-black text-amber-500">{(org.total_points || 0).toLocaleString()}</div>
+                      <div className="font-black text-xs sm:text-sm text-amber-500 mt-0.5 truncate">{(org.total_points || 0).toLocaleString()}</div>
                     </div>
                   </div>
+
                   {/* Corporate Client Assigned Kiosks & Admin Badges */}
-                  <div className="pt-2.5 border-t t-border mb-3 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold t-text-muted flex items-center gap-1">
-                        <Cpu className="w-3.5 h-3.5 text-emerald-500" /> Bound Kiosks:
+                  <div className="pt-3 border-t t-border mb-3.5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between text-[11px] gap-2">
+                      <span className="font-bold t-text-muted flex items-center gap-1.5 shrink-0">
+                        <Cpu className="w-3.5 h-3.5 text-emerald-500" /> Bound Fleet:
                       </span>
-                      <span className="font-extrabold mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      <span 
+                        className="font-extrabold mono text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/25 truncate max-w-[190px] text-right"
+                        title={org.assigned_machines?.join(', ') || 'None'}
+                      >
                         {org.assigned_machines?.length 
                           ? `${org.assigned_machines.length} Kiosk${org.assigned_machines.length > 1 ? 's' : ''} (${org.assigned_machines.join(', ')})` 
                           : '0 Bound Kiosks'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold t-text-muted flex items-center gap-1">
+                    <div className="flex items-center justify-between text-[11px] gap-2">
+                      <span className="font-bold t-text-muted flex items-center gap-1.5 shrink-0">
                         <Users className="w-3.5 h-3.5 text-blue-500" /> Client Admin:
                       </span>
-                      <span className="font-bold mono text-blue-600 dark:text-blue-400">
+                      <span className="font-bold mono text-blue-600 dark:text-blue-400 truncate max-w-[180px] text-right" title={org.admin_user?.username ? `@${org.admin_user.username}` : 'Not Provisioned'}>
                         {org.admin_user?.username ? `@${org.admin_user.username}` : 'Not Provisioned'}
                       </span>
                     </div>
@@ -802,23 +826,25 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                 </div>
 
                 {/* Footer Action Buttons */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="grid grid-cols-2 gap-2 mt-auto pt-2">
                   <button
+                    type="button"
                     onClick={() => openPersonalizeModal(org)}
-                    className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+                    className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 truncate"
                     title="Assign RVMs/PecoDrops and personalize client dashboard"
                   >
-                    <Palette className="w-3.5 h-3.5" />
-                    <span>Personalize Fleet</span>
+                    <Palette className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Personalize Fleet</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => openOrgDetails(org)}
-                    className="py-2.5 px-3 rounded-xl bg-slate-500/10 hover:bg-slate-500/20 t-text-primary text-xs font-bold transition-all flex items-center justify-center gap-1.5 border t-border"
+                    className="py-2.5 px-3 rounded-xl bg-slate-500/10 hover:bg-slate-500/20 t-text-primary text-xs font-bold transition-all flex items-center justify-center gap-1.5 border t-border truncate"
                     title="Manage departments, rosters, and staff claims"
                   >
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Depts & Roster</span>
+                    <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">Depts & Roster</span>
                   </button>
                 </div>
               </div>
@@ -1848,7 +1874,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               <div>
                 <h3 className="text-base font-black t-text-primary">
                   {deleteModal.mode === 'bulk' 
-                    ? `Delete ${deleteModal.orgIds.length} Enterprise Clients?` 
+                    ? `Delete ${selectedOrgIds.length} Enterprise Clients?` 
                     : `Delete ${deleteModal.org?.name || 'Enterprise Client'}?`}
                 </h3>
                 <p className="text-xs text-rose-500 font-semibold">Super Admin Permanent Action</p>
@@ -1859,7 +1885,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               <p>
                 {deleteModal.mode === 'bulk' ? (
                   <>
-                    Are you sure you want to delete the <strong className="t-text-primary">{deleteModal.orgIds.length} selected organizations</strong>?
+                    Are you sure you want to delete the <strong className="t-text-primary">{selectedOrgIds.length} selected organizations</strong>?
                   </>
                 ) : (
                   <>
@@ -1875,19 +1901,19 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
-                disabled={isDeletingOrg}
-                onClick={() => setDeleteModal({ isOpen: false, mode: 'single', org: null, orgIds: [] })}
+                disabled={deleteModal.loading}
+                onClick={() => setDeleteModal({ isOpen: false, mode: 'single', org: null, loading: false })}
                 className="px-4 py-2.5 rounded-xl border t-border t-text-secondary text-xs font-bold hover:bg-slate-500/10 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={isDeletingOrg}
+                disabled={deleteModal.loading}
                 onClick={handleConfirmDelete}
                 className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all disabled:opacity-50"
               >
-                {isDeletingOrg ? (
+                {deleteModal.loading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
                     <span>Deleting Client...</span>
