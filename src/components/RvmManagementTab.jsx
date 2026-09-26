@@ -29,6 +29,7 @@ export default function RvmManagementTab({ currentUser }) {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [clientsList, setClientsList] = useState([]);
 
   // Extract active logged-in user with storage fallbacks
   const getActiveUser = () => {
@@ -69,12 +70,19 @@ export default function RvmManagementTab({ currentUser }) {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
-      const res = await fetch('/api/analytics/machines', {
-        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [mRes, cRes] = await Promise.all([
+        fetch('/api/analytics/machines', {
+          headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+        }),
+        fetch('/api/clients')
+      ]);
+      if (mRes.ok) {
+        const data = await mRes.json();
         setMachines(Array.isArray(data) ? data : []);
+      }
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        setClientsList(cData.clients || []);
       }
     } catch (err) {
       console.error(err);
@@ -132,6 +140,10 @@ export default function RvmManagementTab({ currentUser }) {
       setSaving(true);
       const user = getActiveUser();
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const selectedClientObj = clientsList.find(c => c.id === clientId);
+      const resolvedClientName = selectedClientObj 
+        ? selectedClientObj.name 
+        : (clientId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites / Public Network)' : `Client: ${clientId}`);
 
       const res = await fetch('/api/machines', {
         method: 'POST',
@@ -150,7 +162,7 @@ export default function RvmManagementTab({ currentUser }) {
           status,
           machineType,
           clientId,
-          clientName: clientId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : clientId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)',
+          clientName: resolvedClientName,
           username: user.username,
           roleId: user.roleId,
           isSuperAdmin: isSuperAdmin,
@@ -437,9 +449,10 @@ export default function RvmManagementTab({ currentUser }) {
                     onChange={e => setClientId(e.target.value)}
                     className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-[#0b5d3b]"
                   >
-                    <option value="ISP_MASTER">ISP Environmental Master (All Sites)</option>
-                    <option value="UCP_LAHORE">Client: UCP Lahore Campus</option>
-                    <option value="METRO_MALL">Client: Metro Mall RWP</option>
+                    <option value="ISP_MASTER">ISP Environmental Master (All Sites / Public Network)</option>
+                    {clientsList.filter(c => c.id !== 'ALL' && c.id !== 'ISP_MASTER').map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>

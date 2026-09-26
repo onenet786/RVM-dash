@@ -58,6 +58,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
 
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [clientsList, setClientsList] = useState([]);
 
   // Extract active logged-in user with storage fallbacks
   const getActiveUser = () => {
@@ -107,14 +108,21 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
       
       const queryParam = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`/api/analytics/machines${queryParam}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [mRes, cRes] = await Promise.all([
+        fetch(`/api/analytics/machines${queryParam}`),
+        fetch('/api/clients')
+      ]);
+      if (mRes.ok) {
+        const data = await mRes.json();
         // Client-side guarantee: filter to ensure only assigned machines are stored in state
         const filtered = assigned && assigned.length > 0
           ? (data || []).filter(m => m.machineId && assigned.some(a => a.toUpperCase() === m.machineId.toUpperCase()))
           : (data || []);
         setMachines(filtered);
+      }
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        setClientsList(cData.clients || []);
       }
     } catch (err) {
       console.error(err);
@@ -138,6 +146,11 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       const user = getActiveUser();
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
 
+      const selectedClientObj = clientsList.find(c => c.id === newClientId);
+      const resolvedClientName = selectedClientObj 
+        ? selectedClientObj.name 
+        : (newClientId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites / Public Network)' : `Client: ${newClientId}`);
+
       const res = await fetch('/api/machines', {
         method: 'POST',
         headers: { 
@@ -154,7 +167,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
           longitude: newLongitude ? parseFloat(newLongitude) : null,
           machineType: newMachineType || 'RVM_NEW',
           clientId: newClientId || 'ISP_MASTER',
-          clientName: newClientId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : newClientId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)',
+          clientName: resolvedClientName,
           username: user.username,
           roleId: user.roleId,
           isSuperAdmin,
@@ -901,9 +914,10 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     onChange={e => setNewClientId(e.target.value)}
                     className="w-full px-3 py-2 t-bg-sec border t-border rounded-xl text-sm font-bold t-text-primary focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="ISP_MASTER">ISP Environmental Master (All Sites)</option>
-                    <option value="UCP_LAHORE">Client: UCP Lahore Campus</option>
-                    <option value="METRO_MALL">Client: Metro Mall RWP</option>
+                    <option value="ISP_MASTER">ISP Environmental Master (All Sites / Public Network)</option>
+                    {clientsList.filter(c => c.id !== 'ALL' && c.id !== 'ISP_MASTER').map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>

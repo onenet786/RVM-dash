@@ -53,11 +53,24 @@ export default function Navbar({
   const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
   const isCorporatePortal = isClientAdmin || isCorporateSubUser;
 
-  const clients = [
-    { id: 'ALL', label: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
-    { id: 'UCP_LAHORE', label: 'Client: UCP Lahore Campus', badge: 'Education Venue' },
-    { id: 'METRO_MALL', label: 'Client: Metro Mall RWP', badge: 'Commercial Retail' }
-  ];
+  const [clients, setClients] = useState([
+    { id: 'ALL', label: 'ISP Environmental Master (All Sites / Public Network)', badge: 'Master Nationwide' }
+  ]);
+
+  useEffect(() => {
+    fetch('/api/clients')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.clients)) {
+          setClients(data.clients.map(c => ({
+            id: c.id,
+            label: c.name,
+            badge: c.badge || 'Corporate Client'
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const selectedClientObj = clients.find(c => c.id === selectedClientId) || clients[0];
 

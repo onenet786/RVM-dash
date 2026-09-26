@@ -2540,20 +2540,65 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
       rvmOld: scopedMachines.filter(m => getNormalizedStation(m) === 'rvmOld').length
     };
 
+    let dynamicClients = [
+      { id: 'ALL', name: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
+      { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites / Public Network)', badge: 'Master Network' }
+    ];
+    if (pool) {
+      try {
+        const orgRes = await pool.query('SELECT org_id, name FROM organizations ORDER BY name ASC');
+        orgRes.rows.forEach(r => {
+          const clientLabel = r.name.startsWith('Client:') ? r.name : `Client: ${r.name}`;
+          dynamicClients.push({
+            id: r.org_id,
+            name: clientLabel,
+            rawName: r.name,
+            badge: 'Corporate Client'
+          });
+        });
+      } catch (e) {}
+    }
+
     res.json({
       totalActive: scopedMachines.length,
       onlineCount,
       offlineCount,
       activeAlerts: alerts.length || 0,
       byStation,
-      clients: [
-        { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites)' },
-        { id: 'UCP_LAHORE', name: 'Client: UCP Lahore Campus' },
-        { id: 'METRO_MALL', name: 'Client: Metro Mall RWP' }
-      ]
+      clients: dynamicClients
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Dedicated Dynamic Clients Endpoint
+app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
+  try {
+    const pool = getPgPool();
+    let dynamicClients = [
+      { id: 'ALL', name: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
+      { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites / Public Network)', badge: 'Master Network' }
+    ];
+    if (pool) {
+      try {
+        const orgRes = await pool.query('SELECT org_id, name, domain, logo_url FROM organizations ORDER BY name ASC');
+        orgRes.rows.forEach(r => {
+          const clientLabel = r.name.startsWith('Client:') ? r.name : `Client: ${r.name}`;
+          dynamicClients.push({
+            id: r.org_id,
+            name: clientLabel,
+            rawName: r.name,
+            domain: r.domain,
+            logoUrl: r.logo_url,
+            badge: 'Corporate Client'
+          });
+        });
+      } catch (e) {}
+    }
+    res.json({ success: true, clients: dynamicClients });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -2654,8 +2699,20 @@ app.post('/api/machines', async (req, res) => {
         cId = 'ISP_MASTER';
         cName = 'ISP Environmental Master (All Sites)';
       }
-    } else if (!cName) {
-      cName = cId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : cId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)';
+    } else if (!cName || cName.includes('UCP') || cName.includes('Metro')) {
+      const poolCheck = getPgPool();
+      if (poolCheck && cId !== 'ISP_MASTER') {
+        try {
+          const oRes = await poolCheck.query('SELECT name FROM organizations WHERE org_id = $1', [cId]);
+          if (oRes.rows.length > 0) {
+            const orgTitle = oRes.rows[0].name;
+            cName = orgTitle.startsWith('Client:') ? orgTitle : `Client: ${orgTitle}`;
+          }
+        } catch (e) {}
+      }
+      if (!cName) {
+        cName = cId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites)' : `Client: ${cId}`;
+      }
     }
 
     const pool = getPgPool();
@@ -2793,6 +2850,55 @@ app.post('/api/machines', async (req, res) => {
             points_per_paper_kg = EXCLUDED.points_per_paper_kg,
             updated_at = NOW();
         `, [machineId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]).catch(() => {});
+
+        // Automatically synchronize Kiosk-Organization bindings and client admin fleets
+        const cleanUpperId = String(machineId).trim().toUpperCase();
+        if (cId && cId !== 'ISP_MASTER' && cId !== 'ALL') {
+          try {
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS kiosk_org_bindings (
+                machine_id VARCHAR(50) PRIMARY KEY,
+                org_id VARCHAR(50) NOT NULL,
+                location_note VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+            `);
+            await pool.query(`
+              INSERT INTO kiosk_org_bindings (machine_id, org_id, location_note)
+              VALUES ($1, $2, $3)
+              ON CONFLICT (machine_id) DO UPDATE SET org_id = EXCLUDED.org_id, location_note = EXCLUDED.location_note;
+            `, [cleanUpperId, cId, `Assigned to ${cName}`]);
+
+            const orgRes = await pool.query('SELECT assigned_machines FROM organizations WHERE org_id = $1', [cId]);
+            if (orgRes.rows.length > 0) {
+              let currentArr = orgRes.rows[0].assigned_machines || [];
+              if (!Array.isArray(currentArr)) {
+                try { currentArr = JSON.parse(currentArr || '[]'); } catch(e) { currentArr = []; }
+              }
+              if (!currentArr.includes(cleanUpperId)) {
+                currentArr.push(cleanUpperId);
+                await pool.query('UPDATE organizations SET assigned_machines = $1 WHERE org_id = $2', [currentArr, cId]);
+              }
+            }
+
+            const allUsers = await fetchCollectionDocs('adminaccounts');
+            const clientAdmins = allUsers.filter(u => (u.orgId === cId || u.org_id === cId) && u.roleId === 'client_admin');
+            for (const ca of clientAdmins) {
+              const existingMachines = Array.isArray(ca.assignedMachines) ? ca.assignedMachines : [];
+              if (!existingMachines.includes(cleanUpperId)) {
+                await updateDocInEngine('adminaccounts', 'username', ca.username, {
+                  assignedMachines: [...existingMachines, cleanUpperId]
+                });
+              }
+            }
+          } catch (bindErr) {
+            console.error('[POST /api/machines] Kiosk org binding notice:', bindErr.message);
+          }
+        } else if (cId === 'ISP_MASTER') {
+          try {
+            await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(machine_id) = $1', [cleanUpperId]);
+          } catch (e) {}
+        }
       } catch (pgErr) {
         console.error('[POST /api/machines] PostgreSQL write notice:', pgErr.message);
       }
@@ -4518,6 +4624,12 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         return res.status(403).json({ error: 'Account Suspended. Please contact system administrator.' });
       }
 
+      if (foundUser.status === 'pending_approval' || foundUser.status === 'pending') {
+        return res.status(403).json({ 
+          error: 'Your Corporate Client account is pending approval from ISP Environmental Solutions. Please contact ISP administration for authorization.' 
+        });
+      }
+
       // Enforce strict password validation
       const expectedPassword = foundUser.password || process.env.ADMIN_PASSWORD || 'adminpassword';
       if (password !== expectedPassword) {
@@ -4549,7 +4661,20 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       if (pool) {
         try {
           const oRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1', [targetOrgId]);
-          if (oRes.rows.length > 0) orgDoc = oRes.rows[0];
+          if (oRes.rows.length > 0) {
+            orgDoc = oRes.rows[0];
+            // If user is client_admin, automatically resolve live fleet from kiosk_org_bindings and organization
+            if (user.roleId === 'client_admin') {
+              const bRes = await pool.query('SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1', [targetOrgId]);
+              const boundIds = bRes.rows.map(r => r.machine_id);
+              let orgMachines = orgDoc.assigned_machines || [];
+              if (!Array.isArray(orgMachines)) {
+                try { orgMachines = JSON.parse(orgMachines || '[]'); } catch(e) { orgMachines = []; }
+              }
+              const unionFleet = Array.from(new Set([...boundIds, ...orgMachines]));
+              user.assignedMachines = unionFleet;
+            }
+          }
         } catch (e) {}
       }
     }
@@ -4563,7 +4688,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         orgId: targetOrgId || null,
         parentUserId: user.parentUserId || null,
         permissions: role.permissions,
-        assignedMachines: user.assignedMachines || ['*']
+        assignedMachines: user.assignedMachines || (user.roleId === 'super_admin' ? ['*'] : [])
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -4606,10 +4731,10 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
           theme: orgDoc.theme || 'isp-portal',
           primary_color: orgDoc.primary_color || '#0B5D3B',
           primaryColor: orgDoc.primary_color || '#0B5D3B',
-          assigned_machines: orgDoc.assigned_machines || user.assignedMachines || [],
-          assignedMachines: orgDoc.assigned_machines || user.assignedMachines || []
+          assigned_machines: user.assignedMachines || orgDoc.assigned_machines || [],
+          assignedMachines: user.assignedMachines || orgDoc.assigned_machines || []
         } : null,
-        assignedMachines: user.assignedMachines || ['*'],
+        assignedMachines: user.assignedMachines || (user.roleId === 'super_admin' ? ['*'] : []),
         modules: role.modules || ['overview', 'analytics', 'machines'],
         permissions: role.permissions || { view: true, edit: true, export: true }
       }
@@ -5275,6 +5400,198 @@ app.post('/api/enterprise/create-client-admin', optionalAuth, async (req, res) =
       success: true,
       message: `Corporate Client account "${cleanUsername}" created for "${org.name}".`,
       user: newClientAdmin
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Self-Service or Corporate Registration (Defaults to PENDING_APPROVAL)
+app.post('/api/enterprise/register-client-admin', async (req, res) => {
+  try {
+    const { orgId, username, fullName, email, password } = req.body;
+    if (!orgId || !username || !password) {
+      return res.status(400).json({ success: false, error: 'Organization, Username, and Password are required.' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database pool unavailable.' });
+
+    const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1', [orgId]);
+    if (orgRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: `Organization "${orgId}" not found.` });
+    }
+    const org = orgRes.rows[0];
+
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
+    if (existing) {
+      return res.status(400).json({ success: false, error: `Username "${cleanUsername}" is already registered.` });
+    }
+
+    const pendingClientAdmin = {
+      _id: cleanUsername,
+      username: cleanUsername,
+      fullName: fullName ? fullName.trim() : `${org.name} Representative`,
+      email: email ? email.trim() : `${cleanUsername}@${org.domain || 'rvm-dash.io'}`,
+      password: password.trim(),
+      roleId: 'client_admin',
+      roleName: 'Corporate Client Admin',
+      orgId: org.org_id,
+      assignedMachines: [], // Populated upon ISP approval
+      status: 'pending_approval',
+      requestedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+
+    await saveDocToEngine('adminaccounts', pendingClientAdmin);
+
+    res.json({
+      success: true,
+      message: `Registration submitted successfully for ${org.name}. Your account is currently pending ISP Environmental approval. You will receive access once authorized by ISP administrators.`,
+      user: {
+        username: cleanUsername,
+        fullName: pendingClientAdmin.fullName,
+        orgId: org.org_id,
+        status: 'pending_approval'
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Pending Corporate Client Approvals (Super Admin Only)
+app.get('/api/enterprise/pending-approvals', optionalAuth, async (req, res) => {
+  try {
+    const isSuperAdmin = req.user?.username === 'onenet' || 
+      req.user?.username === 'bilalaaqueel' || 
+      req.user?.roleId === 'super_admin' || 
+      req.user?.roleId === 'superadmin' || 
+      req.user?.isSuperAdmin === true;
+
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can view pending approvals.' });
+    }
+
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const pendingUsers = allUsers.filter(u => u.status === 'pending_approval' || u.status === 'pending');
+
+    const pool = getPgPool();
+    let orgsMap = {};
+    if (pool) {
+      try {
+        const oRes = await pool.query('SELECT org_id, name, domain, logo_url, assigned_machines FROM organizations');
+        oRes.rows.forEach(r => {
+          orgsMap[r.org_id] = r;
+        });
+      } catch (e) {}
+    }
+
+    const enriched = pendingUsers.map(u => {
+      const org = orgsMap[u.orgId || u.org_id] || {};
+      return {
+        username: u.username,
+        fullName: u.fullName || u.username,
+        email: u.email,
+        roleId: u.roleId,
+        orgId: u.orgId || u.org_id,
+        orgName: org.name || u.orgId || 'Corporate Organization',
+        orgDomain: org.domain || '',
+        orgLogo: org.logo_url || '',
+        orgAssignedMachines: org.assigned_machines || [],
+        status: u.status,
+        requestedAt: u.requestedAt || u.createdAt
+      };
+    });
+
+    res.json({ success: true, pendingUsers: enriched });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Approve Corporate Client Account (Super Admin Only)
+app.post('/api/enterprise/approve-client/:username', optionalAuth, async (req, res) => {
+  try {
+    const targetUsername = String(req.params.username).toLowerCase().trim();
+    const isSuperAdmin = req.user?.username === 'onenet' || 
+      req.user?.username === 'bilalaaqueel' || 
+      req.user?.roleId === 'super_admin' || 
+      req.user?.roleId === 'superadmin' || 
+      req.user?.isSuperAdmin === true;
+
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can approve client accounts.' });
+    }
+
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const user = allUsers.find(u => String(u.username).toLowerCase() === targetUsername);
+    if (!user) {
+      return res.status(404).json({ success: false, error: `User "${targetUsername}" not found.` });
+    }
+
+    // Resolve latest fleet machines assigned to this user's organization
+    let fleetMachines = [];
+    const pool = getPgPool();
+    const targetOrgId = user.orgId || user.org_id;
+    if (pool && targetOrgId) {
+      try {
+        const bRes = await pool.query('SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1', [targetOrgId]);
+        const boundIds = bRes.rows.map(r => r.machine_id);
+        const orgRes = await pool.query('SELECT assigned_machines FROM organizations WHERE org_id = $1', [targetOrgId]);
+        let orgArr = [];
+        if (orgRes.rows.length > 0) {
+          orgArr = orgRes.rows[0].assigned_machines || [];
+          if (!Array.isArray(orgArr)) {
+            try { orgArr = JSON.parse(orgArr || '[]'); } catch (e) { orgArr = []; }
+          }
+        }
+        fleetMachines = Array.from(new Set([...boundIds, ...orgArr]));
+      } catch (e) {}
+    }
+
+    await updateDocInEngine('adminaccounts', 'username', targetUsername, {
+      status: 'active',
+      assignedMachines: fleetMachines,
+      approvedAt: new Date().toISOString(),
+      approvedBy: req.user?.username || 'isp_super_admin'
+    });
+
+    res.json({
+      success: true,
+      message: `Corporate client "${targetUsername}" has been APPROVED. Account is now active with access to ${fleetMachines.length} authorized machines.`,
+      assignedMachines: fleetMachines
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Reject / Suspend Corporate Client Account (Super Admin Only)
+app.post('/api/enterprise/reject-client/:username', optionalAuth, async (req, res) => {
+  try {
+    const targetUsername = String(req.params.username).toLowerCase().trim();
+    const isSuperAdmin = req.user?.username === 'onenet' || 
+      req.user?.username === 'bilalaaqueel' || 
+      req.user?.roleId === 'super_admin' || 
+      req.user?.roleId === 'superadmin' || 
+      req.user?.isSuperAdmin === true;
+
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can reject client accounts.' });
+    }
+
+    await updateDocInEngine('adminaccounts', 'username', targetUsername, {
+      status: 'suspended',
+      rejectedAt: new Date().toISOString(),
+      rejectedBy: req.user?.username || 'isp_super_admin'
+    });
+
+    res.json({
+      success: true,
+      message: `Corporate client "${targetUsername}" has been rejected / suspended.`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

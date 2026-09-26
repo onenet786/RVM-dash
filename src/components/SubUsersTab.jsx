@@ -26,18 +26,41 @@ export default function SubUsersTab({ currentUser }) {
     assignedMachines: []
   });
 
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [actionLoadingUser, setActionLoadingUser] = useState(null);
+  const [orgFilter, setOrgFilter] = useState('ALL');
+  const [organizationsList, setOrganizationsList] = useState([]);
+
   const isCorporateClient = currentUser?.roleId === 'client_admin' || currentUser?.isCorporateClient;
-  const isSuperAdmin = currentUser?.roleId === 'super_admin' || currentUser?.username === 'onenet';
+  const isSuperAdmin = currentUser?.roleId === 'super_admin' || 
+    currentUser?.roleId === 'superadmin' || 
+    currentUser?.username === 'onenet' || 
+    currentUser?.username === 'bilalaaqueel' || 
+    currentUser?.isSuperAdmin === true;
   const orgName = currentUser?.organization?.name || 'Corporate Organization';
 
   // Load Sub-users and available fleet machines
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [uRes, mRes] = await Promise.all([
-        fetch('/api/enterprise/sub-users'),
-        fetch('/api/analytics/machines')
-      ]);
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const fetchPromises = [
+        fetch('/api/enterprise/sub-users', { headers }),
+        fetch('/api/analytics/machines', { headers }),
+        fetch('/api/clients')
+      ];
+
+      if (isSuperAdmin) {
+        fetchPromises.push(fetch('/api/enterprise/pending-approvals', { headers }));
+      }
+
+      const results = await Promise.all(fetchPromises);
+      const uRes = results[0];
+      const mRes = results[1];
+      const cRes = results[2];
+      const pRes = isSuperAdmin ? results[3] : null;
 
       if (uRes.ok) {
         const uData = await uRes.json();
@@ -53,10 +76,63 @@ export default function SubUsersTab({ currentUser }) {
         }
         setAvailableMachines(clientMachines);
       }
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        setOrganizationsList(cData.clients || []);
+      }
+      if (pRes && pRes.ok) {
+        const pData = await pRes.json();
+        setPendingApprovals(pData.pendingUsers || []);
+      }
     } catch (err) {
       console.error('[SubUsersTab] Fetch error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproveClient = async (username) => {
+    try {
+      setActionLoadingUser(username);
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const res = await fetch(`/api/enterprise/approve-client/${username}`, {
+        method: 'POST',
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage({ type: 'success', text: data.message });
+        fetchData();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to approve corporate client.' });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    } finally {
+      setActionLoadingUser(null);
+    }
+  };
+
+  const handleRejectClient = async (username) => {
+    if (!window.confirm(`Are you sure you want to reject/suspend access for "${username}"?`)) return;
+    try {
+      setActionLoadingUser(username);
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const res = await fetch(`/api/enterprise/reject-client/${username}`, {
+        method: 'POST',
+        headers: { 'Authorization': token ? `Bearer ${token}` : '' }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessage({ type: 'success', text: data.message });
+        fetchData();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to reject corporate client.' });
+      }
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    } finally {
+      setActionLoadingUser(null);
     }
   };
 
@@ -209,6 +285,10 @@ export default function SubUsersTab({ currentUser }) {
   };
 
   const filteredUsers = subUsers.filter(u => {
+    if (isSuperAdmin && orgFilter !== 'ALL') {
+      const uOrg = u.orgId || u.org_id;
+      if (uOrg !== orgFilter) return false;
+    }
     const q = searchQuery.toLowerCase();
     const nameMatch = (u.fullName || '').toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
     const emailMatch = (u.email || '').toLowerCase().includes(q);
@@ -300,19 +380,128 @@ export default function SubUsersTab({ currentUser }) {
         </div>
       )}
 
-      {/* Search & Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search sub-users, emails, or assigned machines..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all text-slate-800 dark:text-slate-100 shadow-sm"
-          />
+      {/* Super Admin ISP Corporate Approval Center */}
+      {isSuperAdmin && pendingApprovals.length > 0 && (
+        <div className="rounded-3xl p-6 bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-900/40 border border-amber-500/40 shadow-xl space-y-4 animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-500/20 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                  ISP Corporate Client Approval Center
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                    {pendingApprovals.length} Pending Approval
+                  </span>
+                </h3>
+                <p className="text-xs text-amber-200/80">
+                  New corporate client organizations requiring official ISP Environmental authorization before accessing their assigned RVM & PecoDrop kiosks.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-[10px] uppercase font-black tracking-wider text-amber-300/70 border-b border-amber-500/20">
+                <tr>
+                  <th className="py-2.5 px-3">Organization</th>
+                  <th className="py-2.5 px-3">Corporate Lead</th>
+                  <th className="py-2.5 px-3">Email Address</th>
+                  <th className="py-2.5 px-3">Assigned Fleet</th>
+                  <th className="py-2.5 px-3">Requested Date</th>
+                  <th className="py-2.5 px-3 text-right">ISP Decision</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-500/10 font-medium">
+                {pendingApprovals.map(pa => (
+                  <tr key={pa.username} className="hover:bg-amber-500/5 transition-colors">
+                    <td className="py-3 px-3">
+                      <div className="font-extrabold text-white">{pa.orgName}</div>
+                      <div className="text-[10px] text-amber-400 font-mono">ID: {pa.orgId}</div>
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="font-bold text-slate-200">{pa.fullName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">@{pa.username}</div>
+                    </td>
+                    <td className="py-3 px-3 text-slate-300 font-mono">{pa.email || 'N/A'}</td>
+                    <td className="py-3 px-3">
+                      {Array.isArray(pa.orgAssignedMachines) && pa.orgAssignedMachines.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {pa.orgAssignedMachines.map(m => (
+                            <span key={m} className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                              {m}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-[11px] italic">No hardware assigned yet</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-slate-400">
+                      {new Date(pa.requestedAt || Date.now()).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => handleApproveClient(pa.username)}
+                          disabled={actionLoadingUser === pa.username}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5"
+                          title="Approve and activate Corporate Client login"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleRejectClient(pa.username)}
+                          disabled={actionLoadingUser === pa.username}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white font-bold text-xs transition-all flex items-center gap-1.5"
+                          title="Reject access request"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="text-xs font-bold text-slate-400 shrink-0">
+      )}
+
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search sub-users, emails, or assigned machines..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all text-slate-800 dark:text-slate-100 shadow-sm"
+            />
+          </div>
+
+          {isSuperAdmin && (
+            <div className="w-full sm:w-64">
+              <select
+                value={orgFilter}
+                onChange={(e) => setOrgFilter(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
+              >
+                <option value="ALL">All Corporate Clients (All Sites)</option>
+                {organizationsList.filter(o => o.id !== 'ALL' && o.id !== 'ISP_MASTER').map(o => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+        <div className="text-xs font-bold text-slate-400 shrink-0 text-right">
           Showing {filteredUsers.length} of {subUsers.length} team members
         </div>
       </div>
