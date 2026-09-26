@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PecoDrop Arduino Mega 2560 Pinout Reference Sheet</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 15px 25px;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #059669;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .title-block h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      color: #065f46;
+      letter-spacing: -0.5px;
+    }
+    .title-block p {
+      margin: 2px 0 0 0;
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .meta-box {
+      text-align: right;
+      font-size: 9.5px;
+      color: #475569;
+    }
+    .meta-box strong {
+      color: #0f172a;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .section-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .section-header {
+      padding: 5px 10px;
+      font-weight: 800;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .plastic-hdr { background: #fdf2f8; color: #9d174d; border-color: #fbcfe8; }
+    .metal-hdr { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+    .paper-hdr { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
+    .safety-hdr { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .numeric-hdr { background: #f8fafc; color: #1e293b; border-color: #cbd5e1; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    th, td {
+      padding: 4px 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      font-size: 8.5px;
+      letter-spacing: 0.5px;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .pin-badge {
+      display: inline-block;
+      font-family: monospace;
+      font-weight: 900;
+      padding: 1.5px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      text-align: center;
+      min-width: 44px;
+    }
+    .pin-plastic { background: #fce7f3; color: #be185d; border: 1px solid #f472b6; }
+    .pin-metal { background: #d1fae5; color: #047857; border: 1px solid #34d399; }
+    .pin-paper { background: #e0f2fe; color: #0284c7; border: 1px solid #38bdf8; }
+    .pin-safety { background: #fef3c7; color: #b45309; border: 1px solid #fbbf24; }
+    .pin-default { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+    .callout {
+      border-left: 3px solid #f59e0b;
+      background: #fffbeb;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 8px;
+      line-height: 1.35;
+    }
+    .callout strong {
+      color: #b45309;
+    }
+    .print-bar {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #065f46;
+      color: #ffffff;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .print-btn {
+      background: #ffffff;
+      color: #065f46;
+      border: none;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .print-btn:hover {
+      background: #ecfdf5;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+      .print-bar {
+        display: none !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Top Control Bar (Hidden on Print) -->
+  <div class="print-bar">
+    <div>
+      <strong>PecoDrop Hardware Master Blueprint</strong> • Arduino Mega 2560 Pinout Specification Sheet
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+  </div>
+
+  <!-- Sheet Header -->
+  <div class="header">
+    <div class="title-block">
+      <h1>PecoDrop™ Enterprise Kiosk — Arduino Mega Pinouts</h1>
+      <p>ISP Environmental Solutions • Hardware Interface Specification & Pinout Sheet</p>
+    </div>
+    <div class="meta-box">
+      <div><strong>Target MCU:</strong> Arduino Mega 2560 R3</div>
+      <div><strong>Baud Rate:</strong> 115,200 bps (8-N-1)</div>
+      <div><strong>Firmware:</strong> RVM_Arduino.ino (v2.4)</div>
+    </div>
+  </div>
+
+  <!-- 2-Column Aperture Hardware Layout -->
+  <div class="grid-2">
+
+    <!-- 1. PLASTIC COMPARTMENT -->
+    <div class="section-card">
+      <div class="section-header plastic-hdr">
+        <span>⭕ PLASTIC BOTTLES (Neon Magenta / Circle)</span>
+        <span style="font-size: 9px; font-weight: normal;">PET Intake & 3-Tier Sizing</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Signal</th>
+            <th>Pin</th>
+            <th>Function / Logic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Entrance Sensor</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-plastic">9 / 10</span></td>
+            <td>HC-SR04 Object Arrival</td>
+          </tr>
+          <tr>
+            <td>Iris Aperture</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-plastic">Pin 11</span></td>
+            <td>High-Torque Servo (Closed: 178° | Open: 10°)</td>
+          </tr>
+          <tr>
+            <td>Drop Gate</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-plastic">Pin 12</span></td>
+            <td>Chute Trapdoor (Closed: 0° | Open: 170°)</td>
+          </tr>
+          <tr>
+            <td>Bottom Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-plastic">22 / 23</span></td>
+            <td>HC-SR04 Small Container Profile</td>
+          </tr>
+          <tr>
+            <td>Middle Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-plastic">24 / 41</span></td>
+            <td>HC-SR04 Medium Container Profile</td>
+          </tr>
+          <tr>
+            <td>Top Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-plastic">42 / 43</span></td>
+            <td>HC-SR04 Large Container Profile</td>
+          </tr>
+          <tr>
+            <td>Bin Full Sensor</td>
+            <td>Digital Out</td>
+            <td><span class="pin-badge pin-plastic">Pin 47</span></td>
+            <td>IR Obstacle (LOW = Full / Blocked)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 2. METAL COMPARTMENT -->
+    <div class="section-card">
+      <div class="section-header metal-hdr">
+        <span>🔺 METAL CANS (Neon Green / Triangle)</span>
+        <span style="font-size: 9px; font-weight: normal;">Inductive & Aluminum Profiling</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Signal</th>
+            <th>Pin</th>
+            <th>Function / Logic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Entrance Sensor</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-metal">25 / 26</span></td>
+            <td>HC-SR04 Can Arrival</td>
+          </tr>
+          <tr>
+            <td>Iris Aperture</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-metal">Pin 27</span></td>
+            <td>High-Torque Servo (Closed: 178° | Open: 10°)</td>
+          </tr>
+          <tr>
+            <td>Drop Gate</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-metal">Pin 28</span></td>
+            <td>Chute Trapdoor (Closed: 0° | Open: 170°)</td>
+          </tr>
+          <tr>
+            <td>Bottom Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-metal">29 / 30</span></td>
+            <td>HC-SR04 Small Can Profile</td>
+          </tr>
+          <tr>
+            <td>Middle Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-metal">31 / 44</span></td>
+            <td>HC-SR04 Standard Can (330ml/355ml)</td>
+          </tr>
+          <tr>
+            <td>Top Sizing</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-metal">45 / 46</span></td>
+            <td>HC-SR04 Tall Can (500ml)</td>
+          </tr>
+          <tr>
+            <td>Inductive Sensor</td>
+            <td>Metal Detect</td>
+            <td><span class="pin-badge pin-metal">Pin 32</span></td>
+            <td>NPN Proximity (LOW = Metal Confirmed)</td>
+          </tr>
+          <tr>
+            <td>Bin Full Sensor</td>
+            <td>Digital Out</td>
+            <td><span class="pin-badge pin-metal">Pin 48</span></td>
+            <td>IR Obstacle (LOW = Full / Blocked)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <div class="grid-2">
+
+    <!-- 3. PAPER COMPARTMENT -->
+    <div class="section-card">
+      <div class="section-header paper-hdr">
+        <span>🟦 OFFICE PAPER (Neon Cyan / Square)</span>
+        <span style="font-size: 9px; font-weight: normal;">HX711 24-Bit Precision Scale</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Signal</th>
+            <th>Pin</th>
+            <th>Function / Logic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Top Entrance</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-paper">33 / 34</span></td>
+            <td>HC-SR04 Paper Slot Detection</td>
+          </tr>
+          <tr>
+            <td>Iris Aperture</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-paper">Pin 35</span></td>
+            <td>Paper Slot Shutter Control</td>
+          </tr>
+          <tr>
+            <td>Bottom Gate</td>
+            <td>PWM Signal</td>
+            <td><span class="pin-badge pin-paper">Pin 36</span></td>
+            <td>Scale Dump Door (Closed: 175° | Open: 100°)</td>
+          </tr>
+          <tr>
+            <td>HX711 Load Cell</td>
+            <td>DOUT (Data)</td>
+            <td><span class="pin-badge pin-paper">Pin 37</span></td>
+            <td>Digital Weight Stream (grams/kg)</td>
+          </tr>
+          <tr>
+            <td>HX711 Load Cell</td>
+            <td>SCK (Clock)</td>
+            <td><span class="pin-badge pin-paper">Pin 38</span></td>
+            <td>25-Pulse Master Synchronous Clock</td>
+          </tr>
+          <tr>
+            <td>Bottom Chute</td>
+            <td>TRIG / ECHO</td>
+            <td><span class="pin-badge pin-paper">39 / 40</span></td>
+            <td>Verifies Paper Dropped on Scale Pan</td>
+          </tr>
+          <tr>
+            <td>Bin Full Sensor</td>
+            <td>Digital Out</td>
+            <td><span class="pin-badge pin-paper">Pin 49</span></td>
+            <td>IR Obstacle (LOW = Full / Blocked)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 4. SAFETY, GAS & SERIAL -->
+    <div class="section-card">
+      <div class="section-header safety-hdr">
+        <span>🛡️ SAFETY, ENVIRONMENTAL & SERIAL BUS</span>
+        <span style="font-size: 9px; font-weight: normal;">Hazard Detection & Host Link</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Signal</th>
+            <th>Pin</th>
+            <th>Function / Logic</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MQ-6 Smoke/Gas</td>
+            <td>Digital Alarm</td>
+            <td><span class="pin-badge pin-safety">Pin 50</span></td>
+            <td>1-sec debounced alarm (LOW = Warning)</td>
+          </tr>
+          <tr>
+            <td>Host Serial RX0</td>
+            <td>Data Receive</td>
+            <td><span class="pin-badge pin-default">Pin 0 (RX0)</span></td>
+            <td>USB-to-Serial from Kiosk PC</td>
+          </tr>
+          <tr>
+            <td>Host Serial TX0</td>
+            <td>Data Transmit</td>
+            <td><span class="pin-badge pin-default">Pin 1 (TX0)</span></td>
+            <td>115,200 baud Telemetry / Events</td>
+          </tr>
+          <tr>
+            <td>Power Bus (+5V)</td>
+            <td>VCC Logic</td>
+            <td><span class="pin-badge pin-default">5V Pin</span></td>
+            <td>Only for Logic ICs & Sensors (&lt; 400mA)</td>
+          </tr>
+          <tr>
+            <td>Power Bus (GND)</td>
+            <td>Common Ground</td>
+            <td><span class="pin-badge pin-default">GND Pins</span></td>
+            <td><strong>Must tie to 12V/6V PSU Grounds!</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>⚠️ Crucial Wiring Cautions:</strong><br>
+        1. <strong>Inductive Sensor (Pin 32):</strong> Industrial proximity sensors run on 12V–24V. Always pass signal through an optocoupler or resistive voltage divider to protect Pin 32 from exceeding 5.0V.<br>
+        2. <strong>Servo Power Bus:</strong> Never power the 6 servo motors from Arduino 5V pin. Use a dedicated 5V/6V 10A DC supply with tied grounds.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. Complete Sequential Pin Map (Quick Lookup Table) -->
+  <div class="section-card">
+    <div class="section-header numeric-hdr">
+      <span>🔢 COMPLETE SEQUENTIAL PIN LOOKUP TABLE (PINS 9 TO 50)</span>
+      <span style="font-size: 9px; color: #64748b;">Direct Technician Terminal Guide</span>
+    </div>
+    <table style="font-size: 9.5px;">
+      <thead>
+        <tr>
+          <th>Pin</th>
+          <th>Subsystem</th>
+          <th>Component</th>
+          <th>Signal</th>
+          <th>Pin</th>
+          <th>Subsystem</th>
+          <th>Component</th>
+          <th>Signal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pin-badge pin-plastic">9</span></td>
+          <td>Plastic</td>
+          <td>Entrance Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-metal">31</span></td>
+          <td>Metal</td>
+          <td>Middle Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">10</span></td>
+          <td>Plastic</td>
+          <td>Entrance Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-metal">32</span></td>
+          <td>Metal</td>
+          <td>Inductive Sensor</td>
+          <td>DETECT (In, 5V Max)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">11</span></td>
+          <td>Plastic</td>
+          <td>Iris Aperture Servo</td>
+          <td>PWM</td>
+          <td><span class="pin-badge pin-paper">33</span></td>
+          <td>Paper</td>
+          <td>Top Entrance Ultrasonic</td>
+          <td>TRIG (Out)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">12</span></td>
+          <td>Plastic</td>
+          <td>Drop Gate Servo</td>
+          <td>PWM</td>
+          <td><span class="pin-badge pin-paper">34</span></td>
+          <td>Paper</td>
+          <td>Top Entrance Ultrasonic</td>
+          <td>ECHO (In)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">22</span></td>
+          <td>Plastic</td>
+          <td>Bottom Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-paper">35</span></td>
+          <td>Paper</td>
+          <td>Iris Aperture Servo</td>
+          <td>PWM</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">23</span></td>
+          <td>Plastic</td>
+          <td>Bottom Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-paper">36</span></td>
+          <td>Paper</td>
+          <td>Drop Gate Servo</td>
+          <td>PWM</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-plastic">24</span></td>
+          <td>Plastic</td>
+          <td>Middle Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-paper">37</span></td>
+          <td>Paper</td>
+          <td>HX711 Load Cell</td>
+          <td>DOUT (In)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">25</span></td>
+          <td>Metal</td>
+          <td>Entrance Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-paper">38</span></td>
+          <td>Paper</td>
+          <td>HX711 Load Cell</td>
+          <td>SCK (Out)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">26</span></td>
+          <td>Metal</td>
+          <td>Entrance Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-paper">39</span></td>
+          <td>Paper</td>
+          <td>Bottom Chute Ultrasonic</td>
+          <td>TRIG (Out)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">27</span></td>
+          <td>Metal</td>
+          <td>Iris Aperture Servo</td>
+          <td>PWM</td>
+          <td><span class="pin-badge pin-paper">40</span></td>
+          <td>Paper</td>
+          <td>Bottom Chute Ultrasonic</td>
+          <td>ECHO (In)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">28</span></td>
+          <td>Metal</td>
+          <td>Drop Gate Servo</td>
+          <td>PWM</td>
+          <td><span class="pin-badge pin-plastic">41</span></td>
+          <td>Plastic</td>
+          <td>Middle Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">29</span></td>
+          <td>Metal</td>
+          <td>Bottom Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-plastic">42</span></td>
+          <td>Plastic</td>
+          <td>Top Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">30</span></td>
+          <td>Metal</td>
+          <td>Bottom Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-plastic">43</span></td>
+          <td>Plastic</td>
+          <td>Top Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">44</span></td>
+          <td>Metal</td>
+          <td>Middle Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-plastic">47</span></td>
+          <td>Plastic</td>
+          <td>Bin Full Obstacle Sensor</td>
+          <td>DIGITAL (In, LOW=Full)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">45</span></td>
+          <td>Metal</td>
+          <td>Top Size Ultrasonic</td>
+          <td>TRIG (Out)</td>
+          <td><span class="pin-badge pin-metal">48</span></td>
+          <td>Metal</td>
+          <td>Bin Full Obstacle Sensor</td>
+          <td>DIGITAL (In, LOW=Full)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-metal">46</span></td>
+          <td>Metal</td>
+          <td>Top Size Ultrasonic</td>
+          <td>ECHO (In)</td>
+          <td><span class="pin-badge pin-paper">49</span></td>
+          <td>Paper</td>
+          <td>Bin Full Obstacle Sensor</td>
+          <td>DIGITAL (In, LOW=Full)</td>
+        </tr>
+        <tr>
+          <td><span class="pin-badge pin-safety">50</span></td>
+          <td>Safety</td>
+          <td>MQ-6 Gas / Smoke Sensor</td>
+          <td>ALARM (In, LOW=Warn)</td>
+          <td><span class="pin-badge pin-default">GND</span></td>
+          <td>Common</td>
+          <td>System Common Ground</td>
+          <td>0V DC Reference</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 8.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 4px;">
+    <span>ISP Environmental Solutions (Pvt.) Ltd. • PecoDrop Technical Specification Doc #PECO-HW-001</span>
+    <span>Ready for A4 Print / PDF Export</span>
+  </div>
+
+</body>
+</html>
