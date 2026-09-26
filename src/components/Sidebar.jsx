@@ -69,9 +69,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       if (moduleId.startsWith('col_')) return false;
     }
     if (isSuperAdmin) return true;
+    if (moduleId.startsWith('col_')) return false;
     if (allowedModules.includes('*') || allowedModules.includes('all')) return true;
-    const cleanId = moduleId.replace('col_', '');
-    return allowedModules.includes(moduleId) || allowedModules.includes(cleanId) || allowedModules.includes(`col_${cleanId}`);
+    return allowedModules.includes(moduleId);
   };
 
   const navItems = [
@@ -136,8 +136,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const mongoCollectionItems = [...defaultMongoCollections, ...dynamicCollections];
 
-  const allowedPgTables = postgresTables.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name));
-  const allowedMongoCollections = mongoCollectionItems.filter(item => isModuleAllowed(item.id) || isModuleAllowed(item.name));
+  // Raw relational database tables & raw collections are strictly restricted to Super Admins
+  const allowedPgTables = isSuperAdmin ? postgresTables.filter(item => isModuleAllowed(item.id)) : [];
+  const allowedMongoCollections = isSuperAdmin ? mongoCollectionItems.filter(item => isModuleAllowed(item.id)) : [];
 
   const handleTabClick = (id) => {
     setActiveTab(id);
@@ -214,8 +215,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </nav>
         </div>
 
-        {/* PostgreSQL Relational Tables (Only shown when in Postgres Mode AND allowed for user) */}
-        {isPostgres && allowedPgTables.length > 0 && (
+        {/* PostgreSQL Relational Tables (Only shown to Super Admins when in Postgres Mode) */}
+        {isSuperAdmin && isPostgres && allowedPgTables.length > 0 && (
           <div>
             <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-3 text-left">
               <span className="flex items-center gap-1.5">
@@ -260,8 +261,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </div>
         )}
 
-        {/* MongoDB rvmapp Tables Browser (Only shown when allowed for user) */}
-        {allowedMongoCollections.length > 0 && (
+        {/* MongoDB rvmapp Tables Browser (Only shown to Super Admins) */}
+        {isSuperAdmin && allowedMongoCollections.length > 0 && (
           <div>
             <button
               onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}

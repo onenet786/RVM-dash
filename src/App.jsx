@@ -208,13 +208,12 @@ export default function App() {
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
+      if (tab.startsWith('col_') && !isSuperAdmin) return false;
       if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients'].includes(tab)) return false;
       if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements'].includes(tab)) return false;
-      if ((isClientAdmin || isCorporateSubUser) && tab.startsWith('col_')) return false;
       if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
-      const clean = tab.replace('col_', '');
-      return userModules.includes(tab) || userModules.includes(clean) || userModules.includes(`col_${clean}`);
+      return userModules.includes(tab);
     };
 
     // Block unauthorized users from any un-allowed tabs
