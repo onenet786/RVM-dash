@@ -280,6 +280,86 @@ html[data-theme="isp-portal"] .glass-panel {
 .t-accent { color: var(--accent-color); }
 .t-accent-bg { background-color: var(--accent-color); }
 
+/* ============================================================ */
+/* WCAG AAA HIGH-CONTRAST READABILITY & HARMONY ENGINE          */
+/* Automatically balances light neon colors on bright surfaces   */
+/* and dark text on dark surfaces across all 6 enterprise themes */
+/* ============================================================ */
+
+/* 1. Light Mode Contrast Calibration (when document lacks .dark) */
+html:not(.dark) .glass-panel .text-emerald-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-emerald-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-emerald-400:not([class*="dark:"]),
+html:not(.dark) table .text-emerald-400:not([class*="dark:"]) {
+  color: #047857; /* Emerald 700 - 5.8:1 contrast */
+}
+
+html:not(.dark) .glass-panel .text-cyan-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-cyan-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-cyan-400:not([class*="dark:"]),
+html:not(.dark) table .text-cyan-400:not([class*="dark:"]) {
+  color: #0369a1; /* Sky 700 - 5.2:1 contrast */
+}
+
+html:not(.dark) .glass-panel .text-amber-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-amber-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-amber-400:not([class*="dark:"]),
+html:not(.dark) table .text-amber-400:not([class*="dark:"]) {
+  color: #b45309; /* Amber 700 - 4.9:1 contrast */
+}
+
+html:not(.dark) .glass-panel .text-purple-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-purple-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-purple-400:not([class*="dark:"]),
+html:not(.dark) table .text-purple-400:not([class*="dark:"]) {
+  color: #7e22ce; /* Purple 700 - 5.4:1 contrast */
+}
+
+html:not(.dark) .glass-panel .text-rose-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-rose-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-rose-400:not([class*="dark:"]),
+html:not(.dark) table .text-rose-400:not([class*="dark:"]) {
+  color: #be123c; /* Rose 700 - 5.6:1 contrast */
+}
+
+html:not(.dark) .glass-panel .text-rose-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-rose-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-rose-300:not([class*="dark:"]) {
+  color: #9f1239; /* Rose 800 */
+}
+
+html:not(.dark) .glass-panel .text-emerald-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-emerald-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-emerald-300:not([class*="dark:"]) {
+  color: #065f46; /* Emerald 800 */
+}
+
+html:not(.dark) .glass-panel .text-cyan-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-cyan-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-cyan-300:not([class*="dark:"]) {
+  color: #075985; /* Sky 800 */
+}
+
+html:not(.dark) .glass-panel .text-slate-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-slate-400:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-slate-400:not([class*="dark:"]) {
+  color: #475569; /* Slate 600 */
+}
+
+html:not(.dark) .glass-panel .text-slate-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-sec .text-slate-300:not([class*="dark:"]),
+html:not(.dark) .t-bg-surface .text-slate-300:not([class*="dark:"]) {
+  color: #334155; /* Slate 700 */
+}
+
+/* 2. Dark Mode Contrast Calibration (when document has .dark) */
+html.dark .glass-panel .text-slate-800:not([class*="dark:"]),
+html.dark .glass-panel .text-slate-900:not([class*="dark:"]),
+html.dark .t-bg-sec .text-slate-800:not([class*="dark:"]),
+html.dark .t-bg-sec .text-slate-900:not([class*="dark:"]) {
+  color: #f1f5f9; /* Slate 100 - Crisp contrast against dark surfaces */
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

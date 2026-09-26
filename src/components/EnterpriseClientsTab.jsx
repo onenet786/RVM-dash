@@ -4,7 +4,7 @@ import {
   Plus, Search, RefreshCw, Upload, Download, CheckCircle2, 
   ExternalLink, Mail, Phone, ChevronRight, X, AlertCircle, 
   BarChart3, ShieldCheck, Sparkles, Trash2, Edit3, ArrowUpRight,
-  Palette, Cpu, Key, Lock, Check
+  Palette, Cpu, Key, Lock, Check, CheckSquare, Square
 } from 'lucide-react';
 
 function OrgLogo({ url, name = '', size = "w-12 h-12" }) {
@@ -112,6 +112,72 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
   const [savingAdminUser, setSavingAdminUser] = useState(false);
   const [adminUserSuccessMsg, setAdminUserSuccessMsg] = useState('');
   const [adminUserErrorMsg, setAdminUserErrorMsg] = useState('');
+
+  // Super Admin Role Verification & Deletion State
+  const isSuperAdmin = currentUser?.username === 'onenet' || 
+    currentUser?.username === 'bilalaaqueel' || 
+    currentUser?.roleId === 'super_admin' || 
+    currentUser?.roleId === 'superadmin' || 
+    currentUser?.isSuperAdmin === true;
+
+  const [selectedOrgIds, setSelectedOrgIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ show: false, org: null, isBulk: false, loading: false });
+  const [deleteAlert, setDeleteAlert] = useState(null);
+
+  const handleOpenDeleteSingle = (e, org) => {
+    e.stopPropagation();
+    setDeleteModal({ show: true, org, isBulk: false, loading: false });
+  };
+
+  const handleOpenDeleteBulk = () => {
+    if (selectedOrgIds.length === 0) return;
+    setDeleteModal({ show: true, org: null, isBulk: true, loading: false });
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleteModal(prev => ({ ...prev, loading: true }));
+    try {
+      if (deleteModal.isBulk) {
+        const res = await fetch('/api/enterprise/organizations/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orgIds: selectedOrgIds })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to bulk delete clients');
+        setDeleteAlert({ type: 'success', text: data.message || `Deleted ${selectedOrgIds.length} enterprise clients.` });
+        setSelectedOrgIds([]);
+      } else if (deleteModal.org) {
+        const res = await fetch(`/api/enterprise/organizations/${encodeURIComponent(deleteModal.org.org_id)}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete client');
+        setDeleteAlert({ type: 'success', text: `Enterprise client "${deleteModal.org.name}" deleted successfully.` });
+        setSelectedOrgIds(prev => prev.filter(id => id !== deleteModal.org.org_id));
+      }
+      setDeleteModal({ show: false, org: null, isBulk: false, loading: false });
+      fetchOrganizations();
+    } catch (err) {
+      setDeleteAlert({ type: 'error', text: err.message });
+      setDeleteModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const toggleSelectOrg = (e, orgId) => {
+    e.stopPropagation();
+    setSelectedOrgIds(prev => 
+      prev.includes(orgId) ? prev.filter(id => id !== orgId) : [...prev, orgId]
+    );
+  };
+
+  const toggleSelectAll = (filteredList) => {
+    if (selectedOrgIds.length === filteredList.length) {
+      setSelectedOrgIds([]);
+    } else {
+      setSelectedOrgIds(filteredList.map(o => o.org_id));
+    }
+  };
 
   const openPersonalizeModal = async (org) => {
     setPersonalizeModalOrg(org);
@@ -526,8 +592,25 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         </div>
       </div>
 
+      {/* Alert Notification */}
+      {deleteAlert && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 animate-fade-in ${
+          deleteAlert.type === 'success' 
+            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
+            : 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            {deleteAlert.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" /> : <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />}
+            <span className="text-sm font-semibold">{deleteAlert.text}</span>
+          </div>
+          <button onClick={() => setDeleteAlert(null)} className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* 3. Search & Filter Bar */}
-      <div className="flex items-center justify-between gap-4 p-3 rounded-2xl t-bg-sec border t-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl t-bg-sec border t-border shadow-sm">
         <div className="flex-1 relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 t-text-muted" />
           <input
@@ -538,9 +621,40 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl t-bg t-text-primary border t-border outline-none focus:border-emerald-500 transition-all"
           />
         </div>
-        <span className="text-xs font-bold t-text-muted pr-2">
-          Showing {filteredOrgs.length} of {organizations.length} Clients
-        </span>
+
+        <div className="flex items-center gap-3 shrink-0 justify-between sm:justify-end">
+          {isSuperAdmin && filteredOrgs.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleSelectAll(filteredOrgs)}
+                className="px-2.5 py-1.5 rounded-xl border t-border t-bg-hover text-xs font-bold t-text-secondary hover:t-text-primary flex items-center gap-1.5 transition-all"
+                title="Select / Deselect all visible clients"
+              >
+                {selectedOrgIds.length === filteredOrgs.length ? (
+                  <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Square className="w-3.5 h-3.5 text-slate-400" />
+                )}
+                <span>Select All</span>
+              </button>
+
+              {selectedOrgIds.length > 0 && (
+                <button
+                  onClick={handleOpenDeleteBulk}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/25 transition-all animate-fade-in"
+                  title="Delete all selected enterprise clients"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Selected ({selectedOrgIds.length})</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          <span className="text-xs font-bold t-text-muted pr-2">
+            Showing {filteredOrgs.length} of {organizations.length} Clients
+          </span>
+        </div>
       </div>
 
       {/* 4. Organizations Grid */}
@@ -568,9 +682,26 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                 className="p-6 rounded-3xl t-bg-sec border t-border hover:border-emerald-500/40 transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between group"
               >
                 <div>
-                  {/* Top: Logo + Name + Status */}
+                  {/* Top: Logo + Name + Status + Delete */}
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelectOrg(org.org_id);
+                          }}
+                          className="p-1 rounded hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-500 transition-colors"
+                          title={selectedOrgIds.includes(org.org_id) ? "Deselect client" : "Select client for bulk actions"}
+                        >
+                          {selectedOrgIds.includes(org.org_id) ? (
+                            <CheckSquare className="w-5 h-5 text-emerald-500" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-400" />
+                          )}
+                        </button>
+                      )}
                       <OrgLogo url={org.logo_url} name={org.name} size="w-12 h-12" />
                       <div>
                         <h3 className="font-extrabold text-sm sm:text-base t-text-primary group-hover:text-emerald-500 transition-colors">
@@ -581,9 +712,21 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                         </span>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
-                      {org.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                        {org.status}
+                      </span>
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenDeleteSingle(e, org)}
+                          className="p-1.5 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
+                          title={`Delete enterprise client ${org.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Multi-Material Badges (Bottles, Cans, Paper) */}
@@ -1690,6 +1833,73 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               </form>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* 8. Super Admin Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md p-6 rounded-3xl t-bg-sec border border-rose-500/30 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black t-text-primary">
+                  {deleteModal.mode === 'bulk' 
+                    ? `Delete ${deleteModal.orgIds.length} Enterprise Clients?` 
+                    : `Delete ${deleteModal.org?.name || 'Enterprise Client'}?`}
+                </h3>
+                <p className="text-xs text-rose-500 font-semibold">Super Admin Permanent Action</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/15 text-xs space-y-2 t-text-secondary leading-relaxed">
+              <p>
+                {deleteModal.mode === 'bulk' ? (
+                  <>
+                    Are you sure you want to delete the <strong className="t-text-primary">{deleteModal.orgIds.length} selected organizations</strong>?
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to permanently delete <strong className="t-text-primary">{deleteModal.org?.name}</strong> (@{deleteModal.org?.domain})?
+                  </>
+                )}
+              </p>
+              <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
+                ⚠️ All associated smart recycling machines and PecoDrop kiosks will be automatically detached and safely returned to the <strong>ISP Environmental Master</strong> fleet. Client admin and sub-user logins will be revoked.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingOrg}
+                onClick={() => setDeleteModal({ isOpen: false, mode: 'single', org: null, orgIds: [] })}
+                className="px-4 py-2.5 rounded-xl border t-border t-text-secondary text-xs font-bold hover:bg-slate-500/10 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingOrg}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg shadow-rose-600/30 flex items-center gap-2 transition-all disabled:opacity-50"
+              >
+                {isDeletingOrg ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Deleting Client...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>{deleteModal.mode === 'bulk' ? 'Confirm Bulk Delete' : 'Confirm Delete Client'}</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

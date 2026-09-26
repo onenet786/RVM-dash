@@ -72,7 +72,18 @@ export default function App() {
   const [health, setHealth] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [stationFilter, setStationFilter] = useState('ALL'); // 'ALL' | 'RVM_OLD' | 'RVM_NEW' | 'PECODROP'
-  const [selectedClientId, setSelectedClientId] = useState('ALL'); // 'ALL' | 'ISP_MASTER' | 'UCP_LAHORE' | 'METRO_MALL'
+  const [selectedClientId, setSelectedClientId] = useState(() => {
+    try {
+      const savedUser = sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u.roleId === 'client_admin' || u.roleId === 'corporate_sub_user') {
+          return u.orgId || u.assignedClient || u.organization?.org_id || 'ALL';
+        }
+      }
+    } catch (e) { }
+    return 'ALL';
+  }); // 'ALL' | 'ISP_MASTER' | 'ORG_UCP' | 'ORG_METRO' | 'ORG_ENGRO' | 'ORG_ALFALAH'
   const [theme, setTheme] = useState(() => {
     try {
       const explicit = localStorage.getItem('rvm_theme_explicit');
@@ -98,6 +109,16 @@ export default function App() {
   });
 
   const [isLoggedOut, setIsLoggedOut] = useState(false);
+
+  // Auto-synchronize corporate client and sub-user scope
+  useEffect(() => {
+    if (currentUser?.roleId === 'client_admin' || currentUser?.roleId === 'corporate_sub_user') {
+      const clientOrg = currentUser.orgId || currentUser.assignedClient || currentUser.organization?.org_id;
+      if (clientOrg && selectedClientId !== clientOrg) {
+        setSelectedClientId(clientOrg);
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -156,8 +177,9 @@ export default function App() {
     setCurrentUser(user);
     setIsLoggedOut(false);
     setActiveTab('overview');
-    if (user?.roleId === 'client_admin' && user?.assignedClient) {
-      setSelectedClientId(user.assignedClient);
+    if (user?.roleId === 'client_admin' || user?.roleId === 'corporate_sub_user') {
+      const clientOrg = user.orgId || user.assignedClient || user.organization?.org_id;
+      if (clientOrg) setSelectedClientId(clientOrg);
     }
     // Auto-apply corporate organization customized theme if configured
     if (user?.organization?.theme) {

@@ -388,46 +388,46 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       {/* Fleet Summary Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-cyan-500/20">
-          <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400">
+          <div className="p-2.5 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
             <Server className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Configured Recycling Fleet</span>
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Configured Fleet</span>
             <span className="text-xl font-extrabold t-text-primary mono">{machines.length}</span>
           </div>
         </div>
 
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-emerald-500/20">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Online Fleet</span>
-            <span className="text-xl font-extrabold text-emerald-400 mono">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Online Fleet</span>
+            <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mono">
               {machines.filter(m => m.status === 'ONLINE' || m.isOnline).length}
             </span>
           </div>
         </div>
 
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-rose-500/20">
-          <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400">
+          <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Offline Fleet</span>
-            <span className="text-xl font-extrabold text-rose-400 mono">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Offline Fleet</span>
+            <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400 mono">
               {machines.filter(m => m.status !== 'ONLINE' && !m.isOnline).length}
             </span>
           </div>
         </div>
 
         <div className="glass-panel p-4 rounded-2xl flex items-center gap-3 border border-amber-500/20">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400">
+          <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Activity className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[11px] font-bold text-slate-400 block uppercase">Active Alerts</span>
-            <span className="text-xl font-extrabold text-amber-400 mono">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Active Alerts</span>
+            <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400 mono">
               {machines.reduce((acc, m) => acc + (m.alertCount || 0), 0)}
             </span>
           </div>
@@ -594,7 +594,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                       </span>
 
                       {hasAlerts && (
-                        <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-full">
+                        <span className="px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 rounded-full dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-500/30">
                           Bin Alert
                         </span>
                       )}
@@ -606,20 +606,20 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     <div className="p-3 bg-sky-50/50 dark:bg-slate-900/80 rounded-2xl border border-sky-200 dark:border-sky-500/20 space-y-2">
                       <div className="text-[11px] font-bold text-sky-800 dark:text-sky-300 flex items-center justify-between">
                         <span>⚖️ PecoDrop 3-Bin Fill & Scale Telemetry</span>
-                        <span className="text-[10px] font-mono text-emerald-600 font-extrabold">Tare: 99.8%</span>
+                        <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-extrabold">Tare: 99.8%</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
                         <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-bold">Plastic (90L)</div>
-                          <div className="font-extrabold mono text-sky-600">{m.plasticBinFill || 28}%</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Plastic (90L)</div>
+                          <div className="font-extrabold mono text-sky-700 dark:text-sky-400">{m.plasticBinFill || 28}%</div>
                         </div>
                         <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-bold">Metal (90L)</div>
-                          <div className="font-extrabold mono text-amber-600">{m.metalBinFill || 15}%</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Metal (90L)</div>
+                          <div className="font-extrabold mono text-amber-700 dark:text-amber-400">{m.metalBinFill || 15}%</div>
                         </div>
                         <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-bold">Paper (90L)</div>
-                          <div className="font-extrabold mono text-purple-600">{m.paperBinFillKg || '14.2'} kg</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Paper (90L)</div>
+                          <div className="font-extrabold mono text-purple-700 dark:text-purple-400">{m.paperBinFillKg || '14.2'} kg</div>
                         </div>
                       </div>
                     </div>

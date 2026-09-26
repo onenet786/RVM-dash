@@ -182,19 +182,19 @@ export default function MobileUsersTab() {
         {/* Currently Online / Logged In */}
         <div className="glass-panel p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Active Logins</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Active Logins</span>
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
               <UserCheck className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-emerald-400 mono flex items-center gap-2">
+            <div className="text-2xl lg:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mono flex items-center gap-2">
               {stats.onlineNow}
               <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
                 {stats.totalUsers > 0 ? Math.round((stats.onlineNow / stats.totalUsers) * 100) : 0}% active
               </span>
             </div>
-            <div className="text-[11px] text-emerald-400/80 mt-0.5">Currently using mobile app</div>
+            <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">Currently using mobile app</div>
           </div>
         </div>
 
@@ -202,12 +202,12 @@ export default function MobileUsersTab() {
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider t-text-muted">In Circulation</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
               <Trophy className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-amber-400 mono">{(stats.totalPoints || 0).toLocaleString()}</div>
+            <div className="text-2xl lg:text-3xl font-extrabold text-amber-700 dark:text-amber-400 mono">{(stats.totalPoints || 0).toLocaleString()}</div>
             <div className="text-[11px] t-text-muted mt-0.5">Active citizen points held</div>
           </div>
         </div>
@@ -215,14 +215,14 @@ export default function MobileUsersTab() {
         {/* Total Redeemed Points Card */}
         <div className="glass-panel p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-400">Points Redeemed</span>
-            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Points Redeemed</span>
+            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400">
               <Gift className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-purple-400 mono">{(stats.totalRedeemed || 0).toLocaleString()}</div>
-            <div className="text-[11px] text-purple-400/80 mt-0.5">Voucher & reward claims</div>
+            <div className="text-2xl lg:text-3xl font-extrabold text-purple-700 dark:text-purple-400 mono">{(stats.totalRedeemed || 0).toLocaleString()}</div>
+            <div className="text-[11px] text-purple-700/80 dark:text-purple-400/80 mt-0.5">Voucher & reward claims</div>
           </div>
         </div>
 
@@ -230,12 +230,12 @@ export default function MobileUsersTab() {
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider t-text-muted">Recycled Items</span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+            <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
               <Recycle className="w-5 h-5" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-cyan-400 mono">
+            <div className="text-2xl lg:text-3xl font-extrabold text-cyan-700 dark:text-cyan-400 mono">
               {((stats.totalBottles || 0) + (stats.totalCups || 0) + (stats.totalTetra || 0) + (stats.totalPaper || 0) + (stats.totalGlass || 0)).toLocaleString()}
             </div>
             <div className="text-[11px] t-text-muted mt-0.5 flex flex-wrap items-center gap-1">

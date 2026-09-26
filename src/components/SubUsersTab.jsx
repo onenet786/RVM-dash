@@ -573,7 +573,7 @@ export default function SubUsersTab({ currentUser }) {
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1.5 max-w-md">
                           {assigned.length === 0 ? (
-                            <span className="text-xs text-amber-500 italic">No machines assigned</span>
+                            <span className="text-xs text-amber-600 dark:text-amber-400 italic">No machines assigned</span>
                           ) : (
                             assigned.map((mId) => {
                               const isPeco = mId.toUpperCase().includes('PECO');
@@ -582,8 +582,8 @@ export default function SubUsersTab({ currentUser }) {
                                   key={mId}
                                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${
                                     isPeco
-                                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300'
+                                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
                                   }`}
                                 >
                                   <Cpu className="w-3 h-3" />
@@ -600,17 +600,17 @@ export default function SubUsersTab({ currentUser }) {
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider ${
                             user.status === 'active'
-                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                              : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30'
                           }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                             {user.status === 'active' ? 'Active' : 'Suspended'}
                           </span>
                         </div>
                       </td>
 
                       {/* Created */}
-                      <td className="px-6 py-4 text-xs text-slate-500">
+                      <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Active'}
                       </td>
 
@@ -619,7 +619,7 @@ export default function SubUsersTab({ currentUser }) {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenEditModal(user)}
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-slate-200 dark:border-slate-700"
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-slate-200 dark:border-slate-700"
                             title="Edit Delegated Machines & Credentials"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -628,8 +628,8 @@ export default function SubUsersTab({ currentUser }) {
                             onClick={() => handleToggleStatus(user)}
                             className={`p-2 rounded-xl transition-all border ${
                               user.status === 'active'
-                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
-                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                             }`}
                             title={user.status === 'active' ? 'Suspend Account' : 'Activate Account'}
                           >
@@ -637,7 +637,7 @@ export default function SubUsersTab({ currentUser }) {
                           </button>
                           <button
                             onClick={() => handleDeleteSubUser(user)}
-                            className="p-2 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
+                            className="p-2 rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
                             title="Delete Sub-User"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

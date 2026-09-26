@@ -1093,8 +1093,8 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                   <div key={session._id || session.session_id} className="p-3 t-bg-sec border t-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-emerald-500/30 transition-all">
                     <div>
                       <div className="text-xs font-bold t-text-primary flex flex-wrap items-center gap-2">
-                        <span>User: <span className="text-emerald-400">{session.userName || session.userId || session.user_id || 'Anonymous'}</span></span>
-                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md uppercase">
+                        <span>User: <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{session.userName || session.userId || session.user_id || 'Anonymous'}</span></span>
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-md uppercase">
                           🏷️ {variantText}
                         </span>
                         <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700">
@@ -1108,7 +1108,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                         {session.verifiedWeightText && (
                           <>
                             <span>•</span>
-                            <span className="text-purple-400 font-bold">{session.verifiedWeightText}</span>
+                            <span className="text-purple-700 dark:text-purple-400 font-bold">{session.verifiedWeightText}</span>
                           </>
                         )}
                       </div>
@@ -1116,22 +1116,22 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
 
                     <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
                       {pCount > 0 && (
-                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded font-bold border border-emerald-500/20 text-[11px]">
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded font-bold border border-emerald-500/20 text-[11px]">
                           🥤 {pCount} Plastic
                         </span>
                       )}
                       {aCount > 0 && (
-                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-bold border border-amber-500/20 text-[11px]">
+                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded font-bold border border-amber-500/20 text-[11px]">
                           🥫 {aCount} Can
                         </span>
                       )}
                       {paperCount > 0 && (
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded font-bold border border-purple-500/20 text-[11px]">
+                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-700 dark:text-purple-300 rounded font-bold border border-purple-500/20 text-[11px]">
                           📦 {paperCount} Paper/Tetra
                         </span>
                       )}
                       {gCount > 0 && (
-                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded font-bold border border-cyan-500/20 text-[11px]">
+                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 rounded font-bold border border-cyan-500/20 text-[11px]">
                           🍾 {gCount} Glass
                         </span>
                       )}
@@ -1151,7 +1151,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         <div className="glass-panel p-5 rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b t-border pb-3">
             <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
               Bin Full Operational Alerts
             </h3>
             <span className="text-[11px] t-text-muted font-bold">Latest Alerts</span>
@@ -1164,12 +1164,12 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               overview.recentAlerts.map(alert => (
                 <div key={alert._id} className="p-3 t-bg-sec border border-rose-500/20 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
+                    <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg">
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-xs font-semibold t-text-primary">
-                        Machine ID: <span className="mono text-rose-400">{alert.machineId}</span>
+                        Machine ID: <span className="mono text-rose-700 dark:text-rose-400 font-bold">{alert.machineId}</span>
                       </div>
                       <div className="text-[11px] t-text-muted">
                         {new Date(alert.occurredAt).toLocaleString()}
@@ -1177,7 +1177,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                     </div>
                   </div>
 
-                  <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  <span className="px-2.5 py-1 text-xs font-extrabold uppercase rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
                     {alert.binType} BIN
                   </span>
                 </div>

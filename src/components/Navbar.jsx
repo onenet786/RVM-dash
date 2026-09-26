@@ -177,15 +177,15 @@ export default function Navbar({
                         }}
                         className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs text-left transition-all ${
                           isSelected
-                            ? 'bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30'
-                            : 'text-slate-300 hover:bg-slate-800'
+                            ? 'bg-[#e6f3ec] dark:bg-emerald-500/20 text-[#0b5d3b] dark:text-emerald-300 font-extrabold border border-[#0b5d3b]/30 shadow-xs'
+                            : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                         }`}
                       >
                         <div>
-                          <div className="font-extrabold">{c.label}</div>
-                          <div className="text-[10px] text-slate-400">{c.badge}</div>
+                          <div className="font-extrabold text-slate-900 dark:text-slate-100">{c.label}</div>
+                          <div className={`text-[10px] ${isSelected ? 'text-[#065f46] dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>{c.badge}</div>
                         </div>
-                        {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                        {isSelected && <Check className="w-4 h-4 text-[#0b5d3b] dark:text-emerald-400" />}
                       </button>
                     );
                   })}

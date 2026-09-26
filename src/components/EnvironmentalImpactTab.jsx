@@ -105,16 +105,16 @@ export default function EnvironmentalImpactTab() {
         <div className="glass-panel p-5 rounded-3xl border border-emerald-500/30 space-y-3 relative">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Avoided Carbon CO2e</span>
-            <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+            <div className="p-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-500/20">
               <Flame className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-emerald-400 mono">{totalCo2eAvoidedKg.toLocaleString()} kg</div>
+            <div className="text-2xl font-extrabold text-emerald-700 dark:text-emerald-400 mono">{totalCo2eAvoidedKg.toLocaleString()} kg</div>
             <div className="text-xs t-text-muted font-mono font-semibold mt-0.5">({totalCo2eAvoidedTonnes} Metric Tonnes)</div>
           </div>
           <p className="text-[10px] t-text-muted border-t t-border pt-2 leading-relaxed">
-            Sum of <code className="text-emerald-400">Weight(m) × Factor(m)</code> across all materials.
+            Sum of <code className="text-emerald-700 dark:text-emerald-400 font-bold">Weight(m) × Factor(m)</code> across all materials.
           </p>
         </div>
 
@@ -122,12 +122,12 @@ export default function EnvironmentalImpactTab() {
         <div className="glass-panel p-5 rounded-3xl border border-cyan-500/30 space-y-3 relative">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Trees Planted Equiv.</span>
-            <div className="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
+            <div className="p-2 bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 rounded-xl border border-cyan-500/20">
               <Trees className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-cyan-400 mono">{treesPlantedEquivalent.toLocaleString()} Trees</div>
+            <div className="text-2xl font-extrabold text-cyan-700 dark:text-cyan-400 mono">{treesPlantedEquivalent.toLocaleString()} Trees</div>
             <div className="text-xs t-text-muted font-mono font-semibold mt-0.5">1 Tree = 21.77 kg CO2e</div>
           </div>
           <p className="text-[10px] t-text-muted border-t t-border pt-2 leading-relaxed">
@@ -139,12 +139,12 @@ export default function EnvironmentalImpactTab() {
         <div className="glass-panel p-5 rounded-3xl border border-amber-500/30 space-y-3 relative">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Car Miles Avoided</span>
-            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+            <div className="p-2 bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-500/20">
               <Car className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-amber-400 mono">{passengerCarMilesAvoided.toLocaleString()} Miles</div>
+            <div className="text-2xl font-extrabold text-amber-700 dark:text-amber-400 mono">{passengerCarMilesAvoided.toLocaleString()} Miles</div>
             <div className="text-xs t-text-muted font-mono font-semibold mt-0.5">1 Mile = 0.40 kg CO2e</div>
           </div>
           <p className="text-[10px] t-text-muted border-t t-border pt-2 leading-relaxed">
@@ -156,12 +156,12 @@ export default function EnvironmentalImpactTab() {
         <div className="glass-panel p-5 rounded-3xl border border-purple-500/30 space-y-3 relative">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Compost Yield Output</span>
-            <div className="p-2 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
+            <div className="p-2 bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-xl border border-purple-500/20">
               <Recycle className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-purple-400 mono">{compostYieldKg.toLocaleString()} kg</div>
+            <div className="text-2xl font-extrabold text-purple-700 dark:text-purple-400 mono">{compostYieldKg.toLocaleString()} kg</div>
             <div className="text-xs t-text-muted font-mono font-semibold mt-0.5">Yield Factor = 40% (0.40)</div>
           </div>
           <p className="text-[10px] t-text-muted border-t t-border pt-2 leading-relaxed">

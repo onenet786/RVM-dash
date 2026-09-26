@@ -122,10 +122,10 @@ export default function AnalyticsTab() {
                   key={champion._id} 
                   className={`p-4 rounded-2xl border flex items-center justify-between ${
                     rank === 0 
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300' 
                       : rank === 1 
                       ? 't-bg-sec border t-border t-text-primary' 
-                      : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                      : 'bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -177,13 +177,13 @@ export default function AnalyticsTab() {
             <tbody className="divide-y t-border">
               {leaderboard.map((user, idx) => (
                 <tr key={user._id} className="hover:t-bg-hover">
-                  <td className="py-3 px-4 font-bold text-emerald-400 mono">#{idx + 1}</td>
+                  <td className="py-3 px-4 font-bold text-emerald-700 dark:text-emerald-400 mono">#{idx + 1}</td>
                   <td className="py-3 px-4 font-bold t-text-primary">{user.userName || 'Anonymous'}</td>
                   <td className="py-3 px-4 mono t-text-secondary">{user._id}</td>
                   <td className="py-3 px-4 text-center mono font-semibold t-text-primary">{user.totalSessions}</td>
-                  <td className="py-3 px-4 text-center mono text-emerald-400 font-bold">{user.totalBottles}</td>
-                  <td className="py-3 px-4 text-center mono text-amber-400 font-bold">{user.totalCups}</td>
-                  <td className="py-3 px-4 text-right mono font-extrabold text-cyan-400 text-sm">{user.totalPoints}</td>
+                  <td className="py-3 px-4 text-center mono text-emerald-700 dark:text-emerald-400 font-bold">{user.totalBottles}</td>
+                  <td className="py-3 px-4 text-center mono text-amber-700 dark:text-amber-400 font-bold">{user.totalCups}</td>
+                  <td className="py-3 px-4 text-right mono font-extrabold text-cyan-700 dark:text-cyan-400 text-sm">{user.totalPoints}</td>
                 </tr>
               ))}
             </tbody>

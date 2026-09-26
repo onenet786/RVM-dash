@@ -97,9 +97,19 @@ export async function runMigrations() {
         primary_color = COALESCE(primary_color, '#2563EB'),
         assigned_machines = ARRAY['RVM-LHR-01']
       WHERE org_id = 'ORG_UCP';
+      
+      -- 7. High-Performance PostgreSQL Indexes
+      CREATE INDEX IF NOT EXISTS idx_recycling_sessions_created_at ON recycling_sessions (created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_recycling_sessions_machine_id ON recycling_sessions (machine_id);
+      CREATE INDEX IF NOT EXISTS idx_recycling_sessions_user_id ON recycling_sessions (user_id);
+      CREATE INDEX IF NOT EXISTS idx_machines_client_id ON machines (client_id);
+      CREATE INDEX IF NOT EXISTS idx_machines_status ON machines (status);
+      CREATE INDEX IF NOT EXISTS idx_kiosk_bindings_org ON kiosk_org_bindings (org_id);
+      CREATE INDEX IF NOT EXISTS idx_kiosk_bindings_machine ON kiosk_org_bindings (machine_id);
+      CREATE INDEX IF NOT EXISTS idx_organizations_domain ON organizations (domain);
     `);
 
-    console.log('[Migration] Database schema and seeding verified successfully.');
+    console.log('[Migration] Database schema, indexes, and seeding verified successfully.');
   } catch (err) {
     console.error('[Migration Error]', err.message);
   } finally {

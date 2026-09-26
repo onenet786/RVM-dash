@@ -4714,6 +4714,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         roleName: role.name,
         color: role.color || 'emerald',
         orgId: targetOrgId || null,
+        assignedClient: targetOrgId || user.assignedClient || (orgDoc ? orgDoc.org_id : null),
         parentUserId: user.parentUserId || null,
         isCorporateClient: user.roleId === 'client_admin',
         isSubUser: user.roleId === 'corporate_sub_user',
@@ -5854,16 +5855,89 @@ app.post('/api/enterprise/organizations', optionalAuth, async (req, res) => {
   }
 });
 
-// 4. Delete Enterprise Organization
+// 4. Delete Enterprise Organization (Super Admin Only)
 app.delete('/api/enterprise/organizations/:orgId', optionalAuth, async (req, res) => {
   try {
+    const isSuperAdmin = req.user?.username === 'onenet' || 
+      req.user?.username === 'bilalaaqueel' || 
+      req.user?.roleId === 'super_admin' || 
+      req.user?.roleId === 'superadmin' || 
+      req.user?.isSuperAdmin === true;
+
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can delete enterprise clients.' });
+    }
+
     const { orgId } = req.params;
     const pool = getPgPool();
     if (pool) {
-      await pool.query('DELETE FROM organizations WHERE org_id = $1', [orgId]);
+      // Unbind any assigned kiosks from this organization
+      await pool.query('DELETE FROM kiosk_org_bindings WHERE org_id = $1', [orgId]).catch(() => {});
+      // Reset machines belonging to this client back to ISP_MASTER
+      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE client_id = $1`, [orgId]).catch(() => {});
+      // Delete organization departments
+      await pool.query('DELETE FROM departments WHERE org_id = $1', [orgId]).catch(() => {});
+      // Delete the organization
+      await pool.query('DELETE FROM organizations WHERE org_id = $1', [orgId]).catch(() => {});
     }
+
+    // Clean up associated client admin and sub-users
+    try {
+      const allAccounts = await fetchCollectionDocs('adminaccounts');
+      for (const acc of allAccounts) {
+        if (acc.orgId === orgId || acc.org_id === orgId) {
+          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => {});
+        }
+      }
+    } catch (e) {}
+
     inMemoryOrganizations = inMemoryOrganizations.filter(o => o.org_id !== orgId);
-    res.json({ success: true, message: 'Organization removed successfully.' });
+    res.json({ success: true, message: `Organization ${orgId} and associated bindings deleted successfully.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4b. Bulk Delete Enterprise Organizations (Super Admin Only)
+app.post('/api/enterprise/organizations/bulk-delete', optionalAuth, async (req, res) => {
+  try {
+    const isSuperAdmin = req.user?.username === 'onenet' || 
+      req.user?.username === 'bilalaaqueel' || 
+      req.user?.roleId === 'super_admin' || 
+      req.user?.roleId === 'superadmin' || 
+      req.user?.isSuperAdmin === true;
+
+    if (!isSuperAdmin) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can delete enterprise clients.' });
+    }
+
+    const { orgIds } = req.body;
+    if (!Array.isArray(orgIds) || orgIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'Please provide an array of organization IDs to delete.' });
+    }
+
+    const pool = getPgPool();
+    if (pool) {
+      await pool.query('DELETE FROM kiosk_org_bindings WHERE org_id = ANY($1)', [orgIds]).catch(() => {});
+      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE client_id = ANY($1)`, [orgIds]).catch(() => {});
+      await pool.query('DELETE FROM departments WHERE org_id = ANY($1)', [orgIds]).catch(() => {});
+      await pool.query('DELETE FROM organizations WHERE org_id = ANY($1)', [orgIds]).catch(() => {});
+    }
+
+    try {
+      const allAccounts = await fetchCollectionDocs('adminaccounts');
+      for (const acc of allAccounts) {
+        if (orgIds.includes(acc.orgId) || orgIds.includes(acc.org_id)) {
+          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => {});
+        }
+      }
+    } catch (e) {}
+
+    inMemoryOrganizations = inMemoryOrganizations.filter(o => !orgIds.includes(o.org_id));
+    res.json({
+      success: true,
+      message: `Successfully deleted ${orgIds.length} enterprise client(s) and reset machine bindings.`
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
