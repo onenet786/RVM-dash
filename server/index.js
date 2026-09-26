@@ -383,6 +383,8 @@ async function initProductionPostgresSchemas() {
       );
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS public_ip VARCHAR(100);
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS local_ip VARCHAR(100);
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(20) DEFAULT 'RVM_NEW';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';
@@ -400,6 +402,15 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS pulse_count BIGINT DEFAULT 1250;
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS offline_backlog_count INT DEFAULT 0;
     `);
+
+    // Ensure organizations table has personalized dashboard and machine fields
+    await pool.query(`
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS theme VARCHAR(50) DEFAULT 'isp-portal';
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS welcome_msg TEXT;
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS dashboard_title VARCHAR(255);
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS primary_color VARCHAR(50) DEFAULT '#0B5D3B';
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS assigned_machines TEXT[] DEFAULT '{}';
+    `).catch(() => {});
 
     // 2. Typed Hardware Ingestion Tables (RVM Old, RVM New, PecoDrop)
     await pool.query(`
@@ -1361,14 +1372,41 @@ function getMachineScopeQuery(req, fieldName = 'machineId') {
   return { [fieldName]: { $in: regexes } };
 }
 
+function getEffectiveMachineScope(req) {
+  const userRole = String(req.user?.roleId || '').toLowerCase();
+  const isSuper = userRole === 'super_admin' || userRole === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet';
+
+  // 1. User-level machine constraints from session token/auth
+  let userAssigned = null;
+  if (!isSuper && req.user && Array.isArray(req.user.assignedMachines) && !req.user.assignedMachines.includes('*')) {
+    userAssigned = req.user.assignedMachines.map(m => String(m).trim().toUpperCase()).filter(Boolean);
+  }
+
+  // 2. Query parameter machine constraints (?assignedMachines=... or ?machines=... or ?machineId=...)
+  const queryParam = req.query.assignedMachines || req.query.machines || req.query.machineId;
+  let queryMachines = null;
+  if (queryParam) {
+    let list = Array.isArray(queryParam) ? queryParam : (typeof queryParam === 'string' ? queryParam.split(',') : []);
+    list = list.map(s => String(s).trim().toUpperCase()).filter(Boolean);
+    if (list.length > 0 && !list.includes('*') && !list.includes('ALL')) {
+      queryMachines = list;
+    }
+  }
+
+  // If user has restricted machines, enforce boundary!
+  if (userAssigned && userAssigned.length > 0) {
+    if (queryMachines && queryMachines.length > 0) {
+      const intersection = queryMachines.filter(m => userAssigned.includes(m));
+      return intersection.length > 0 ? intersection : ['__RESTRICTED_NO_ACCESS__'];
+    }
+    return userAssigned;
+  }
+
+  return queryMachines;
+}
+
 function getAssignedMachinesList(req) {
-  const param = req.query.assignedMachines || req.query.machines || req.query.machineId;
-  if (!param) return null;
-  let machines = [];
-  if (Array.isArray(param)) machines = param;
-  else if (typeof param === 'string') machines = param.split(',').map(s => s.trim()).filter(Boolean);
-  if (machines.length === 0 || machines.includes('*')) return null;
-  return machines.map(m => m.toUpperCase());
+  return getEffectiveMachineScope(req);
 }
 
 // High level KPIs Overview (Resilient Optional Auth & Global Telemetry Fallback)
@@ -1396,6 +1434,22 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       if (clientId !== 'ALL') {
         scopedMachines = scopedMachines.filter(m => String(m.client_id || '').toUpperCase() === clientId);
       }
+
+      // Enforce authenticated user & query machine scope
+      const effectiveScope = getEffectiveMachineScope(req);
+      if (effectiveScope && effectiveScope.length > 0) {
+        if (effectiveScope.includes('__RESTRICTED_NO_ACCESS__')) {
+          scopedMachines = [];
+        } else {
+          scopedMachines = scopedMachines.filter(m => effectiveScope.includes(m.machine_id.toUpperCase()));
+        }
+      }
+
+      const isSuper = req.user?.roleId === 'super_admin' || req.user?.username === 'onenet';
+      if (req.user?.orgId && !isSuper && (!effectiveScope || effectiveScope.length === 0)) {
+        scopedMachines = scopedMachines.filter(m => String(m.client_id || '').toUpperCase() === String(req.user.orgId).toUpperCase());
+      }
+
       const allowedMachineIds = new Set(scopedMachines.map(m => m.machine_id.toUpperCase()));
 
       let sessions = await fetchCollectionDocs('recycling_sessions');
@@ -1413,6 +1467,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       // Filter sessions by scoped machine IDs
       let filteredSessions = sessions.filter(s => {
         const mId = String(s.machineId || s.machine_id || '').trim().toUpperCase();
+        if (effectiveScope && effectiveScope.includes('__RESTRICTED_NO_ACCESS__')) return false;
         if (allowedMachineIds.size > 0 && !allowedMachineIds.has(mId)) return false;
         return true;
       });
@@ -1593,7 +1648,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         serverHost: `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}`,
         stationFilter,
         clientId,
-        totalSessions: filteredSessions.length || 382,
+        totalSessions: filteredSessions.length,
         totalUsers: users.length,
         totalFeedbacks: feedbacks.length,
         totalBinAlerts: recentAlerts.length,
@@ -2055,26 +2110,22 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             const upperName = String(r.name || '').toUpperCase();
             const upperLoc = String(r.location || '').toUpperCase();
 
-            let mType = r.machine_type;
-            if (upperId.includes('PECO') || upperName.includes('PECO')) {
-              mType = 'PECODROP';
-            } else if (upperId.includes('OLD') || upperName.includes('OLD')) {
-              mType = 'RVM_OLD';
-            } else if (!mType || mType === 'active' || mType === 'rvm_new') {
-              mType = 'RVM_NEW';
-            }
-
-            let cId = r.client_id;
-            let cName = r.client_name;
-            if (upperId.includes('UCP') || upperName.includes('UCP') || upperLoc.includes('UCP') || upperId === 'RVM:01') {
-              cId = 'UCP_LAHORE';
-              cName = 'Client: UCP Lahore Campus';
-            } else if (upperId.includes('METRO') || upperName.includes('METRO') || upperLoc.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067') {
-              cId = 'METRO_MALL';
-              cName = 'Client: Metro Mall RWP';
-            } else if (!cId || cId === 'ALL') {
-              cId = 'ISP_MASTER';
-              cName = 'ISP Environmental Master (All Sites)';
+            let cId = r.client_id || 'ISP_MASTER';
+            let cName = r.client_name || 'ISP Environmental Master (All Sites)';
+            if (!r.client_id || r.client_id === 'ALL' || r.client_id === 'ISP_MASTER') {
+              if (upperId.includes('UCP') || upperName.includes('UCP') || upperLoc.includes('UCP') || upperId === 'RVM:01') {
+                cId = 'ORG_UCP';
+                cName = 'University of Central Punjab';
+              } else if (upperId.includes('METRO') || upperName.includes('METRO') || upperLoc.includes('METRO')) {
+                cId = 'ORG_METRO';
+                cName = 'Metro Cash & Carry';
+              } else if (upperId.includes('ENGRO') || upperName.includes('ENGRO') || upperLoc.includes('ENGRO')) {
+                cId = 'ORG_ENGRO';
+                cName = 'Engro Corporation';
+              } else if (upperId.includes('ALFALAH') || upperName.includes('ALFALAH')) {
+                cId = 'ORG_ALFALAH';
+                cName = 'Bank Alfalah Limited';
+              }
             }
 
             allRegisteredMachines.push({
@@ -2307,7 +2358,15 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
       }));
 
       if (filterMachines && filterMachines.length > 0) {
-        combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
+        if (filterMachines.includes('__RESTRICTED_NO_ACCESS__')) {
+          combined = [];
+        } else {
+          combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
+        }
+      }
+      const isSuper = req.user?.roleId === 'super_admin' || req.user?.username === 'onenet';
+      if (req.user?.orgId && !isSuper && (!filterMachines || filterMachines.length === 0)) {
+        combined = combined.filter(m => String(m.clientId || '').toUpperCase() === String(req.user.orgId).toUpperCase());
       }
       if (stationFilter && stationFilter !== 'ALL') {
         const targetType = (stationFilter === 'RVM_NEW' || stationFilter === 'RV_NEW') ? 'RVM_NEW' :
@@ -3973,12 +4032,28 @@ const DEFAULT_RBAC_ROLES = [
     permissions: { view: true, edit: true, export: true, delete: true, manage_users: true, switch_db: true }
   },
   {
+    roleId: 'admin',
+    name: 'System Administrator',
+    color: 'cyan',
+    description: 'Created by Super User. Manages enterprise clients, assigns personalized dashboards and RVM/PecoDrop fleets, and oversees system operations.',
+    modules: ['overview', 'analytics', 'machines', 'enterprise_clients', 'reporting_hub', 'esg_impact', 'advertisements', 'users', 'mobile_users'],
+    permissions: { view: true, edit: true, export: true, delete: true, manage_users: true, switch_db: false }
+  },
+  {
     roleId: 'client_admin',
-    name: 'Client Admin (Site Tenant)',
+    name: 'Corporate Client Admin',
     color: 'blue',
-    description: 'Scoped to client contracted machines, local ESG reporting, signage playlists, footfall metrics & janitorial alerts. Developer backend hidden.',
-    modules: ['overview', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'],
-    permissions: { view: true, edit: true, export: true, delete: false, manage_users: false, switch_db: false }
+    description: 'Enterprise Client Admin. Personalized branded dashboard, full access to assigned RVMs & PecoDrops, and ability to create sub-users with machine delegation.',
+    modules: ['overview', 'sub_users', 'analytics', 'machines', 'reporting_hub', 'esg_impact', 'advertisements'],
+    permissions: { view: true, edit: true, export: true, delete: false, manage_users: true, switch_db: false }
+  },
+  {
+    roleId: 'corporate_sub_user',
+    name: 'Corporate Sub-User (Branch Operator)',
+    color: 'violet',
+    description: 'Created by Corporate Client. Access strictly limited to specific assigned RVM/PecoDrop units delegated by the parent corporate client.',
+    modules: ['overview', 'analytics', 'machines', 'reporting_hub', 'esg_impact'],
+    permissions: { view: true, edit: false, export: true, delete: false, manage_users: false, switch_db: false }
   },
   {
     roleId: 'pecodrop_technician',
@@ -4293,36 +4368,41 @@ app.get('/api/security/users', authenticateToken, requireAdmin, async (req, res)
 // Security: Create new user with role assignment & machine scope (Admin Protected)
 app.post('/api/security/users', authenticateToken, requireAdmin, enforceReadOnlyProtection, async (req, res) => {
   try {
-    const { username, fullName, email, roleId, assignedMachines } = req.body;
+    const { username, fullName, email, roleId, assignedMachines, password, orgId, org_id } = req.body;
     if (!username || !roleId) {
       return res.status(400).json({ error: 'Username and Role Assignment are required.' });
     }
 
+    const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
     const existingUsers = await fetchCollectionDocs('adminaccounts');
-    const existing = existingUsers.find(u => u.username === username);
+    const existing = existingUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
     if (existing) {
-      return res.status(400).json({ error: `User with username "${username}" already exists.` });
+      return res.status(400).json({ error: `User with username "${cleanUsername}" already exists.` });
     }
 
     const roles = await fetchCollectionDocs('roles');
     const roleDoc = roles.find(r => r.roleId === roleId);
     const roleName = roleDoc ? roleDoc.name : roleId;
 
-    const newId = new ObjectId().toString();
+    const newId = cleanUsername;
+    const targetOrgId = orgId || org_id || null;
     const newUser = {
       _id: newId,
-      username,
-      fullName: fullName || username,
-      email: email || `${username}@rvm-dash.io`,
+      username: cleanUsername,
+      fullName: fullName || cleanUsername,
+      email: email || `${cleanUsername}@rvm-dash.io`,
+      password: password && password.trim() ? password.trim() : 'adminpassword',
       roleId,
       roleName,
+      orgId: targetOrgId,
+      parentUserId: req.user?.username || 'admin',
       assignedMachines: Array.isArray(assignedMachines) ? assignedMachines : (assignedMachines ? [assignedMachines] : ['*']),
       status: 'active',
       createdAt: new Date().toISOString()
     };
 
     await saveDocToEngine('adminaccounts', newUser);
-    res.json({ success: true, message: `User "${username}" created and assigned role "${roleName}".`, user: newUser });
+    res.json({ success: true, message: `User "${cleanUsername}" created and assigned role "${roleName}".`, user: newUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -4333,7 +4413,7 @@ app.put('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadO
   try {
     const { id } = req.params;
     const isMasterOnenet = String(id).toLowerCase() === 'onenet';
-    const { roleId, status, assignedMachines, fullName, email, password } = req.body;
+    const { roleId, status, assignedMachines, fullName, email, password, orgId, org_id } = req.body;
 
     const updateFields = {};
     if (isMasterOnenet) {
@@ -4351,6 +4431,7 @@ app.put('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadO
       }
       if (status) updateFields.status = status;
       if (assignedMachines) updateFields.assignedMachines = Array.isArray(assignedMachines) ? assignedMachines : [assignedMachines];
+      if (orgId !== undefined || org_id !== undefined) updateFields.orgId = orgId || org_id || null;
     }
 
     if (password && password.trim()) {
@@ -4460,12 +4541,27 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     const fallbackRole = DEFAULT_RBAC_ROLES.find(r => r.roleId === user.roleId) || DEFAULT_RBAC_ROLES[0];
     role = roleDoc || fallbackRole;
 
+    // Fetch organization info if user is corporate client or sub-user
+    let orgDoc = null;
+    const targetOrgId = user.orgId || user.org_id;
+    if (targetOrgId) {
+      const pool = getPgPool();
+      if (pool) {
+        try {
+          const oRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1', [targetOrgId]);
+          if (oRes.rows.length > 0) orgDoc = oRes.rows[0];
+        } catch (e) {}
+      }
+    }
+
     // Security Hardening: Generate genuine cryptographically signed JWT
     const token = jwt.sign(
       {
         username: user.username,
         roleId: user.roleId,
         roleName: role.name,
+        orgId: targetOrgId || null,
+        parentUserId: user.parentUserId || null,
         permissions: role.permissions,
         assignedMachines: user.assignedMachines || ['*']
       },
@@ -4492,6 +4588,27 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         roleId: user.roleId,
         roleName: role.name,
         color: role.color || 'emerald',
+        orgId: targetOrgId || null,
+        parentUserId: user.parentUserId || null,
+        isCorporateClient: user.roleId === 'client_admin',
+        isSubUser: user.roleId === 'corporate_sub_user',
+        organization: orgDoc ? {
+          org_id: orgDoc.org_id,
+          orgId: orgDoc.org_id,
+          name: orgDoc.name,
+          domain: orgDoc.domain,
+          logo_url: orgDoc.logo_url,
+          logoUrl: orgDoc.logo_url,
+          dashboard_title: orgDoc.dashboard_title || `${orgDoc.name} Sustainability Portal`,
+          dashboardTitle: orgDoc.dashboard_title || `${orgDoc.name} Sustainability Portal`,
+          welcome_msg: orgDoc.welcome_msg || `Welcome to ${orgDoc.name} smart recycling network.`,
+          welcomeMsg: orgDoc.welcome_msg || `Welcome to ${orgDoc.name} smart recycling network.`,
+          theme: orgDoc.theme || 'isp-portal',
+          primary_color: orgDoc.primary_color || '#0B5D3B',
+          primaryColor: orgDoc.primary_color || '#0B5D3B',
+          assigned_machines: orgDoc.assigned_machines || user.assignedMachines || [],
+          assignedMachines: orgDoc.assigned_machines || user.assignedMachines || []
+        } : null,
         assignedMachines: user.assignedMachines || ['*'],
         modules: role.modules || ['overview', 'analytics', 'machines'],
         permissions: role.permissions || { view: true, edit: true, export: true }
@@ -4911,31 +5028,45 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
     let orgs = [];
     if (pool) {
       try {
-        const resDb = await pool.query(`
-          SELECT 
-            o.*,
-            COUNT(DISTINCT u.user_id) AS total_employees,
-            COALESCE(SUM(u.points_balance), 0) AS total_points,
-            COUNT(DISTINCT d.dept_id) AS departments_count,
-            COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
-            COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
-            COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg,
-            COALESCE(SUM(s.tetrapak_weight_grams) / 1000.0, 0) AS total_tetra_kg,
-            COUNT(DISTINCT b.machine_id) AS active_kiosks
-          FROM organizations o
-          LEFT JOIN users u ON u.org_id = o.org_id
-          LEFT JOIN departments d ON d.org_id = o.org_id
-          LEFT JOIN recycling_sessions s ON s.user_id = u.user_id
-          LEFT JOIN kiosk_org_bindings b ON b.org_id = o.org_id
-          GROUP BY o.org_id
-          ORDER BY o.created_at DESC;
-        `);
+        const [resDb, bRes, adminUsers] = await Promise.all([
+          pool.query(`
+            SELECT 
+              o.*,
+              COUNT(DISTINCT u.user_id) AS total_employees,
+              COALESCE(SUM(u.points_balance), 0) AS total_points,
+              COUNT(DISTINCT d.dept_id) AS departments_count,
+              COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
+              COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
+              COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg,
+              COALESCE(SUM(s.tetrapak_weight_grams) / 1000.0, 0) AS total_tetra_kg,
+              COUNT(DISTINCT b.machine_id) AS active_kiosks
+            FROM organizations o
+            LEFT JOIN users u ON u.org_id = o.org_id
+            LEFT JOIN departments d ON d.org_id = o.org_id
+            LEFT JOIN recycling_sessions s ON s.user_id = u.user_id
+            LEFT JOIN kiosk_org_bindings b ON b.org_id = o.org_id
+            GROUP BY o.org_id
+            ORDER BY o.created_at DESC;
+          `),
+          pool.query('SELECT machine_id, org_id FROM kiosk_org_bindings'),
+          fetchCollectionDocs('adminaccounts')
+        ]);
+
+        const bindingsByOrg = {};
+        bRes.rows.forEach(b => {
+          if (!bindingsByOrg[b.org_id]) bindingsByOrg[b.org_id] = [];
+          bindingsByOrg[b.org_id].push(b.machine_id);
+        });
+
         orgs = resDb.rows.map(r => {
           const bottles = Number(r.total_bottles) || 0;
           const cans = Number(r.total_cans) || 0;
           const paperKg = parseFloat(Number(r.total_paper_kg || 0).toFixed(2));
           const tetraKg = parseFloat(Number(r.total_tetra_kg || 0).toFixed(2));
           const totalRecycledKg = parseFloat(((bottles * 0.025) + (cans * 0.015) + paperKg + tetraKg).toFixed(2));
+          const boundMachines = bindingsByOrg[r.org_id] || (Array.isArray(r.assigned_machines) ? r.assigned_machines : []);
+
+          const orgAdmin = adminUsers.find(u => (u.orgId === r.org_id || u.org_id === r.org_id) && u.roleId === 'client_admin');
 
           return {
             org_id: r.org_id,
@@ -4947,6 +5078,12 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
             monthly_budget: Number(r.monthly_budget) || 100000,
             monthly_target_kg: Number(r.monthly_target_kg) || 1000.0,
             status: r.status,
+            theme: r.theme || 'isp-portal',
+            welcome_msg: r.welcome_msg || `Welcome to ${r.name} smart recycling network.`,
+            dashboard_title: r.dashboard_title || `${r.name} Sustainability Portal`,
+            primary_color: r.primary_color || '#0B5D3B',
+            assigned_machines: boundMachines,
+            admin_user: orgAdmin ? { username: orgAdmin.username, fullName: orgAdmin.fullName, email: orgAdmin.email } : null,
             total_employees: Number(r.total_employees) || 0,
             total_points: Number(r.total_points) || 0,
             departments_count: Number(r.departments_count) || 0,
@@ -4955,7 +5092,7 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
             total_paper_kg: paperKg,
             total_tetra_kg: tetraKg,
             total_recycled_kg: totalRecycledKg,
-            active_kiosks: Number(r.active_kiosks) || 0,
+            active_kiosks: boundMachines.length || Number(r.active_kiosks) || 0,
             created_at: r.created_at
           };
         });
@@ -4980,6 +5117,372 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
     }
 
     res.json({ success: true, organizations: orgs });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Organization Personalization (Dashboard Title, Theme, Welcome Message, Colors)
+app.put('/api/enterprise/organizations/:orgId/personalization', optionalAuth, async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { dashboard_title, welcome_msg, theme, primary_color, monthly_budget, monthly_target_kg, logo_url } = req.body;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database pool unavailable.' });
+
+    await pool.query(`
+      UPDATE organizations
+      SET
+        dashboard_title = COALESCE($1, dashboard_title),
+        welcome_msg = COALESCE($2, welcome_msg),
+        theme = COALESCE($3, theme),
+        primary_color = COALESCE($4, primary_color),
+        monthly_budget = COALESCE($5, monthly_budget),
+        monthly_target_kg = COALESCE($6, monthly_target_kg),
+        logo_url = COALESCE($7, logo_url)
+      WHERE org_id = $8;
+    `, [dashboard_title || null, welcome_msg || null, theme || null, primary_color || null, monthly_budget ? Number(monthly_budget) : null, monthly_target_kg ? Number(monthly_target_kg) : null, logo_url || null, orgId]);
+
+    res.json({ success: true, message: 'Personalized dashboard settings saved successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Assign RVMs & PecoDrops to an Organization
+app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    const { machineIds } = req.body;
+    if (!Array.isArray(machineIds)) {
+      return res.status(400).json({ success: false, error: 'machineIds array is required.' });
+    }
+
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database pool unavailable.' });
+
+    const orgRes = await pool.query('SELECT name FROM organizations WHERE org_id = $1', [orgId]);
+    if (orgRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: `Organization "${orgId}" not found.` });
+    }
+    const orgName = orgRes.rows[0].name;
+
+    // 1. Remove old bindings for this org
+    await pool.query('DELETE FROM kiosk_org_bindings WHERE org_id = $1', [orgId]);
+
+    // 2. Insert new bindings
+    for (const mId of machineIds) {
+      const cleanId = String(mId).trim().toUpperCase();
+      if (!cleanId) continue;
+      await pool.query(`
+        INSERT INTO kiosk_org_bindings (machine_id, org_id, location_note)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (machine_id) DO UPDATE SET org_id = EXCLUDED.org_id, location_note = EXCLUDED.location_note;
+      `, [cleanId, orgId, `Assigned to ${orgName}`]);
+
+      // Update machine table
+      await pool.query(`
+        UPDATE machines
+        SET client_id = $1, client_name = $2
+        WHERE UPPER(machine_id) = $3;
+      `, [orgId, orgName, cleanId]);
+    }
+
+    // 3. Update organizations.assigned_machines array
+    await pool.query(`
+      UPDATE organizations
+      SET assigned_machines = $1
+      WHERE org_id = $2;
+    `, [machineIds, orgId]);
+
+    // 4. Update any existing Corporate Client accounts for this org
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const clientAdmins = allUsers.filter(u => (u.orgId === orgId || u.org_id === orgId) && u.roleId === 'client_admin');
+    for (const ca of clientAdmins) {
+      await updateDocInEngine('adminaccounts', 'username', ca.username, {
+        assignedMachines: machineIds
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Assigned ${machineIds.length} machines to "${orgName}".`,
+      assignedMachines: machineIds
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Create Corporate Client Login Account for an Organization
+app.post('/api/enterprise/create-client-admin', optionalAuth, async (req, res) => {
+  try {
+    const { orgId, username, fullName, email, password } = req.body;
+    if (!orgId || !username || !password) {
+      return res.status(400).json({ success: false, error: 'orgId, username, and password are required.' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database pool unavailable.' });
+
+    const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1', [orgId]);
+    if (orgRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: `Organization "${orgId}" not found.` });
+    }
+    const org = orgRes.rows[0];
+
+    const bRes = await pool.query('SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1', [orgId]);
+    const assignedMachines = bRes.rows.map(r => r.machine_id);
+
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
+    if (existing) {
+      const updateFields = {
+        fullName: fullName ? fullName.trim() : existing.fullName,
+        email: email ? email.trim() : existing.email,
+        orgId: org.org_id,
+        roleId: 'client_admin',
+        assignedMachines: assignedMachines.length > 0 ? assignedMachines : (org.assigned_machines || []),
+        status: 'active'
+      };
+      if (password && password.trim()) updateFields.password = password.trim();
+      await updateDocInEngine('adminaccounts', 'username', cleanUsername, updateFields);
+      return res.json({
+        success: true,
+        message: `Client Admin "${cleanUsername}" updated successfully.`,
+        user: { ...existing, ...updateFields }
+      });
+    }
+
+    const newClientAdmin = {
+      _id: cleanUsername,
+      username: cleanUsername,
+      fullName: fullName ? fullName.trim() : `${org.name} Admin`,
+      email: email ? email.trim() : `${cleanUsername}@${org.domain || 'rvm-dash.io'}`,
+      password: password.trim(),
+      roleId: 'client_admin',
+      roleName: 'Corporate Client Admin',
+      orgId: org.org_id,
+      assignedMachines: assignedMachines.length > 0 ? assignedMachines : (org.assigned_machines || []),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    await saveDocToEngine('adminaccounts', newClientAdmin);
+
+    res.json({
+      success: true,
+      message: `Corporate Client account "${cleanUsername}" created for "${org.name}".`,
+      user: newClientAdmin
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Sub-Users for Enterprise Organization
+app.get('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
+  try {
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    let subUsers = allUsers.filter(u => u.roleId === 'corporate_sub_user');
+
+    const isClientAdmin = req.user?.roleId === 'client_admin';
+    if (isClientAdmin && req.user?.orgId) {
+      const myOrg = req.user.orgId;
+      subUsers = subUsers.filter(u => 
+        (u.orgId === myOrg || u.org_id === myOrg) || 
+        u.parentUserId === req.user.username
+      );
+    } else if (req.query.orgId) {
+      subUsers = subUsers.filter(u => u.orgId === req.query.orgId || u.org_id === req.query.orgId);
+    }
+
+    const safeSubUsers = subUsers.map(u => ({
+      _id: u._id,
+      username: u.username,
+      fullName: u.fullName || u.username,
+      email: u.email,
+      roleId: u.roleId,
+      roleName: u.roleName || 'Corporate Sub-User',
+      orgId: u.orgId || u.org_id,
+      parentUserId: u.parentUserId,
+      assignedMachines: Array.isArray(u.assignedMachines) ? u.assignedMachines : (u.assignedMachines ? [u.assignedMachines] : []),
+      status: u.status || 'active',
+      createdAt: u.createdAt
+    }));
+
+    res.json({ success: true, subUsers: safeSubUsers });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Create Sub-User with specific machine delegation
+app.post('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
+  try {
+    const { username, fullName, email, password, assignedMachines, orgId } = req.body;
+    if (!username || !fullName || !password) {
+      return res.status(400).json({ success: false, error: 'Username, Full Name, and Password are required.' });
+    }
+
+    const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
+    if (!cleanUsername) {
+      return res.status(400).json({ success: false, error: 'Valid alphanumeric username is required.' });
+    }
+
+    let targetOrgId = orgId || req.user?.orgId;
+    let requestedMachines = Array.isArray(assignedMachines) ? assignedMachines : (assignedMachines ? [assignedMachines] : []);
+    requestedMachines = requestedMachines.map(m => String(m).trim().toUpperCase()).filter(Boolean);
+
+    const isClientAdmin = req.user?.roleId === 'client_admin';
+    if (isClientAdmin) {
+      targetOrgId = req.user.orgId;
+      const clientMachines = (Array.isArray(req.user.assignedMachines) ? req.user.assignedMachines : [])
+        .map(m => String(m).trim().toUpperCase());
+
+      if (requestedMachines.includes('*')) {
+        return res.status(403).json({ 
+          success: false, 
+          error: 'Security Policy: Sub-users cannot be assigned wildcard (*) access. Please select specific authorized machines.' 
+        });
+      }
+
+      const invalidMachines = requestedMachines.filter(m => !clientMachines.includes(m));
+      if (invalidMachines.length > 0) {
+        return res.status(403).json({
+          success: false,
+          error: `Security Violation: You cannot delegate machines [${invalidMachines.join(', ')}] as they are not assigned to your organization.`
+        });
+      }
+
+      if (requestedMachines.length === 0) {
+        return res.status(400).json({ success: false, error: 'Please select at least one machine to delegate to this sub-user.' });
+      }
+    }
+
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
+    if (existing) {
+      if (existing.roleId !== 'corporate_sub_user') {
+        return res.status(400).json({ success: false, error: `User with username "${cleanUsername}" already exists with role "${existing.roleId}".` });
+      }
+      const updateFields = {
+        fullName: fullName.trim(),
+        email: email ? email.trim() : existing.email,
+        assignedMachines: requestedMachines,
+        status: 'active'
+      };
+      if (password && password.trim()) updateFields.password = password.trim();
+      await updateDocInEngine('adminaccounts', 'username', cleanUsername, updateFields);
+      return res.json({
+        success: true,
+        message: `Sub-user "${cleanUsername}" updated successfully with access to ${requestedMachines.join(', ')}.`,
+        user: { ...existing, ...updateFields }
+      });
+    }
+
+    const newSubUser = {
+      _id: cleanUsername,
+      username: cleanUsername,
+      fullName: fullName.trim(),
+      email: email ? email.trim() : `${cleanUsername}@rvm-dash.io`,
+      password: password.trim(),
+      roleId: 'corporate_sub_user',
+      roleName: 'Corporate Sub-User (Branch Operator)',
+      orgId: targetOrgId,
+      parentUserId: req.user?.username || 'client_admin',
+      assignedMachines: requestedMachines,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    await saveDocToEngine('adminaccounts', newSubUser);
+
+    res.json({
+      success: true,
+      message: `Sub-user "${cleanUsername}" created successfully with access to ${requestedMachines.join(', ')}.`,
+      user: {
+        username: newSubUser.username,
+        fullName: newSubUser.fullName,
+        email: newSubUser.email,
+        roleId: newSubUser.roleId,
+        orgId: newSubUser.orgId,
+        assignedMachines: newSubUser.assignedMachines,
+        status: newSubUser.status
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Sub-User (Machine delegation, status, password)
+app.put('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const cleanUsername = String(username).toLowerCase().trim();
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: `Sub-user "${cleanUsername}" not found.` });
+    }
+
+    const isClientAdmin = req.user?.roleId === 'client_admin';
+    if (isClientAdmin && existing.parentUserId !== req.user.username && existing.orgId !== req.user.orgId) {
+      return res.status(403).json({ success: false, error: 'Security Violation: Cannot edit sub-users outside your organization.' });
+    }
+
+    const { fullName, email, password, status, assignedMachines } = req.body;
+    const updateFields = {};
+    if (fullName) updateFields.fullName = fullName.trim();
+    if (email) updateFields.email = email.trim();
+    if (password && password.trim()) updateFields.password = password.trim();
+    if (status) updateFields.status = status;
+
+    if (assignedMachines) {
+      let requested = Array.isArray(assignedMachines) ? assignedMachines : [assignedMachines];
+      requested = requested.map(m => String(m).trim().toUpperCase()).filter(Boolean);
+
+      if (isClientAdmin) {
+        const clientMachines = (Array.isArray(req.user.assignedMachines) ? req.user.assignedMachines : [])
+          .map(m => String(m).trim().toUpperCase());
+        const invalid = requested.filter(m => !clientMachines.includes(m));
+        if (invalid.length > 0) {
+          return res.status(403).json({
+            success: false,
+            error: `Security Violation: Cannot delegate machines [${invalid.join(', ')}] outside your fleet.`
+          });
+        }
+      }
+      updateFields.assignedMachines = requested;
+    }
+
+    await updateDocInEngine('adminaccounts', 'username', cleanUsername, updateFields);
+    res.json({ success: true, message: `Sub-user "${cleanUsername}" updated successfully.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Delete Sub-User
+app.delete('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const cleanUsername = String(username).toLowerCase().trim();
+    const allUsers = await fetchCollectionDocs('adminaccounts');
+    const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: `Sub-user "${cleanUsername}" not found.` });
+    }
+
+    const isClientAdmin = req.user?.roleId === 'client_admin';
+    if (isClientAdmin && existing.parentUserId !== req.user.username && existing.orgId !== req.user.orgId) {
+      return res.status(403).json({ success: false, error: 'Security Violation: Cannot delete sub-users outside your organization.' });
+    }
+
+    await deleteDocFromEngine('adminaccounts', 'username', cleanUsername);
+    res.json({ success: true, message: `Sub-user "${cleanUsername}" deleted successfully.` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

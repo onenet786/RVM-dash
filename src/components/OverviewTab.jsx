@@ -37,7 +37,9 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
       if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
       
-      if (u.assignedMachines) {
+      if (activeMachineFilter && activeMachineFilter !== 'ALL') {
+        params.append('machineId', activeMachineFilter);
+      } else if (u.assignedMachines) {
         const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
         if (!arr.includes('*')) {
           params.append('assignedMachines', arr.join(','));
@@ -79,9 +81,11 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     } else {
       setLoading(false);
     }
-  }, [stationFilter, selectedClientId, currentUser]);
+  }, [stationFilter, selectedClientId, currentUser, activeMachineFilter]);
 
 
+
+  const [activeMachineFilter, setActiveMachineFilter] = useState('ALL');
 
   const isPostgres = health?.databaseType === 'postgres';
   const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
@@ -93,7 +97,8 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     currentUser?.username === 'onenet' || 
     currentUser?.username === 'bilalaaqueel' || 
     currentUser?.isSuperAdmin === true;
-  const isClientAdmin = currentUser?.roleId === 'client_admin';
+  const isClientAdmin = currentUser?.roleId === 'client_admin' || currentUser?.isCorporateClient;
+  const isSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser;
   const locationDisplay = health?.serverLocation?.display || (isPostgres ? 'Ubuntu Dedicated Server (Localhost)' : 'Paris, France (AWS EU_WEST_3)');
 
   const subTabMetrics = overview?.subTabs || {
@@ -297,41 +302,156 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         </div>
       )}
 
-      {/* Main Header Banner */}
-      <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 p-1.5 bg-white rounded-2xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
-              <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
-                  {selectedClientId === 'ALL' 
-                    ? 'ISP Environmental Solutions Pvt. Ltd. — Nationwide Master Portal' 
-                    : `ISP Environmental — Scoped to ${selectedClientId.replace(/_/g, ' ')}`}
-                </span>
+      {/* Personalized Corporate Client Header */}
+      {isClientAdmin ? (
+        <div 
+          className="p-6 sm:p-7 rounded-3xl relative overflow-hidden border shadow-xl transition-all"
+          style={{
+            background: `linear-gradient(135deg, ${currentUser?.organization?.primary_color || '#0b5d3b'}22, rgba(15, 23, 42, 0.95))`,
+            borderColor: `${currentUser?.organization?.primary_color || '#10b981'}44`
+          }}
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="flex items-start gap-4">
+              {currentUser?.organization?.logo_url ? (
+                <div className="w-14 h-14 rounded-2xl bg-white p-2 shadow-md border border-white/20 shrink-0 overflow-hidden flex items-center justify-center">
+                  <img src={currentUser.organization.logo_url} alt={currentUser.organization.name} className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div 
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shrink-0 shadow-lg border border-white/20"
+                  style={{ backgroundColor: currentUser?.organization?.primary_color || '#0b5d3b' }}
+                >
+                  {(currentUser?.organization?.name || 'C').charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/30">
+                  <span>🏢 Authorized Corporate Client Portal</span>
+                  <span>•</span>
+                  <span>{currentUser?.organization?.name || 'Enterprise'}</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {currentUser?.organization?.dashboard_title || `${currentUser?.organization?.name || 'Enterprise'} ESG Dashboard`}
+                </h1>
+                <p className="text-sm text-slate-300 max-w-2xl">
+                  {currentUser?.organization?.welcome_msg || `Welcome ${currentUser?.fullName || currentUser?.username}. Managing authorized smart recycling kiosks and sustainability reporting.`}
+                </p>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
-                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Executive'}!
-              </h1>
-              <p className="text-sm t-text-secondary mt-1">
-                Monitoring heterogeneous hardware streams: Multi-sensor optical kiosks, indoor load-cell stations & legacy units.
-              </p>
             </div>
+
+            <button
+              onClick={fetchOverview}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-md shrink-0 self-start md:self-auto hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: currentUser?.organization?.primary_color || '#10b981' }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Telemetry
+            </button>
           </div>
 
-          <button
-            onClick={fetchOverview}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] text-sm font-extrabold rounded-xl transition-all shadow-md shrink-0"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh Metrics
-          </button>
+          {/* Assigned Machines Quick Switcher Bar */}
+          {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0 && !currentUser.assignedMachines.includes('*') && (
+            <div className="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
+                Filter Fleet Scope:
+              </span>
+              <button
+                onClick={() => setActiveMachineFilter('ALL')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  activeMachineFilter === 'ALL'
+                    ? 'bg-white text-slate-900 shadow-md font-black'
+                    : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                }`}
+              >
+                All Assigned Kiosks ({currentUser.assignedMachines.length})
+              </button>
+              {currentUser.assignedMachines.map(mId => (
+                <button
+                  key={mId}
+                  onClick={() => setActiveMachineFilter(mId)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeMachineFilter === mId
+                      ? 'bg-emerald-400 text-slate-950 font-black shadow-md'
+                      : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                  }`}
+                >
+                  <span>{mId.toUpperCase().includes('PECO') ? '⭕' : '🥫'}</span>
+                  <span>{mId}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      ) : isSubUser ? (
+        /* Personalized Sub-User Header */
+        <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 border border-purple-500/30 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white font-black flex items-center justify-center text-lg shadow-md shrink-0">
+                {(currentUser?.fullName || currentUser?.username || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30">
+                  <span>👤 Scoped Branch Operator</span>
+                  <span>•</span>
+                  <span>{currentUser?.organization?.name || 'Corporate'}</span>
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-white">
+                  Welcome, {currentUser?.fullName || currentUser?.username}
+                </h1>
+                <p className="text-xs text-purple-200">
+                  Your access is restricted strictly to delegated kiosks: <span className="font-mono font-bold text-white bg-purple-900/60 px-2 py-0.5 rounded-md border border-purple-500/40">{(currentUser?.assignedMachines || []).join(', ')}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={fetchOverview}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh Data
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Main Standard Header Banner (Super Admin & General Staff) */
+        <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
+          <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 p-1.5 bg-white rounded-2xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
+                <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
+                    {selectedClientId === 'ALL' 
+                      ? 'ISP Environmental Solutions Pvt. Ltd. — Nationwide Master Portal' 
+                      : `ISP Environmental — Scoped to ${selectedClientId.replace(/_/g, ' ')}`}
+                  </span>
+                </div>
+                <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
+                  Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Executive'}!
+                </h1>
+                <p className="text-sm t-text-secondary mt-1">
+                  Monitoring heterogeneous hardware streams: Multi-sensor optical kiosks, indoor load-cell stations & legacy units.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchOverview}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] text-sm font-extrabold rounded-xl transition-all shadow-md shrink-0"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh Metrics
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sub-Tab Operational View Selector */}
       <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-2">

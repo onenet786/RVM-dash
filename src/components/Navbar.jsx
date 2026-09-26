@@ -50,6 +50,8 @@ export default function Navbar({
     currentUser?.isSuperAdmin === true;
 
   const isClientAdmin = currentUser?.roleId === 'client_admin';
+  const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
+  const isCorporatePortal = isClientAdmin || isCorporateSubUser;
 
   const clients = [
     { id: 'ALL', label: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
@@ -77,13 +79,17 @@ export default function Navbar({
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 flex items-center justify-center">
-              <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
+            <div className="w-8 h-8 p-1 nav-logo-badge bg-white rounded-xl shadow-md border border-emerald-500/20 shrink-0 flex items-center justify-center overflow-hidden">
+              <img 
+                src={currentUser?.organization?.logoUrl || ispLogo} 
+                alt={currentUser?.organization?.name || "Logo"} 
+                className="w-full h-full object-contain" 
+              />
             </div>
 
             <div className="flex items-center gap-1.5">
               <span className="text-xs sm:text-sm font-extrabold t-text-primary tracking-wide whitespace-nowrap">
-                ISP SMART RECYCLING
+                {currentUser?.organization?.dashboardTitle || currentUser?.organization?.name || 'ISP SMART RECYCLING'}
               </span>
               {isMasterDev ? (
                 <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-400/20 text-amber-400 border border-amber-400/30 rounded-md uppercase tracking-wider whitespace-nowrap">
@@ -94,8 +100,12 @@ export default function Navbar({
                   SUPER ADMIN
                 </span>
               ) : isClientAdmin ? (
-                <span className="px-1.5 py-0.5 text-[9px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-md uppercase tracking-wider whitespace-nowrap">
-                  CLIENT PORTAL
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-md uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
+                  🏢 ENTERPRISE CLIENT
+                </span>
+              ) : isCorporateSubUser ? (
+                <span className="px-1.5 py-0.5 text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-md uppercase tracking-wider whitespace-nowrap flex items-center gap-1">
+                  👤 TEAM SUB-USER
                 </span>
               ) : null}
             </div>
@@ -103,30 +113,42 @@ export default function Navbar({
 
           <div className="h-4 w-[1px] bg-white/20 hidden sm:block mx-0.5" />
 
-          {/* Multi-Client Organization Dropdown (Compact, Inline) */}
-          <div className="relative">
-            <button
-              disabled={isClientAdmin}
-              onClick={() => setShowClientMenu(!showClientMenu)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all shadow-xs ${
-                selectedClientId === 'ALL'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                  : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
-              }`}
-              title="Switch Enterprise Client Scope"
-            >
+          {/* Multi-Client Organization Dropdown or Scoped Kiosk Indicator */}
+          {isCorporatePortal ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs font-bold">
               <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <div className="text-left flex items-center gap-1">
-                <span className="text-[10px] uppercase text-slate-400 hidden md:inline">Scope:</span>
-                <span className="text-xs font-extrabold truncate max-w-[130px] sm:max-w-[180px] text-white">
-                  {selectedClientObj.label.replace('Client: ', '')}
-                </span>
-              </div>
-              {!isClientAdmin && <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />}
-            </button>
+              <span className="text-[10px] uppercase text-emerald-400 font-extrabold hidden md:inline">
+                {isCorporateSubUser ? 'Assigned Kiosks:' : 'Organization Fleet:'}
+              </span>
+              <span className="text-xs font-black mono text-white">
+                {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
+                  ? currentUser.assignedMachines.join(', ')
+                  : 'All Assigned Fleet'}
+              </span>
+            </div>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={() => setShowClientMenu(!showClientMenu)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all shadow-xs ${
+                  selectedClientId === 'ALL'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
+                    : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
+                }`}
+                title="Switch Enterprise Client Scope"
+              >
+                <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <div className="text-left flex items-center gap-1">
+                  <span className="text-[10px] uppercase text-slate-400 hidden md:inline">Scope:</span>
+                  <span className="text-xs font-extrabold truncate max-w-[130px] sm:max-w-[180px] text-white">
+                    {selectedClientObj.label.replace('Client: ', '')}
+                  </span>
+                </div>
+                <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+              </button>
 
-            {showClientMenu && !isClientAdmin && (
-              <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in backdrop-blur-2xl">
+              {showClientMenu && (
+                <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in backdrop-blur-2xl">
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
                   Select Enterprise Client Scope
                 </div>
@@ -158,7 +180,8 @@ export default function Navbar({
               </div>
             )}
           </div>
-        </div>
+        )}
+      </div>
 
         {/* Right: Clock, Palette, User Info & Logout */}
         <div className="flex items-center gap-2 shrink-0">

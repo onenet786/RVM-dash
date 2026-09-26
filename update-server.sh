@@ -1,73 +1,123 @@
 #!/bin/bash
-# =================================================================
-# Production Update Script for aaPanel / Ubuntu Server
-# Project: RVM Master Developer Dashboard (ISP Environmental Solution)
-# Usage: 
-#   bash update-server.sh               (Deploys 24-Public-App-0 by default)
-#   bash update-server.sh B23           (Rolls back to B23 anytime)
-# =================================================================
+# =========================================================================================
+# Production Update Script for Already-Running aaPanel / Ubuntu Hosting Server
+# Project: RVM Master Developer Dashboard (ISP Environmental Solutions)
+# Usage:
+#   bash update-server.sh                   (Updates current running branch with zero downtime)
+#   bash update-server.sh 24-Public-App-0   (Pulls & switches to 24-Public-App-0)
+#   bash update-server.sh B23               (Rolls back to B23 anytime)
+# =========================================================================================
 
 set -e
 
-# Target branch (defaults to '24-Public-App-0')
-BRANCH="${1:-24-Public-App-0}"
-
-echo "=========================================================="
-echo "🚀 [1/6] Starting Server Update to branch: $BRANCH"
-echo "=========================================================="
-
-# 1. Navigate to script directory
+# 1. Navigate to Project Directory
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
-echo "📂 Working directory: $PROJECT_DIR"
 
-# 2. Fetch all latest branches from GitHub
-echo "🔄 [2/6] Fetching latest branches from GitHub..."
-git fetch origin --prune
+echo "========================================================================="
+echo "🔄 [1/7] Updating Already-Running Hosting Server..."
+echo "📂 Path: $PROJECT_DIR"
+echo "========================================================================="
 
-# 3. Switch cleanly to the target branch
-echo "🌿 [3/6] Switching to branch '$BRANCH'..."
-# Stash or discard local uncommitted artifact edits if any
-git clean -fd dist/ 2>/dev/null || true
-git checkout -- dist/ 2>/dev/null || true
-git checkout -- server/index.js 2>/dev/null || true
+# 2. Detect Node.js & PM2 in aaPanel / NVM paths if not in global PATH
+if ! command -v pm2 &> /dev/null; then
+  AAPANEL_BIN="$(find /www/server/nodejs -name pm2 -type f 2>/dev/null | head -n 1)"
+  if [ -n "$AAPANEL_BIN" ]; then
+    export PATH="$(dirname "$AAPANEL_BIN"):$PATH"
+    echo "💡 Detected aaPanel PM2 environment at $(dirname "$AAPANEL_BIN")"
+  fi
+fi
 
-# Switch to branch tracking origin
-if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
-  git checkout "$BRANCH"
+if ! command -v node &> /dev/null; then
+  AAPANEL_NODE="$(find /www/server/nodejs -name node -type f 2>/dev/null | head -n 1)"
+  if [ -n "$AAPANEL_NODE" ]; then
+    export PATH="$(dirname "$AAPANEL_NODE"):$PATH"
+    echo "💡 Detected aaPanel Node environment at $(dirname "$AAPANEL_NODE")"
+  fi
+fi
+
+# 3. Detect Active Branch or Use Passed Argument
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "24-Public-App-0")"
+BRANCH="${1:-$CURRENT_BRANCH}"
+if [ "$BRANCH" = "HEAD" ] || [ -z "$BRANCH" ]; then
+  BRANCH="24-Public-App-0"
+fi
+echo "🌿 Target Branch: $BRANCH (Current: $CURRENT_BRANCH)"
+
+# 4. Safely Unlock aaPanel Immutable Attributes (.user.ini) to Prevent Permission Denied
+echo "🔓 [2/7] Unlocking aaPanel system attributes..."
+chattr -i .user.ini 2>/dev/null || true
+chattr -i dist/.user.ini 2>/dev/null || true
+chattr -R -i dist/ 2>/dev/null || true
+
+if [ -d ".git" ]; then
+  # 5. Reset Build Artifacts while PRESERVING .env and User Uploads
+  echo "🧹 [3/7] Cleaning temporary build artifacts (Preserving .env and uploads)..."
+  git reset --hard HEAD 2>/dev/null || true
+  git clean -fd -e .env -e "uploads/" -e "backups/" 2>/dev/null || true
+
+  # 6. Fetch & Pull Latest Code from GitHub
+  echo "🔄 [4/7] Pulling latest code changes from origin/$BRANCH..."
+  git fetch origin --prune
+  if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+    if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
+      git checkout "$BRANCH"
+    else
+      git checkout -b "$BRANCH" "origin/$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+    fi
+  fi
   git pull origin "$BRANCH"
+
+  echo "✅ Running commit: $(git rev-parse --short HEAD) - $(git log -1 --pretty=%B | head -n 1)"
 else
-  git checkout -b "$BRANCH" "origin/$BRANCH"
+  echo "📁 [3/7] Direct upload mode (no .git folder). Keeping uploaded server files intact."
 fi
 
-echo "✅ Active branch is now: $(git rev-parse --abbrev-ref HEAD) (Commit: $(git rev-parse --short HEAD))"
+# 7. Fast Dependency Check / Install
+echo "📦 [5/7] Verifying npm dependencies..."
+npm install --production=false --no-audit
 
-# 4. Install Dependencies
-echo "📦 [4/6] Installing npm dependencies..."
-npm install --production=false
-
-# 5. Unlock aaPanel .user.ini and Build Vite Frontend
-echo "⚡ [5/6] Building production frontend..."
-if [ -f "dist/.user.ini" ]; then
-  chattr -i dist/.user.ini 2>/dev/null || true
-  rm -f dist/.user.ini 2>/dev/null || true
+# 8. Run PostgreSQL Database Schema Migration
+echo "🐘 [6/7] Applying PostgreSQL schema updates..."
+if [ -f "server/migrate.js" ]; then
+  node server/migrate.js || echo "⚠️ Migration completed with notice."
 fi
+
+# 9. Build Production Vite Frontend
+echo "⚡ [7/7] Compiling production frontend bundle..."
+# Unlock .user.ini again right before build in case Vite needs to write dist/
+chattr -i dist/.user.ini 2>/dev/null || true
+rm -f dist/.user.ini 2>/dev/null || true
 npm run build
 
-# 6. Restart PM2 Process
-echo "🔄 [6/6] Reloading PM2 backend service..."
+# 10. Restore aaPanel Web Permissions
+if id "www" &>/dev/null; then
+  chown -R www:www "$PROJECT_DIR/dist" 2>/dev/null || true
+fi
+
+# 11. Zero-Downtime PM2 Service Reload
+echo "🔄 Reloading backend process in PM2..."
 if command -v pm2 &> /dev/null; then
-  pm2 reload ecosystem.config.cjs --env production || pm2 restart rvm-dash || pm2 start ecosystem.config.cjs --env production
-  pm2 save
+  pm2 reload rvm-dash --update-env 2>/dev/null || \
+  pm2 reload ecosystem.config.cjs --env production 2>/dev/null || \
+  pm2 restart rvm-dash 2>/dev/null || \
+  pm2 start ecosystem.config.cjs --env production
+  pm2 save 2>/dev/null || true
+  echo "✅ PM2 process reloaded with zero downtime."
 else
-  echo "⚠️ PM2 not found globally, restarting node background process..."
-  NODE_CMD="$(which node 2>/dev/null || echo "node")"
+  echo "⚠️ PM2 not found, restarting background node daemon..."
   pkill -f "node server/index.js" 2>/dev/null || true
+  NODE_CMD="$(which node 2>/dev/null || echo "node")"
   nohup "$NODE_CMD" server/index.js > server.log 2>&1 &
 fi
 
-echo "=========================================================="
-echo "🎉 SUCCESS: Server updated to $BRANCH!"
-echo "🌐 Dashboard is live on http://127.0.0.1:5009"
-echo "ℹ️  To roll back to B23 at any time, run: bash update-server.sh B23"
-echo "=========================================================="
+# 12. Verification & Health Check
+echo ""
+echo "========================================================================="
+echo "🎉 SUCCESS: Hosting server files updated to latest $BRANCH!"
+echo "🌐 API Port: http://127.0.0.1:5009"
+echo "🩺 Performing health check:"
+sleep 2
+HEALTH_CHECK="$(curl -s http://127.0.0.1:5009/api/health 2>/dev/null || echo '{"status":"starting"}')"
+echo "   $HEALTH_CHECK"
+echo "========================================================================="

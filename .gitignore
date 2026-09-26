@@ -6,3 +6,5 @@ backups/
 *.backup
 uploads/advertisements/
 *.log
+*.zip
+*.tar.gz

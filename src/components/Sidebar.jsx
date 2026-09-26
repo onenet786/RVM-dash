@@ -27,8 +27,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   };
 
   const isClientAdmin = currentUser?.roleId === 'client_admin';
+  const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
 
-  const isSuperAdmin = !isClientAdmin && (
+  const isSuperAdmin = !isClientAdmin && !isCorporateSubUser && (
     isMasterDev || 
     currentUser?.roleId === 'super_admin' || 
     currentUser?.roleId === 'superadmin' || 
@@ -40,7 +41,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
     if (isClientAdmin) {
-      return ['overview', 'reporting_hub', 'enterprise_clients', 'mobile_users', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+      return ['overview', 'sub_users', 'reporting_hub', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+    }
+    if (isCorporateSubUser) {
+      return ['overview', 'reporting_hub', 'esg_impact', 'analytics', 'machines'];
     }
     if (isSuperAdmin) return ['*'];
     if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
@@ -57,7 +61,11 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const isModuleAllowed = (moduleId) => {
     if (isClientAdmin) {
-      if (['security', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
+      if (['enterprise_clients', 'security', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
+      if (moduleId.startsWith('col_')) return false;
+    }
+    if (isCorporateSubUser) {
+      if (['enterprise_clients', 'sub_users', 'security', 'db_switcher', 'db_backup', 'mobile_users', 'advertisements'].includes(moduleId)) return false;
       if (moduleId.startsWith('col_')) return false;
     }
     if (isSuperAdmin) return true;
@@ -68,20 +76,27 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const navItems = [
     { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
+    ...((isClientAdmin || isSuperAdmin) ? [
+      { id: 'sub_users', label: 'Team & Machine Access', icon: Users },
+    ] : []),
     { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText },
-    { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
-    { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
+    ...((!isClientAdmin && !isCorporateSubUser) ? [
+      { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
+      { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
+    ] : []),
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu },
-    { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
-    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('security'))) ? [
+    ...((!isCorporateSubUser) ? [
+      { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
+    ] : []),
+    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('security'))) ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
     ] : []),
-    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('db_switcher'))) ? [
+    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_switcher'))) ? [
       { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
     ] : []),
-    ...((!isClientAdmin && (isMasterDev || isModuleAllowed('db_backup'))) ? [
+    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_backup'))) ? [
       { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
     ] : [])
   ];
@@ -133,17 +148,28 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     <div className="flex flex-col justify-between h-full space-y-6">
       <div className="space-y-6">
         
-        {/* Brand Header Banner in Sidebar (Matches ISP Enterprise Portal Design) */}
+        {/* Brand Header Banner in Sidebar (Matches ISP Enterprise Portal Design or Client Organization) */}
         <div className="px-3 pb-3 mb-1 border-b t-border flex items-center gap-3 sidebar-brand-container">
           <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-black/20 border border-white/20 shrink-0 overflow-hidden">
-            <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
+            <img 
+              src={currentUser?.organization?.logoUrl || ispLogo} 
+              alt={currentUser?.organization?.name || "Brand Logo"} 
+              className="w-full h-full object-contain" 
+            />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-black tracking-tight t-text-primary sidebar-brand-title leading-tight truncate">
-              ISP Environmental
+              {currentUser?.organization?.dashboardTitle || currentUser?.organization?.name || 'ISP Environmental'}
             </div>
-            <div className="text-[11px] font-semibold t-text-muted sidebar-brand-sub leading-tight truncate">
-              Solutions Pvt. Ltd
+            <div className="text-[11px] font-semibold t-text-muted sidebar-brand-sub leading-tight truncate flex items-center gap-1.5">
+              {currentUser?.organization ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse"></span>
+                  <span className="truncate">{isCorporateSubUser ? 'Team Sub-User Portal' : 'Corporate Client Portal'}</span>
+                </>
+              ) : (
+                'Solutions Pvt. Ltd'
+              )}
             </div>
           </div>
         </div>

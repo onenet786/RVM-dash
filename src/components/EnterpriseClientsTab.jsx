@@ -3,7 +3,8 @@ import {
   Building2, Users, FileText, TreePine, Droplets, Award, 
   Plus, Search, RefreshCw, Upload, Download, CheckCircle2, 
   ExternalLink, Mail, Phone, ChevronRight, X, AlertCircle, 
-  BarChart3, ShieldCheck, Sparkles, Trash2, Edit3, ArrowUpRight
+  BarChart3, ShieldCheck, Sparkles, Trash2, Edit3, ArrowUpRight,
+  Palette, Cpu, Key, Lock, Check
 } from 'lucide-react';
 
 function OrgLogo({ url, name = '', size = "w-12 h-12" }) {
@@ -81,6 +82,171 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
 
   // ESG Certificate Modal
   const [showCertificate, setShowCertificate] = useState(false);
+
+  // Personalization & Fleet Assignment Modal State
+  const [personalizeModalOrg, setPersonalizeModalOrg] = useState(null);
+  const [personalizeTab, setPersonalizeTab] = useState('machines'); // 'machines' | 'branding' | 'admin_user'
+  const [allNetworkMachines, setAllNetworkMachines] = useState([]);
+  const [selectedMachineIds, setSelectedMachineIds] = useState([]);
+  const [savingFleet, setSavingFleet] = useState(false);
+  const [fleetSuccessMsg, setFleetSuccessMsg] = useState('');
+
+  // Branding Form State
+  const [brandingForm, setBrandingForm] = useState({
+    dashboard_title: '',
+    welcome_msg: '',
+    primary_color: '#059669',
+    theme: 'isp-portal',
+    logo_url: ''
+  });
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [brandingSuccessMsg, setBrandingSuccessMsg] = useState('');
+
+  // Admin User Provisioning Form State
+  const [adminUserForm, setAdminUserForm] = useState({
+    username: '',
+    fullName: '',
+    email: '',
+    password: ''
+  });
+  const [savingAdminUser, setSavingAdminUser] = useState(false);
+  const [adminUserSuccessMsg, setAdminUserSuccessMsg] = useState('');
+  const [adminUserErrorMsg, setAdminUserErrorMsg] = useState('');
+
+  const openPersonalizeModal = async (org) => {
+    setPersonalizeModalOrg(org);
+    setPersonalizeTab('machines');
+    setFleetSuccessMsg('');
+    setBrandingSuccessMsg('');
+    setAdminUserSuccessMsg('');
+    setAdminUserErrorMsg('');
+
+    // Pre-fill branding
+    setBrandingForm({
+      dashboard_title: org.dashboard_title || `${org.name} Sustainability Portal`,
+      welcome_msg: org.welcome_msg || `Welcome to ${org.name} Sustainability & ESG Rewards Kiosks.`,
+      primary_color: org.primary_color || '#059669',
+      theme: org.theme || 'isp-portal',
+      logo_url: org.logo_url || ''
+    });
+
+    // Pre-fill assigned machines
+    const initialMachines = Array.isArray(org.assigned_machines) 
+      ? org.assigned_machines 
+      : (typeof org.assigned_machines === 'string' ? JSON.parse(org.assigned_machines || '[]') : []);
+    setSelectedMachineIds(initialMachines);
+
+    // Pre-fill admin user
+    if (org.admin_user) {
+      setAdminUserForm({
+        username: org.admin_user.username || '',
+        fullName: org.admin_user.fullName || '',
+        email: org.admin_user.email || '',
+        password: ''
+      });
+    } else {
+      const slug = org.name.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 12);
+      setAdminUserForm({
+        username: `${slug}_admin`,
+        fullName: `${org.name} Corporate Client Lead`,
+        email: org.contact_email || `admin@${org.domain}`,
+        password: 'adminpassword123'
+      });
+    }
+
+    // Fetch all available network machines
+    try {
+      const res = await fetch('/api/analytics/machines');
+      if (res.ok) {
+        const data = await res.json();
+        setAllNetworkMachines(Array.isArray(data) ? data : (data.machines || []));
+      }
+    } catch (e) {
+      console.error('Failed to fetch network machines:', e);
+    }
+  };
+
+  const handleSaveFleet = async () => {
+    if (!personalizeModalOrg) return;
+    setSavingFleet(true);
+    setFleetSuccessMsg('');
+    try {
+      const res = await fetch(`/api/enterprise/organizations/${personalizeModalOrg.org_id}/assign-machines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          machineIds: selectedMachineIds
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFleetSuccessMsg(data.message || 'Kiosks assigned successfully!');
+        fetchOrganizations();
+      } else {
+        alert(data.error || 'Failed to assign machines');
+      }
+    } catch (e) {
+      alert('Network error while assigning machines');
+    } finally {
+      setSavingFleet(false);
+    }
+  };
+
+  const handleSavePersonalization = async () => {
+    if (!personalizeModalOrg) return;
+    setSavingBranding(true);
+    setBrandingSuccessMsg('');
+    try {
+      const res = await fetch(`/api/enterprise/organizations/${personalizeModalOrg.org_id}/personalization`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(brandingForm)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBrandingSuccessMsg('Dashboard personalization saved successfully!');
+        fetchOrganizations();
+      } else {
+        alert(data.error || 'Failed to update personalization');
+      }
+    } catch (e) {
+      alert('Network error while saving personalization');
+    } finally {
+      setSavingBranding(false);
+    }
+  };
+
+  const handleProvisionAdminUser = async (e) => {
+    e.preventDefault();
+    if (!personalizeModalOrg) return;
+    setSavingAdminUser(true);
+    setAdminUserSuccessMsg('');
+    setAdminUserErrorMsg('');
+    try {
+      const res = await fetch('/api/enterprise/create-client-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgId: personalizeModalOrg.org_id,
+          username: adminUserForm.username,
+          fullName: adminUserForm.fullName,
+          email: adminUserForm.email,
+          password: adminUserForm.password
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAdminUserSuccessMsg(data.message || 'Client Admin provisioned successfully!');
+        fetchOrganizations();
+      } else {
+        setAdminUserErrorMsg(data.error || 'Failed to provision Client Admin');
+      }
+    } catch (e) {
+      setAdminUserErrorMsg('Network error while creating Client Admin');
+    } finally {
+      setSavingAdminUser(false);
+    }
+  };
 
   const fetchOrganizations = async () => {
     try {
@@ -469,16 +635,49 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                       <div className="font-black text-amber-500">{(org.total_points || 0).toLocaleString()}</div>
                     </div>
                   </div>
+                  {/* Corporate Client Assigned Kiosks & Admin Badges */}
+                  <div className="pt-2.5 border-t t-border mb-3 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold t-text-muted flex items-center gap-1">
+                        <Cpu className="w-3.5 h-3.5 text-emerald-500" /> Bound Kiosks:
+                      </span>
+                      <span className="font-extrabold mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        {org.assigned_machines?.length 
+                          ? `${org.assigned_machines.length} Kiosk${org.assigned_machines.length > 1 ? 's' : ''} (${org.assigned_machines.join(', ')})` 
+                          : '0 Bound Kiosks'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold t-text-muted flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-blue-500" /> Client Admin:
+                      </span>
+                      <span className="font-bold mono text-blue-600 dark:text-blue-400">
+                        {org.admin_user?.username ? `@${org.admin_user.username}` : 'Not Provisioned'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Footer Action Button */}
-                <button
-                  onClick={() => openOrgDetails(org)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-slate-500/10 hover:bg-emerald-600 hover:text-white t-text-primary text-xs font-bold transition-all flex items-center justify-center gap-2 border t-border"
-                >
-                  <span>Manage Departments & ESG Roster</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+                {/* Footer Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => openPersonalizeModal(org)}
+                    className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20"
+                    title="Assign RVMs/PecoDrops and personalize client dashboard"
+                  >
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>Personalize Fleet</span>
+                  </button>
+
+                  <button
+                    onClick={() => openOrgDetails(org)}
+                    className="py-2.5 px-3 rounded-xl bg-slate-500/10 hover:bg-slate-500/20 t-text-primary text-xs font-bold transition-all flex items-center justify-center gap-1.5 border t-border"
+                    title="Manage departments, rosters, and staff claims"
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Depts & Roster</span>
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1071,6 +1270,427 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* 6. Personalize & Fleet Assignment Modal */}
+      {personalizeModalOrg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto t-bg-sec border t-border rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 border-b t-border pb-5">
+              <div className="flex items-center gap-3.5">
+                <OrgLogo url={brandingForm.logo_url || personalizeModalOrg.logo_url} name={personalizeModalOrg.name} size="w-14 h-14" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-black t-text-primary">{personalizeModalOrg.name}</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Personalization Hub
+                    </span>
+                  </div>
+                  <p className="text-xs t-text-muted mt-0.5 flex items-center gap-2">
+                    <span>Domain: <b className="text-blue-400">@{personalizeModalOrg.domain}</b></span>
+                    <span>•</span>
+                    <span>Client Code: <b className="mono">{personalizeModalOrg.org_id}</b></span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setPersonalizeModalOrg(null)}
+                className="p-2 rounded-xl t-bg border t-border t-text-muted hover:t-text-primary transition-all"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center gap-2 border-b t-border pb-3">
+              <button
+                onClick={() => setPersonalizeTab('machines')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  personalizeTab === 'machines'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>📍 Assign Kiosks ({selectedMachineIds.length})</span>
+              </button>
+
+              <button
+                onClick={() => setPersonalizeTab('branding')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  personalizeTab === 'branding'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>🎨 Dashboard Branding & Theme</span>
+              </button>
+
+              <button
+                onClick={() => setPersonalizeTab('admin_user')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  personalizeTab === 'admin_user'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    : 't-text-muted hover:t-text-primary t-bg border t-border'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>👤 Corporate Client Admin Login</span>
+              </button>
+            </div>
+
+            {/* TAB 1: FLEET KIOSK ASSIGNMENT */}
+            {personalizeTab === 'machines' && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="text-xs">
+                    <p className="font-bold text-emerald-400">Delegated Hardware Kiosks</p>
+                    <p className="t-text-muted text-[11px] mt-0.5">
+                      Select which RVM and PecoDrop kiosks are owned/leased by this corporate client. 
+                      The client admin will have complete visibility and can delegate subsets to team sub-users.
+                    </p>
+                  </div>
+                  <div className="font-extrabold text-xs mono px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                    {selectedMachineIds.length} Assigned
+                  </div>
+                </div>
+
+                {fleetSuccessMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{fleetSuccessMsg}</span>
+                  </div>
+                )}
+
+                {allNetworkMachines.length === 0 ? (
+                  <div className="py-12 text-center t-text-muted">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-500 mb-2" />
+                    <p className="text-xs font-bold">Scanning network machines...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
+                    {allNetworkMachines.map((m) => {
+                      const mId = m.machineId || m.machine_id;
+                      const isSelected = selectedMachineIds.includes(mId);
+                      const isPeco = String(mId).toUpperCase().includes('PECO');
+                      return (
+                        <div
+                          key={mId}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedMachineIds(selectedMachineIds.filter(id => id !== mId));
+                            } else {
+                              setSelectedMachineIds([...selectedMachineIds, mId]);
+                            }
+                          }}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
+                            isSelected
+                              ? 'bg-emerald-500/15 border-emerald-500/40 shadow-sm'
+                              : 't-bg t-border hover:border-emerald-500/30 hover:t-bg-hover'
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded-lg border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-500/40'
+                          }`}>
+                            {isSelected && <Check className="w-3.5 h-3.5" />}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="font-extrabold mono text-xs t-text-primary">{mId}</span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                isPeco 
+                                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
+                                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {isPeco ? 'Corporate PecoDrop' : 'Public RVM'}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-semibold t-text-primary truncate">{m.name || `Kiosk ${mId}`}</p>
+                            <p className="text-[11px] t-text-muted truncate mt-0.5">📍 {m.location || 'Site Location'}</p>
+
+                            {isPeco && (
+                              <div className="flex items-center gap-1.5 mt-2 text-[10px] font-bold">
+                                <span className="text-pink-400">⭕ Plastic</span>
+                                <span className="text-emerald-400">🔺 Cans</span>
+                                <span className="text-cyan-400">🟦 Paper</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-3 border-t t-border">
+                  <button
+                    onClick={handleSaveFleet}
+                    disabled={savingFleet}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{savingFleet ? 'Saving Fleet Assignments...' : 'Save Assigned Kiosks'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: PERSONALIZED BRANDING & THEME */}
+            {personalizeTab === 'branding' && (
+              <div className="space-y-5">
+                {brandingSuccessMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{brandingSuccessMsg}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">Personalized Dashboard Title</label>
+                    <input
+                      type="text"
+                      value={brandingForm.dashboard_title}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, dashboard_title: e.target.value })}
+                      placeholder="e.g. Engro Green Horizon Portal"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">Corporate Client Logo URL</label>
+                    <input
+                      type="url"
+                      value={brandingForm.logo_url}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, logo_url: e.target.value })}
+                      placeholder="https://company.com/logo.png"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold t-text-primary mb-1">Welcome Greeting Message</label>
+                  <textarea
+                    rows={2}
+                    value={brandingForm.welcome_msg}
+                    onChange={(e) => setBrandingForm({ ...brandingForm, welcome_msg: e.target.value })}
+                    placeholder="e.g. Welcome Engro Team! Track your department recycling impact."
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1.5">Primary Brand Accent Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={brandingForm.primary_color}
+                        onChange={(e) => setBrandingForm({ ...brandingForm, primary_color: e.target.value })}
+                        className="w-9 h-9 rounded-xl border border-slate-500/30 cursor-pointer p-0.5 bg-transparent"
+                      />
+                      <input
+                        type="text"
+                        value={brandingForm.primary_color}
+                        onChange={(e) => setBrandingForm({ ...brandingForm, primary_color: e.target.value })}
+                        className="flex-1 px-3 py-2 text-xs rounded-xl t-bg border t-border t-text-primary mono"
+                      />
+                    </div>
+                    {/* Quick color swatches */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {[
+                        { hex: '#059669', name: 'Emerald' },
+                        { hex: '#2563eb', name: 'Sapphire' },
+                        { hex: '#dc2626', name: 'Crimson' },
+                        { hex: '#7c3aed', name: 'Violet' },
+                        { hex: '#d97706', name: 'Amber' },
+                        { hex: '#0284c7', name: 'Sky' }
+                      ].map(swatch => (
+                        <button
+                          key={swatch.hex}
+                          type="button"
+                          onClick={() => setBrandingForm({ ...brandingForm, primary_color: swatch.hex })}
+                          className={`w-6 h-6 rounded-lg transition-transform ${
+                            brandingForm.primary_color.toLowerCase() === swatch.hex.toLowerCase() ? 'scale-125 ring-2 ring-white shadow-md' : 'hover:scale-110'
+                          }`}
+                          style={{ backgroundColor: swatch.hex }}
+                          title={swatch.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1.5">Default Interface Theme</label>
+                    <select
+                      value={brandingForm.theme}
+                      onChange={(e) => setBrandingForm({ ...brandingForm, theme: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    >
+                      <option value="isp-portal">ISP Enterprise Portal (Executive Clean)</option>
+                      <option value="isp-eco">ISP Eco Vanguard (Default Green)</option>
+                      <option value="cyber-dark">Cyber Emerald (Dark Obsidian)</option>
+                      <option value="ocean-dark">Ocean Sapphire (Deep Navy)</option>
+                      <option value="neon-violet">Neon Violet (Cosmic Theme)</option>
+                      <option value="sleek-light">Light Luxe (Modern Clean)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* LIVE PREVIEW OF CLIENT DASHBOARD BANNER */}
+                <div className="p-4 rounded-2xl t-bg border t-border space-y-2">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                    Live Client Overview Preview
+                  </div>
+                  <div 
+                    className="p-4 rounded-xl border border-white/10 text-white flex items-center justify-between gap-4 shadow-sm"
+                    style={{
+                      background: `linear-gradient(135deg, ${brandingForm.primary_color}ee, #0b1e17)`
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <OrgLogo url={brandingForm.logo_url} name={personalizeModalOrg.name} size="w-10 h-10" />
+                      <div>
+                        <div className="font-black text-sm">{brandingForm.dashboard_title || personalizeModalOrg.name}</div>
+                        <div className="text-xs text-white/80 line-clamp-1">{brandingForm.welcome_msg}</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-black/30 border border-white/20 whitespace-nowrap">
+                      Corporate Client Mode
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t t-border">
+                  <button
+                    onClick={handleSavePersonalization}
+                    disabled={savingBranding}
+                    className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{savingBranding ? 'Saving Branding...' : 'Save Personalization'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: CORPORATE CLIENT ADMIN USER */}
+            {personalizeTab === 'admin_user' && (
+              <form onSubmit={handleProvisionAdminUser} className="space-y-4">
+                <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                  <div className="text-xs">
+                    <p className="font-bold text-blue-400">Corporate Client Lead Administrator</p>
+                    <p className="t-text-muted text-[11px] mt-0.5">
+                      This user will have full access to manage their organization's assigned machines, view carbon/CSR reports, and create team Sub-Users with delegated machine access.
+                    </p>
+                  </div>
+                </div>
+
+                {personalizeModalOrg.admin_user && (
+                  <div className="p-3.5 rounded-xl bg-slate-500/10 border t-border flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold t-text-muted">Current Provisioned Admin:</span>
+                      <div className="font-extrabold t-text-primary flex items-center gap-2 mt-0.5">
+                        <span className="mono text-emerald-400">@{personalizeModalOrg.admin_user.username}</span>
+                        <span>({personalizeModalOrg.admin_user.fullName || 'Admin'})</span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Active
+                    </span>
+                  </div>
+                )}
+
+                {adminUserSuccessMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{adminUserSuccessMsg}</span>
+                  </div>
+                )}
+
+                {adminUserErrorMsg && (
+                  <div className="p-3.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>{adminUserErrorMsg}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">Username *</label>
+                    <input
+                      type="text"
+                      required
+                      value={adminUserForm.username}
+                      onChange={(e) => setAdminUserForm({ ...adminUserForm, username: e.target.value })}
+                      placeholder="e.g. engro_admin"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500 mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={adminUserForm.fullName}
+                      onChange={(e) => setAdminUserForm({ ...adminUserForm, fullName: e.target.value })}
+                      placeholder="e.g. Tariq Mehmood - Head of CSR"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">Official Email</label>
+                    <input
+                      type="email"
+                      value={adminUserForm.email}
+                      onChange={(e) => setAdminUserForm({ ...adminUserForm, email: e.target.value })}
+                      placeholder={`csr@${personalizeModalOrg.domain}`}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold t-text-primary mb-1">
+                      Password {personalizeModalOrg.admin_user ? '(Leave blank to keep existing)' : '*'}
+                    </label>
+                    <input
+                      type="password"
+                      required={!personalizeModalOrg.admin_user}
+                      value={adminUserForm.password}
+                      onChange={(e) => setAdminUserForm({ ...adminUserForm, password: e.target.value })}
+                      placeholder={personalizeModalOrg.admin_user ? '••••••••' : 'Enter strong password'}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl t-bg border t-border t-text-primary outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-3 border-t t-border">
+                  <button
+                    type="submit"
+                    disabled={savingAdminUser}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/25 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Key className="w-4 h-4" />
+                    <span>{savingAdminUser ? 'Provisioning Account...' : 'Provision Client Admin'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
         </div>
       )}
 

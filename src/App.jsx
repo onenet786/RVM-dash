@@ -19,6 +19,7 @@ const MobileUsersTab = lazy(() => import('./components/MobileUsersTab'));
 const EnterpriseClientsTab = lazy(() => import('./components/EnterpriseClientsTab'));
 const DataTable = lazy(() => import('./components/DataTable'));
 const ReportingHubTab = lazy(() => import('./components/ReportingHubTab'));
+const SubUsersTab = lazy(() => import('./components/SubUsersTab'));
 
 // Secure Fetch Interceptor: Automatically attaches Authorization: Bearer <token> to /api/ requests
 if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
@@ -158,6 +159,10 @@ export default function App() {
     if (user?.roleId === 'client_admin' && user?.assignedClient) {
       setSelectedClientId(user.assignedClient);
     }
+    // Auto-apply corporate organization customized theme if configured
+    if (user?.organization?.theme) {
+      setTheme(user.organization.theme);
+    }
   };
 
   const handleLogout = async () => {
@@ -182,10 +187,12 @@ export default function App() {
       currentUser?.isSuperAdmin === true;
 
     const isClientAdmin = currentUser?.roleId === 'client_admin';
+    const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
 
     const getUserAllowedModules = () => {
       if (isSuperAdmin) return ['*'];
-      if (isClientAdmin) return ['overview', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
+      if (isClientAdmin) return ['overview', 'sub_users', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
+      if (isCorporateSubUser) return ['overview', 'analytics', 'esg_impact', 'reporting_hub', 'machines'];
       if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
         return currentUser.modules;
       }
@@ -201,8 +208,9 @@ export default function App() {
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
-      if (isClientAdmin && ['db_switcher', 'db_backup', 'security'].includes(tab)) return false;
-      if (isClientAdmin && tab.startsWith('col_')) return false;
+      if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients'].includes(tab)) return false;
+      if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements'].includes(tab)) return false;
+      if ((isClientAdmin || isCorporateSubUser) && tab.startsWith('col_')) return false;
       if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
       const clean = tab.replace('col_', '');
@@ -216,6 +224,10 @@ export default function App() {
 
     if (activeTab === 'overview') {
       return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
+    }
+
+    if (activeTab === 'sub_users' && (isSuperAdmin || isClientAdmin)) {
+      return <SubUsersTab currentUser={currentUser} />;
     }
 
     if (activeTab === 'reporting_hub') {

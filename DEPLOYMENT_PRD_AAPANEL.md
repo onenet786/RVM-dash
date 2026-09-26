@@ -168,14 +168,27 @@ server {
 
 ---
 
-### Step 5: Automated Production Updates (`deploy-aapanel.sh`)
+### Step 5: Automated Production Updates & 1-Click Upload
 
-Whenever updates are pulled to the server, run the automated deployment script:
+#### Method A: Direct Upload from Local Machine (`upload-to-hosting.sh` / `.ps1`)
+Builds frontend locally, packages production files, and uploads to hosting:
+```bash
+# Option 1: Package lightweight production ZIP (for aaPanel File Manager upload)
+bash upload-to-hosting.sh
+# (or in Windows PowerShell: .\upload-to-hosting.ps1)
 
+# Option 2: 1-Command Automated Remote Upload & PM2 Reload via SSH:
+bash upload-to-hosting.sh root@YOUR_SERVER_IP:/www/wwwroot/rvm-dash
+# (or in Windows PowerShell: .\upload-to-hosting.ps1 -TargetDestination root@YOUR_SERVER_IP:/www/wwwroot/rvm-dash)
+```
+
+#### Method B: Pull & Deploy on aaPanel Server Terminal (`deploy-aapanel.sh`)
+Whenever updating directly on the server:
 ```bash
 cd /www/wwwroot/rvm-dash
 bash deploy-aapanel.sh
 ```
+*Automatically pulls latest branch `24-Public-App-0`, installs dependencies, executes PostgreSQL migrations (`node server/migrate.js`), unlocks `.user.ini`, builds Vite, sets `www` file ownership, and reloads PM2 with zero downtime.*
 
 ---
 
