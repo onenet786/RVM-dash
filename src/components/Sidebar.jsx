@@ -88,7 +88,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
     { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu },
     ...((!isCorporateSubUser) ? [
-      { id: 'advertisements', label: 'Ad Video Signage', icon: Tv },
+      { id: 'advertisements', label: 'Digital Signage & Ads', icon: Tv },
     ] : []),
     ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('security'))) ? [
       { id: 'security', label: 'User & Security RBAC', icon: Lock },
