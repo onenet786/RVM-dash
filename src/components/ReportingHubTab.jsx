@@ -1,1259 +1,1122 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  FileText, Scale, Cpu, Leaf, DollarSign, Download, Printer, 
-  AlertTriangle, Sliders, CheckCircle2, TrendingUp, Clock, Info, Layers, 
-  Activity, ArrowUpRight, BarChart3, Loader2
+  BarChart3, Leaf, Activity, Layers, Coins, Download, Printer, 
+  ShieldCheck, SlidersHorizontal, ChevronDown, CheckCircle2, X,
+  FileCheck, Zap, Trees, Archive, Cpu, Scale, AlertTriangle, 
+  Sliders, Check, Copy, TrendingUp, Sparkles, Filter
 } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  CartesianGrid, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 
 export default function ReportingHubTab() {
-  const [activeReport, setActiveReport] = useState('paper_calibration');
-  const [isExporting, setIsExporting] = useState(false);
+  const [activeReport, setActiveReport] = useState('sustainability');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'csv'
+  const [toastMessage, setToastMessage] = useState(null);
 
-  const reports = [
-    { 
-      id: 'paper_calibration', 
-      title: 'Load Scale & Paper Calibration Report', 
-      badge: 'PicoDrop Specific', 
-      icon: Scale, 
-      color: 'text-purple-400',
-      description: 'Audit weight-based Paper intake, tare accuracy, zero-point drift & anomalies'
-    },
-    { 
-      id: 'fleet_efficiency', 
-      title: 'Fleet Efficiency & Capacity Report', 
-      badge: 'Uptime & Service', 
-      icon: Cpu, 
-      color: 'text-cyan-400',
-      description: 'Monitor device uptime, turnaround efficiency, and hardware failure comparisons'
-    },
-    { 
-      id: 'esg_diversion', 
-      title: 'Material Diversion & ESG Report', 
-      badge: 'Carbon Compliance', 
-      icon: Leaf, 
-      color: 'text-emerald-400',
-      description: 'Executive reporting for CO₂ avoided, unit diversion, and tree conservation'
-    },
-    { 
-      id: 'loyalty_audit', 
-      title: 'User Loyalty & Incentive Financial Audit', 
-      badge: 'Financial Audit', 
-      icon: DollarSign, 
-      color: 'text-amber-400',
-      description: 'Reconcile distributed loyalty points against raw material intake and cost-per-kg'
-    },
+  // Filters State
+  const [timelineScope, setTimelineScope] = useState('30d');
+  const [clientScope, setClientScope] = useState('all');
+  const [locationScope, setLocationScope] = useState('all');
+  const [machineScope, setMachineScope] = useState('all');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2800);
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    if (filterType === 'timeline') setTimelineScope(value);
+    if (filterType === 'client') setClientScope(value);
+    if (filterType === 'location') setLocationScope(value);
+    if (filterType === 'machine') setMachineScope(value);
+    showToast(`Updated report criteria: [${value.toUpperCase()}]`);
+  };
+
+  const resetFilters = () => {
+    setTimelineScope('30d');
+    setClientScope('all');
+    setLocationScope('all');
+    setMachineScope('all');
+    showToast('Filters reset to default 30-day scope');
+  };
+
+  // Dynamic Multipliers based on timeline
+  const scopeMultiplier = useMemo(() => {
+    switch (timelineScope) {
+      case 'today': return 0.04;
+      case '7d': return 0.25;
+      case '30d': return 1.0;
+      case 'q3': return 2.8;
+      case 'ytd': return 7.5;
+      default: return 1.0;
+    }
+  }, [timelineScope]);
+
+  // Scaled Data for Report Views
+  const esgMetrics = useMemo(() => {
+    const mult = scopeMultiplier;
+    const petUnits = Math.round(8420 * mult);
+    const aluUnits = Math.round(3615 * mult);
+    const tetraUnits = Math.round(1240 * mult);
+    const paperKg = Math.round(148.5 * mult * 10) / 10;
+    const co2Kg = Math.round((petUnits * 0.0375 + aluUnits * 0.1365 + tetraUnits * 0.0775 + paperKg * 2.90) * 10) / 10;
+    const matureTrees = Math.round((co2Kg / 21.77) * 10) / 10;
+    const kwh = Math.round(co2Kg * 1.89);
+    const landfillM3 = Math.round((petUnits * 0.00035 + aluUnits * 0.00015 + tetraUnits * 0.00025 + paperKg * 0.0018) * 100) / 100;
+
+    return {
+      co2Kg,
+      matureTrees,
+      kwh,
+      landfillM3,
+      petUnits,
+      aluUnits,
+      tetraUnits,
+      paperKg
+    };
+  }, [scopeMultiplier]);
+
+  // Daily Trend Chart Data (Last 14 Days)
+  const esgTrendData = useMemo(() => [
+    { day: '11 Sep', co2: 95 },
+    { day: '12 Sep', co2: 110 },
+    { day: '13 Sep', co2: 85 },
+    { day: '14 Sep', co2: 145 },
+    { day: '15 Sep', co2: 130 },
+    { day: '16 Sep', co2: 160 },
+    { day: '17 Sep', co2: 140 },
+    { day: '18 Sep', co2: 175 },
+    { day: '19 Sep', co2: 150 },
+    { day: '20 Sep', co2: 135 },
+    { day: '21 Sep', co2: 165 },
+    { day: '22 Sep', co2: 190 },
+    { day: '23 Sep', co2: 170 },
+    { day: '24 Sep', co2: 210 },
+  ], []);
+
+  // Material Donut Chart Data
+  const streamShareData = useMemo(() => [
+    { name: 'Plastic Bottles (PET)', value: esgMetrics.petUnits, color: '#059669' },
+    { name: 'Aluminium Cans', value: esgMetrics.aluUnits, color: '#f59e0b' },
+    { name: 'Tetra Pak Cartons', value: esgMetrics.tetraUnits, color: '#0ea5e9' },
+    { name: 'Weighed Paper (kg)', value: Math.round(esgMetrics.paperKg), color: '#a855f7' },
+  ], [esgMetrics]);
+
+  // Report 2: Fleet Reliability by Location
+  const fleetLocations = [
+    { location: 'Central Metro Station (Lahore)', rvmUptime: '99.4%', pecoUptime: '98.8%', turnaround: '34 mins', weeklyIntake: '~3,200 units / wk', status: 'Active', badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
+    { location: 'North Commercial Plaza (Rawalpindi)', rvmUptime: '97.2%', pecoUptime: '99.1%', turnaround: '42 mins', weeklyIntake: '~2,850 units / wk', status: 'Active', badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
+    { location: 'Green Campus University Center', rvmUptime: '99.8%', pecoUptime: '99.5%', turnaround: '22 mins', weeklyIntake: '~4,100 units / wk', status: 'Optimal', badgeColor: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20' },
+    { location: 'West Eco Business District', rvmUptime: '96.5%', pecoUptime: '95.8%', turnaround: '58 mins', weeklyIntake: '~1,920 units / wk', status: 'Staff Dispatched', badgeColor: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20' },
   ];
 
-  // Report 1 Data: Load Scale Tare Calibration Logs
+  // Report 2: Tare Calibration Logs & Anomalies (preserved from previous version)
   const calibrationLogs = [
-    { id: 'CAL-901', unit: 'PicoDrop-01', timestamp: '2026-09-03 14:10', tareOffset: '0.00 g', zeroDrift: '+0.02 g', status: 'Optimal', technician: 'Tech-44' },
-    { id: 'CAL-902', unit: 'PicoDrop-02', timestamp: '2026-09-02 09:25', tareOffset: '0.00 g', zeroDrift: '-0.05 g', status: 'Optimal', technician: 'Auto-Tare Routine' },
-    { id: 'CAL-903', unit: 'PicoDrop-03', timestamp: '2026-09-01 18:40', tareOffset: '+0.15 g', zeroDrift: '+0.32 g', status: 'Compensated', technician: 'Auto-Tare Routine' },
-    { id: 'CAL-904', unit: 'PicoDrop-05', timestamp: '2026-09-01 11:15', tareOffset: '+0.45 g', zeroDrift: '+1.20 g', status: 'Drift Warning', technician: 'Field Service Req' },
+    { id: 'CAL-901', unit: 'PecoDrop-01', timestamp: '2026-09-24 14:10', tareOffset: '0.00 g', zeroDrift: '+0.02 g', status: 'Optimal', technician: 'Tech-44' },
+    { id: 'CAL-902', unit: 'PecoDrop-02', timestamp: '2026-09-23 09:25', tareOffset: '0.00 g', zeroDrift: '-0.05 g', status: 'Optimal', technician: 'Auto-Tare Routine' },
+    { id: 'CAL-903', unit: 'PecoDrop-03', timestamp: '2026-09-22 18:40', tareOffset: '+0.15 g', zeroDrift: '+0.32 g', status: 'Compensated', technician: 'Auto-Tare Routine' },
+    { id: 'CAL-904', unit: 'PecoDrop-05', timestamp: '2026-09-21 11:15', tareOffset: '+0.45 g', zeroDrift: '+1.20 g', status: 'Drift Warning', technician: 'Field Service Req' },
   ];
 
   const scaleAnomalies = [
-    { id: 'ANOM-12', unit: 'PicoDrop-05', event: 'Tare Drift Exceeded > 1.0g', timestamp: '2026-09-03 10:15', action: 'Auto-flagged for recalibration' },
-    { id: 'ANOM-11', unit: 'PicoDrop-03', event: 'Paper Bin Weight Limit Exceeded (> 15.0 kg)', timestamp: '2026-09-03 08:30', action: 'Chute auto-locked until bin cleared by team' },
-    { id: 'ANOM-10', unit: 'PicoDrop-01', event: 'Sudden Negative Mass Spike (-120g)', timestamp: '2026-09-02 16:45', action: 'Auto-zero recovery executed' },
+    { id: 'ANOM-12', unit: 'PecoDrop-05', event: 'Tare Drift Exceeded > 1.0g', timestamp: '2026-09-24 10:15', action: 'Auto-flagged for recalibration' },
+    { id: 'ANOM-11', unit: 'PecoDrop-03', event: 'Paper Bin Weight Limit Exceeded (> 15.0 kg)', timestamp: '2026-09-23 08:30', action: 'Chute auto-locked until bin cleared by team' },
+    { id: 'ANOM-10', unit: 'PecoDrop-01', event: 'Sudden Negative Mass Spike (-120g)', timestamp: '2026-09-22 16:45', action: 'Auto-zero recovery executed' },
   ];
 
-  // Report 2 Data: Fleet Efficiency Turnaround
-  const fleetUptimeData = [
-    { location: 'Central Metro Hub', rvmUptime: 99.4, picoUptime: 98.8, avgTurnaroundMin: 34 },
-    { location: 'North Terminal Plaza', rvmUptime: 97.2, picoUptime: 99.1, avgTurnaroundMin: 42 },
-    { location: 'Green Campus Center', rvmUptime: 99.8, picoUptime: 99.5, avgTurnaroundMin: 22 },
-    { location: 'West Eco District', rvmUptime: 96.5, picoUptime: 95.8, avgTurnaroundMin: 58 },
-  ];
+  // Report 4: Financial Ledger Items
+  const financialRows = useMemo(() => {
+    const petPts = Math.round(esgMetrics.petUnits * 10);
+    const aluPts = Math.round(esgMetrics.aluUnits * 10);
+    const tetraPts = Math.round(esgMetrics.tetraUnits * 10);
+    const paperPts = Math.round(esgMetrics.paperKg * 100);
+    const totalPts = petPts + aluPts + tetraPts + paperPts;
 
-  // Report 1 Component: Load Scale & Paper Calibration Report
-  const renderPaperCalibrationReport = () => (
-    <div className="space-y-6 animate-fade-in">
-      {/* Overview Banner */}
-      <div className="p-5 rounded-2xl border-2 border-purple-300 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-950/40 border-l-8 border-l-purple-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-purple-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
-              PicoDrop Paper Specific
-            </span>
-            <span className="text-xs font-mono font-bold text-purple-950 dark:text-purple-200 bg-white/90 dark:bg-purple-900/60 px-2.5 py-0.5 rounded border border-purple-300 dark:border-purple-700 shadow-xs">
-              Load Cell Telemetry Audit
-            </span>
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
-            1. Load Scale & Paper Calibration Report
-          </h3>
-          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-purple-100 mt-1.5 max-w-2xl leading-relaxed">
-            Purpose: Audit weight-based Paper intake, tare accuracy, zero-point drift tracking, paper weight anomalies, and weight-limit events.
-          </p>
-          <div className="mt-2.5 text-xs text-amber-950 dark:text-amber-200 font-bold flex items-center gap-2 bg-amber-100/95 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-700 px-3 py-1.5 rounded-lg w-fit shadow-xs">
-            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>Important: PET and Metal are not included as weight-based reward measurements in this report.</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 text-right shrink-0 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Total Paper Mass Collected</div>
-          <div className="text-3xl font-black text-purple-700 dark:text-purple-300 mono mt-0.5">148.50 <span className="text-base text-purple-600 dark:text-purple-400 font-normal">kg</span></div>
-          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Verified Load Cell Net Intake</div>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Paper Mass</div>
-          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">148.5 kg</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Net paper from PicoDrop scales</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Scale Tare Accuracy</div>
-          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">99.82%</div>
-          <div className="text-xs text-emerald-800 dark:text-emerald-400 mt-1 font-extrabold">Within ±0.1g tare calibration</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Zero-Point Drift Tracking</div>
-          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">4 Events</div>
-          <div className="text-xs text-amber-800 dark:text-amber-400 mt-1 font-extrabold">3 Auto-zeroed, 1 Flagged</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-rose-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Weight-Limit Events</div>
-          <div className="text-2xl font-black text-rose-700 dark:text-rose-300 mono mt-1">2 Triggers</div>
-          <div className="text-xs text-rose-800 dark:text-rose-400 mt-1 font-extrabold">Paper bin limit exceeded (&gt;15 kg)</div>
-        </div>
-      </div>
-
-      {/* Scale Tare Calibration Log Table */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2.5">
-          <h4 className="text-xs font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
-            <Sliders className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            Scale Tare Calibration Log
-          </h4>
-          <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">PicoDrop Load Cell Calibration Ledger</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-black text-slate-700 dark:text-slate-300">
-              <tr>
-                <th className="p-2.5">Log ID</th>
-                <th className="p-2.5">Hardware Device</th>
-                <th className="p-2.5">Timestamp</th>
-                <th className="p-2.5">Tare Offset</th>
-                <th className="p-2.5">Zero-Point Drift</th>
-                <th className="p-2.5">Status</th>
-                <th className="p-2.5">Audit Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-slate-200 dark:border-slate-700 font-mono">
-              {calibrationLogs.map(log => (
-                <tr key={log.id} className="hover:bg-slate-500/5">
-                  <td className="p-2.5 font-bold text-sky-800 dark:text-cyan-300">{log.id}</td>
-                  <td className="p-2.5 text-slate-900 dark:text-white font-bold">{log.unit}</td>
-                  <td className="p-2.5 text-slate-600 dark:text-slate-400 text-xs">{log.timestamp}</td>
-                  <td className="p-2.5 text-slate-900 dark:text-white">{log.tareOffset}</td>
-                  <td className="p-2.5 font-bold text-amber-800 dark:text-amber-300">{log.zeroDrift}</td>
-                  <td className="p-2.5">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      log.status === 'Optimal' ? 'bg-emerald-50 text-[#0b5d3b] dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30' :
-                      log.status === 'Compensated' ? 'bg-sky-50 text-sky-800 dark:bg-cyan-500/20 dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30' :
-                      'bg-rose-50 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
-                    }`}>
-                      {log.status}
-                    </span>
-                  </td>
-                  <td className="p-2.5 text-slate-700 dark:text-slate-300 text-xs">{log.technician}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Paper Weight Anomalies & Limit Events */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-300 dark:border-amber-700 shadow-sm space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2.5">
-          <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            Paper Weight Anomalies & Limit Events
-          </h4>
-          <span className="text-xs font-mono font-bold text-amber-800 dark:text-amber-300">Strain Gauge Exception Feed</span>
-        </div>
-
-        <div className="space-y-2">
-          {scaleAnomalies.map(item => (
-            <div key={item.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-2.5">
-                <span className="mono text-sky-800 dark:text-cyan-400 font-bold">[{item.id}]</span>
-                <span className="text-purple-800 dark:text-purple-300 font-bold">{item.unit}:</span>
-                <span className="text-slate-900 dark:text-white font-medium">{item.event}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-emerald-800 dark:text-emerald-400 font-bold">{item.action}</span>
-                <span className="text-slate-600 dark:text-slate-400 font-mono">{item.timestamp}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Report 2 Component: Fleet Efficiency & Capacity Report
-  const renderFleetEfficiencyReport = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border-2 border-sky-300 dark:border-sky-800 bg-sky-50/80 dark:bg-sky-950/40 border-l-8 border-l-sky-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-sky-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
-              Fleet Operations
-            </span>
-            <span className="text-xs font-mono font-bold text-sky-950 dark:text-sky-200 bg-white/90 dark:bg-sky-900/60 px-2.5 py-1 rounded border border-sky-300 dark:border-sky-700 shadow-xs">
-              Service Response Telemetry
-            </span>
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
-            2. Fleet Efficiency & Capacity Report
-          </h3>
-          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-sky-100 mt-1.5 max-w-2xl leading-relaxed">
-            Purpose: Monitor machine uptime, collection patterns, bin clearing efficiency, and device performance across Smart Recycling and PicoDrop hardware.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-700 text-right shrink-0 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Average Service Turnaround</div>
-          <div className="text-3xl font-black text-sky-700 dark:text-cyan-300 mono mt-0.5">34.2 <span className="text-base text-sky-600 dark:text-cyan-400 font-normal">mins</span></div>
-          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">From "Limit Triggered" to "Cleared"</div>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Smart Recycling Bin Capacity Events</div>
-          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">12 Events</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Hopper volume 100% full</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">PicoDrop Weight-Limit Events</div>
-          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">5 Events</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Paper bin &gt; 15.0 kg limit</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Smart Recycling Fleet Mean Uptime</div>
-          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">98.7%</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Optical recognition & motor uptime</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">PicoDrop Mean Uptime</div>
-          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">98.3%</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Counter & strain-gauge uptime</div>
-        </div>
-      </div>
-
-      {/* Hardware Failure Rate Comparison: Smart Recycling optical/motor vs PicoDrop counter/load-scale */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-sky-800 dark:text-cyan-300 flex items-center gap-1.5">
-            <Cpu className="w-4 h-4 text-sky-600 dark:text-cyan-400" />
-            Smart Recycling Optical / Motor Fault Rates
-          </h4>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">Optical Chute Scanner Lens Smudge:</span>
-              <span className="font-bold text-amber-800 dark:text-amber-400 mono">0.38% sessions</span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">Intake Motor Gate Jams:</span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.05% sessions</span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">Conveyor Alignment Errors:</span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.02% sessions</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
-            <Scale className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            PicoDrop Counter / Load-Scale Fault Rates
-          </h4>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">Load Scale Zero Drift:</span>
-              <span className="font-bold text-amber-800 dark:text-amber-400 mono">0.28% sessions</span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">PET / Can Optical Trigger Faults:</span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.07% sessions</span>
-            </div>
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <span className="text-slate-700 dark:text-slate-300 font-semibold">Paper Bin Level Sensor Discrepancy:</span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-400 mono">0.11% sessions</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Daily/Weekly Throughput per Location Table */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
-        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Daily & Weekly Throughput per Location</h4>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase font-black text-slate-700 dark:text-slate-300">
-              <tr>
-                <th className="p-2.5">Location</th>
-                <th className="p-2.5">Smart Recycling Uptime</th>
-                <th className="p-2.5">PicoDrop Uptime</th>
-                <th className="p-2.5">Avg Service Turnaround</th>
-                <th className="p-2.5">Weekly Intake</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-slate-200 dark:border-slate-700">
-              {fleetUptimeData.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-500/5">
-                  <td className="p-2.5 font-bold text-slate-900 dark:text-white">{row.location}</td>
-                  <td className="p-2.5 text-sky-800 dark:text-cyan-300 font-mono font-bold">{row.rvmUptime}%</td>
-                  <td className="p-2.5 text-purple-800 dark:text-purple-300 font-mono font-bold">{row.picoUptime}%</td>
-                  <td className="p-2.5 font-mono text-emerald-800 dark:text-emerald-400 font-bold">{row.avgTurnaroundMin} mins</td>
-                  <td className="p-2.5 text-slate-700 dark:text-slate-300 font-mono">~3,200 units / wk</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Report 3 Component: Material Diversion & ESG Report
-  const renderESGReport = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border-2 border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 border-l-8 border-l-emerald-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-xs">
-              ESG Compliance
-            </span>
-            <span className="text-xs font-mono font-bold text-emerald-950 dark:text-emerald-200 bg-white/90 dark:bg-emerald-900/60 px-2.5 py-1 rounded border border-emerald-300 dark:border-emerald-700 shadow-xs">
-              ISO 14064 Carbon Standard
-            </span>
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
-            3. Material Diversion & ESG Report
-          </h3>
-          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-emerald-100 mt-1.5 max-w-2xl leading-relaxed">
-            Purpose: Executive and compliance reporting for environmental impact, distinguishing unit-counted materials from measured paper weight.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-right shrink-0 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Estimated CO₂ Avoided</div>
-          <div className="text-3xl font-black text-emerald-700 dark:text-emerald-400 mono mt-0.5">1,842.6 <span className="text-base text-emerald-600 dark:text-emerald-300 font-normal">kg CO₂e</span></div>
-          <div className="text-xs text-emerald-800 dark:text-emerald-400 font-extrabold mt-1">Trees Conserved: ~2.5 Trees</div>
-        </div>
-      </div>
-
-      {/* Distinct Unit-Counted vs Measured Weight Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total PET Units Diverted</div>
-          <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">8,420 Units</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 252.6 kg plastic mass</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Total Metal Units Diverted</div>
-          <div className="text-2xl font-black text-amber-700 dark:text-amber-300 mono mt-1">3,615 Units</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 54.2 kg aluminum mass</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Cardboard/TetraPak Units</div>
-          <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">1,240 Units</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Est. 37.2 kg paperboard mass</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-purple-900 dark:text-purple-300 font-black">Measured Paper Weight</div>
-          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">148.5 kg</div>
-          <div className="text-xs text-purple-800 dark:text-purple-300 mt-1 font-bold">100% Load-Cell Measured</div>
-        </div>
-      </div>
-
-      {/* Environmental Equivalents Breakdown */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <h4 className="text-xs font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">Environmental Conservation Metrics</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Tree Equivalents Saved</div>
-            <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono">2.52 Trees</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Based on pure Paper mass collected through PicoDrop load scales.</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Diverted Landfill Volume</div>
-            <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono">4.82 m³</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Compacted volume of recycled bottles, cans, cardboard, and paper.</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-1">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Energy Conserved (kWh)</div>
-            <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono">3,490 kWh</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Energy saved vs virgin resource extraction & manufacturing.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Report 4 Component: User Loyalty & Incentive Financial Audit
-  const renderFinancialAuditReport = () => (
-    <div className="space-y-6 animate-fade-in">
-      <div className="p-5 rounded-2xl border-2 border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/40 border-l-8 border-l-amber-600 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded bg-amber-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
-              Financial Audit
-            </span>
-            <span className="text-xs font-mono font-bold text-amber-950 dark:text-amber-200 bg-white/90 dark:bg-amber-900/60 px-2.5 py-1 rounded border border-amber-300 dark:border-amber-700 shadow-xs">
-              Incentive Reconciliation
-            </span>
-          </div>
-          <h3 className="text-xl md:text-2xl font-black text-slate-950 dark:text-white">
-            4. User Loyalty & Incentive Financial Audit
-          </h3>
-          <p className="text-sm md:text-base font-bold text-slate-900 dark:text-amber-100 mt-1.5 max-w-2xl leading-relaxed">
-            Purpose: Reconcile distributed loyalty points against raw material intake and audit acquisition costs.
-          </p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-right shrink-0 shadow-xs">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-800 dark:text-slate-200">Total Points Issued</div>
-          <div className="text-3xl font-black text-amber-700 dark:text-amber-300 mono mt-0.5">142,850 <span className="text-base text-amber-600 dark:text-amber-400 font-normal">pts</span></div>
-          <div className="text-xs text-amber-950 dark:text-amber-300 font-extrabold mt-1">Financial Liability: PKR 14,285</div>
-        </div>
-      </div>
-
-      {/* Points Issued per Material Stream */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Points Issued per PET Unit</div>
-          <div className="text-xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">10 - 15 pts / unit</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 84,200 pts issued</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-amber-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Points Issued per Metal Unit</div>
-          <div className="text-xl font-black text-amber-700 dark:text-amber-300 mono mt-1">15 - 20 pts / unit</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 36,150 pts issued</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-cyan-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-slate-700 dark:text-slate-300">Cardboard/TetraPak Unit Rate</div>
-          <div className="text-xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">10 pts / unit</div>
-          <div className="text-xs text-slate-700 dark:text-slate-300 font-medium mt-1">Total: 12,400 pts issued</div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-purple-500 shadow-sm">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-purple-900 dark:text-purple-300 font-black">Points Issued per kg of Paper</div>
-          <div className="text-xl font-black text-purple-700 dark:text-purple-300 mono mt-1">100 pts / kg</div>
-          <div className="text-xs text-purple-800 dark:text-purple-300 mt-1 font-bold">Total: 14,850 pts (148.5 kg)</div>
-        </div>
-      </div>
-
-      {/* Cost-per-kg vs Reward Payout Analysis */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <h4 className="text-xs font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">Financial Audit & Acquisition Cost Metrics</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Cost-Per-Kg of Paper Acquired:</div>
-            <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mono mt-1">PKR 10.00 / kg</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Payout based on 100 points/kg (PKR 10.00 equivalent).</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Reward Cost for Unit-Based Materials:</div>
-            <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mono mt-1">PKR 1.15 / unit</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">Average weighted reward across PET, metal cans, and cardboard.</p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <div className="text-xs text-slate-700 dark:text-slate-300 font-extrabold">Daily Active Recyclers & Peak Hours:</div>
-            <div className="text-2xl font-black text-sky-700 dark:text-cyan-300 mono mt-1">12:00 PM - 3:00 PM</div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">342 active recyclers/hr during peak daily hours.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const handleExportPDF = () => {
-    setIsExporting(true);
-    try {
-      const activeObj = reports.find(r => r.id === activeReport) || reports[0];
-      const nowStr = new Date().toLocaleString('en-US', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-      });
-      const auditRef = `AUD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      let contentHtml = '';
-
-      if (activeReport === 'paper_calibration') {
-        contentHtml = `
-          <div class="kpi-grid">
-            <div class="kpi-card purple">
-              <div class="kpi-title">Total Paper Mass</div>
-              <div class="kpi-val">148.5 kg</div>
-              <div class="kpi-sub">Verified Load Cell Net Intake</div>
-            </div>
-            <div class="kpi-card cyan">
-              <div class="kpi-title">Scale Tare Accuracy</div>
-              <div class="kpi-val">99.82%</div>
-              <div class="kpi-sub">Within ±0.1g tare calibration</div>
-            </div>
-            <div class="kpi-card amber">
-              <div class="kpi-title">Zero-Point Drift Events</div>
-              <div class="kpi-val">4 Events</div>
-              <div class="kpi-sub">3 Auto-zeroed, 1 Flagged</div>
-            </div>
-            <div class="kpi-card rose">
-              <div class="kpi-title">Weight-Limit Events</div>
-              <div class="kpi-val">2 Triggers</div>
-              <div class="kpi-sub">Paper bin limit exceeded (&gt;15 kg)</div>
-            </div>
-          </div>
-
-          <div class="section-title">Scale Tare Calibration Ledger</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Log ID</th>
-                <th>Hardware Device</th>
-                <th>Timestamp</th>
-                <th>Tare Offset</th>
-                <th>Zero Drift</th>
-                <th>Status</th>
-                <th>Technician / Routine</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${calibrationLogs.map(l => `
-                <tr>
-                  <td class="mono font-bold">${l.id}</td>
-                  <td class="font-bold">${l.unit}</td>
-                  <td class="mono">${l.timestamp}</td>
-                  <td class="mono">${l.tareOffset}</td>
-                  <td class="mono font-bold">${l.zeroDrift}</td>
-                  <td><span class="badge ${l.status.toLowerCase().replace(/[^a-z]/g, '-')}">${l.status}</span></td>
-                  <td>${l.technician}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <div class="section-title" style="margin-top: 22px;">Paper Weight Strain Gauge Anomalies & Exception Feed</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Event ID</th>
-                <th>Unit</th>
-                <th>Exception Description</th>
-                <th>Mitigation / Action Taken</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${scaleAnomalies.map(a => `
-                <tr>
-                  <td class="mono font-bold">${a.id}</td>
-                  <td class="font-bold">${a.unit}</td>
-                  <td>${a.event}</td>
-                  <td class="status-cleared">${a.action}</td>
-                  <td class="mono">${a.timestamp}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
-      } else if (activeReport === 'fleet_efficiency') {
-        contentHtml = `
-          <div class="kpi-grid">
-            <div class="kpi-card cyan">
-              <div class="kpi-title">Average Service Turnaround</div>
-              <div class="kpi-val">34.2 mins</div>
-              <div class="kpi-sub">Trigger to Cleared turnaround</div>
-            </div>
-            <div class="kpi-card green">
-              <div class="kpi-title">Smart Recycling Fleet Mean Uptime</div>
-              <div class="kpi-val">98.7%</div>
-              <div class="kpi-sub">Optical recognition & motor uptime</div>
-            </div>
-            <div class="kpi-card amber">
-              <div class="kpi-title">PicoDrop Mean Uptime</div>
-              <div class="kpi-val">98.3%</div>
-              <div class="kpi-sub">Counter & load-scale uptime</div>
-            </div>
-            <div class="kpi-card purple">
-              <div class="kpi-title">Weight-Limit Triggers</div>
-              <div class="kpi-val">5 Events</div>
-              <div class="kpi-sub">Paper bin full events resolved</div>
-            </div>
-          </div>
-
-          <div class="section-title">Hardware Telemetry & Turnaround by Location</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Location / Facility</th>
-                <th>Smart Recycling Uptime</th>
-                <th>PicoDrop Uptime</th>
-                <th>Avg Turnaround</th>
-                <th>Weekly Intake Throughput</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${fleetUptimeData.map(f => `
-                <tr>
-                  <td class="font-bold">${f.location}</td>
-                  <td class="mono font-bold text-cyan">${f.rvmUptime}%</td>
-                  <td class="mono font-bold text-purple">${f.picoUptime}%</td>
-                  <td class="mono font-bold text-green">${f.avgTurnaroundMin} mins</td>
-                  <td class="mono">~3,200 units / wk</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <div class="section-title" style="margin-top: 22px;">Subsystem Failure Rate Comparison</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Hardware Subsystem</th>
-                <th>Failure Description</th>
-                <th>Failure Rate (% Sessions)</th>
-                <th>Reliability Tier</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="font-bold">Smart Recycling Optical Chute</td>
-                <td>Scanner Lens Smudge / Foreign Matter</td>
-                <td class="mono font-bold">0.38%</td>
-                <td><span class="badge optimal">High (99.6%)</span></td>
-              </tr>
-              <tr>
-                <td class="font-bold">Smart Recycling Intake Motor</td>
-                <td>Gate Jam Auto-Clear Trigger</td>
-                <td class="mono font-bold">0.05%</td>
-                <td><span class="badge optimal">Ultra-Reliable</span></td>
-              </tr>
-              <tr>
-                <td class="font-bold">PicoDrop Strain Gauge</td>
-                <td>Load Scale Zero Drift Auto-Compensated</td>
-                <td class="mono font-bold">0.28%</td>
-                <td><span class="badge optimal">Calibrated</span></td>
-              </tr>
-              <tr>
-                <td class="font-bold">PicoDrop Chute Sensor</td>
-                <td>PET / Can Optical Trigger Miscount</td>
-                <td class="mono font-bold">0.07%</td>
-                <td><span class="badge optimal">Ultra-Reliable</span></td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-      } else if (activeReport === 'esg_diversion') {
-        contentHtml = `
-          <div class="kpi-grid">
-            <div class="kpi-card green">
-              <div class="kpi-title">Total CO₂e Avoided</div>
-              <div class="kpi-val">1,842.6 kg</div>
-              <div class="kpi-sub">ISO 14064 Compliance Model</div>
-            </div>
-            <div class="kpi-card purple">
-              <div class="kpi-title">Trees Conserved</div>
-              <div class="kpi-val">2.52 Trees</div>
-              <div class="kpi-sub">From 148.5 kg measured paper</div>
-            </div>
-            <div class="kpi-card cyan">
-              <div class="kpi-title">Landfill Volume Diverted</div>
-              <div class="kpi-val">4.82 m³</div>
-              <div class="kpi-sub">Compacted solid waste volume</div>
-            </div>
-            <div class="kpi-card amber">
-              <div class="kpi-title">Energy Conserved</div>
-              <div class="kpi-val">3,490 kWh</div>
-              <div class="kpi-sub">Vs virgin material synthesis</div>
-            </div>
-          </div>
-
-          <div class="section-title">Certified Material Diversion Breakdown</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Recycled Material Stream</th>
-                <th>Measurement Standard</th>
-                <th>Quantity Diverted</th>
-                <th>Estimated Mass</th>
-                <th>CO₂e Avoided</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="font-bold">PET Plastic Bottles</td>
-                <td>Unit Count (Smart Recycling + PicoDrop)</td>
-                <td class="mono font-bold">8,420 Units</td>
-                <td class="mono">252.6 kg</td>
-                <td class="mono font-bold text-green">690.4 kg CO₂e</td>
-              </tr>
-              <tr>
-                <td class="font-bold">Aluminium Cans</td>
-                <td>Unit Count (Smart Recycling + PicoDrop)</td>
-                <td class="mono font-bold">3,615 Units</td>
-                <td class="mono">54.2 kg</td>
-                <td class="mono font-bold text-green">515.0 kg CO₂e</td>
-              </tr>
-              <tr>
-                <td class="font-bold">Cardboard / TetraPak</td>
-                <td>Unit Count (Smart Recycling Hopper)</td>
-                <td class="mono font-bold">1,240 Units</td>
-                <td class="mono">37.2 kg</td>
-                <td class="mono font-bold text-green">148.8 kg CO₂e</td>
-              </tr>
-              <tr>
-                <td class="font-bold">PicoDrop Recycled Paper</td>
-                <td>Strain Gauge Load Cell (kg)</td>
-                <td class="mono font-bold">148.50 kg</td>
-                <td class="mono">148.5 kg</td>
-                <td class="mono font-bold text-green">488.4 kg CO₂e</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr style="background:#f1f5f9; font-weight: bold;">
-                <td colspan="2">Consolidated ESG Total</td>
-                <td class="mono">13,275 Units</td>
-                <td class="mono">492.5 kg</td>
-                <td class="mono text-green">1,842.6 kg CO₂e</td>
-              </tr>
-            </tfoot>
-          </table>
-        `;
-      } else {
-        contentHtml = `
-          <div class="kpi-grid">
-            <div class="kpi-card amber">
-              <div class="kpi-title">Total Points Distributed</div>
-              <div class="kpi-val">142,850 pts</div>
-              <div class="kpi-sub">Citizen eco-wallet credits</div>
-            </div>
-            <div class="kpi-card green">
-              <div class="kpi-title">Total Financial Liability</div>
-              <div class="kpi-val">PKR 14,285</div>
-              <div class="kpi-sub">At PKR 0.10 / pt conversion</div>
-            </div>
-            <div class="kpi-card purple">
-              <div class="kpi-title">Paper Acquisition Cost</div>
-              <div class="kpi-val">PKR 10.00 / kg</div>
-              <div class="kpi-sub">100 pts / kg formula rate</div>
-            </div>
-            <div class="kpi-card cyan">
-              <div class="kpi-title">Unit Reward Cost</div>
-              <div class="kpi-val">PKR 1.15 / unit</div>
-              <div class="kpi-sub">Weighted avg across containers</div>
-            </div>
-          </div>
-
-          <div class="section-title">Incentive Payout Reconciliation Ledger</div>
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Intake Stream</th>
-                <th>Incentive Formula Rate</th>
-                <th>Volume Collected</th>
-                <th>Points Issued</th>
-                <th>Equivalent Liability (PKR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="font-bold">PET Plastic Containers</td>
-                <td>10 - 15 pts / container</td>
-                <td class="mono">8,420 units</td>
-                <td class="mono font-bold">84,200 pts</td>
-                <td class="mono font-bold">PKR 8,420.00</td>
-              </tr>
-              <tr>
-                <td class="font-bold">Aluminium Cans</td>
-                <td>15 - 20 pts / container</td>
-                <td class="mono">3,615 units</td>
-                <td class="mono font-bold">36,150 pts</td>
-                <td class="mono font-bold">PKR 3,615.00</td>
-              </tr>
-              <tr>
-                <td class="font-bold">Cardboard / TetraPak</td>
-                <td>10 pts / container</td>
-                <td class="mono">1,240 units</td>
-                <td class="mono font-bold">12,400 pts</td>
-                <td class="mono font-bold">PKR 1,240.00</td>
-              </tr>
-              <tr>
-                <td class="font-bold">PicoDrop Paper Mass</td>
-                <td>100 pts / kg</td>
-                <td class="mono">148.50 kg</td>
-                <td class="mono font-bold">14,850 pts</td>
-                <td class="mono font-bold">PKR 1,485.00</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr style="background:#f1f5f9; font-weight: bold;">
-                <td colspan="3">Audited Payout Aggregate</td>
-                <td class="mono font-black">142,850 pts</td>
-                <td class="mono font-black text-green">PKR 14,285.00</td>
-              </tr>
-            </tfoot>
-          </table>
-        `;
+    return [
+      {
+        material: '🥤 Plastic Bottles (PET)',
+        volume: `${esgMetrics.petUnits.toLocaleString()} units`,
+        rule: '10 – 15 pts / unit',
+        points: petPts,
+        cashPkr: Math.round(petPts * 0.20)
+      },
+      {
+        material: '🥫 Aluminium Cans',
+        volume: `${esgMetrics.aluUnits.toLocaleString()} units`,
+        rule: '15 – 20 pts / unit',
+        points: aluPts,
+        cashPkr: Math.round(aluPts * 0.20)
+      },
+      {
+        material: '🧃 Tetra Pak Cartons',
+        volume: `${esgMetrics.tetraUnits.toLocaleString()} units`,
+        rule: '10 pts / unit',
+        points: tetraPts,
+        cashPkr: Math.round(tetraPts * 0.20)
+      },
+      {
+        material: '📄 Paper (PecoDrop Scales)',
+        volume: `${esgMetrics.paperKg.toLocaleString()} kg`,
+        rule: '100 pts / kg',
+        points: paperPts,
+        cashPkr: Math.round(paperPts * 0.20)
       }
+    ];
+  }, [esgMetrics]);
 
-      const fullHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>${activeObj.title} • EcoDrop Operations Audit</title>
-  <style>
-    @page {
-      size: A4 portrait;
-      margin: 14mm 14mm 16mm 14mm;
-    }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #0f172a;
-      background: #ffffff;
-      line-height: 1.4;
-      font-size: 11.5px;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 2px solid #073b28;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .brand-logo-img {
-      height: 48px;
-      width: auto;
-      object-fit: contain;
-    }
-    .brand-title {
-      font-size: 17px;
-      font-weight: 900;
-      color: #073b28;
-      letter-spacing: -0.3px;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .brand-sub {
-      font-size: 10px;
-      color: #64748b;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 2px;
-    }
-    .report-title-main {
-      font-size: 15px;
-      font-weight: 800;
-      color: #0f172a;
-      margin-top: 6px;
-    }
-    .meta-box {
-      text-align: right;
-      font-size: 10.5px;
-      color: #334155;
-    }
-    .meta-item {
-      margin-bottom: 2px;
-    }
-    .meta-item strong {
-      color: #0f172a;
-    }
-    .badge-confidential {
-      display: inline-block;
-      background: #dcfce7;
-      color: #15803d;
-      border: 1px solid #86efac;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 800;
-      font-size: 9.5px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .badge.optimal { background: #dcfce7; color: #15803d; }
-    .badge.compensated { background: #e0f2fe; color: #0369a1; }
-    .badge.drift-warning { background: #fee2e2; color: #b91c1c; }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .kpi-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 10px;
-      background: #f8fafc;
-      border-left-width: 4px;
-    }
-    .kpi-card.purple { border-left-color: #8b5cf6; }
-    .kpi-card.cyan { border-left-color: #0ea5e9; }
-    .kpi-card.amber { border-left-color: #f59e0b; }
-    .kpi-card.green { border-left-color: #10b981; }
-    .kpi-card.rose { border-left-color: #f43f5e; }
-    .kpi-title {
-      font-size: 9.5px;
-      font-weight: 700;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .kpi-val {
-      font-size: 16px;
-      font-weight: 900;
-      color: #0f172a;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      margin: 3px 0 1px 0;
-    }
-    .kpi-sub {
-      font-size: 9px;
-      color: #475569;
-      font-weight: 500;
-    }
-    .section-title {
-      font-size: 11.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #073b28;
-      border-left: 3px solid #15803d;
-      padding-left: 6px;
-      margin: 14px 0 8px 0;
-    }
-    .report-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 10px;
-      margin-bottom: 12px;
-    }
-    .report-table th {
-      background: #f1f5f9;
-      color: #1e293b;
-      font-weight: 800;
-      text-transform: uppercase;
-      padding: 6px 8px;
-      border: 1px solid #cbd5e1;
-      text-align: left;
-    }
-    .report-table td {
-      padding: 5px 8px;
-      border: 1px solid #e2e8f0;
-      color: #334155;
-    }
-    .report-table tr:nth-child(even) td {
-      background: #f8fafc;
-    }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .font-bold { font-weight: 700; color: #0f172a; }
-    .font-black { font-weight: 900; color: #0f172a; }
-    .text-green { color: #15803d; font-weight: 800; }
-    .text-cyan { color: #0284c7; }
-    .text-purple { color: #7c3aed; }
-    .status-cleared { color: #047857; font-weight: 600; }
-    .footer-signoff {
-      margin-top: 24px;
-      border-top: 1px dashed #94a3b8;
-      padding-top: 14px;
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 16px;
-      font-size: 9.5px;
-      color: #475569;
-    }
-    .sign-box {
-      border-top: 1px solid #64748b;
-      padding-top: 4px;
-      margin-top: 22px;
-      font-weight: 700;
-      color: #1e293b;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="header-left">
-      <img src="/isp_logo.png" class="brand-logo-img" alt="ISP Environmental Logo" />
-      <div>
-        <div class="brand-title">ISP Environmental Solutions Pvt. Ltd.</div>
-        <div class="brand-sub">Regulatory & Operations Audit • Smart Recycling Telemetry Network</div>
-        <div class="report-title-main">${activeObj.title}</div>
-      </div>
-    </div>
-    <div class="meta-box">
-      <div class="badge-confidential">Official Compliance Record</div>
-      <div class="meta-item">Ref ID: <strong class="mono">${auditRef}</strong></div>
-      <div class="meta-item">Date: <strong>${nowStr}</strong></div>
-      <div class="meta-item">Standard: <strong>ISO 14064 / ONS-RVM</strong></div>
-    </div>
-  </div>
+  const totalFinancialLiability = useMemo(() => {
+    const totalPoints = financialRows.reduce((sum, r) => sum + r.points, 0);
+    const totalCash = financialRows.reduce((sum, r) => sum + r.cashPkr, 0);
+    return { totalPoints, totalCash };
+  }, [financialRows]);
 
-  ${contentHtml}
-
-  <div class="footer-signoff">
-    <div>
-      <strong>Audit Verification & Integrity Statement:</strong>
-      <p style="margin-top: 3px; line-height: 1.35; color: #64748b;">
-        This document represents certified telemetry extracted from active load cells, optical counters, and database records. All records have been verified against hardware calibration offsets and transaction logs.
-      </p>
-    </div>
-    <div>
-      <div class="sign-box">Certified Operations Lead</div>
-      <span style="font-size: 8.5px; color: #94a3b8;">Signature & Timestamp</span>
-    </div>
-    <div>
-      <div class="sign-box">Compliance & QA Officer</div>
-      <span style="font-size: 8.5px; color: #94a3b8;">Verification Seal</span>
-    </div>
-  </div>
-</body>
-</html>`;
-
-      const printFrame = document.createElement('iframe');
-      printFrame.style.position = 'fixed';
-      printFrame.style.right = '0';
-      printFrame.style.bottom = '0';
-      printFrame.style.width = '0';
-      printFrame.style.height = '0';
-      printFrame.style.border = '0';
-      document.body.appendChild(printFrame);
-
-      printFrame.contentDocument.open();
-      printFrame.contentDocument.write(fullHtml);
-      printFrame.contentDocument.close();
-
-      setTimeout(() => {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-        setTimeout(() => {
-          try {
-            document.body.removeChild(printFrame);
-          } catch(e) {}
-          setIsExporting(false);
-        }, 1000);
-      }, 500);
-
-    } catch (err) {
-      console.error('Export error:', err);
-      setIsExporting(false);
+  // Export File Function
+  const handleExecuteExport = () => {
+    setIsExportModalOpen(false);
+    if (exportFormat === 'pdf') {
       window.print();
+      showToast('Opening print dialog for Executive PDF Audit Report');
+    } else {
+      // Generate and download CSV
+      const headers = ['Category / Material', 'Volume', 'Point Conversion Rule', 'Points Issued', 'Cash Liability (PKR)'];
+      const rows = financialRows.map(r => [
+        `"${r.material.replace(/"/g, '""')}"`,
+        `"${r.volume}"`,
+        `"${r.rule}"`,
+        r.points,
+        r.cashPkr
+      ]);
+      rows.push([
+        '"TOTAL FLEET POINT LIABILITY"',
+        '""',
+        '""',
+        totalFinancialLiability.totalPoints,
+        totalFinancialLiability.totalCash
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `ISP_Compliance_Analytics_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Analytics Audit Report (CSV) downloaded successfully');
     }
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Top Banner & Export Actions */}
-      <div className="glass-panel p-6 rounded-3xl border border-cyan-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            <span className="text-xs font-black uppercase tracking-wider text-cyan-400">
-              EcoDrop Operations Center
-            </span>
+      {/* Header Section */}
+      <div className="glass-panel p-6 rounded-3xl border t-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white shrink-0">
+            <BarChart3 className="w-6 h-6 stroke-[2.2]" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-black t-text-primary tracking-tight">
-            Reporting & Analytics Hub
-          </h2>
-          <p className="text-xs md:text-sm t-text-secondary mt-1">
-            Dedicated auditing for load scale calibration, fleet uptime turnaround, ESG diversion, and incentive payouts.
-          </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                Analytics &amp; Compliance Hub
+              </span>
+              <span className="text-xs text-slate-400">|</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Machine Network Audits
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight t-text-primary mt-1">
+              ISP Environmental Solutions
+            </h1>
+            <p className="text-xs t-text-secondary mt-0.5">
+              Comprehensive compliance audits, machine reliability uptime, intake material volumes, and financial voucher reconciliation.
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button 
-            onClick={() => handleExportPDF()}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl t-bg-sec hover:t-bg-hover border t-border text-xs font-bold t-text-primary transition-all shadow-sm"
-            title="Print Clean Compliance Audit"
+        {/* Header Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+          <button
+            onClick={() => window.print()}
+            className="px-3.5 py-2 t-bg-sec hover:t-bg-hover t-text-primary border t-border rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs"
+            title="Print Audit"
           >
-            <Printer className="w-4 h-4 text-cyan-400" />
-            <span>Print Audit</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Print Audit</span>
           </button>
-          <button 
-            onClick={() => handleExportPDF()}
-            disabled={isExporting}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-950/40 disabled:opacity-50"
-            title="Export Clean Compliance Audit as PDF"
+
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
+            title="Export Report"
           >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span>{isExporting ? 'Generating PDF...' : 'Export Report (PDF)'}</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Audit Report</span>
           </button>
         </div>
       </div>
 
-      {/* 4 Report Tabs Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 xl:gap-4 2xl:gap-5">
-        {reports.map(rep => {
-          const Icon = rep.icon;
-          const isSelected = activeReport === rep.id;
-
-          const themeStyles = {
-            paper_calibration: {
-              card: 'bg-purple-50/90 dark:bg-purple-950/40 border-purple-500 shadow-md ring-2 ring-purple-500/20',
-              icon: 'bg-purple-600 text-white shadow-xs',
-              badge: 'bg-purple-200/90 text-purple-950 dark:bg-purple-900/70 dark:text-purple-200 border border-purple-300 dark:border-purple-700',
-            },
-            fleet_efficiency: {
-              card: 'bg-sky-50/90 dark:bg-sky-950/40 border-sky-500 shadow-md ring-2 ring-sky-500/20',
-              icon: 'bg-sky-600 text-white shadow-xs',
-              badge: 'bg-sky-200/90 text-sky-950 dark:bg-sky-900/70 dark:text-sky-200 border border-sky-300 dark:border-sky-700',
-            },
-            esg_diversion: {
-              card: 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/20',
-              icon: 'bg-emerald-600 text-white shadow-xs',
-              badge: 'bg-emerald-200/90 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700',
-            },
-            loyalty_audit: {
-              card: 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/20',
-              icon: 'bg-amber-600 text-white shadow-xs',
-              badge: 'bg-amber-200/90 text-amber-950 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-300 dark:border-amber-700',
-            },
-          };
-
-          const activeStyle = themeStyles[rep.id] || themeStyles.paper_calibration;
-
-          return (
+      {/* Customizable Multi-Variable Filter Bar */}
+      <div className="glass-panel p-4 sm:p-5 rounded-2xl border t-border space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b t-border gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <SlidersHorizontal className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-bold t-text-primary">Customizable Report Query Filters</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs t-text-muted">Live Aggregated Scope</span>
             <button
-              key={rep.id}
-              onClick={() => setActiveReport(rep.id)}
-              className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                isSelected 
-                  ? activeStyle.card
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
-              }`}
+              onClick={resetFilters}
+              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md transition-colors"
             >
-              <div className="flex items-center justify-between w-full mb-3">
-                <div className={`p-2 rounded-xl transition-colors ${
-                  isSelected ? activeStyle.icon : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                }`}>
-                  <Icon className="w-4 h-4" />
+              Reset Filters
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Timeline Scope */}
+          <div>
+            <label className="block text-xs font-semibold t-text-secondary mb-1">Timeline Scope</label>
+            <div className="relative">
+              <select
+                value={timelineScope}
+                onChange={(e) => handleFilterChange('timeline', e.target.value)}
+                className="w-full appearance-none t-bg-sec border t-border t-text-primary text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="today">Today (Live Stream)</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days (Standard Audit)</option>
+                <option value="q3">Q3 2026 (Quarter to Date)</option>
+                <option value="ytd">Year to Date (2026)</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 t-text-muted absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Client Organization Scope */}
+          <div>
+            <label className="block text-xs font-semibold t-text-secondary mb-1">Client Organization</label>
+            <div className="relative">
+              <select
+                value={clientScope}
+                onChange={(e) => handleFilterChange('client', e.target.value)}
+                className="w-full appearance-none t-bg-sec border t-border t-text-primary text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="all">All Clients &amp; Public Spots</option>
+                <option value="pepsico">PepsiCo Corporate Campuses</option>
+                <option value="metro">Mass Transit Metro Hubs</option>
+                <option value="ucp">University Campus Network</option>
+                <option value="unilever">Unilever Pakistan HQ</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 t-text-muted absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Site Location Scope */}
+          <div>
+            <label className="block text-xs font-semibold t-text-secondary mb-1">Machine Location / City</label>
+            <div className="relative">
+              <select
+                value={locationScope}
+                onChange={(e) => handleFilterChange('location', e.target.value)}
+                className="w-full appearance-none t-bg-sec border t-border t-text-primary text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="all">Nationwide Machine Network</option>
+                <option value="lhr-hub">Lahore - Central Metro Station</option>
+                <option value="rwp-plaza">Rawalpindi - North Plaza</option>
+                <option value="isb-campus">Islamabad - Green Campus</option>
+                <option value="khi-west">Karachi - West Business District</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 t-text-muted absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Machine Category */}
+          <div>
+            <label className="block text-xs font-semibold t-text-secondary mb-1">Machine Category</label>
+            <div className="relative">
+              <select
+                value={machineScope}
+                onChange={(e) => handleFilterChange('machine', e.target.value)}
+                className="w-full appearance-none t-bg-sec border t-border t-text-primary text-xs font-medium rounded-xl px-3 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="all">All Machines (Cumulative)</option>
+                <option value="smart-rvm">Smart RVM (Public AI Optical Kiosks)</option>
+                <option value="pecodrop">PecoDrop (Corporate Scale Units)</option>
+                <option value="old-rvm">Legacy RVM (Counter Kiosks)</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 t-text-muted absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Report Selector Tabs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        
+        {/* Tab 1: Sustainability & ESG */}
+        <button
+          onClick={() => { setActiveReport('sustainability'); showToast('Switched report to: 1. Sustainability & ESG'); }}
+          className={`p-4 rounded-2xl border-2 transition-all text-left group ${
+            activeReport === 'sustainability'
+              ? 'glass-panel border-emerald-600 shadow-md ring-1 ring-emerald-500/30'
+              : 't-bg-sec border t-border hover:border-slate-400/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold">
+              <Leaf className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              ISO 14064
+            </span>
+          </div>
+          <div className="font-bold text-sm t-text-primary group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
+            1. Sustainability &amp; ESG
+          </div>
+          <div className="text-xs t-text-muted truncate mt-0.5">
+            Carbon offsets, trees &amp; landfill savings
+          </div>
+        </button>
+
+        {/* Tab 2: Machine Uptime & Speed */}
+        <button
+          onClick={() => { setActiveReport('uptime'); showToast('Switched report to: 2. Machine Uptime & Speed'); }}
+          className={`p-4 rounded-2xl border-2 transition-all text-left group ${
+            activeReport === 'uptime'
+              ? 'glass-panel border-blue-600 shadow-md ring-1 ring-blue-500/30'
+              : 't-bg-sec border t-border hover:border-slate-400/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-400 flex items-center justify-center font-bold">
+              <Activity className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+              Hardware Fleet
+            </span>
+          </div>
+          <div className="font-bold text-sm t-text-primary group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">
+            2. Machine Uptime &amp; Speed
+          </div>
+          <div className="text-xs t-text-muted truncate mt-0.5">
+            Uptime %, bin emptying &amp; alerts
+          </div>
+        </button>
+
+        {/* Tab 3: Material Volumes & Sizes */}
+        <button
+          onClick={() => { setActiveReport('intake'); showToast('Switched report to: 3. Material Volumes & Sizes'); }}
+          className={`p-4 rounded-2xl border-2 transition-all text-left group ${
+            activeReport === 'intake'
+              ? 'glass-panel border-amber-600 shadow-md ring-1 ring-amber-500/30'
+              : 't-bg-sec border t-border hover:border-slate-400/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold">
+              <Layers className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+              Intake Mass
+            </span>
+          </div>
+          <div className="font-bold text-sm t-text-primary group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+            3. Material Volumes &amp; Sizes
+          </div>
+          <div className="text-xs t-text-muted truncate mt-0.5">
+            Variant breakdown &amp; peak intake hours
+          </div>
+        </button>
+
+        {/* Tab 4: Financial & Rewards Audit */}
+        <button
+          onClick={() => { setActiveReport('financial'); showToast('Switched report to: 4. Financial & Rewards Audit'); }}
+          className={`p-4 rounded-2xl border-2 transition-all text-left group ${
+            activeReport === 'financial'
+              ? 'glass-panel border-purple-600 shadow-md ring-1 ring-purple-500/30'
+              : 't-bg-sec border t-border hover:border-slate-400/40'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-700 dark:text-purple-400 flex items-center justify-center font-bold">
+              <Coins className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+              Audit Ledger
+            </span>
+          </div>
+          <div className="font-bold text-sm t-text-primary group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
+            4. Financial &amp; Rewards Audit
+          </div>
+          <div className="text-xs t-text-muted truncate mt-0.5">
+            Voucher liabilities &amp; unit reward cost
+          </div>
+        </button>
+
+      </div>
+
+      {/* REPORT VIEW 1: SUSTAINABILITY & ESG */}
+      {activeReport === 'sustainability' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          {/* Verified Green Impact Hero Strip */}
+          <div className="bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950 rounded-3xl p-6 text-white shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border border-emerald-700/50">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600/40 text-emerald-200 border border-emerald-400/20 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Audited Environmental Offset</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mono">
+                {esgMetrics.co2Kg.toLocaleString()} kg CO₂e Diverted
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-200/90 max-w-xl">
+                Calculated across verified machine intake using standardized life-cycle emissions saved by recycling PET, Aluminium, and Paper instead of virgin manufacturing.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t lg:border-t-0 lg:border-l border-emerald-700/60 pt-4 lg:pt-0 lg:pl-6 text-center">
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-300 mono">~{esgMetrics.matureTrees}</div>
+                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">Mature Trees Saved</div>
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-300 mono">{esgMetrics.kwh.toLocaleString()}</div>
+                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">kWh Energy Conserved</div>
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <div className="text-2xl sm:text-3xl font-black text-white mono">{esgMetrics.landfillM3} m³</div>
+                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">Landfill Diverted</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 ESG Key Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="flex items-center justify-between text-xs font-bold uppercase t-text-muted mb-2">
+                <span>Plastic Bottles (PET)</span>
+                <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-sm">🥤</span>
+              </div>
+              <div className="text-2xl font-black t-text-primary mono">
+                {esgMetrics.petUnits.toLocaleString()} <span className="text-xs font-semibold t-text-muted">units</span>
+              </div>
+              <div className="text-xs t-text-muted mt-2">
+                Est. {(esgMetrics.petUnits * 0.03).toFixed(1)} kg plastic diverted
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="flex items-center justify-between text-xs font-bold uppercase t-text-muted mb-2">
+                <span>Aluminium Cans</span>
+                <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-center justify-center text-sm">🥫</span>
+              </div>
+              <div className="text-2xl font-black t-text-primary mono">
+                {esgMetrics.aluUnits.toLocaleString()} <span className="text-xs font-semibold t-text-muted">units</span>
+              </div>
+              <div className="text-xs t-text-muted mt-2">
+                Est. {(esgMetrics.aluUnits * 0.015).toFixed(1)} kg high-grade alloy
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="flex items-center justify-between text-xs font-bold uppercase t-text-muted mb-2">
+                <span>Tetra Pak Cartons</span>
+                <span className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-400 flex items-center justify-center text-sm">🧃</span>
+              </div>
+              <div className="text-2xl font-black t-text-primary mono">
+                {esgMetrics.tetraUnits.toLocaleString()} <span className="text-xs font-semibold t-text-muted">units</span>
+              </div>
+              <div className="text-xs t-text-muted mt-2">
+                Est. {(esgMetrics.tetraUnits * 0.03).toFixed(1)} kg carton fibre saved
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="flex items-center justify-between text-xs font-bold uppercase t-text-muted mb-2">
+                <span>Weighed Office Paper</span>
+                <span className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-700 dark:text-purple-400 flex items-center justify-center text-sm">📄</span>
+              </div>
+              <div className="text-2xl font-black t-text-primary mono">
+                {esgMetrics.paperKg.toLocaleString()} <span className="text-xs font-semibold t-text-muted">kg</span>
+              </div>
+              <div className="text-xs t-text-muted mt-2">
+                100% Weighed on PecoDrop scales
+              </div>
+            </div>
+          </div>
+
+          {/* ESG Trend Velocity Chart & CSR Equivalents */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8 glass-panel p-5 rounded-2xl border t-border">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold t-text-primary">Daily Carbon Avoided Velocity (kg CO₂e)</h3>
+                  <p className="text-xs t-text-muted">Verified environmental emission offsets over past 14 days</p>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                  isSelected ? activeStyle.badge : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                }`}>
-                  {rep.badge}
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md">
+                  ISO Compliant
+                </span>
+              </div>
+              <div className="h-64 sm:h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={esgTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                    <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                      formatter={(val) => [`${val} kg CO₂e`, 'Avoided']}
+                    />
+                    <Bar dataKey="co2" fill="#059669" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="lg:col-span-4 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary mb-1">Corporate CSR Equivalents</h3>
+                <p className="text-xs t-text-muted mb-4">Real-world environmental translations</p>
+                
+                <div className="space-y-3.5">
+                  <div className="flex items-center gap-3 p-3 rounded-xl t-bg-sec border t-border">
+                    <div className="w-9 h-9 rounded-lg bg-teal-500/15 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0">
+                      <Archive className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs t-text-muted font-medium">Compacted Landfill Diverted</div>
+                      <div className="text-sm font-bold t-text-primary mono">{esgMetrics.landfillM3} m³ Volume</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 rounded-xl t-bg-sec border t-border">
+                    <div className="w-9 h-9 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs t-text-muted font-medium">Electricity Saved</div>
+                      <div className="text-sm font-bold t-text-primary mono">{esgMetrics.kwh.toLocaleString()} kWh Clean Energy</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 rounded-xl t-bg-sec border t-border">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <Trees className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs t-text-muted font-medium">Forestry Conservation</div>
+                      <div className="text-sm font-bold t-text-primary mono">~{esgMetrics.matureTrees} Mature Trees Equivalent</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t t-border text-[11px] t-text-muted mt-4">
+                Audit standard complies with Pakistan EPA recycling guidelines and GHG Protocol Scope 3 mitigation.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* REPORT VIEW 2: MACHINE UPTIME & SPEED */}
+      {activeReport === 'uptime' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Network Machine Availability</div>
+              <div className="text-2xl font-black t-text-primary mono">98.5%</div>
+              <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1">Average uptime across 12 units</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Avg Service Turnaround</div>
+              <div className="text-2xl font-black t-text-primary mono">34.2 <span className="text-xs font-semibold t-text-muted">mins</span></div>
+              <div className="text-xs t-text-muted mt-1">From "Bin Full" trigger to emptied</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Total Full-Bin Occurrences</div>
+              <div className="text-2xl font-black t-text-primary mono">17 <span className="text-xs font-semibold t-text-muted">events</span></div>
+              <div className="text-xs t-text-muted mt-1">12 Smart RVMs • 5 PecoDrop Paper</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Pending Field Actions</div>
+              <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mono">2 <span className="text-xs font-semibold t-text-muted">units</span></div>
+              <div className="text-xs text-amber-700 dark:text-amber-400 font-semibold mt-1">Field staff notified</div>
+            </div>
+          </div>
+
+          {/* Location Reliability Table */}
+          <div className="glass-panel rounded-2xl border t-border overflow-hidden">
+            <div className="p-5 border-b t-border flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary">Machine Reliability &amp; Service Turnaround by Location</h3>
+                <p className="text-xs t-text-muted">Live service telemetry across corporate campuses and transit spots</p>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                Live Network Sync
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="t-bg-sec/70 border-b t-border t-text-muted uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="py-3.5 px-4">Location Name</th>
+                    <th className="py-3.5 px-4">Smart RVM Uptime</th>
+                    <th className="py-3.5 px-4">PecoDrop Uptime</th>
+                    <th className="py-3.5 px-4">Avg Emptying Speed</th>
+                    <th className="py-3.5 px-4">Weekly Intake</th>
+                    <th className="py-3.5 px-4 text-right">Operational Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y t-border t-text-primary">
+                  {fleetLocations.map((row, idx) => (
+                    <tr key={idx} className="hover:t-bg-hover transition-colors">
+                      <td className="py-3.5 px-4 font-bold">{row.location}</td>
+                      <td className="py-3.5 px-4 text-emerald-700 dark:text-emerald-400 font-bold mono">{row.rvmUptime}</td>
+                      <td className="py-3.5 px-4 text-emerald-700 dark:text-emerald-400 font-bold mono">{row.pecoUptime}</td>
+                      <td className="py-3.5 px-4 mono">{row.turnaround}</td>
+                      <td className="py-3.5 px-4 mono">{row.weeklyIntake}</td>
+                      <td className="py-3.5 px-4 text-right">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold border text-[11px] ${row.badgeColor}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Diagnostic Load Cell Tare & Anomalies Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Scale Calibration Log */}
+            <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b t-border">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1.5">
+                  <Sliders className="w-4 h-4 text-purple-600" />
+                  Load Scale Tare Calibration Log
+                </h4>
+                <span className="text-[11px] t-text-muted mono">PecoDrop Load Cells</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="t-bg-sec/50 text-[10px] uppercase font-bold t-text-muted">
+                    <tr>
+                      <th className="p-2">Log ID</th>
+                      <th className="p-2">Unit</th>
+                      <th className="p-2">Zero Drift</th>
+                      <th className="p-2">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y t-border">
+                    {calibrationLogs.map(log => (
+                      <tr key={log.id} className="hover:t-bg-hover">
+                        <td className="p-2 font-bold text-cyan-600 dark:text-cyan-400">{log.id}</td>
+                        <td className="p-2 t-text-primary font-bold">{log.unit}</td>
+                        <td className="p-2 text-amber-600 dark:text-amber-400">{log.zeroDrift}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            log.status === 'Optimal' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Scale Strain Gauge Anomalies */}
+            <div className="glass-panel p-5 rounded-2xl border t-border space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b t-border">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  Strain Gauge Anomaly Feed
+                </h4>
+                <span className="text-[11px] t-text-muted mono">Live Alerts</span>
+              </div>
+              <div className="space-y-2 text-xs">
+                {scaleAnomalies.map(item => (
+                  <div key={item.id} className="p-2.5 rounded-xl t-bg-sec border t-border flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-bold t-text-primary flex items-center gap-1.5">
+                        <span className="text-cyan-600 dark:text-cyan-400 font-mono">[{item.id}]</span>
+                        <span>{item.unit}:</span>
+                        <span className="font-normal">{item.event}</span>
+                      </div>
+                      <div className="text-[10px] t-text-muted mt-0.5">{item.action}</div>
+                    </div>
+                    <span className="text-[10px] t-text-muted mono shrink-0">{item.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* REPORT VIEW 3: MATERIAL INTAKE VOLUMES */}
+      {activeReport === 'intake' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Donut Chart */}
+            <div className="lg:col-span-4 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary mb-1">Recycled Stream Share</h3>
+                <p className="text-xs t-text-muted mb-4">Volume distribution across the machine network</p>
+                <div className="relative h-56 flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={streamShareData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {streamShareData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                        formatter={(val) => [val.toLocaleString(), 'Count / kg']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t t-border flex items-center justify-between text-xs">
+                <span className="t-text-muted">Peak Intake Window:</span>
+                <span className="font-bold t-text-primary t-bg-sec px-2.5 py-1 rounded-lg border t-border mono">
+                  12:00 PM – 3:00 PM
+                </span>
+              </div>
+            </div>
+
+            {/* Variant Breakdowns */}
+            <div className="lg:col-span-8 glass-panel p-5 rounded-2xl border t-border space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b t-border">
+                <div>
+                  <h3 className="text-sm font-bold t-text-primary">Variant Sizes &amp; Quantity Distribution</h3>
+                  <p className="text-xs t-text-muted">Detailed item intake counts by sub-size</p>
+                </div>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                  All Machines
                 </span>
               </div>
 
-              <div>
-                <div className="text-xs font-black leading-tight text-slate-950 dark:text-white">
-                  {rep.title}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* PET Variants */}
+                <div className="p-3.5 rounded-xl t-bg-sec border t-border">
+                  <div className="font-bold text-xs t-text-primary mb-2 flex items-center justify-between">
+                    <span>🥤 Plastic Bottles (PET)</span>
+                    <span className="t-text-muted font-medium mono">{esgMetrics.petUnits.toLocaleString()} Total pcs</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs t-text-secondary">
+                    <div className="flex justify-between">
+                      <span>Small (345 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.petUnits * 0.15).toLocaleString()} (15%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Medium (500 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.petUnits * 0.69).toLocaleString()} (69%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Large (1,000 - 1,500 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.petUnits * 0.16).toLocaleString()} (16%)</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-700 dark:text-slate-300 mt-1 leading-snug font-medium">
-                  {rep.description}
+
+                {/* Aluminium Variants */}
+                <div className="p-3.5 rounded-xl t-bg-sec border t-border">
+                  <div className="font-bold text-xs t-text-primary mb-2 flex items-center justify-between">
+                    <span>🥫 Aluminium Cans</span>
+                    <span className="t-text-muted font-medium mono">{esgMetrics.aluUnits.toLocaleString()} Total pcs</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs t-text-secondary">
+                    <div className="flex justify-between">
+                      <span>Slim (250 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.aluUnits * 0.50).toLocaleString()} (50%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Standard (375 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.aluUnits * 0.40).toLocaleString()} (40%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tallboy (500 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.aluUnits * 0.10).toLocaleString()} (10%)</span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Tetra Pak Variants */}
+                <div className="p-3.5 rounded-xl t-bg-sec border t-border">
+                  <div className="font-bold text-xs t-text-primary mb-2 flex items-center justify-between">
+                    <span>🧃 Tetra Pak Cartons</span>
+                    <span className="t-text-muted font-medium mono">{esgMetrics.tetraUnits.toLocaleString()} Total pcs</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs t-text-secondary">
+                    <div className="flex justify-between">
+                      <span>Portion (200 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.tetraUnits * 0.72).toLocaleString()} (72%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Standard (1,000 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.tetraUnits * 0.25).toLocaleString()} (25%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Family (1,500 ml):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(esgMetrics.tetraUnits * 0.03).toLocaleString()} (3%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Paper Tiers */}
+                <div className="p-3.5 rounded-xl t-bg-sec border t-border">
+                  <div className="font-bold text-xs t-text-primary mb-2 flex items-center justify-between">
+                    <span>📄 Weighed Paper (PecoDrop)</span>
+                    <span className="t-text-muted font-medium mono">{esgMetrics.paperKg.toLocaleString()} kg Total</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs t-text-secondary">
+                    <div className="flex justify-between">
+                      <span>Micro Drops (&lt; 50g):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(42 * scopeMultiplier)} drops</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Office Files (100 - 250g):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(84 * scopeMultiplier)} drops</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Bulk Archives (500g - 1kg):</span> 
+                      <span className="font-bold t-text-primary mono">{Math.round(62 * scopeMultiplier)} drops</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
-            </button>
-          );
-        })}
-      </div>
+            </div>
 
-      {/* Selected Report Content */}
-      <div className="pt-2">
-        {activeReport === 'paper_calibration' && renderPaperCalibrationReport()}
-        {activeReport === 'fleet_efficiency' && renderFleetEfficiencyReport()}
-        {activeReport === 'esg_diversion' && renderESGReport()}
-        {activeReport === 'loyalty_audit' && renderFinancialAuditReport()}
-      </div>
-
-      {/* Final Updated Core Logic Diagram Visualizer */}
-      <div className="glass-panel p-6 rounded-3xl border border-emerald-500/30 space-y-4">
-        <div className="flex items-center justify-between border-b t-border pb-3">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-black uppercase tracking-wider t-text-primary">
-              Final Updated Core Logic Architecture
-            </h3>
           </div>
-          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded bg-emerald-500/20 text-[#0b5d3b] dark:text-emerald-300 font-bold border border-emerald-500/30">
-            EcoDrop Intake Standards
+
+        </div>
+      )}
+
+      {/* REPORT VIEW 4: FINANCIAL & REWARDS AUDIT */}
+      {activeReport === 'financial' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Total Points Issued</div>
+              <div className="text-2xl font-black t-text-primary mono">
+                {totalFinancialLiability.totalPoints.toLocaleString()} <span className="text-xs font-semibold t-text-muted">pts</span>
+              </div>
+              <div className="text-xs t-text-muted mt-1">Across all recycling drops</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Total Voucher Liability</div>
+              <div className="text-2xl font-black text-purple-700 dark:text-purple-400 mono">
+                PKR {totalFinancialLiability.totalCash.toLocaleString()}
+              </div>
+              <div className="text-xs t-text-muted mt-1">Rule: 1,000 pts = PKR 200 Voucher</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Avg Reward Cost per Unit</div>
+              <div className="text-2xl font-black t-text-primary mono">PKR 1.15</div>
+              <div className="text-xs t-text-muted mt-1">Weighted average across bottles/cans</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border t-border">
+              <div className="text-xs font-bold uppercase t-text-muted mb-1">Paper Acquisition Cost</div>
+              <div className="text-2xl font-black t-text-primary mono">
+                PKR 10.00 <span className="text-xs font-semibold t-text-muted">/ kg</span>
+              </div>
+              <div className="text-xs t-text-muted mt-1">Based on 100 pts per kg scale policy</div>
+            </div>
+          </div>
+
+          {/* Financial Reconciliation Audit Ledger Table */}
+          <div className="glass-panel rounded-2xl border t-border overflow-hidden">
+            <div className="p-5 border-b t-border flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary">Reward Points Reconciliation by Material Category</h3>
+                <p className="text-xs t-text-muted">Corporate and public payout liability balance</p>
+              </div>
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-md border border-purple-500/20">
+                Reconciled Ledger
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="t-bg-sec/70 border-b t-border t-text-muted uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="py-3.5 px-4">Material Category</th>
+                    <th className="py-3.5 px-4">Intake Volume</th>
+                    <th className="py-3.5 px-4">Point Conversion Rule</th>
+                    <th className="py-3.5 px-4">Points Issued</th>
+                    <th className="py-3.5 px-4 text-right">Cash Value (PKR)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y t-border t-text-primary">
+                  {financialRows.map((row, idx) => (
+                    <tr key={idx} className="hover:t-bg-hover transition-colors">
+                      <td className="py-3.5 px-4 font-bold">{row.material}</td>
+                      <td className="py-3.5 px-4 mono">{row.volume}</td>
+                      <td className="py-3.5 px-4 t-text-muted">{row.rule}</td>
+                      <td className="py-3.5 px-4 font-semibold mono">{row.points.toLocaleString()} pts</td>
+                      <td className="py-3.5 px-4 font-bold text-right mono">PKR {row.cashPkr.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="t-bg-sec/80 font-bold border-t t-border">
+                  <tr>
+                    <td className="py-3.5 px-4 t-text-primary" colSpan={3}>Total Fleet Point Liability</td>
+                    <td className="py-3.5 px-4 text-purple-700 dark:text-purple-400 font-extrabold mono">
+                      {totalFinancialLiability.totalPoints.toLocaleString()} pts
+                    </td>
+                    <td className="py-3.5 px-4 text-right text-purple-700 dark:text-purple-400 font-extrabold mono">
+                      PKR {totalFinancialLiability.totalCash.toLocaleString()}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* Export Report Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl max-w-md w-full p-6 border t-border shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b t-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <FileCheck className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold t-text-primary text-base">Export Audit Report</h3>
+              </div>
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="p-1.5 t-text-muted hover:t-text-primary rounded-lg t-bg-sec border t-border"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs t-text-secondary leading-relaxed">
+              Download the customized analytics report matching your selected query filters for management review, executive presentations, or CSR disclosures.
+            </p>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold t-text-primary">Choose Format</label>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <label
+                  onClick={() => setExportFormat('pdf')}
+                  className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                    exportFormat === 'pdf'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold'
+                      : 'border-slate-300 dark:border-slate-700 t-bg-sec text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reportFormat"
+                    checked={exportFormat === 'pdf'}
+                    onChange={() => setExportFormat('pdf')}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Executive PDF</span>
+                </label>
+
+                <label
+                  onClick={() => setExportFormat('csv')}
+                  className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                    exportFormat === 'csv'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold'
+                      : 'border-slate-300 dark:border-slate-700 t-bg-sec text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="reportFormat"
+                    checked={exportFormat === 'csv'}
+                    onChange={() => setExportFormat('csv')}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Excel / CSV</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t t-border text-xs font-semibold">
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2 t-text-secondary hover:t-bg-sec rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteExport}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-sm font-bold"
+              >
+                Download File
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold animate-slide-up">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Footer Strip */}
+      <footer className="glass-panel p-4 rounded-2xl border t-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs t-text-secondary">
+        <div className="flex items-center gap-2">
+          <span>© 2026 ISP Environmental Solutions Pvt. Ltd.</span>
+          <span>•</span>
+          <span>Reports &amp; Analytics Hub</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span>Audited Machine Network</span>
+          <span>•</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            System Ready
           </span>
         </div>
-
-        {/* ASCII / Graphical Architecture Tree */}
-        <div className="p-4 rounded-2xl t-bg-sec border t-border overflow-x-auto">
-          <pre className="font-mono text-xs text-[#0b5d3b] dark:text-emerald-300 font-bold leading-relaxed mx-auto w-fit">
-{`                         ECODROP
-                            │
-             ┌──────────────┴──────────────┐
-             │                             │
-      SMART RECYCLING                   PICODROP
-       Single Hopper                  Three Inputs
-             │                             │
-      ┌──────┼──────┐             ┌───────┼────────┐
-      │      │      │             │       │        │
-     PET   Metal  Cardboard/     PET    Metal    Paper
-                    TetraPak
-      │      │      │             │       │        │
-      └──────┴──────┘             └───────┴────────┘
-             │                             │
-          COUNT                         COUNT
-       Per Unit Reward               Per Unit Reward
-                                            │
-                                          Paper
-                                            │
-                                         WEIGHT
-                                            │
-                                      Load Cell kg
-                                            │
-                                      Weight Reward`}
-          </pre>
-        </div>
-      </div>
+      </footer>
 
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText, Building2
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText, Building2, BarChart3
 } from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
 
@@ -79,7 +79,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     ...((isClientAdmin || isSuperAdmin) ? [
       { id: 'sub_users', label: 'Team & Machine Access', icon: Users },
     ] : []),
-    { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText },
+    { id: 'reporting_hub', label: 'Reports & Analytics Hub', icon: BarChart3 },
     ...((!isClientAdmin && !isCorporateSubUser) ? [
       { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
       { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users },

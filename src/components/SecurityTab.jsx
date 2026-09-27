@@ -3,7 +3,7 @@ import {
   ShieldCheck, UserPlus, Users, KeyRound, Cpu, Eye, Lock, 
   CheckCircle2, AlertTriangle, RefreshCw, Trash2, Edit3, Check, X, ShieldAlert, Key, Plus,
   FileText, Smartphone, Leaf, Trophy, Tv, ArrowRightLeft, HardDrive, Recycle, Settings, 
-  MessageSquare, CheckSquare, Square, Sliders, Layers, LayoutDashboard, Table, Shield
+  MessageSquare, CheckSquare, Square, Sliders, Layers, LayoutDashboard, Table, Shield, BarChart3
 } from 'lucide-react';
 
 export const AVAILABLE_SYSTEM_MENUS = [
@@ -12,7 +12,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
     badge: 'Main Nav',
     items: [
       { id: 'overview', label: 'System Overview', icon: LayoutDashboard, desc: 'Live fleet KPI metrics, deposit intake breakdown & recent activity' },
-      { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText, desc: 'PicoDrop paper scale calibration, fleet uptime, ESG & financial audits' },
+      { id: 'reporting_hub', label: 'Reports & Analytics Hub', icon: BarChart3, desc: 'Compliance audits, fleet uptime, material volume variants & financial ledger' },
       { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users, desc: 'Recycler directory, mobile app accounts, points balances & redemption logs' },
       { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf, desc: 'ISO 14064 third-party audited carbon offset ledger, diverted landfill & tree equivalents' },
       { id: 'analytics', label: 'Green Champions & Leaderboard', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
