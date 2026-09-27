@@ -2111,7 +2111,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
       if (pool) {
         try {
           const uRes = await pool.query(`
-            SELECT u.user_id, u.full_name, u.mobile, u.username, u.user_type, u.org_id, o.name AS org_name 
+            SELECT u.user_id, u.full_name, u.mobile, u.username, u.user_type, u.org_id, u.points_balance, o.name AS org_name 
             FROM users u 
             LEFT JOIN organizations o ON u.org_id = o.org_id;
           `);
@@ -2123,6 +2123,26 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
           });
         } catch (e) {
           console.error('[Leaderboard PG users join notice]:', e.message);
+        }
+      }
+
+      // Query total points redeemed per user
+      const userRedemptionsMap = {};
+      if (pool) {
+        try {
+          const rRes = await pool.query(`
+            SELECT user_id, mobile, SUM(points_redeemed) AS total_redeemed
+            FROM redemptions
+            WHERE status != 'cancelled'
+            GROUP BY user_id, mobile;
+          `);
+          rRes.rows.forEach(r => {
+            const pts = parseInt(r.total_redeemed || 0);
+            if (r.user_id) userRedemptionsMap[r.user_id] = (userRedemptionsMap[r.user_id] || 0) + pts;
+            if (r.mobile) userRedemptionsMap[r.mobile] = (userRedemptionsMap[r.mobile] || 0) + pts;
+          });
+        } catch (e) {
+          // non-blocking
         }
       }
 
@@ -2184,6 +2204,8 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
           const clientName = uProf?.org_name || (mClient && !mClient.includes('Master') ? mClient.replace('Client: ', '') : '');
           const isRegistered = Boolean(uProf && uProf.full_name && uProf.full_name.trim().length > 0);
           const registeredName = isRegistered ? uProf.full_name.trim() : '';
+          const explicitBalance = uProf?.points_balance !== undefined && uProf?.points_balance !== null ? parseInt(uProf.points_balance) : null;
+          const redeemed = userRedemptionsMap[phone] || userRedemptionsMap[s.userId] || 0;
 
           grouped[phone] = {
             _id: phone,
@@ -2200,7 +2222,9 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
             totalTetra: 0,
             totalItems: 0,
             totalPoints: 0,
-            totalSessions: 0
+            totalSessions: 0,
+            explicitBalance,
+            pointsRedeemed: redeemed
           };
         }
         const pCount = parseInt(s.plasticCount || s.plastic_count || s.bottles || 0);
@@ -2245,11 +2269,19 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
       leaderboard = leaderboard
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .slice(0, 50)
-        .map((u, idx) => ({
-          ...u,
-          rank: idx + 1,
-          equivalentPkr: Math.round(u.totalPoints * 0.2) // 1,000 pts = PKR 200
-        }));
+        .map((u, idx) => {
+          const availablePts = u.explicitBalance !== null && u.explicitBalance !== undefined 
+            ? Math.max(0, u.explicitBalance) 
+            : Math.max(0, u.totalPoints - (u.pointsRedeemed || 0));
+          return {
+            ...u,
+            rank: idx + 1,
+            availablePoints: availablePts,
+            points_balance: availablePts,
+            equivalentPkr: Math.round(availablePts * 0.2), // 1,000 pts = PKR 200
+            lifetimePoints: u.totalPoints
+          };
+        });
 
       return res.json(leaderboard);
     }
@@ -2297,11 +2329,15 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
       payoutMethod = 'easypaisa', 
       amountPkr, 
       voucherTitle, 
-      note 
+      note,
+      allowOverdraft = false
     } = req.body;
     
     const pool = getPgPool();
     const cleanAmount = parseInt(amountPkr || 1000);
+    const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1 (1 pt = Rs. 0.20)
+    const phone = (recipientPhone || targetUserId || '03000000000').trim();
+    const userLabel = recipientName || targetUserId || 'Leaderboard Champion';
     
     // Channel-specific reference prefix and display name
     let prefix = 'EP';
@@ -2326,15 +2362,62 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
       category = 'voucher';
     }
 
+    // 1. Balance Verification: Ensure user has sufficient points unless admin overdraft is explicitly granted
+    let userRow = null;
+    let availablePoints = 0;
+
+    if (pool) {
+      try {
+        const uRes = await pool.query(`
+          SELECT user_id, username, mobile, points_balance, full_name
+          FROM users
+          WHERE user_id = $1 OR mobile = $1 OR username = $1 OR mobile = $2 OR user_id = $2
+          LIMIT 1;
+        `, [targetUserId, phone]);
+
+        if (uRes.rows.length > 0) {
+          userRow = uRes.rows[0];
+          availablePoints = parseInt(userRow.points_balance || 0);
+        } else {
+          // If no row in users table, calculate earned minus redeemed
+          const sRes = await pool.query(`
+            SELECT COALESCE(SUM(points_earned), 0) AS total_pts
+            FROM recycling_sessions
+            WHERE user_id = $1 OR user_id = $2;
+          `, [targetUserId, phone]);
+          const rRes = await pool.query(`
+            SELECT COALESCE(SUM(points_redeemed), 0) AS redeemed_pts
+            FROM redemptions
+            WHERE (user_id = $1 OR mobile = $2) AND status != 'cancelled';
+          `, [targetUserId, phone]);
+          const earned = parseInt(sRes.rows[0]?.total_pts || 0);
+          const redeemed = parseInt(rRes.rows[0]?.redeemed_pts || 0);
+          availablePoints = Math.max(0, earned - redeemed);
+        }
+      } catch (checkErr) {
+        console.error('Balance verification notice:', checkErr.message);
+      }
+    }
+
+    // STRICT CHECK: Insufficient balance validation unless admin overdraft is explicitly granted
+    if (!allowOverdraft && availablePoints < ptsRedeemed) {
+      const maxPkr = Math.floor(availablePoints * 0.2);
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient wallet balance! User has ${availablePoints.toLocaleString()} pts (max payout PKR ${maxPkr.toLocaleString()}), but PKR ${cleanAmount.toLocaleString()} requires ${ptsRedeemed.toLocaleString()} pts.`,
+        availablePoints,
+        ptsRedeemed,
+        maxPkr
+      });
+    }
+
     const txCode = `${prefix}-PKR${cleanAmount}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const redemptionId = `RED_${prefix}_${Date.now()}`;
-    const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1 (1 pt = Rs. 0.20)
-    const phone = recipientPhone || targetUserId || '03000000000';
-    const userLabel = recipientName || targetUserId || 'Leaderboard Champion';
     const finalTitle = voucherTitle || `PKR ${cleanAmount.toLocaleString()} ${methodLabel} Payout`;
     const finalNote = note || `${methodLabel} incentive payout for Green Champion`;
 
     if (pool) {
+      // 2. Insert into redemptions table
       await pool.query(`
         INSERT INTO redemptions (
           redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
@@ -2352,7 +2435,43 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
         finalNote,
         category
       ]).catch(e => console.error('PG insert redemption notice:', e.message));
+
+      // 3. Deduct redeemed points from user's balance if not an overdraft grant
+      if (!allowOverdraft) {
+        try {
+          if (userRow) {
+            const newBal = Math.max(0, availablePoints - ptsRedeemed);
+            await pool.query(`
+              UPDATE users 
+              SET points_balance = $1, last_active = NOW()
+              WHERE user_id = $2;
+            `, [newBal, userRow.user_id]);
+          } else {
+            // If user wasn't registered in users table yet, create or update record
+            await pool.query(`
+              INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
+              VALUES ($1, $2, $3, $4, $5, $6, 'citizen', 'active')
+              ON CONFLICT (user_id) DO UPDATE 
+              SET points_balance = GREATEST(0, users.points_balance - $7);
+            `, [
+              targetUserId || phone,
+              phone,
+              userLabel,
+              phone,
+              `${phone}@isprvm.local`,
+              Math.max(0, availablePoints - ptsRedeemed),
+              ptsRedeemed
+            ]);
+          }
+        } catch (deductErr) {
+          console.error('Points deduction notice:', deductErr.message);
+        }
+      }
     }
+
+    cachedLeaderboardExpiresAt = 0; // invalidate leaderboard cache immediately
+
+    const remainingPoints = allowOverdraft ? availablePoints : Math.max(0, availablePoints - ptsRedeemed);
 
     res.json({
       success: true,
@@ -2362,7 +2481,8 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
       methodLabel,
       amountPkr: cleanAmount,
       pointsRedeemed: ptsRedeemed,
-      recipientPhone: phone
+      recipientPhone: phone,
+      remainingPoints
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

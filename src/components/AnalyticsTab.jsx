@@ -3,7 +3,7 @@ import {
   Trophy, Award, RefreshCw, BarChart2, Sparkles, Gift, Building2, Send, 
   Search, CheckCircle2, ChevronRight, X, Phone, User, Filter, ArrowUpRight,
   ShieldCheck, Zap, Flame, HeartHandshake, DollarSign, Calendar, Check,
-  UserCheck, Users, Wallet, Smartphone, Landmark, CheckCheck
+  UserCheck, Users, Wallet, Smartphone, Landmark, CheckCheck, AlertTriangle
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell 
@@ -31,6 +31,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   const [accountTitle, setAccountTitle] = useState('');
   const [voucherTitle, setVoucherTitle] = useState('Special Milestone Payout');
   const [voucherNote, setVoucherNote] = useState('');
+  const [allowOverdraft, setAllowOverdraft] = useState(false);
   const [isSubmittingVoucher, setIsSubmittingVoucher] = useState(false);
 
   const PAYOUT_METHODS = [
@@ -234,6 +235,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       clientName: 'Engro Corporation',
       mobile: '0300-4146663',
       totalPoints: 712795,
+      availablePoints: 712795,
       rank: 1
     };
     setSelectedChampion(target);
@@ -241,10 +243,31 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     setWalletNumber(phone);
     setAccountTitle(target.registeredName || target.userName || '');
     setPayoutMethod('easypaisa');
-    setVoucherAmount('1000');
-    setIsCustomAmount(false);
-    setCustomAmountInput('1000');
-    setVoucherTitle('Special Milestone Payout');
+    setAllowOverdraft(false);
+
+    // Auto-select affordable preset based on user balance
+    const userPts = Number(target.availablePoints ?? target.points_balance ?? target.totalPoints ?? 0);
+    const maxPkr = Math.floor(userPts * 0.2);
+
+    if (maxPkr >= 1000) {
+      setVoucherAmount('1000');
+      setIsCustomAmount(false);
+      setVoucherTitle('Special Milestone Payout');
+    } else if (maxPkr >= 500) {
+      setVoucherAmount('500');
+      setIsCustomAmount(false);
+      setVoucherTitle('Quick Eco Reward');
+    } else if (maxPkr >= 50) {
+      setVoucherAmount('');
+      setIsCustomAmount(true);
+      setCustomAmountInput(String(maxPkr));
+      setVoucherTitle('Custom Balance Payout');
+    } else {
+      setVoucherAmount('500');
+      setIsCustomAmount(false);
+      setVoucherTitle('Quick Eco Reward');
+    }
+
     setVoucherNote('');
     setIsVoucherModalOpen(true);
   };
@@ -257,6 +280,17 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       showToast('Please specify a valid amount of at least PKR 50', 'error');
       return;
     }
+
+    const ptsRequired = finalAmount * 5;
+    const userPts = Number(selectedChampion.availablePoints ?? selectedChampion.points_balance ?? selectedChampion.totalPoints ?? 0);
+    const maxPkr = Math.floor(userPts * 0.2);
+
+    // Guard against insufficient balance
+    if (!allowOverdraft && ptsRequired > userPts) {
+      showToast(`Insufficient balance! User has ${userPts.toLocaleString()} pts (max payout PKR ${maxPkr.toLocaleString()}), but PKR ${finalAmount.toLocaleString()} requires ${ptsRequired.toLocaleString()} pts.`, 'error');
+      return;
+    }
+
     const cleanPhone = (walletNumber || selectedChampion.mobile || selectedChampion._id || '').trim();
     if (!cleanPhone) {
       showToast('Please specify a destination mobile or wallet number', 'error');
@@ -275,6 +309,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
           recipientName: accountTitle || selectedChampion.registeredName || selectedChampion.userName || 'Champion Recycler',
           payoutMethod,
           amountPkr: finalAmount,
+          allowOverdraft,
           voucherTitle: `PKR ${finalAmount.toLocaleString()} ${selectedMethodObj?.name || 'Payout'}`,
           note: voucherNote || `${selectedMethodObj?.name || 'Wallet'} payout for Green Champion`
         })
@@ -285,6 +320,15 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
         setIsVoucherModalOpen(false);
         setVoucherNote('');
         showToast(data.message || `PKR ${finalAmount.toLocaleString()} successfully dispatched to ${cleanPhone}!`);
+        
+        // Update local champion points and refresh leaderboard
+        if (!allowOverdraft) {
+          const newBal = Math.max(0, userPts - ptsRequired);
+          selectedChampion.totalPoints = newBal;
+          selectedChampion.availablePoints = newBal;
+          selectedChampion.points_balance = newBal;
+        }
+        fetchAnalytics(scope, selectedClient);
       } else {
         const errData = await res.json().catch(() => ({}));
         showToast(errData.error || 'Failed to dispatch payout. Please try again.', 'error');
@@ -1255,104 +1299,174 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
               </div>
 
               {/* Step 3: Select Payout Amount */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold t-text-primary">
-                    2. Select Payout Amount (PKR)
-                  </label>
-                  <span className="text-[11px] t-text-muted">
-                    Rule: 1 pt = Rs. 0.20 (5 pts = PKR 1)
-                  </span>
-                </div>
+              {(() => {
+                const userPts = Number(selectedChampion?.availablePoints ?? selectedChampion?.points_balance ?? selectedChampion?.totalPoints ?? 0);
+                const maxAffordablePkr = Math.floor(userPts * 0.2);
+                const finalAmt = isCustomAmount ? (parseInt(customAmountInput) || 0) : (parseInt(voucherAmount) || 0);
+                const ptsRequired = finalAmt * 5;
+                const isExceeding = ptsRequired > userPts;
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-                  {PRESET_AMOUNTS.map((p) => {
-                    const isSelected = !isCustomAmount && voucherAmount === p.value;
-                    return (
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold t-text-primary">
+                        2. Select Payout Amount (PKR)
+                      </label>
+                      <span className="text-[11px] t-text-muted">
+                        Available Balance: <strong className="text-emerald-600 dark:text-emerald-400 font-mono">{userPts.toLocaleString()} pts (PKR {maxAffordablePkr.toLocaleString()})</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {PRESET_AMOUNTS.map((p) => {
+                        const isSelected = !isCustomAmount && voucherAmount === p.value;
+                        const reqPts = parseInt(p.value) * 5;
+                        const isAffordable = userPts >= reqPts;
+
+                        return (
+                          <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => {
+                              if (!isAffordable && !allowOverdraft) {
+                                showToast(`User has ${userPts.toLocaleString()} pts (worth max PKR ${maxAffordablePkr.toLocaleString()}). Requires ${p.points}. Enable Overdraft Override below to issue as a courtesy grant.`, 'error');
+                                return;
+                              }
+                              setIsCustomAmount(false);
+                              setVoucherAmount(p.value);
+                              setVoucherTitle(p.tier);
+                            }}
+                            className={`p-2.5 rounded-xl border text-center transition-all relative overflow-hidden ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/30'
+                                : !isAffordable && !allowOverdraft
+                                  ? 'opacity-50 border-dashed t-bg-sec t-border hover:opacity-80'
+                                  : 't-bg-sec t-border hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <div className={`font-extrabold text-xs ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 't-text-primary'}`}>
+                              {p.label}
+                            </div>
+                            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mono mt-0.5">
+                              {p.points}
+                            </div>
+                            <div className="text-[9px] t-text-muted mt-0.5 truncate">
+                              {p.tier}
+                            </div>
+                            {!isAffordable && !allowOverdraft && (
+                              <span className="text-[8px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/15 px-1 rounded block mt-1">
+                                Needs {p.points}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Amount Toggle Button */}
+                    <div className="flex items-center gap-2">
                       <button
-                        key={p.value}
                         type="button"
-                        onClick={() => {
-                          setIsCustomAmount(false);
-                          setVoucherAmount(p.value);
-                          setVoucherTitle(p.tier);
-                        }}
-                        className={`p-2.5 rounded-xl border text-center transition-all ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/30'
-                            : 't-bg-sec t-border hover:bg-slate-100 dark:hover:bg-slate-800'
+                        onClick={() => setIsCustomAmount(!isCustomAmount)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                          isCustomAmount 
+                            ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' 
+                            : 't-bg-sec t-border t-text-secondary hover:t-text-primary'
                         }`}
                       >
-                        <div className={`font-extrabold text-xs ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 't-text-primary'}`}>
-                          {p.label}
-                        </div>
-                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mono mt-0.5">
-                          {p.points}
-                        </div>
-                        <div className="text-[9px] t-text-muted mt-0.5 truncate">
-                          {p.tier}
-                        </div>
+                        <span>Custom Amount</span>
                       </button>
-                    );
-                  })}
-                </div>
+                      
+                      {isCustomAmount && (
+                        <div className="flex-1 flex items-center gap-2 animate-fade-in">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">PKR</span>
+                            <input
+                              type="number"
+                              min="50"
+                              step="50"
+                              value={customAmountInput}
+                              onChange={(e) => setCustomAmountInput(e.target.value)}
+                              placeholder={`max PKR ${maxAffordablePkr}`}
+                              className="w-full pl-12 pr-3 py-1.5 t-bg-sec border t-border t-text-primary text-xs rounded-lg font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </div>
+                          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                            = {((parseInt(customAmountInput) || 0) * 5).toLocaleString()} pts
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Custom Amount Toggle Button */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsCustomAmount(!isCustomAmount)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
-                      isCustomAmount 
-                        ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' 
-                        : 't-bg-sec t-border t-text-secondary hover:t-text-primary'
-                    }`}
-                  >
-                    <span>Custom Amount</span>
-                  </button>
-                  
-                  {isCustomAmount && (
-                    <div className="flex-1 flex items-center gap-2 animate-fade-in">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">PKR</span>
-                        <input
-                          type="number"
-                          min="50"
-                          step="50"
-                          value={customAmountInput}
-                          onChange={(e) => setCustomAmountInput(e.target.value)}
-                          placeholder="e.g. 750, 1500, 3000"
-                          className="w-full pl-12 pr-3 py-1.5 t-bg-sec border t-border t-text-primary text-xs rounded-lg font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    {/* Prominent Warning If Exceeding Balance */}
+                    {isExceeding && !allowOverdraft && (
+                      <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5 animate-shake">
+                        <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                        <div>
+                          <span className="font-extrabold text-sm block">Insufficient User Wallet Balance!</span>
+                          <span className="text-[11px] block mt-0.5">
+                            User only has <strong>{userPts.toLocaleString()} pts</strong> (max payout <strong>PKR {maxAffordablePkr.toLocaleString()}</strong>). Cannot dispatch PKR {finalAmt.toLocaleString()} ({ptsRequired.toLocaleString()} pts) without enabling Admin Overdraft Override below.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Super Admin Courtesy Overdraft / Grant Checkbox */}
+                    <div className="p-2.5 rounded-xl border t-border bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between text-xs">
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={allowOverdraft} 
+                          onChange={(e) => setAllowOverdraft(e.target.checked)}
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
                         />
-                      </div>
-                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                        = {((parseInt(customAmountInput) || 0) * 5).toLocaleString()} pts
-                      </span>
+                        <div>
+                          <span className="font-bold t-text-primary">Admin Courtesy Overdraft / Milestone Grant</span>
+                          <p className="text-[10px] t-text-muted">Issue payout without deducting points from user's wallet</p>
+                        </div>
+                      </label>
+                      {allowOverdraft && (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 uppercase tracking-wide">
+                          Override Active
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Step 4: Live Payout Gateway Verification Summary */}
-              {(() => {
-                const finalAmt = isCustomAmount ? (parseInt(customAmountInput) || 0) : (parseInt(voucherAmount) || 1000);
-                const activeMethod = PAYOUT_METHODS.find(m => m.id === payoutMethod) || PAYOUT_METHODS[0];
-                return (
-                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
-                    <div>
-                      <div className="font-extrabold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
-                        <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>Ready to Transfer: PKR {finalAmt.toLocaleString()} via {activeMethod.name}</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
-                        Destination: <span className="font-mono font-bold">{walletNumber || '03XX-XXXXXXX'}</span> • Recipient: <span className="font-semibold">{accountTitle || 'Champion'}</span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-emerald-500/30 mono">
-                        -{(finalAmt * 5).toLocaleString()} Pts
-                      </span>
-                    </div>
+                    {/* Step 4: Live Payout Gateway Verification Summary */}
+                    {(() => {
+                      const activeMethod = PAYOUT_METHODS.find(m => m.id === payoutMethod) || PAYOUT_METHODS[0];
+                      return (
+                        <div className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
+                          isExceeding && !allowOverdraft 
+                            ? 'bg-rose-500/5 border-rose-500/30' 
+                            : 'bg-emerald-500/10 border-emerald-500/30'
+                        }`}>
+                          <div>
+                            <div className={`font-extrabold flex items-center gap-1.5 ${
+                              isExceeding && !allowOverdraft 
+                                ? 'text-rose-700 dark:text-rose-300' 
+                                : 'text-emerald-950 dark:text-emerald-200'
+                            }`}>
+                              <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                              <span>Ready to Transfer: PKR {finalAmt.toLocaleString()} via {activeMethod.name}</span>
+                            </div>
+                            <div className="text-[11px] t-text-muted mt-0.5">
+                              Destination: <span className="font-mono font-bold">{walletNumber || '03XX-XXXXXXX'}</span> • Recipient: <span className="font-semibold">{accountTitle || 'Champion'}</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg border mono ${
+                              allowOverdraft
+                                ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'
+                                : 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                            }`}>
+                              {allowOverdraft ? 'Grant 0 pts' : `-${ptsRequired.toLocaleString()} Pts`}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                   </div>
                 );
               })()}
@@ -1374,32 +1488,49 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-3 border-t t-border shrink-0">
-              <button 
-                onClick={() => setIsVoucherModalOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              
-              <button 
-                onClick={handleDispatchVoucher}
-                disabled={isSubmittingVoucher}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2 text-xs font-extrabold"
-              >
-                {isSubmittingVoucher ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Processing Gateway Transfer...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-3.5 h-3.5" />
-                    <span>Dispatch PKR {isCustomAmount ? (parseInt(customAmountInput) || 0).toLocaleString() : Number(voucherAmount).toLocaleString()} via {PAYOUT_METHODS.find(m => m.id === payoutMethod)?.name || 'Wallet'}</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {(() => {
+              const userPts = Number(selectedChampion?.availablePoints ?? selectedChampion?.points_balance ?? selectedChampion?.totalPoints ?? 0);
+              const finalAmt = isCustomAmount ? (parseInt(customAmountInput) || 0) : (parseInt(voucherAmount) || 0);
+              const ptsRequired = finalAmt * 5;
+              const isBlocked = (!allowOverdraft && ptsRequired > userPts) || finalAmt < 50;
+
+              return (
+                <div className="flex items-center justify-between pt-3 border-t t-border shrink-0">
+                  <button 
+                    onClick={() => setIsVoucherModalOpen(false)}
+                    className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  
+                  <button 
+                    onClick={handleDispatchVoucher}
+                    disabled={isSubmittingVoucher || isBlocked}
+                    className={`px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-extrabold shadow-md ${
+                      isBlocked
+                        ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed border t-border'
+                        : 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-emerald-600/30'
+                    }`}
+                  >
+                    {isSubmittingVoucher ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Processing Gateway Transfer...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="w-3.5 h-3.5" />
+                        <span>
+                          {isBlocked && !allowOverdraft && ptsRequired > userPts
+                            ? `Insufficient Balance (Needs ${ptsRequired.toLocaleString()} pts)`
+                            : `Dispatch PKR ${finalAmt.toLocaleString()} via ${PAYOUT_METHODS.find(m => m.id === payoutMethod)?.name || 'Wallet'}`}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
 
           </div>
         </div>
