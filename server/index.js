@@ -9148,59 +9148,84 @@ app.get('/api/machine/ads', async (req, res) => {
                  category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status,
                  created_at, updated_at
           FROM machine_advertisements
+          ORDER BY display_order ASC, created_at DESC;
         `;
-        let queryParams = [];
-
-        if (machineId && machineId !== 'ALL' && machineId !== '*') {
-          queryText += ` WHERE machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL' `;
-          queryParams.push(machineId);
-        }
-
-        queryText += ` ORDER BY display_order ASC, created_at DESC;`;
-        const result = await pool.query(queryText, queryParams);
+        const result = await pool.query(queryText);
         
+        const isFleetQuery = !machineId || machineId === '*' || machineId === 'ALL';
+        const isPeco = machineId && machineId.toUpperCase().startsWith('PECO');
+        const isRvm = machineId && (machineId.toUpperCase().startsWith('RVM') || machineId.toUpperCase().includes('CENTRAL'));
+
         // Deduplicate rows by file_name or video_url to prevent duplicate UI items
         const seenKeys = new Set();
         for (const r of result.rows) {
           const dedupeKey = (r.file_name || r.video_url || String(r.id)).toLowerCase();
-          if (!seenKeys.has(dedupeKey)) {
-            seenKeys.add(dedupeKey);
-            const rawSize = Number(r.file_size || 0);
-            const sizeLabel = rawSize > 0 ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB` : '14.0 MB';
-            const durSec = r.duration_seconds || 30;
-            const durLabel = `${Math.floor(durSec / 60)}:${String(durSec % 60).padStart(2, '0')}`;
-            
-            let destList = [];
-            if (Array.isArray(r.destinations)) {
-              destList = r.destinations;
-            } else if (typeof r.destinations === 'string') {
-              try { destList = JSON.parse(r.destinations); } catch (e) {}
-            }
+          if (seenKeys.has(dedupeKey)) continue;
 
-            adsList.push({
-              id: r.id,
-              machineId: r.machine_id,
-              title: r.title,
-              videoUrl: r.video_url,
-              fileName: r.file_name || `${r.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.mp4`,
-              fileSize: sizeLabel,
-              fileSizeBytes: rawSize,
-              duration: durLabel,
-              durationSeconds: durSec,
-              aspectRatio: r.aspect_ratio || '16:9 Landscape',
-              categoryBadge: r.category_badge || 'Public RVM',
-              categoryTheme: r.category_theme || 'emerald',
-              status: r.status || (r.is_active ? 'Active Loop' : 'Paused'),
-              isActive: r.is_active,
-              destinations: destList,
-              location: r.location || 'All Locations (Nationwide)',
-              scope: r.scope || 'ALL',
-              thumbnailUrl: r.thumbnail_url || null,
-              displayOrder: r.display_order || 1,
-              createdAt: r.created_at,
-              updatedAt: r.updated_at
-            });
+          let destList = [];
+          if (Array.isArray(r.destinations)) {
+            destList = r.destinations;
+          } else if (typeof r.destinations === 'string') {
+            try { destList = JSON.parse(r.destinations); } catch (e) {}
           }
+
+          // If requesting for a specific machine kiosk (e.g. from RVMDesktopApp or PecoDropDesktopApp), check targeting:
+          if (!isFleetQuery) {
+            // Targeting logic:
+            // 1. Explicit All-Screens broadcast:
+            const hasAllScreens = destList.some(d => 
+              d.id === 'ALL' || d.id === 'GLOBAL-01' || d.id === 'ALL_SCREENS' || 
+              d.label?.toLowerCase().includes('all screen') || d.label?.toLowerCase().includes('all fleet')
+            ) || (destList.length === 0 && (r.machine_id === '*' || r.machine_id === 'ALL'));
+
+            // 2. All-PecoDrop broadcast:
+            const hasAllPeco = isPeco && destList.some(d => 
+              d.id === 'ALL_PECO' || d.label?.toLowerCase().includes('all pecodrop') || d.label?.toLowerCase().includes('all peco')
+            );
+
+            // 3. All-Public-RVM broadcast:
+            const hasAllRvm = isRvm && destList.some(d => 
+              d.id === 'ALL_RVM' || d.label?.toLowerCase().includes('all public rvm') || d.label?.toLowerCase().includes('all rvm')
+            );
+
+            // 4. Specific Machine match:
+            const hasSpecificMatch = (r.machine_id && r.machine_id !== '*' && r.machine_id !== 'ALL' && r.machine_id.toUpperCase() === machineId.toUpperCase()) || 
+              destList.some(d => d.id && d.id.toUpperCase() === machineId.toUpperCase());
+
+            if (!hasAllScreens && !hasAllPeco && !hasAllRvm && !hasSpecificMatch) {
+              continue; // Exclude video: not assigned to this kiosk
+            }
+          }
+
+          seenKeys.add(dedupeKey);
+          const rawSize = Number(r.file_size || 0);
+          const sizeLabel = rawSize > 0 ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB` : '14.0 MB';
+          const durSec = r.duration_seconds || 30;
+          const durLabel = `${Math.floor(durSec / 60)}:${String(durSec % 60).padStart(2, '0')}`;
+
+          adsList.push({
+            id: r.id,
+            machineId: r.machine_id,
+            title: r.title,
+            videoUrl: r.video_url,
+            fileName: r.file_name || `${r.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.mp4`,
+            fileSize: sizeLabel,
+            fileSizeBytes: rawSize,
+            duration: durLabel,
+            durationSeconds: durSec,
+            aspectRatio: r.aspect_ratio || '16:9 Landscape',
+            categoryBadge: r.category_badge || 'Public RVM',
+            categoryTheme: r.category_theme || 'emerald',
+            status: r.status || (r.is_active ? 'Active Loop' : 'Paused'),
+            isActive: r.is_active,
+            destinations: destList,
+            location: r.location || 'All Locations (Nationwide)',
+            scope: r.scope || 'ALL',
+            thumbnailUrl: r.thumbnail_url || null,
+            displayOrder: r.display_order || 1,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at
+          });
         }
       } catch (pgErr) {
         console.error('[GET /api/machine/ads] PostgreSQL error:', pgErr.message);
@@ -9436,6 +9461,48 @@ app.patch('/api/machine/ads/:id/destinations', async (req, res) => {
     }
 
     res.json({ success: true, message: 'Updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Broadcast / Push Video to Selected Displays Immediately
+app.post('/api/machine/ads/:id/push', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+
+    invalidateAdsCache();
+    let ad = null;
+    if (/^\d+$/.test(id)) {
+      const result = await pool.query(`
+        UPDATE machine_advertisements
+        SET updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
+      `, [parseInt(id)]);
+      ad = result.rows[0];
+    }
+
+    res.json({
+      success: true,
+      ad,
+      message: 'Broadcast dispatched! Machine displays will synchronize and play this video.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Sync All Machine Displays Across Fleet
+app.post('/api/machine/ads/sync-all', async (req, res) => {
+  try {
+    invalidateAdsCache();
+    res.json({
+      success: true,
+      message: 'Global synchronization signal dispatched to all connected RVM and PecoDrop displays.'
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
