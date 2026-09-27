@@ -11,7 +11,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
     category: 'Core Dashboards & Signage',
     badge: 'Main Nav',
     items: [
-      { id: 'overview', label: 'System Overview', icon: LayoutDashboard, desc: 'Live fleet KPI metrics, deposit intake breakdown & recent activity' },
+      { id: 'overview', label: 'Master Cumulative Overview', icon: LayoutDashboard, desc: 'Master cumulative machine network KPI metrics, material variant breakdown & live drops' },
       { id: 'reporting_hub', label: 'Reports & Analytics Hub', icon: BarChart3, desc: 'Compliance audits, fleet uptime, material volume variants & financial ledger' },
       { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users, desc: 'Recycler directory, mobile app accounts, points balances & redemption logs' },
       { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf, desc: 'ISO 14064 third-party audited carbon offset ledger, diverted landfill & tree equivalents' },

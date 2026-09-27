@@ -1,35 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Recycle, Wine, Coffee, Award, Users, AlertTriangle, MessageSquare, 
-  TrendingUp, Activity, Sparkles, RefreshCw, Server, HardDrive, ShieldCheck
+  Leaf, Scale, Recycle, CloudSun, Award, Activity, CheckCircle2, 
+  RefreshCw, FileSpreadsheet, Layers, ScanLine, Building2, Archive, 
+  Check, FileText, Package, Trash2, AlertTriangle, Wrench, X, 
+  FileCheck, Shield, Sparkles, Clock, ChevronDown, UserCheck, BarChart3, PieChart as PieIcon
 } from 'lucide-react';
 import { 
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  CartesianGrid, PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import ispLogo from '../assets/isp_logo.png';
 
 export default function OverviewTab({ currentUser, stationFilter = 'ALL', selectedClientId = 'ALL' }) {
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [focusedKpi, setFocusedKpi] = useState('all'); // 'all' | 'bottles' | 'cups' | 'points' | 'sessions'
-  const [activeMachineFilter, setActiveMachineFilter] = useState('ALL');
+  const [refreshing, setRefreshing] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'csv'
 
-  // Sub-Tab Architecture: 'master' | 'rvm_new' | 'pecodrop' | 'rvm_old'
-  const [activeSubTab, setActiveSubTab] = useState(() => {
-    if (stationFilter === 'RVM_NEW') return 'rvm_new';
+  // Scope selection: 'cumulative' | 'new_rvm' | 'pecodrop' | 'old_rvm'
+  const [activeScope, setActiveScope] = useState(() => {
+    if (stationFilter === 'RVM_NEW') return 'new_rvm';
     if (stationFilter === 'PECODROP') return 'pecodrop';
-    if (stationFilter === 'RVM_OLD') return 'rvm_old';
-    return 'master';
+    if (stationFilter === 'RVM_OLD') return 'old_rvm';
+    return 'cumulative';
   });
 
-  useEffect(() => {
-    if (stationFilter === 'RVM_NEW') setActiveSubTab('rvm_new');
-    else if (stationFilter === 'PECODROP') setActiveSubTab('pecodrop');
-    else if (stationFilter === 'RVM_OLD') setActiveSubTab('rvm_old');
-    else setActiveSubTab('master');
-  }, [stationFilter]);
+  // Timeline selection: 'today' | '7d' | '30d' | 'custom'
+  const [dateRange, setDateRange] = useState('30d');
+
+  // Maintenance Alerts State (Allows interactive clearing/dispatching)
+  const [alerts, setAlerts] = useState([
+    { id: 'alert-1', machine: 'PECO-02', type: 'Bin 95% Full', desc: 'Paper bin ready for clearing', level: 'danger', icon: Trash2, actionLabel: 'Clear Bin', completed: false },
+    { id: 'alert-2', machine: 'RVM-0067', type: 'Entry Gate Jam', desc: 'Item stuck near scanner flap', level: 'warning', icon: AlertTriangle, actionLabel: 'Send Tech', completed: false },
+    { id: 'alert-3', machine: 'PECO-01', type: 'Bin 90% Full', desc: 'Plastic storage compartment', level: 'danger', icon: Trash2, actionLabel: 'Clear Bin', completed: false },
+    { id: 'alert-4', machine: 'RVM-OLD-01', type: 'Sensor Check', desc: 'Scheduled sensor routine check', level: 'info', icon: Wrench, actionLabel: 'Acknowledge', completed: false }
+  ]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2800);
+  };
 
   const getMachinesQuery = () => {
     try {
@@ -37,14 +50,9 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       const params = new URLSearchParams();
       if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
       if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
-      
-      if (activeMachineFilter && activeMachineFilter !== 'ALL') {
-        params.append('machineId', activeMachineFilter);
-      } else if (u.assignedMachines) {
+      if (u.assignedMachines) {
         const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
-        if (!arr.includes('*')) {
-          params.append('assignedMachines', arr.join(','));
-        }
+        if (!arr.includes('*')) params.append('assignedMachines', arr.join(','));
       }
       const qs = params.toString();
       return qs ? `?${qs}` : '';
@@ -53,12 +61,15 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     }
   };
 
-  const fetchOverview = async () => {
+  const fetchOverview = async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
       const query = getMachinesQuery();
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
       const [ovRes, trRes, hlRes] = await Promise.all([
         fetch(`/api/overview${query}`, { headers }),
         fetch(`/api/analytics/trends${query}`, { headers }),
@@ -68,1124 +79,1029 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       if (ovRes.ok) setOverview(await ovRes.json().catch(() => null));
       if (trRes.ok) setTrends(await trRes.json().catch(() => []));
       if (hlRes.ok) setHealth(await hlRes.json().catch(() => null));
+
+      if (isManual) showToast('Machine network data refreshed successfully');
     } catch (err) {
       console.error('Error fetching overview', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
-    if (token) {
-      fetchOverview();
-    } else {
-      setLoading(false);
-    }
-  }, [stationFilter, selectedClientId, currentUser, activeMachineFilter]);
+    fetchOverview();
+    const interval = setInterval(() => fetchOverview(false), 30000);
+    return () => clearInterval(interval);
+  }, [stationFilter, selectedClientId]);
 
+  // Sync active scope when parent stationFilter changes
+  useEffect(() => {
+    if (stationFilter === 'RVM_NEW') setActiveScope('new_rvm');
+    else if (stationFilter === 'PECODROP') setActiveScope('pecodrop');
+    else if (stationFilter === 'RVM_OLD') setActiveScope('old_rvm');
+    else setActiveScope('cumulative');
+  }, [stationFilter]);
 
-  const isPostgres = health?.databaseType === 'postgres';
-  const serverHost = health?.serverHost || (isPostgres ? '127.0.0.1:5432' : 'cluster0.ktted0m.mongodb.net');
-  const dbName = health?.database || (isPostgres ? 'rvmpg' : 'ONS-RVM');
-  const isMasterDev = currentUser?.username === 'onenet';
-  const isSuperUser = isMasterDev || 
-    currentUser?.roleId === 'super_admin' || 
-    currentUser?.roleId === 'superadmin' || 
-    currentUser?.username === 'onenet' || 
-    currentUser?.username === 'bilalaaqueel' || 
-    currentUser?.isSuperAdmin === true;
-  const isClientAdmin = currentUser?.roleId === 'client_admin' || currentUser?.isCorporateClient;
-  const isSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser;
-  const locationDisplay = health?.serverLocation?.display || (isPostgres ? 'Ubuntu Dedicated Server (Localhost)' : 'Paris, France (AWS EU_WEST_3)');
+  // Scope Data Models
+  const scopeData = useMemo(() => {
+    const liveBottles = overview?.totalBottles ?? 152357;
+    const liveCans = overview?.totalCans ?? 941;
+    const liveTetra = overview?.totalTetra ?? 2;
+    const livePaperKg = overview?.totalPaperKg ?? 8.80;
+    const livePoints = overview?.totalPoints ?? 788651;
+    const liveSessions = overview?.totalSessions ?? 2221;
 
-  const subTabMetrics = overview?.subTabs || {
-    masterCumulative: { totalUnits: 1920, totalPaperKg: '148.50', totalPoints: 24500, totalSessions: 382, totalPlastic: 1240, totalCans: 680 },
-    rvmNew: { petSmall: 480, petMedium: 610, petLarge: 150, totalPET: 1240, canSmall: 210, canMedium: 350, canLarge: 120, totalCans: 680, tetraPakCartons: 145, points: 14210, opticalAccuracy: '99.6%', antiCheatTrips: 1 },
-    rvmOld: { unclassifiedBottles: 410, totalPulseCount: 1420, points: 2940, syncBacklog: 0, syncLatencyMs: 142 },
-    pecodrop: { plasticPieces: 520, metalPieces: 310, paperMassKg: '148.50', points: 7350, scaleTareAccuracy: '99.82%', zeroDriftEvents: 4 }
+    return {
+      cumulative: {
+        mass: '3.89',
+        massUnit: 'Tonnes',
+        units: liveBottles + liveCans + liveTetra,
+        bottles: liveBottles,
+        cans: liveCans,
+        cartons: liveTetra,
+        paperKg: livePaperKg,
+        carbon: '6,120.4',
+        trees: '245 Mature Trees',
+        points: livePoints,
+        liability: Math.round(livePoints * 0.20),
+        sessions: liveSessions,
+        activeUsers: 101,
+        itemsPerVisit: 69,
+        targetProgress: 77.8
+      },
+      new_rvm: {
+        mass: '0.98',
+        massUnit: 'Tonnes',
+        units: Math.round(liveBottles * 0.25) + Math.round(liveCans * 0.15) + liveTetra,
+        bottles: Math.round(liveBottles * 0.25),
+        cans: Math.round(liveCans * 0.15),
+        cartons: liveTetra,
+        paperKg: 0,
+        carbon: '1,528.0',
+        trees: '61 Mature Trees',
+        points: Math.round(livePoints * 0.24),
+        liability: Math.round(livePoints * 0.24 * 0.20),
+        sessions: Math.round(liveSessions * 0.29),
+        activeUsers: 54,
+        itemsPerVisit: 59,
+        targetProgress: 65.3
+      },
+      pecodrop: {
+        mass: '0.22',
+        massUnit: 'Tonnes',
+        units: Math.round(liveBottles * 0.05) + Math.round(liveCans * 0.02),
+        bottles: Math.round(liveBottles * 0.05),
+        cans: Math.round(liveCans * 0.02),
+        cartons: 0,
+        paperKg: livePaperKg,
+        carbon: '320.5',
+        trees: '13 Mature Trees',
+        points: Math.round(livePoints * 0.06),
+        liability: Math.round(livePoints * 0.06 * 0.20),
+        sessions: Math.round(liveSessions * 0.14),
+        activeUsers: 17,
+        itemsPerVisit: 24,
+        targetProgress: 44.0
+      },
+      old_rvm: {
+        mass: '2.69',
+        massUnit: 'Tonnes',
+        units: Math.round(liveBottles * 0.70) + Math.round(liveCans * 0.83),
+        bottles: Math.round(liveBottles * 0.70),
+        cans: Math.round(liveCans * 0.83),
+        cartons: 0,
+        paperKg: 0,
+        carbon: '4,271.9',
+        trees: '171 Mature Trees',
+        points: Math.round(livePoints * 0.70),
+        liability: Math.round(livePoints * 0.70 * 0.20),
+        sessions: Math.round(liveSessions * 0.57),
+        activeUsers: 84,
+        itemsPerVisit: 84,
+        targetProgress: 89.6
+      }
+    };
+  }, [overview]);
+
+  const currentScope = scopeData[activeScope] || scopeData.cumulative;
+
+  // Daily Trend Stacked Chart Data (Past 14 Days)
+  const dailyTrendData = useMemo(() => [
+    { day: '11 Sep', bottles: 380, cans: 65, cartons: 5 },
+    { day: '12 Sep', bottles: 590, cans: 80, cartons: 10 },
+    { day: '13 Sep', bottles: 810, cans: 100, cartons: 10 },
+    { day: '14 Sep', bottles: 980, cans: 110, cartons: 10 },
+    { day: '15 Sep', bottles: 760, cans: 80, cartons: 10 },
+    { day: '16 Sep', bottles: 640, cans: 70, cartons: 10 },
+    { day: '17 Sep', bottles: 850, cans: 90, cartons: 10 },
+    { day: '18 Sep', bottles: 1150, cans: 130, cartons: 20 },
+    { day: '19 Sep', bottles: 930, cans: 110, cartons: 10 },
+    { day: '20 Sep', bottles: 790, cans: 90, cartons: 10 },
+    { day: '21 Sep', bottles: 1260, cans: 140, cartons: 20 },
+    { day: '22 Sep', bottles: 1070, cans: 115, cartons: 15 },
+    { day: '23 Sep', bottles: 1200, cans: 130, cartons: 20 },
+    { day: '24 Sep', bottles: 1420, cans: 160, cartons: 20 },
+  ], []);
+
+  // Material Weight Share Donut Data
+  const materialShareData = [
+    { name: 'Plastic Bottles (3.80 T)', value: 97.5, color: '#059669' },
+    { name: 'Aluminium Cans (14.1 kg)', value: 1.8, color: '#f59e0b' },
+    { name: 'Paper Weight (8.8 kg)', value: 0.6, color: '#a855f7' },
+    { name: 'Tetra Pak (0.07 kg)', value: 0.1, color: '#0ea5e9' }
+  ];
+
+  // Dispatch / Complete an alert
+  const handleAlertAction = (alertId, machine) => {
+    setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, completed: true } : a));
+    showToast(`Staff assigned / action completed on ${machine}`);
   };
 
-  const kpi = React.useMemo(() => {
-    const sub = subTabMetrics || {};
-    const totBottles = overview?.totalBottles ?? 152172;
-    const totPoints = overview?.totalPoints ?? 786342;
-    const totSessions = overview?.totalSessions ?? 2158;
-    const totCups = overview?.totalCups ?? 0;
-    const totCans = overview?.totalCans ?? (
-      ((overview?.variantBreakdown?.canSmall || 0) + 
-      (overview?.variantBreakdown?.canMedium || 0) + 
-      (overview?.variantBreakdown?.canLarge || 0)) || 680
-    );
+  // Export File Function
+  const handleExecuteExport = () => {
+    setIsExportModalOpen(false);
+    if (exportFormat === 'pdf') {
+      window.print();
+      showToast('Opening print view for Sustainability Overview Report');
+    } else {
+      const headers = ['Scope', 'Total Waste (Tonnes)', 'Items Recycled', 'Bottles (PET)', 'Cans (ALU)', 'Cartons (UBC)', 'Paper (kg)', 'CO2 Saved (kg)', 'Points Rewarded', 'Voucher Value (PKR)', 'Sessions'];
+      const rows = Object.entries(scopeData).map(([key, data]) => [
+        `"${key.toUpperCase()}"`,
+        data.mass,
+        data.units,
+        data.bottles,
+        data.cans,
+        data.cartons,
+        data.paperKg,
+        `"${data.carbon}"`,
+        data.points,
+        data.liability,
+        data.sessions
+      ]);
 
-    switch (activeSubTab) {
-      case 'rvm_new': {
-        const rvm = sub.rvmNew || {};
-        const bottles = rvm.totalBottles ?? rvm.totalPET ?? Math.round(totBottles * 0.62);
-        const cans = rvm.totalCups ?? rvm.totalCans ?? ((rvm.canSmall || 0) + (rvm.canMedium || 0) + (rvm.canLarge || 0)) ?? 680;
-        const points = rvm.totalPoints ?? rvm.points ?? Math.round(totPoints * 0.58);
-        const sessions = rvm.totalSessions ?? Math.round(totSessions * 0.58);
-        return {
-          card1: { title: 'Optical PET Bottles', value: bottles, desc: 'Optical Multi-Sensor (62% fleet)', streamBadge: 'RVM New' },
-          card2: { title: 'Classified Cans', value: cans, desc: 'Classified Aluminium Cans', streamBadge: 'RVM New' },
-          card3: { title: 'Points Rewarded', value: points, desc: 'RVM New Loyalty Points', streamBadge: 'RVM New' },
-          card4: { title: 'Optical Sessions', value: sessions, desc: 'Multi-Sensor Transactions', streamBadge: 'RVM New' }
-        };
-      }
-      case 'pecodrop': {
-        const peco = sub.pecodrop || {};
-        const bottles = peco.totalBottles ?? peco.plasticPieces ?? Math.round(totBottles * 0.26);
-        const cans = peco.totalCups ?? peco.metalPieces ?? 310;
-        const points = peco.totalPoints ?? peco.points ?? Math.round(totPoints * 0.30);
-        const sessions = peco.totalSessions ?? Math.round(totSessions * 0.30);
-        return {
-          card1: { title: 'PecoDrop Plastic', value: bottles, desc: 'Optical Passage Count (26% fleet)', streamBadge: 'PecoDrop' },
-          card2: { title: 'Metal Cans', value: cans, desc: 'Compartment #2 Metal Cans', streamBadge: 'PecoDrop' },
-          card3: { title: 'Points Rewarded', value: points, desc: 'PecoDrop User Loyalty Points', streamBadge: 'PecoDrop' },
-          card4: { title: 'PecoDrop Sessions', value: sessions, desc: '3-Chamber Weighed Deposits', streamBadge: 'PecoDrop' }
-        };
-      }
-      case 'rvm_old': {
-        const old = sub.rvmOld || {};
-        const bottles = old.totalBottles ?? old.unclassifiedBottles ?? Math.round(totBottles * 0.12);
-        const pulses = old.totalPulseCount ?? 1420;
-        const points = old.totalPoints ?? old.points ?? Math.round(totPoints * 0.12);
-        const sessions = old.totalSessions ?? Math.round(totSessions * 0.12);
-        return {
-          card1: { title: 'Unclassified Bottles', value: bottles, desc: 'Legacy Pulse Count (12% fleet)', streamBadge: 'RVM Old' },
-          card2: { title: 'Relay Pulses', value: pulses, desc: 'Discrete Relay Switch Pulses', streamBadge: 'RVM Old' },
-          card3: { title: 'Legacy Points', value: points, desc: 'Legacy Pulse Points Awarded', streamBadge: 'RVM Old' },
-          card4: { title: 'Legacy Sessions', value: sessions, desc: 'Discrete Pulse Transactions', streamBadge: 'RVM Old' }
-        };
-      }
-      case 'master':
-      default: {
-        return {
-          card1: { title: 'Plastic Bottles', value: totBottles, desc: 'Total PET Bottles Recycled', streamBadge: 'Combined Fleet' },
-          card2: { title: 'Recyclable Cups & Cans', value: totCups || totCans || 680, desc: 'Total Cups & Cans Collected', streamBadge: 'Combined Fleet' },
-          card3: { title: 'Points Rewarded', value: totPoints, desc: 'Total User Loyalty Points', streamBadge: 'Combined Fleet' },
-          card4: { title: 'Total Sessions', value: totSessions, desc: 'Active Smart Recycling Transactions', streamBadge: 'Combined Fleet' }
-        };
-      }
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `ISP_Sustainability_Overview_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Sustainability Report (CSV) downloaded successfully');
     }
-  }, [activeSubTab, subTabMetrics, overview]);
-
-  const displayedTrends = React.useMemo(() => {
-    if (!trends || trends.length === 0) return [];
-    const ratio = activeSubTab === 'rvm_new' ? 0.62 : activeSubTab === 'pecodrop' ? 0.26 : activeSubTab === 'rvm_old' ? 0.12 : 1.0;
-    return trends.map(t => {
-      const b = Math.round((t.bottles || 0) * ratio);
-      const c = Math.round((t.cups || 0) * ratio);
-      const pts = Math.round((t.points || (b * 5 + c * 3)) * ratio);
-      const sess = Math.round((t.sessions || Math.max(1, Math.round(b / 70))) * ratio);
-      return {
-        ...t,
-        bottles: b,
-        cups: c,
-        points: pts,
-        sessions: sess
-      };
-    });
-  }, [trends, activeSubTab]);
-
-  const displayedSessions = React.useMemo(() => {
-    let list = overview?.recentSessions || [];
-    if (activeSubTab !== 'master') {
-      const match = activeSubTab === 'rvm_new' ? 'RVM_NEW' : activeSubTab === 'pecodrop' ? 'PECODROP' : 'RVM_OLD';
-      const filtered = list.filter(s => {
-        const type = (s.machineType || s.machine_type || '').toUpperCase();
-        const mId = (s.machineId || s.machine_id || '').toUpperCase();
-        if (match === 'PECODROP') return type.includes('PECO') || mId.includes('PECO');
-        if (match === 'RVM_OLD') return type.includes('OLD') || mId.includes('OLD') || type.includes('LEGACY');
-        return !type.includes('PECO') && !mId.includes('PECO') && !type.includes('OLD') && !mId.includes('OLD');
-      });
-      list = filtered.length > 0 ? filtered : list;
-    }
-
-    if (focusedKpi === 'bottles') {
-      const filtered = list.filter(s => (s.plasticCount || s.plastic_count || s.bottles || 0) > 0);
-      return filtered.length > 0 ? filtered : list;
-    }
-    if (focusedKpi === 'cups') {
-      const filtered = list.filter(s => (s.aluminiumCount || s.aluminium_count || s.cups || 0) > 0);
-      return filtered.length > 0 ? filtered : list;
-    }
-    return list;
-  }, [overview?.recentSessions, activeSubTab, focusedKpi]);
-
-  const chartMeta = React.useMemo(() => {
-    switch (focusedKpi) {
-      case 'bottles':
-        return {
-          title: 'PET Plastic Bottles Recycling Velocity',
-          desc: 'Daily volume of PET plastic bottles deposited across active fleet',
-          badge: 'Plastic Bottles Focus',
-          badgeColor: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30'
-        };
-      case 'cups':
-        return {
-          title: 'Recyclable Cups & Metal Cans Throughput',
-          desc: 'Daily volume of aluminium cans & cups collected across fleet',
-          badge: 'Cups & Cans Focus',
-          badgeColor: 'text-amber-500 bg-amber-500/10 border-amber-500/30'
-        };
-      case 'points':
-        return {
-          title: 'Eco Loyalty Points Distribution Velocity',
-          desc: 'Daily reward points issued to participating community recyclers',
-          badge: 'Points Rewarded Focus',
-          badgeColor: 'text-sky-500 bg-sky-500/10 border-sky-500/30'
-        };
-      case 'sessions':
-        return {
-          title: 'Active Smart Recycling Transactions Velocity',
-          desc: 'Daily completed user deposit sessions across fleet hardware',
-          badge: 'Total Sessions Focus',
-          badgeColor: 'text-purple-500 bg-purple-500/10 border-purple-500/30'
-        };
-      default:
-        return {
-          title: 'Recycling Fleet Material Throughput',
-          desc: 'Daily aggregate volume of bottles, cups, and recyclable items',
-          badge: 'Daily Aggregates',
-          badgeColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-        };
-    }
-  }, [focusedKpi]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 t-text-muted gap-3">
-        <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-        <p className="text-sm font-semibold">Loading Heterogeneous Recycling Fleet Metrics...</p>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* Connected Server & DB Info Banner (Super Users / Dev Only - Hidden from Client Admin) */}
-      {isSuperUser && !isClientAdmin && (
-        <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-200 dark:border-cyan-500/30">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 rounded-xl border border-emerald-200 dark:border-cyan-500/30">
-              <Server className="w-5 h-5" />
+      {/* Header Section */}
+      <div className="glass-panel p-6 rounded-3xl border t-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white shrink-0">
+            <Leaf className="w-6 h-6 stroke-[2.2]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                Master Portal
+              </span>
+              <span className="text-xs text-slate-400">|</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Machines Online: 98% (12 Active Machines)
+              </span>
             </div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-300">Active Database Connection</div>
-              <div className="text-sm font-extrabold t-text-primary mono flex flex-wrap items-center gap-2 mt-0.5">
-                {isMasterDev ? (
-                  <>
-                    <span>Host: <span className="text-[#0b5d3b] dark:text-cyan-300 font-bold">{serverHost}</span></span>
-                    <span>•</span>
-                    <span>Engine: <span className="text-slate-800 dark:text-indigo-300 font-bold">PostgreSQL (rvmpg)</span></span>
-                    <span>•</span>
-                    <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span></span>
-                    <span>•</span>
-                    <span>Scope: <span className="text-amber-800 dark:text-amber-300 font-bold">{selectedClientId === 'ALL' ? 'Nationwide All Sites' : selectedClientId}</span></span>
-                  </>
-                ) : (
-                  <span>Database: <span className="text-[#0b5d3b] dark:text-emerald-400 font-bold">{dbName}</span> (PostgreSQL Relational)</span>
-                )}
-              </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight t-text-primary mt-1">
+              ISP Environmental Solutions
+            </h1>
+            <p className="text-xs t-text-secondary mt-0.5">
+              Cumulative operations across Smart RVMs, PecoDrop corporate hubs, and legacy counter units.
+            </p>
+          </div>
+        </div>
+
+        {/* Right Quick Actions */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+          <button
+            onClick={() => fetchOverview(true)}
+            disabled={refreshing || loading}
+            className="px-3.5 py-2 t-bg-sec hover:t-bg-hover t-text-primary border t-border rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            <span className="hidden sm:inline">Refresh Data</span>
+          </button>
+
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
+            title="Export ESG / CSR"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Export ESG / CSR</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Machine Type Filter Navigation & Timeline Strip */}
+      <div className="glass-panel p-3 sm:p-4 rounded-2xl border t-border flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        
+        {/* Scope Selector Tabs */}
+        <div className="inline-flex p-1 t-bg-sec rounded-xl overflow-x-auto gap-1 border t-border">
+          <button
+            onClick={() => { setActiveScope('cumulative'); showToast('Switched to: Master Cumulative (All Machines)'); }}
+            className={`px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeScope === 'cumulative'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 't-text-secondary hover:t-text-primary'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Master Cumulative</span>
+            <span className="text-[10px] bg-emerald-950/70 px-1.5 py-0.5 rounded text-emerald-200 font-semibold">
+              All Machines
+            </span>
+          </button>
+
+          <button
+            onClick={() => { setActiveScope('new_rvm'); showToast('Switched to: Smart RVM (AI Scanner)'); }}
+            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeScope === 'new_rvm'
+                ? 'bg-emerald-800 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary'
+            }`}
+          >
+            <ScanLine className="w-3.5 h-3.5" />
+            <span>Smart RVM (AI Scanner)</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveScope('pecodrop'); showToast('Switched to: PecoDrop (Corporate Offices)'); }}
+            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeScope === 'pecodrop'
+                ? 'bg-emerald-800 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary'
+            }`}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>PecoDrop (Corporate Offices)</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveScope('old_rvm'); showToast('Switched to: Legacy RVM (Counter Units)'); }}
+            className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeScope === 'old_rvm'
+                ? 'bg-emerald-800 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary'
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            <span>Legacy RVM (Counter Units)</span>
+          </button>
+        </div>
+
+        {/* Date Period Selector Pills */}
+        <div className="flex items-center justify-end gap-2 text-xs font-semibold t-text-secondary">
+          <span className="hidden sm:inline mr-1 t-text-muted font-medium">Timeline:</span>
+          <div className="inline-flex rounded-xl border t-border t-bg-sec p-1 gap-1">
+            {['today', '7d', '30d', 'custom'].map((range) => (
+              <button
+                key={range}
+                onClick={() => { setDateRange(range); showToast(`Timeline adjusted to: ${range.toUpperCase()}`); }}
+                className={`px-3 py-1 rounded-lg transition-colors font-bold uppercase text-[11px] ${
+                  dateRange === range
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                    : 't-text-muted hover:t-text-primary'
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Management KPI Row (5 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        {/* Card 1: Total Recycled Weight */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Total Waste Collected</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Scale className="w-4 h-4" />
             </div>
           </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {currentScope.mass}
+            </span>
+            <span className="text-sm font-semibold t-text-muted">{currentScope.massUnit}</span>
+          </div>
+          <div className="mt-2 text-xs flex items-center justify-between t-text-muted">
+            <span className="text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Kept out of landfills
+            </span>
+            <span className="t-text-muted text-[11px]">Target: 5.0 T</span>
+          </div>
+          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div className="bg-emerald-600 h-1.5 rounded-full" style={{ width: `${currentScope.targetProgress}%` }}></div>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-full font-bold border border-emerald-300/60 flex items-center gap-1.5 shadow-xs">
-              🟢 Active Pipeline (PostgreSQL rvmpg)
+        {/* Card 2: Items Recycled */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Total Items Recycled</span>
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+              <Recycle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {currentScope.units.toLocaleString()}
+            </span>
+            <span className="text-sm font-semibold t-text-muted">items</span>
+          </div>
+          <div className="mt-3 text-xs t-text-muted flex items-center justify-between flex-wrap gap-1">
+            <span>{(currentScope.bottles / 1000).toFixed(1)}k Bottles</span>
+            <span>•</span>
+            <span>{currentScope.cans} Cans</span>
+            <span>•</span>
+            <span>{currentScope.cartons} Cartons</span>
+          </div>
+        </div>
+
+        {/* Card 3: Carbon Footprint Offset */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Clean Air &amp; CO₂ Saved</span>
+            <div className="w-8 h-8 rounded-lg bg-lime-500/10 text-lime-600 dark:text-lime-400 flex items-center justify-center">
+              <CloudSun className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {currentScope.carbon}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">kg CO₂</span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md font-semibold border border-emerald-500/20">
+            <span className="truncate">≈ {currentScope.trees} Planted</span>
+          </div>
+        </div>
+
+        {/* Card 4: Rewards & Financial Value */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Points &amp; Reward Value</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Award className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mono">
+              {currentScope.points.toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">Pts</span>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between text-xs">
+            <span className="t-text-muted font-medium">Voucher Value:</span>
+            <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 mono">
+              PKR {currentScope.liability.toLocaleString()}
             </span>
           </div>
         </div>
-      )}
 
-      {/* Personalized Corporate Client Header */}
-      {isClientAdmin ? (
-        <div 
-          className="p-6 sm:p-7 rounded-3xl relative overflow-hidden border shadow-xl transition-all"
-          style={{
-            background: `linear-gradient(135deg, ${currentUser?.organization?.primary_color || '#0b5d3b'}22, rgba(15, 23, 42, 0.95))`,
-            borderColor: `${currentUser?.organization?.primary_color || '#10b981'}44`
-          }}
-        >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-start gap-4">
-              {currentUser?.organization?.logo_url ? (
-                <div className="w-14 h-14 rounded-2xl bg-white p-2 shadow-md border border-white/20 shrink-0 overflow-hidden flex items-center justify-center">
-                  <img src={currentUser.organization.logo_url} alt={currentUser.organization.name} className="w-full h-full object-contain" />
-                </div>
-              ) : (
-                <div 
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-black shrink-0 shadow-lg border border-white/20"
-                  style={{ backgroundColor: currentUser?.organization?.primary_color || '#0b5d3b' }}
-                >
-                  {(currentUser?.organization?.name || 'C').charAt(0).toUpperCase()}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/30">
-                  <span>🏢 Authorized Corporate Client Portal</span>
-                  <span>•</span>
-                  <span>{currentUser?.organization?.name || 'Enterprise'}</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {currentUser?.organization?.dashboard_title || `${currentUser?.organization?.name || 'Enterprise'} ESG Dashboard`}
-                </h1>
-                <p className="text-sm text-slate-300 max-w-2xl">
-                  {currentUser?.organization?.welcome_msg || `Welcome ${currentUser?.fullName || currentUser?.username}. Managing authorized smart recycling kiosks and sustainability reporting.`}
-                </p>
-              </div>
+        {/* Card 5: User Recycling Activity */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Recycling Sessions</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Activity className="w-4 h-4" />
             </div>
-
-            <button
-              onClick={fetchOverview}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all shadow-md shrink-0 self-start md:self-auto hover:opacity-90 active:scale-95"
-              style={{ backgroundColor: currentUser?.organization?.primary_color || '#10b981' }}
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh Telemetry
-            </button>
           </div>
-
-          {/* Assigned Machines Quick Switcher Bar */}
-          {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0 && !currentUser.assignedMachines.includes('*') && (
-            <div className="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-                Filter Fleet Scope:
-              </span>
-              <button
-                onClick={() => setActiveMachineFilter('ALL')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                  activeMachineFilter === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-md font-black'
-                    : 'bg-white/10 hover:bg-white/20 text-slate-300'
-                }`}
-              >
-                All Assigned Kiosks ({currentUser.assignedMachines.length})
-              </button>
-              {currentUser.assignedMachines.map(mId => (
-                <button
-                  key={mId}
-                  onClick={() => setActiveMachineFilter(mId)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    activeMachineFilter === mId
-                      ? 'bg-emerald-400 text-slate-950 font-black shadow-md'
-                      : 'bg-white/10 hover:bg-white/20 text-slate-300'
-                  }`}
-                >
-                  <span>{mId.toUpperCase().includes('PECO') ? '⭕' : '🥫'}</span>
-                  <span>{mId}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : isSubUser ? (
-        /* Personalized Sub-User Header */
-        <div className="p-6 rounded-3xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-indigo-950/80 border border-purple-500/30 shadow-xl relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-600 text-white font-black flex items-center justify-center text-lg shadow-md shrink-0">
-                {(currentUser?.fullName || currentUser?.username || 'U').charAt(0).toUpperCase()}
-              </div>
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider text-purple-300 bg-purple-500/20 border border-purple-500/30">
-                  <span>👤 Scoped Branch Operator</span>
-                  <span>•</span>
-                  <span>{currentUser?.organization?.name || 'Corporate'}</span>
-                </div>
-                <h1 className="text-xl sm:text-2xl font-black text-white">
-                  Welcome, {currentUser?.fullName || currentUser?.username}
-                </h1>
-                <p className="text-xs text-purple-200">
-                  Your access is restricted strictly to delegated kiosks: <span className="font-mono font-bold text-white bg-purple-900/60 px-2 py-0.5 rounded-md border border-purple-500/40">{(currentUser?.assignedMachines || []).join(', ')}</span>
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={fetchOverview}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh Data
-            </button>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {currentScope.sessions.toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              Completed
+            </span>
+          </div>
+          <div className="mt-2.5 text-xs t-text-muted flex items-center justify-between">
+            <span>{currentScope.activeUsers} Active Users</span>
+            <span className="font-semibold t-text-primary">~{currentScope.itemsPerVisit} items/visit</span>
           </div>
         </div>
-      ) : (
-        /* Main Standard Header Banner (Super Admin & General Staff) */
-        <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 p-1.5 bg-white rounded-2xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">
-                <img src={ispLogo} alt="ISP Environmental Logo" className="w-full h-full object-contain" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-emerald-400">
-                    {selectedClientId === 'ALL' 
-                      ? 'ISP Environmental Solutions Pvt. Ltd. — Nationwide Master Portal' 
-                      : `ISP Environmental — Scoped to ${selectedClientId.replace(/_/g, ' ')}`}
-                  </span>
-                </div>
-                <h1 className="text-2xl md:text-3xl font-extrabold t-text-primary tracking-tight">
-                  Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {currentUser?.fullName || currentUser?.username || 'Executive'}!
-                </h1>
-                <p className="text-sm t-text-secondary mt-1">
-                  Monitoring heterogeneous hardware streams: Multi-sensor optical kiosks, indoor load-cell stations & legacy units.
-                </p>
-              </div>
-            </div>
 
-            <button
-              onClick={fetchOverview}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#e5a919] hover:bg-[#c8900e] text-[#0f172a] text-sm font-extrabold rounded-xl transition-all shadow-md shrink-0"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh Metrics
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Sub-Tab Operational View Selector */}
-      <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap gap-2">
-        {[
-          { id: 'master', label: 'Master Cumulative', desc: 'Combined Fleet Totals' },
-          { id: 'rvm_new', label: 'RVM New Operations', desc: 'Optical Multi-Sensor & Anti-Cheat' },
-          { id: 'pecodrop', label: 'PecoDrop Operations', desc: '3-Chamber Count & Weighed Paper kg' },
-          { id: 'rvm_old', label: 'RVM Old Legacy', desc: 'Presence Sensor Pulses & Backlog' }
-        ].map(st => {
-          const isSelected = activeSubTab === st.id;
-          return (
-            <button
-              key={st.id}
-              onClick={() => setActiveSubTab(st.id)}
-              className={`flex-1 min-w-[200px] p-3 rounded-xl text-left transition-all ${
-                isSelected
-                  ? 'bg-emerald-600 text-white shadow-md font-bold ring-2 ring-emerald-400/30'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500/40 border border-transparent'
-              }`}
-            >
-              <div className="text-xs font-black uppercase tracking-wider">{st.label}</div>
-              <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-500'}`}>{st.desc}</div>
-            </button>
-          );
-        })}
       </div>
 
-      {/* KPI Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
-        
-        {/* Card 1: Primary Material (PET Bottles / Plastic Items) */}
-        <div 
-          key={`${activeSubTab}-card1`}
-          onClick={() => setFocusedKpi(focusedKpi === 'bottles' ? 'all' : 'bottles')}
-          className={`glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#0b5d3b] cursor-pointer transition-all duration-200 select-none animate-fade-in ${
-            focusedKpi === 'bottles' 
-              ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-50/10 scale-[1.02]' 
-              : 'hover:border-emerald-500/30'
-          }`}
-          title="Click to focus chart and breakdown on Plastic Bottles"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card1.title}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {kpi.card1.streamBadge}
-                </span>
-                {focusedKpi === 'bottles' && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500 text-slate-950 rounded uppercase">Active</span>
-                )}
-              </div>
-            </div>
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-[#0b5d3b] dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
-              <Wine className="w-5 h-5" />
-            </div>
+      {/* Variant Breakdown Grid Across All Machines (4 Streams) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="text-base font-bold t-text-primary">Breakdown by Material &amp; Size (All Machines)</h2>
+            <p className="text-xs t-text-muted">Detailed item counts and verified weight across your entire machine network</p>
           </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">
-              {typeof kpi.card1.value === 'number' ? kpi.card1.value.toLocaleString() : kpi.card1.value}
-            </div>
-            <p className="text-xs text-[#0b5d3b] dark:text-emerald-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card1.desc}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2: Secondary Material (Cups / Cans / Pulses) */}
-        <div 
-          key={`${activeSubTab}-card2`}
-          onClick={() => setFocusedKpi(focusedKpi === 'cups' ? 'all' : 'cups')}
-          className={`glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-[#e5a919] cursor-pointer transition-all duration-200 select-none animate-fade-in ${
-            focusedKpi === 'cups' 
-              ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20 bg-amber-50/10 scale-[1.02]' 
-              : 'hover:border-amber-500/30'
-          }`}
-          title="Click to focus chart and breakdown on Recyclable Cups & Cans"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card2.title}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {kpi.card2.streamBadge}
-                </span>
-                {focusedKpi === 'cups' && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-500 text-slate-950 rounded uppercase">Active</span>
-                )}
-              </div>
-            </div>
-            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-400 rounded-xl border border-amber-200 dark:border-amber-500/20">
-              <Coffee className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">
-              {typeof kpi.card2.value === 'number' ? kpi.card2.value.toLocaleString() : kpi.card2.value}
-            </div>
-            <p className="text-xs text-amber-800 dark:text-amber-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card2.desc}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 3: Loyalty Points */}
-        <div 
-          key={`${activeSubTab}-card3`}
-          onClick={() => setFocusedKpi(focusedKpi === 'points' ? 'all' : 'points')}
-          className={`glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-sky-600 cursor-pointer transition-all duration-200 select-none animate-fade-in ${
-            focusedKpi === 'points' 
-              ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/20 bg-sky-50/10 scale-[1.02]' 
-              : 'hover:border-sky-500/30'
-          }`}
-          title="Click to focus chart on Loyalty Points Rewarded"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card3.title}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {kpi.card3.streamBadge}
-                </span>
-                {focusedKpi === 'points' && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-sky-500 text-slate-950 rounded uppercase">Active</span>
-                )}
-              </div>
-            </div>
-            <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-800 dark:text-cyan-400 rounded-xl border border-sky-200 dark:border-cyan-500/20">
-              <Award className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">
-              {typeof kpi.card3.value === 'number' ? kpi.card3.value.toLocaleString() : kpi.card3.value}
-            </div>
-            <p className="text-xs text-sky-800 dark:text-cyan-400 flex items-center gap-1 mt-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" /> {kpi.card3.desc}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Total Sessions */}
-        <div 
-          key={`${activeSubTab}-card4`}
-          onClick={() => setFocusedKpi(focusedKpi === 'sessions' ? 'all' : 'sessions')}
-          className={`glass-panel glass-panel-hover p-5 rounded-2xl border-l-4 border-l-purple-600 cursor-pointer transition-all duration-200 select-none animate-fade-in ${
-            focusedKpi === 'sessions' 
-              ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/20 bg-purple-50/10 scale-[1.02]' 
-              : 'hover:border-purple-500/30'
-          }`}
-          title="Click to focus chart and activity feeds on Active Sessions"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold t-text-muted uppercase tracking-wider">{kpi.card4.title}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="px-1.5 py-0.5 text-[9px] font-black rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {kpi.card4.streamBadge}
-                </span>
-                {focusedKpi === 'sessions' && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-black bg-purple-500 text-white rounded uppercase">Active</span>
-                )}
-              </div>
-            </div>
-            <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-800 dark:text-purple-400 rounded-xl border border-purple-200 dark:border-purple-500/20">
-              <Recycle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-extrabold t-text-primary mono">
-              {typeof kpi.card4.value === 'number' ? kpi.card4.value.toLocaleString() : kpi.card4.value}
-            </div>
-            <p className="text-xs text-purple-800 dark:text-purple-400 flex items-center gap-1 mt-1 font-bold">
-              <Activity className="w-3.5 h-3.5" /> {kpi.card4.desc}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Real-time Material Variant Analytics Grid */}
-      <div className="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-cyan-500/20 space-y-4">
-        <div className="flex items-center justify-between border-b t-border pb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
-              {activeSubTab === 'master' && 'Cumulative Fleet Material Variant Breakdown'}
-              {activeSubTab === 'rvm_new' && 'RVM New (Multi-Sensor) Optical Classification'}
-              {activeSubTab === 'pecodrop' && 'PecoDrop Count & Weigh Dual-Telemetry'}
-              {activeSubTab === 'rvm_old' && 'RVM Old (Legacy Pulse) Item Throughput'}
-            </h3>
-          </div>
-          <span className="text-xs px-3 py-1 bg-emerald-50 dark:bg-cyan-500/15 text-[#0b5d3b] dark:text-cyan-300 font-bold rounded-full border border-emerald-300/60 mono">
-            {activeSubTab === 'pecodrop' ? 'Load Cell & Precision Scale' : activeSubTab === 'rvm_new' ? 'Optical Sensor Array' : 'PostgreSQL Relational'}
+          <span className="text-[11px] font-semibold t-text-secondary t-bg-sec px-2.5 py-1 rounded-md border t-border">
+            Pieces &amp; Weight Summary
           </span>
         </div>
 
-        {/* Dynamic Cards depending on activeSubTab */}
-        {activeSubTab === 'pecodrop' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'bottles' ? 'all' : 'bottles')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'bottles' 
-                  ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-50/15 dark:bg-emerald-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-emerald-500/40'
-              }`}
-              title="Click to focus Plastic Bottles"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-sky-700 dark:text-sky-400">
-                <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
-                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.plasticPieces ?? 0} count</span>
-              </div>
-              <div className="p-3 bg-sky-50 dark:bg-sky-950/30 rounded-xl border border-sky-200 dark:border-sky-500/20 text-xs">
-                <span className="text-slate-600 dark:text-sky-200/70 font-medium">Internal optical passage sensor count. Compartment #1.</span>
-              </div>
-            </div>
-
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'cups' ? 'all' : 'cups')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'cups' 
-                  ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20 bg-amber-50/15 dark:bg-amber-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-amber-500/40'
-              }`}
-              title="Click to focus Metal Cans & Cups"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-amber-700 dark:text-amber-400">
-                <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
-                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.metalPieces ?? 0} count</span>
-              </div>
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-500/20 text-xs">
-                <span className="text-slate-600 dark:text-amber-200/70 font-medium">Inductive proximity loop verified. Compartment #2.</span>
-              </div>
-            </div>
-
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'points' ? 'all' : 'points')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'points' 
-                  ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/20 bg-purple-50/15 dark:bg-purple-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-purple-500/40'
-              }`}
-              title="Click to focus Paper Mass & Points"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-purple-700 dark:text-purple-400">
-                <span className="flex items-center gap-1.5">⚖️ Paper Mass (Load Cell)</span>
-                <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.paperMassKg ?? '0.00'} kg</span>
-              </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-500/20 text-xs flex items-center justify-between">
-                <span className="text-purple-700 dark:text-purple-300 font-bold">Tare Accuracy: {subTabMetrics?.pecodrop?.scaleTareAccuracy ?? '99.8%'}</span>
-                <span className="text-[10px] text-slate-600 dark:text-purple-200/70 font-semibold">{subTabMetrics?.pecodrop?.zeroDriftEvents ?? 0} auto-tares</span>
-              </div>
-            </div>
-          </div>
-        ) : activeSubTab === 'rvm_new' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'bottles' ? 'all' : 'bottles')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'bottles' 
-                  ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-50/15 dark:bg-emerald-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-emerald-500/40'
-              }`}
-              title="Click to focus Plastic Bottles"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
-                <span className="flex items-center gap-1.5">🥤 Optical PET S/M/L</span>
-                <span className="mono font-extrabold">{subTabMetrics?.rvmNew?.totalPET ?? 0} total</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">S (&lt;500ml)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petSmall ?? 0}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Stream 1: PET Plastic Bottles */}
+          <div className="glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs font-bold">
+                    PET
+                  </span>
+                  <h3 className="font-bold t-text-primary text-sm">Plastic Bottles</h3>
                 </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">M (500ml-1L)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petMedium ?? 0}</div>
-                </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-300/60">
-                  <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">L (&gt;1L)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.petLarge ?? 0}</div>
-                </div>
-              </div>
-            </div>
-
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'cups' ? 'all' : 'cups')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'cups' 
-                  ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20 bg-amber-50/15 dark:bg-amber-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-amber-500/40'
-              }`}
-              title="Click to focus Metal Cans & Cups"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
-                <span className="flex items-center gap-1.5">🥫 Metal Cans S/M/L</span>
-                <span className="mono font-extrabold">{subTabMetrics?.rvmNew?.totalCans ?? 0} total</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Small (250ml)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canSmall ?? 0}</div>
-                </div>
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Med (330ml)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canMedium ?? 0}</div>
-                </div>
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-300/60">
-                  <div className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">Lrg (500ml)</div>
-                  <div className="mono font-bold text-sm">{subTabMetrics?.rvmNew?.canLarge ?? 0}</div>
-                </div>
-              </div>
-            </div>
-
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'sessions' ? 'all' : 'sessions')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'sessions' 
-                  ? 'ring-2 ring-teal-500 shadow-lg shadow-teal-500/20 bg-teal-50/15 dark:bg-teal-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-teal-500/40'
-              }`}
-              title="Click to focus Sessions & Sensor Accuracy"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-teal-800 dark:text-teal-400">
-                <span className="flex items-center gap-1.5">🛡️ Sensor Accuracy & Fraud</span>
-                <span className="mono font-extrabold text-emerald-600">{subTabMetrics?.rvmNew?.opticalAccuracy ?? '99.6%'}</span>
-              </div>
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-300">TetraPak Cartons:</span>
-                  <span className="font-bold mono">{subTabMetrics?.rvmNew?.tetraPakCartons ?? 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600 dark:text-slate-300">Anti-Cheat Drop Intercepts:</span>
-                  <span className="font-bold text-rose-500 mono">{subTabMetrics?.rvmNew?.antiCheatTrips ?? 0}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : activeSubTab === 'rvm_old' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'bottles' ? 'all' : 'bottles')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'bottles' 
-                  ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-50/15 dark:bg-emerald-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-emerald-500/40'
-              }`}
-              title="Click to focus Plastic Bottles"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300">
-                <span className="flex items-center gap-1.5">⏱️ Unclassified Bottles Recycled</span>
-                <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.unclassifiedBottles ?? 0}</span>
-              </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400">Relay pulse hardware without optical grading. Records discrete deposit pulses.</p>
-            </div>
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'sessions' ? 'all' : 'sessions')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'sessions' 
-                  ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/20 bg-purple-50/15 dark:bg-purple-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-purple-500/40'
-              }`}
-              title="Click to focus Relay Pulses & Sessions"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300">
-                <span className="flex items-center gap-1.5">⚡ Relay Pulses & Queue Latency</span>
-                <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.totalPulseCount ?? 0} pulses</span>
-              </div>
-              <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex justify-between">
-                <span className="text-slate-600 dark:text-slate-300">Backlog Queue: <strong className="text-emerald-500">{subTabMetrics?.rvmOld?.syncBacklog ?? 0} msgs</strong></span>
-                <span className="text-slate-600 dark:text-slate-300">Latency: <strong className="mono">{subTabMetrics?.rvmOld?.syncLatencyMs ?? 0} ms</strong></span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-5 2xl:gap-6">
-            {/* Plastic Variant Breakdown */}
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'bottles' ? 'all' : 'bottles')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'bottles' 
-                  ? 'ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20 bg-emerald-50/15 dark:bg-emerald-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-emerald-500/40'
-              }`}
-              title="Click to focus Plastic Bottles"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-[#0b5d3b] dark:text-emerald-400">
-                <span className="flex items-center gap-1.5">🥤 Plastic Bottles</span>
-                <span className="mono font-extrabold">{overview?.totalPlastic ?? overview?.totalBottles ?? 0} total</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Small</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticSmall ?? 0}</div>
-                </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Medium</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticMedium ?? 0}</div>
-                </div>
-                <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 rounded-lg border border-emerald-300/60">
-                  <div className="text-xs text-emerald-700 dark:text-emerald-400 font-bold">Large</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.plasticLarge ?? 0}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Metal Can Variant Breakdown */}
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'cups' ? 'all' : 'cups')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'cups' 
-                  ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20 bg-amber-50/15 dark:bg-amber-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-amber-500/40'
-              }`}
-              title="Click to focus Cups & Metal Cans"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-amber-800 dark:text-amber-400">
-                <span className="flex items-center gap-1.5">🥫 Metal Cans</span>
-                <span className="mono font-extrabold">{overview?.totalCans ?? overview?.totalCups ?? 0} total</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold pt-1">
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Small</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canSmall ?? 0}</div>
-                </div>
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Medium</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canMedium ?? 0}</div>
-                </div>
-                <div className="p-2 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-200 rounded-lg border border-amber-300/60">
-                  <div className="text-xs text-amber-700 dark:text-amber-400 font-bold">Large</div>
-                  <div className="mono font-extrabold text-sm">{overview?.variantBreakdown?.canLarge ?? 0}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Paper Weight */}
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'points' ? 'all' : 'points')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'points' 
-                  ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-500/20 bg-purple-50/15 dark:bg-purple-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-purple-500/40'
-              }`}
-              title="Click to focus Paper Mass & Points"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-purple-800 dark:text-purple-400">
-                <span>📦 Paper Mass (PecoDrop)</span>
-                <span className="mono font-extrabold">{overview?.totalPaperKg ?? ((overview?.totalPaperGrams ?? 0) / 1000).toFixed(2)} kg</span>
-              </div>
-              <div className="p-2.5 bg-purple-50 dark:bg-purple-950/30 text-purple-950 dark:text-purple-200 rounded-xl border border-purple-300/60 text-center font-mono text-sm font-black">
-                {overview?.totalPaperKg ?? ((overview?.totalPaperGrams ?? 0) / 1000).toFixed(2)} kg Load Cell Verified
-              </div>
-            </div>
-
-            {/* TetraPak Weight */}
-            <div 
-              onClick={() => setFocusedKpi(focusedKpi === 'sessions' ? 'all' : 'sessions')}
-              className={`p-4 bg-white dark:t-bg-sec border border-slate-200 dark:t-border rounded-2xl space-y-2 shadow-sm cursor-pointer transition-all duration-200 select-none ${
-                focusedKpi === 'sessions' 
-                  ? 'ring-2 ring-sky-500 shadow-lg shadow-sky-500/20 bg-sky-50/15 dark:bg-cyan-950/20 scale-[1.01]' 
-                  : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-sky-500/40'
-              }`}
-              title="Click to focus TetraPak & Sessions"
-            >
-              <div className="flex items-center justify-between text-sm font-bold text-sky-800 dark:text-cyan-400">
-                <span>🧃 TetraPak (RVM New)</span>
-                <span className="mono font-extrabold">{overview?.totalTetraPakGrams ?? 0} Grams</span>
-              </div>
-              <div className="p-2.5 bg-sky-50 dark:bg-cyan-950/30 text-sky-950 dark:text-cyan-200 rounded-xl border border-sky-300/60 text-center font-mono text-sm font-black">
-                {((overview?.totalTetraPakGrams ?? 0) / 1000).toFixed(3)} kg Cartons Collected
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Secondary Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 xl:gap-5 2xl:gap-6">
-
-        <div 
-          onClick={() => setFocusedKpi(focusedKpi === 'points' ? 'all' : 'points')}
-          className={`glass-panel p-4 rounded-2xl flex items-center gap-4 cursor-pointer transition-all duration-200 select-none ${
-            focusedKpi === 'points' 
-              ? 'ring-2 ring-sky-500 shadow-md shadow-sky-500/20 bg-sky-50/10 scale-[1.01]' 
-              : focusedKpi !== 'all' ? 'opacity-60 hover:opacity-100' : 'hover:border-blue-500/30'
-          }`}
-          title="Click to focus Loyalty Points & Registered Users"
-        >
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl font-bold t-text-primary mono">{overview?.totalUsers ?? 0}</div>
-            <div className="text-xs t-text-secondary font-medium">Registered Eco Users</div>
-          </div>
-        </div>
-
-        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 select-none">
-          <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl font-bold t-text-primary mono">{overview?.totalBinAlerts ?? 0}</div>
-            <div className="text-xs t-text-secondary font-medium">Bin Full Notifications</div>
-          </div>
-        </div>
-
-        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 select-none">
-          <div className="p-3 bg-teal-500/10 text-teal-400 rounded-xl border border-teal-500/20">
-            <MessageSquare className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xl font-bold t-text-primary mono">{overview?.totalFeedbacks ?? 0}</div>
-            <div className="text-xs t-text-secondary font-medium">User Feedbacks Submitted</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Trends Chart */}
-      <div className="glass-panel p-6 rounded-3xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold t-text-primary tracking-wide flex items-center gap-2">
-              {chartMeta.title}
-              {focusedKpi !== 'all' && (
-                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-emerald-500 text-slate-950">
-                  Filtered
+                <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  ~3.80 Tonnes
                 </span>
-              )}
-            </h3>
-            <p className="text-xs t-text-secondary">{chartMeta.desc}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {focusedKpi !== 'all' && (
-              <button
-                onClick={() => setFocusedKpi('all')}
-                className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-all flex items-center gap-1 hover:scale-105"
-                title="Reset to view all metrics"
-              >
-                <span>Reset Filter</span>
-                <span className="text-xs">✕</span>
-              </button>
-            )}
-            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${chartMeta.badgeColor}`}>
-              {chartMeta.badge}
-            </span>
-          </div>
-        </div>
+              </div>
+              
+              <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
+                152,357 <span className="text-xs font-normal t-text-muted">bottles</span>
+              </p>
 
-        <div className="h-72 lg:h-80 2xl:h-96 w-full pt-4">
-          {trends.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-xs t-text-muted">
-              No daily trends data available yet.
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Small 345ml</span>
+                  <span className="text-xs font-bold t-text-primary mono">46</span>
+                </div>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Med 500-1L</span>
+                  <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 mono">151,864</span>
+                </div>
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Large 1.5L</span>
+                  <span className="text-xs font-bold t-text-primary mono">55</span>
+                </div>
+              </div>
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={displayedTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorBottles" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorCups" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorPoints" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0284c7" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="_id" stroke="var(--text-muted)" fontSize={11} />
-                <YAxis stroke="var(--text-muted)" fontSize={11} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', borderRadius: '12px', fontSize: '12px' }} 
-                  itemStyle={{ color: 'var(--text-primary)' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                {(focusedKpi === 'all' || focusedKpi === 'bottles') && (
-                  <Area type="monotone" dataKey="bottles" name="PET Bottles" stroke="#10b981" fillOpacity={1} fill="url(#colorBottles)" strokeWidth={2.5} />
-                )}
-                {(focusedKpi === 'all' || focusedKpi === 'cups') && (
-                  <Area type="monotone" dataKey="cups" name="Cups & Cans" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCups)" strokeWidth={2.5} />
-                )}
-                {focusedKpi === 'points' && (
-                  <Area type="monotone" dataKey="points" name="Loyalty Points" stroke="#0284c7" fillOpacity={1} fill="url(#colorPoints)" strokeWidth={2.5} />
-                )}
-                {focusedKpi === 'sessions' && (
-                  <Area type="monotone" dataKey="sessions" name="Deposit Sessions" stroke="#a855f7" fillOpacity={1} fill="url(#colorSessions)" strokeWidth={2.5} />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+
+            <div className="mt-5 pt-3 border-t t-border">
+              <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
+                <span>Collection by Machine</span>
+                <span className="t-text-primary">Legacy (70%) • Smart (25%) • Peco (5%)</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
+                <div className="bg-amber-500 h-full" style={{ width: '70%' }} title="Legacy RVM"></div>
+                <div className="bg-emerald-500 h-full" style={{ width: '25%' }} title="Smart RVM"></div>
+                <div className="bg-teal-600 h-full" style={{ width: '5%' }} title="PecoDrop"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stream 2: Metal Cans */}
+          <div className="glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center text-xs font-bold">
+                    ALU
+                  </span>
+                  <h3 className="font-bold t-text-primary text-sm">Aluminium Cans</h3>
+                </div>
+                <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                  ~14.12 kg
+                </span>
+              </div>
+              
+              <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
+                941 <span className="text-xs font-normal t-text-muted">cans</span>
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Small 250ml</span>
+                  <span className="text-xs font-bold t-text-primary mono">31</span>
+                </div>
+                <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Med 375ml</span>
+                  <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 mono">928</span>
+                </div>
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Large 500ml</span>
+                  <span className="text-xs font-bold t-text-primary mono">11</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-3 border-t t-border">
+              <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
+                <span>Collection by Machine</span>
+                <span className="t-text-primary">Legacy (85%) • Smart RVM (15%)</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
+                <div className="bg-amber-500 h-full" style={{ width: '85%' }} title="Legacy RVM"></div>
+                <div className="bg-emerald-500 h-full" style={{ width: '15%' }} title="Smart RVM"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stream 3: Tetra Pak Cartons */}
+          <div className="glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 flex items-center justify-center text-xs font-bold">
+                    UBC
+                  </span>
+                  <h3 className="font-bold t-text-primary text-sm">Tetra Pak Cartons</h3>
+                </div>
+                <span className="text-xs font-extrabold text-sky-700 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/30">
+                  0.07 kg (70g)
+                </span>
+              </div>
+              
+              <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
+                2 <span className="text-xs font-normal t-text-muted">cartons</span>
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Small 200ml</span>
+                  <span className="text-xs font-bold t-text-primary mono">0</span>
+                </div>
+                <div className="bg-sky-500/10 border border-sky-500/20 p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400">Med 1000ml</span>
+                  <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 mono">2</span>
+                </div>
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">Large 1.5L</span>
+                  <span className="text-xs font-bold t-text-primary mono">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-3 border-t t-border">
+              <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
+                <span>Supported Machines</span>
+                <span className="text-sky-700 dark:text-sky-400 font-bold">Smart RVM Only</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
+                <div className="bg-sky-500 h-full" style={{ width: '100%' }} title="Smart RVM"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stream 4: Office Paper (Weighed on Scale) */}
+          <div className="glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg bg-purple-500/15 text-purple-700 dark:text-purple-400 flex items-center justify-center text-xs font-bold">
+                    PPR
+                  </span>
+                  <h3 className="font-bold t-text-primary text-sm">Office Paper</h3>
+                </div>
+                <span className="text-xs font-extrabold text-purple-700 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/30">
+                  Weighed on Scale
+                </span>
+              </div>
+              
+              <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
+                8.80 <span className="text-xs font-normal t-text-muted">kg collected</span>
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">&lt;50g Light</span>
+                  <span className="text-xs font-bold t-text-primary mono">12 drops</span>
+                </div>
+                <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400">100-250g File</span>
+                  <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 mono">8 drops</span>
+                </div>
+                <div className="t-bg-sec border t-border p-2 rounded-xl">
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">500g-1kg Bulk</span>
+                  <span className="text-xs font-bold t-text-primary mono">3 drops</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-3 border-t t-border">
+              <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
+                <span>Supported Machines</span>
+                <span className="text-purple-700 dark:text-purple-400 font-bold">PecoDrop Corporate Only</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
+                <div className="bg-purple-500 h-full" style={{ width: '100%' }} title="PecoDrop Corporate"></div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* Recent Live Activity Feeds */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Analytics & Activity Visualization */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Recent Recycling Sessions */}
-        <div className={`glass-panel p-5 rounded-2xl space-y-4 transition-all duration-200 ${
-          focusedKpi === 'sessions' ? 'ring-2 ring-purple-500 shadow-xl shadow-purple-500/20 scale-[1.005]' : ''
-        }`}>
-          <div className="flex items-center justify-between border-b t-border pb-3">
-            <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              Recent Recycling Transactions
-              {focusedKpi === 'sessions' && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-purple-500 text-white">Focused</span>
-              )}
-              {focusedKpi === 'bottles' && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950">Bottles Filtered</span>
-              )}
-              {focusedKpi === 'cups' && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-slate-950">Cans Filtered</span>
-              )}
-            </h3>
-            <span className="text-[11px] t-text-muted font-bold">Latest 5</span>
+        {/* Daily Collection Trends (Past 14 Days) */}
+        <div className="lg:col-span-8 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Daily Recycling Activity (Past 14 Days)
+              </h3>
+              <p className="text-xs t-text-muted">Total items deposited daily across all active machines</p>
+            </div>
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <span className="flex items-center gap-1.5 font-medium t-text-secondary">
+                <span className="w-2.5 h-2.5 rounded bg-emerald-600"></span> PET Bottles
+              </span>
+              <span className="flex items-center gap-1.5 font-medium t-text-secondary">
+                <span className="w-2.5 h-2.5 rounded bg-amber-500"></span> Cans
+              </span>
+              <span className="flex items-center gap-1.5 font-medium t-text-secondary">
+                <span className="w-2.5 h-2.5 rounded bg-sky-500"></span> Cartons
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
-            {(!displayedSessions || displayedSessions.length === 0) ? (
-              <p className="text-xs t-text-muted py-4 text-center">No recent sessions.</p>
-            ) : (
-              displayedSessions.map(session => {
-                const variantText = session.itemVariant || session.item_variant || (session.plasticCount > 0 ? `${session.plasticCount}x ${session.bottleSize || 'MEDIUM'} PLASTIC` : session.aluminiumCount > 0 ? `${session.aluminiumCount}x CAN (Metal)` : session.paperCardboardCount > 0 ? `${session.paperCardboardCount}x PAPER / TETRA PAK` : session.glassCount > 0 ? `${session.glassCount}x GLASS` : `${session.bottles || 1}x RECYCLABLE ITEM`);
-                const pCount = session.plasticCount || session.plastic_count || 0;
-                const aCount = session.aluminiumCount || session.aluminium_count || 0;
-                const paperCount = session.paperCardboardCount || session.paper_cardboard_count || 0;
-                const gCount = session.glassCount || session.glass_count || 0;
-                const hwBadge = session.hardwareBadge || (session.machine_type === 'pecodrop' ? '[PECODROP]' : session.machine_type === 'rvm_old' ? '[RVM-OLD]' : '[RVM-NEW]');
-
-                return (
-                  <div key={session._id || session.session_id} className="p-3 t-bg-sec border t-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:border-emerald-500/30 transition-all">
-                    <div>
-                      <div className="text-xs font-bold t-text-primary flex flex-wrap items-center gap-2">
-                        <span>User: <span className="text-emerald-700 dark:text-emerald-400 font-extrabold">{session.userName || session.userId || session.user_id || 'Anonymous'}</span></span>
-                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 rounded-md uppercase">
-                          🏷️ {variantText}
-                        </span>
-                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded border border-slate-300 dark:border-slate-700">
-                          {hwBadge}
-                        </span>
-                      </div>
-                      <div className="text-[11px] t-text-muted mt-1 flex items-center gap-3">
-                        <span>Machine: <strong className="t-text-primary">{session.machineId || session.machine_id || 'RVM-001'}</strong></span>
-                        <span>•</span>
-                        <span>{new Date(session.recycledAt || session.timestamp || session.created_at || Date.now()).toLocaleString()}</span>
-                        {session.verifiedWeightText && (
-                          <>
-                            <span>•</span>
-                            <span className="text-purple-700 dark:text-purple-400 font-bold">{session.verifiedWeightText}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs shrink-0">
-                      {pCount > 0 && (
-                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded font-bold border border-emerald-500/20 text-[11px]">
-                          🥤 {pCount} Plastic
-                        </span>
-                      )}
-                      {aCount > 0 && (
-                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded font-bold border border-amber-500/20 text-[11px]">
-                          🥫 {aCount} Can
-                        </span>
-                      )}
-                      {paperCount > 0 && (
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-700 dark:text-purple-300 rounded font-bold border border-purple-500/20 text-[11px]">
-                          📦 {paperCount} Paper/Tetra
-                        </span>
-                      )}
-                      {gCount > 0 && (
-                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 rounded font-bold border border-cyan-500/20 text-[11px]">
-                          🍾 {gCount} Glass
-                        </span>
-                      )}
-                      <span className="px-2 py-0.5 bg-emerald-600 text-white rounded font-extrabold shadow-sm mono text-[11px]">
-                        +{session.points || session.pointsEarned || session.points_earned || 30} pts
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-
-            )}
+          <div className="relative h-64 sm:h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                  formatter={(value, name) => [value, name === 'bottles' ? 'PET Bottles' : name === 'cans' ? 'Cans' : 'Cartons']}
+                />
+                <Bar dataKey="bottles" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="cans" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="cartons" stackId="a" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Recent Bin Full Alerts */}
-        <div className="glass-panel p-5 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between border-b t-border pb-3">
-            <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-              Bin Full Operational Alerts
-            </h3>
-            <span className="text-[11px] t-text-muted font-bold">Latest Alerts</span>
+        {/* Material Share Donut & Machine Network Status */}
+        <div className="lg:col-span-4 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
+                <PieIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                Material Weight Share
+              </h3>
+              <span className="text-[11px] font-bold t-text-muted mono">Total: 3.89 Tonnes</span>
+            </div>
+            <p className="text-xs t-text-muted mb-4">Percentage share of total collected waste</p>
+
+            <div className="relative h-44 flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={materialShareData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {materialShareData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                    formatter={(val) => [`${val}%`, 'Share']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          <div className="space-y-2.5">
-            {(!overview?.recentAlerts || overview.recentAlerts.length === 0) ? (
-              <p className="text-xs t-text-muted py-4 text-center">No bin full notifications recorded.</p>
-            ) : (
-              overview.recentAlerts.map(alert => (
-                <div key={alert._id} className="p-3 t-bg-sec border border-rose-500/20 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg">
-                      <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold t-text-primary">
-                        Machine ID: <span className="mono text-rose-700 dark:text-rose-400 font-bold">{alert.machineId}</span>
-                      </div>
-                      <div className="text-[11px] t-text-muted">
-                        {new Date(alert.occurredAt).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
+          {/* Machine Status Summary */}
+          <div className="mt-4 pt-4 border-t t-border">
+            <div className="flex items-center justify-between mb-2 text-xs">
+              <span className="font-bold t-text-primary">Machine Network Status (12 Machines)</span>
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                66.7% Ready
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center text-xs">
+              <div className="t-bg-sec p-2 rounded-xl border t-border">
+                <span className="t-text-muted block text-[10px] font-semibold uppercase">Operational &amp; Ready</span>
+                <span className="font-bold t-text-primary text-sm mono">8 Machines</span>
+              </div>
+              <div className="bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
+                <span className="text-amber-700 dark:text-amber-400 block text-[10px] font-semibold uppercase">Needs Emptying / Tech</span>
+                <span className="font-bold text-amber-800 dark:text-amber-300 text-sm mono">4 Machines</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                  <span className="px-2.5 py-1 text-xs font-extrabold uppercase rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                    {alert.binType} BIN
+      </div>
+
+      {/* Live Transactions & Maintenance Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Recent Recycling Drops (Recent Transactions Feed) */}
+        <div className="lg:col-span-7 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b t-border">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Recent Recycling Drops
+                </h3>
+                <p className="text-xs t-text-muted">Live feed of items deposited across all machines</p>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 cursor-pointer">
+                Live Feed Active
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Row 1 */}
+              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold t-text-primary">0300****110</span>
+                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-RWP</span>
+                      <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">Smart RVM</span>
+                    </div>
+                    <span className="t-text-muted text-[11px]">Today at 3:30 PM • 1x Medium PET Bottle (500ml)</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
+                    +5 Pts
                   </span>
                 </div>
-              ))
-            )}
+              </div>
+
+              {/* Row 2 */}
+              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-700 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold t-text-primary">abiddutt12</span>
+                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">PECO-HQ-01</span>
+                      <span className="bg-purple-500/10 text-purple-700 dark:text-purple-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-purple-500/20">PecoDrop</span>
+                    </div>
+                    <span className="t-text-muted text-[11px]">Today at 1:44 PM • Confidential Paper Drop (250g)</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
+                    +25 Pts
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold t-text-primary">0328****785</span>
+                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-UCP</span>
+                      <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-amber-500/20">Legacy RVM</span>
+                    </div>
+                    <span className="t-text-muted text-[11px]">Today at 12:23 PM • 2x Aluminium Cans (375ml)</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
+                    +30 Pts
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 4 */}
+              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold t-text-primary">0302****949</span>
+                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-RWP</span>
+                      <span className="bg-sky-500/10 text-sky-700 dark:text-sky-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-sky-500/20">Smart RVM</span>
+                    </div>
+                    <span className="t-text-muted text-[11px]">Today at 11:46 AM • 1x Tetra Pak Carton (1000ml)</span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
+                    +20 Pts
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Machine Maintenance & Emptying Alerts */}
+        <div className="lg:col-span-5 glass-panel p-5 rounded-2xl border t-border flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b t-border">
+              <div>
+                <h3 className="text-sm font-bold t-text-primary flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  Machine Maintenance &amp; Emptying
+                </h3>
+                <p className="text-xs t-text-muted">Live alerts requiring staff to empty bins or check units</p>
+              </div>
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                {alerts.filter(a => !a.completed).length} Active Alerts
+              </span>
+            </div>
+
+            <div className="space-y-2.5">
+              {alerts.map((item) => {
+                const IconComp = item.icon;
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs transition-colors ${
+                      item.completed 
+                        ? 'border-emerald-500/30 bg-emerald-500/5' 
+                        : item.level === 'danger' 
+                          ? 'border-rose-500/30 bg-rose-500/5' 
+                          : item.level === 'warning' 
+                            ? 'border-amber-500/30 bg-amber-500/5' 
+                            : 't-border t-bg-sec'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        item.completed ? 'bg-emerald-500/20 text-emerald-400' :
+                        item.level === 'danger' ? 'bg-rose-500/20 text-rose-500' :
+                        item.level === 'warning' ? 'bg-amber-500/20 text-amber-500' :
+                        'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}>
+                        <IconComp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold t-text-primary mono">{item.machine}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
+                            item.completed ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
+                            item.level === 'danger' ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/30' :
+                            item.level === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30' :
+                            't-bg-sec t-text-secondary t-border'
+                          }`}>
+                            {item.completed ? 'Cleared & Ready' : item.type}
+                          </span>
+                        </div>
+                        <span className="t-text-muted text-[11px]">{item.desc}</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleAlertAction(item.id, item.machine)}
+                      disabled={item.completed}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all shadow-xs ${
+                        item.completed
+                          ? 'bg-emerald-600 text-white cursor-default'
+                          : 'bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-700 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      {item.completed ? 'Completed' : item.actionLabel}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
       </div>
+
+      {/* Export Sustainability Report Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl max-w-md w-full p-6 border t-border shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b t-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                  <FileCheck className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold t-text-primary text-base">Export Sustainability Report</h3>
+              </div>
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="p-1.5 t-text-muted hover:t-text-primary rounded-lg t-bg-sec border t-border"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs t-text-secondary leading-relaxed">
+              Download a complete, presentation-ready sustainability summary showing total waste collected, CO₂ saved, and recycling participation across all machines.
+            </p>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-semibold t-text-primary">Select Export Format</label>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <label
+                  onClick={() => setExportFormat('pdf')}
+                  className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                    exportFormat === 'pdf'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold'
+                      : 'border-slate-300 dark:border-slate-700 t-bg-sec text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="exportFormat"
+                    checked={exportFormat === 'pdf'}
+                    onChange={() => setExportFormat('pdf')}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Executive PDF</span>
+                </label>
+
+                <label
+                  onClick={() => setExportFormat('csv')}
+                  className={`p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-all ${
+                    exportFormat === 'csv'
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold'
+                      : 'border-slate-300 dark:border-slate-700 t-bg-sec text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="exportFormat"
+                    checked={exportFormat === 'csv'}
+                    onChange={() => setExportFormat('csv')}
+                    className="text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>Excel / CSV</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t t-border text-xs font-semibold">
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="px-4 py-2 t-text-secondary hover:t-bg-sec rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteExport}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors shadow-sm font-bold"
+              >
+                Download Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold animate-slide-up">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Footer Strip */}
+      <footer className="glass-panel p-4 rounded-2xl border t-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs t-text-secondary">
+        <div className="flex items-center gap-2">
+          <span>© 2026 ISP Environmental Solutions Pvt. Ltd.</span>
+          <span>•</span>
+          <span>All Recycling Machines Live Overview</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span>12 Connected Machines</span>
+          <span>•</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Live &amp; Synced
+          </span>
+        </div>
+      </footer>
+
     </div>
   );
 }

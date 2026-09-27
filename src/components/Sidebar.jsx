@@ -75,7 +75,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   };
 
   const navItems = [
-    { id: 'overview', label: 'System Overview', icon: LayoutDashboard },
+    { id: 'overview', label: 'Master Cumulative Overview', icon: LayoutDashboard },
     ...((isClientAdmin || isSuperAdmin) ? [
       { id: 'sub_users', label: 'Team & Machine Access', icon: Users },
     ] : []),
