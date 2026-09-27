@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Leaf, Trees, Car, Recycle, Award, RefreshCw, Info, CheckCircle2, 
   Scale, ShieldCheck, Flame, ArrowUpRight, Database, Printer, FileCheck,
-  CloudOff, Sprout, X, Download, Check, Shield
+  CloudOff, Sprout, X, Download, Check, Shield, RotateCcw, Sliders
 } from 'lucide-react';
 
 export default function EnvironmentalImpactTab({ stationFilter, selectedClientId, currentUser }) {
@@ -13,11 +13,57 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
   const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'csv'
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
+  // Custom editable offset factors state (stored in localStorage for persistence)
+  const [customFactors, setCustomFactors] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rvm_esg_custom_factors');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
       setToast(prev => ({ ...prev, show: false }));
     }, 3200);
+  };
+
+  const handleFactorChange = (materialKey, val) => {
+    setCustomFactors(prev => {
+      const updated = { ...prev };
+      if (val === '' || val === null || val === undefined) {
+        delete updated[materialKey];
+      } else {
+        const num = parseFloat(val);
+        updated[materialKey] = isNaN(num) ? '' : num;
+      }
+      try {
+        localStorage.setItem('rvm_esg_custom_factors', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleResetSingleFactor = (materialKey, defaultFactor) => {
+    setCustomFactors(prev => {
+      const updated = { ...prev };
+      delete updated[materialKey];
+      try {
+        localStorage.setItem('rvm_esg_custom_factors', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast(`Restored factor to ISO standard (${defaultFactor})`);
+  };
+
+  const handleResetAllFactors = () => {
+    setCustomFactors({});
+    try {
+      localStorage.removeItem('rvm_esg_custom_factors');
+    } catch (e) {}
+    showToast('All material offset factors reset to ISO 14064 standards');
   };
 
   const getMachinesQuery = () => {
@@ -63,14 +109,70 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
     showToast('Audit report sent to print dialogue');
   };
 
+  // Dynamic calculations accounting for editable factors
+  const hasCustomFactors = useMemo(() => {
+    return Object.keys(customFactors).length > 0;
+  }, [customFactors]);
+
+  const calculatedBreakdown = useMemo(() => {
+    const original = impactData?.breakdown || [];
+    return original.map((row) => {
+      const key = row.id || row.badge || row.material;
+      const isCustom = customFactors[key] !== undefined && customFactors[key] !== '';
+      const activeFactor = isCustom ? Number(customFactors[key]) : Number(row.factor || 1.5);
+      const weightKg = Number(row.weightKg) || 0;
+      const co2eSavedKg = parseFloat((weightKg * activeFactor).toFixed(1));
+      return {
+        ...row,
+        factor: activeFactor,
+        defaultFactor: Number(row.factor || 1.5),
+        isCustom,
+        co2eSavedKg
+      };
+    });
+  }, [impactData, customFactors]);
+
+  const displayTotalWeightProcessedKg = useMemo(() => {
+    if (calculatedBreakdown.length > 0) {
+      return parseFloat(calculatedBreakdown.reduce((sum, r) => sum + (Number(r.weightKg) || 0), 0).toFixed(1));
+    }
+    return impactData?.totalWeightProcessedKg || 0;
+  }, [calculatedBreakdown, impactData]);
+
+  const displayTotalCo2eAvoidedKg = useMemo(() => {
+    if (calculatedBreakdown.length > 0) {
+      return parseFloat(calculatedBreakdown.reduce((sum, r) => sum + (Number(r.co2eSavedKg) || 0), 0).toFixed(1));
+    }
+    return impactData?.totalCo2eAvoidedKg || 0;
+  }, [calculatedBreakdown, impactData]);
+
+  const displayTotalCo2eAvoidedTonnes = useMemo(() => {
+    return parseFloat((displayTotalCo2eAvoidedKg / 1000).toFixed(2));
+  }, [displayTotalCo2eAvoidedKg]);
+
+  const displayTreesPlantedEquivalent = useMemo(() => {
+    return Math.round(displayTotalCo2eAvoidedKg / 21.77);
+  }, [displayTotalCo2eAvoidedKg]);
+
+  const displayPassengerCarMilesAvoided = useMemo(() => {
+    return Math.round(displayTotalCo2eAvoidedKg / 0.40);
+  }, [displayTotalCo2eAvoidedKg]);
+
+  const displayWeightedFactor = useMemo(() => {
+    if (!displayTotalWeightProcessedKg) return '1.50';
+    return (displayTotalCo2eAvoidedKg / displayTotalWeightProcessedKg).toFixed(2);
+  }, [displayTotalCo2eAvoidedKg, displayTotalWeightProcessedKg]);
+
+  const displayCompostYieldKg = impactData?.compostYieldKg || 152.5;
+
   // Generate and download audited CSV ledger
   const downloadCsv = () => {
-    if (!impactData || !impactData.breakdown) return;
+    if (!calculatedBreakdown || calculatedBreakdown.length === 0) return;
     const headers = ['Material Stream,Machine Source,Measurement Method,Processed Weight (kg),Offset Factor,Net CO2e Saved (kg)'];
-    const rows = impactData.breakdown.map(b => 
-      `"${b.material}","${b.source}","${b.method}",${b.weightKg},${b.factor},${b.co2eSavedKg}`
+    const rows = calculatedBreakdown.map(b => 
+      `"${b.material}","${b.source || ''}","${b.method || ''}",${b.weightKg},${b.factor},${b.co2eSavedKg}`
     );
-    rows.push(`"TOTAL AUDITED SAVINGS","All Fleets","Verified Aggregation",${impactData.totalWeightProcessedKg},${impactData.weightedFactor || 1.58},${impactData.totalCo2eAvoidedKg}`);
+    rows.push(`"TOTAL AUDITED SAVINGS","All Fleets","Verified Aggregation",${displayTotalWeightProcessedKg},${displayWeightedFactor},${displayTotalCo2eAvoidedKg}`);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -115,22 +217,11 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
     );
   }
 
-  const {
-    totalWeightProcessedKg = 4576.5,
-    totalCo2eAvoidedKg = 7186.5,
-    totalCo2eAvoidedTonnes = 7.19,
-    treesPlantedEquivalent = 330,
-    passengerCarMilesAvoided = 17966,
-    compostYieldKg = 152.5,
-    weightedFactor = 1.57,
-    breakdown = []
-  } = impactData || {};
-
   return (
     <div className="space-y-6 animate-fade-in text-slate-900 dark:text-slate-100">
       
       {/* ======================================================== */}
-      {/* 1. HEADER SECTION (Matches ESG_Carbon_Impact_Audit.html)  */}
+      {/* 1. HEADER SECTION                                        */}
       {/* ======================================================== */}
       <header className="glass-panel p-4 sm:p-5 rounded-3xl border t-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         
@@ -196,36 +287,46 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
       </header>
 
       {/* ======================================================== */}
-      {/* 2. EXECUTIVE GREEN HERO BANNER                           */}
+      {/* 2. EXECUTIVE HERO BANNER (SOLID DARK, NO GRADIENT)       */}
       {/* ======================================================== */}
-      <div className="bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950 rounded-3xl p-6 sm:p-7 text-white shadow-md flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative overflow-hidden">
-        {/* Subtle background ambient glow */}
-        <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
         <div className="space-y-2 max-w-2xl relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600/40 text-emerald-200 border border-emerald-400/20 text-xs font-bold uppercase tracking-wider">
-            <Award className="w-3.5 h-3.5 text-emerald-300" /> Third-Party Audited Impact Ledger
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white border border-slate-700 text-xs font-bold uppercase tracking-wider">
+            <Award className="w-3.5 h-3.5 text-emerald-400" /> Third-Party Audited Impact Ledger
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            {totalCo2eAvoidedKg.toLocaleString()} kg CO₂e Total Carbon Offset
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+            {displayTotalCo2eAvoidedKg.toLocaleString()} kg CO₂e Total Carbon Offset
           </h2>
-          <p className="text-xs sm:text-sm text-emerald-200/90 leading-relaxed">
-            Calculated from {totalWeightProcessedKg.toLocaleString()} kg of raw recyclable materials collected across public Smart RVMs and corporate PecoDrop units, verified under life-cycle emissions reduction standards.
+          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+            Calculated from {displayTotalWeightProcessedKg.toLocaleString()} kg of raw recyclable materials collected across public Smart RVMs and corporate PecoDrop units, verified under life-cycle emissions reduction standards.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 border-t lg:border-t-0 lg:border-l border-emerald-700/60 pt-4 lg:pt-0 lg:pl-8 text-center shrink-0 relative z-10">
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-300">{treesPlantedEquivalent.toLocaleString()}</div>
-            <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Trees Equivalent</div>
+        {/* Right Metric Cards with Crisp High-Contrast White Text */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 border-t lg:border-t-0 lg:border-l border-slate-800 pt-5 lg:pt-0 lg:pl-8 text-center shrink-0">
+          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
+            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {displayTreesPlantedEquivalent.toLocaleString()}
+            </div>
+            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+              Trees Equivalent
+            </div>
           </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-black text-emerald-300">{passengerCarMilesAvoided.toLocaleString()}</div>
-            <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Miles Avoided</div>
+          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
+            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {displayPassengerCarMilesAvoided.toLocaleString()}
+            </div>
+            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+              Miles Avoided
+            </div>
           </div>
-          <div className="col-span-2 sm:col-span-1">
-            <div className="text-2xl sm:text-3xl font-black text-white">{(totalWeightProcessedKg / 1000).toFixed(2)} T</div>
-            <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-semibold mt-0.5">Diverted Waste</div>
+          <div className="col-span-2 sm:col-span-1 bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
+            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              {(displayTotalWeightProcessedKg / 1000).toFixed(2)} T
+            </div>
+            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+              Diverted Waste
+            </div>
           </div>
         </div>
       </div>
@@ -246,14 +347,14 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
             </div>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight">
-                {totalCo2eAvoidedKg.toLocaleString()}
+                {displayTotalCo2eAvoidedKg.toLocaleString()}
               </span>
               <span className="text-xs font-semibold t-text-muted">kg CO₂e</span>
             </div>
           </div>
           <div className="mt-3 text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-            <span>{totalCo2eAvoidedTonnes} Metric Tonnes Avoided</span>
+            <span>{displayTotalCo2eAvoidedTonnes} Metric Tonnes Avoided</span>
           </div>
         </div>
 
@@ -268,7 +369,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
             </div>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight">
-                {treesPlantedEquivalent.toLocaleString()}
+                {displayTreesPlantedEquivalent.toLocaleString()}
               </span>
               <span className="text-xs font-semibold t-text-muted">mature trees</span>
             </div>
@@ -289,13 +390,13 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
             </div>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight">
-                {passengerCarMilesAvoided.toLocaleString()}
+                {displayPassengerCarMilesAvoided.toLocaleString()}
               </span>
               <span className="text-xs font-semibold t-text-muted">miles</span>
             </div>
           </div>
           <div className="mt-3 text-[11px] t-text-muted leading-relaxed">
-            ≈ {Math.round(passengerCarMilesAvoided * 1.60934).toLocaleString()} km of passenger vehicle travel
+            ≈ {Math.round(displayPassengerCarMilesAvoided * 1.60934).toLocaleString()} km of passenger vehicle travel
           </div>
         </div>
 
@@ -310,7 +411,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
             </div>
             <div className="flex items-baseline gap-1.5 mt-1">
               <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight">
-                {compostYieldKg.toLocaleString()}
+                {displayCompostYieldKg.toLocaleString()}
               </span>
               <span className="text-xs font-semibold t-text-muted">kg diverted</span>
             </div>
@@ -337,8 +438,18 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
             <p className="text-xs t-text-muted mt-0.5">Calculated using verified material weights and standard life-cycle GHG offset factors.</p>
           </div>
           <div className="flex items-center gap-2">
+            {hasCustomFactors && (
+              <button
+                onClick={handleResetAllFactors}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all active:scale-95"
+                title="Reset all factors back to ISO 14064 standards"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset Standards</span>
+              </button>
+            )}
             <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/30">
-              Total Intake: {totalWeightProcessedKg.toLocaleString()} kg
+              Total Intake: {displayTotalWeightProcessedKg.toLocaleString()} kg
             </span>
           </div>
         </div>
@@ -356,7 +467,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
               </tr>
             </thead>
             <tbody className="divide-y t-border text-slate-700 dark:text-slate-300">
-              {breakdown.map((row) => {
+              {calculatedBreakdown.map((row) => {
                 const isPet = row.id === 'PET' || row.badge === 'PET';
                 const isUbc = row.id === 'UBC' || row.badge === 'UBC';
                 const isPpr = row.id === 'PPR' || row.badge === 'PPR';
@@ -379,8 +490,10 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
                   ? 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200 dark:border-teal-800'
                   : 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-800';
 
+                const rowKey = row.id || row.badge || row.material;
+
                 return (
-                  <tr key={row.id || row.material} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr key={rowKey} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${badgeBg}`}>
@@ -403,10 +516,32 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
                     <td className="py-3.5 px-4 text-right font-extrabold t-text-primary font-mono">
                       {row.weightKg.toLocaleString()} kg
                     </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 border t-border font-mono">
-                        {Number(row.factor).toFixed(2)}
-                      </span>
+                    <td className="py-3 px-4 text-center">
+                      <div className="inline-flex items-center justify-center gap-1.5">
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          max="50"
+                          value={row.factor}
+                          onChange={(e) => handleFactorChange(rowKey, e.target.value)}
+                          className={`w-20 px-2 py-1 text-center font-mono font-bold text-xs rounded-lg border transition-all ${
+                            row.isCustom 
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-400 dark:border-amber-600 ring-2 ring-amber-400/30' 
+                              : 'bg-white dark:bg-slate-900 t-text-primary border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                          } focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-hidden`}
+                          title={`ISO standard factor: ${row.defaultFactor}. Edit to simulate custom emission reduction.`}
+                        />
+                        {row.isCustom && (
+                          <button
+                            onClick={() => handleResetSingleFactor(rowKey, row.defaultFactor)}
+                            className="p-1 rounded-md text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                            title={`Reset to ISO standard default (${row.defaultFactor})`}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 text-right font-black text-emerald-700 dark:text-emerald-400 text-sm font-mono">
                       {row.co2eSavedKg.toLocaleString()} kg
@@ -426,13 +561,13 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
                   </div>
                 </td>
                 <td className="py-4 px-4 text-right t-text-primary font-black text-sm font-mono">
-                  {totalWeightProcessedKg.toLocaleString()} kg
+                  {displayTotalWeightProcessedKg.toLocaleString()} kg
                 </td>
                 <td className="py-4 px-4 text-center t-text-muted font-semibold text-xs font-mono">
-                  {weightedFactor} (Weighted)
+                  {displayWeightedFactor} (Weighted)
                 </td>
                 <td className="py-4 px-4 text-right text-emerald-700 dark:text-emerald-400 font-black text-base font-mono">
-                  {totalCo2eAvoidedKg.toLocaleString()} kg CO₂e
+                  {displayTotalCo2eAvoidedKg.toLocaleString()} kg CO₂e
                 </td>
               </tr>
             </tfoot>
@@ -480,7 +615,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
           <span>Audited ESG &amp; Carbon Accounting Portal</span>
         </div>
         <div className="flex items-center gap-4">
-          <span>{totalWeightProcessedKg.toLocaleString()} kg Verified Diversion</span>
+          <span>{displayTotalWeightProcessedKg.toLocaleString()} kg Verified Diversion</span>
           <span>•</span>
           <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
