@@ -9346,10 +9346,44 @@ app.delete('/api/machine/ads/:id', async (req, res) => {
       } catch (e) {}
     }
 
+    // Also purge matching files from local kiosk sync folders (PecoDrop & RVM desktop apps)
+    const purgeLocal = req.query.purgeLocal !== 'false';
+    const purgedMachineFiles = [];
+    if (purgeLocal) {
+      const machineFolders = [
+        path.join(__dirname, '..', 'PecoDropDesktopApp', 'Ads'),
+        path.join(__dirname, '..', 'RVMDesktopApp', 'Ads'),
+        path.join(__dirname, '..', 'Ads'),
+        'C:\\RVM\\Ads'
+      ];
+      for (const mFolder of machineFolders) {
+        if (fs.existsSync(mFolder)) {
+          try {
+            const mFiles = fs.readdirSync(mFolder);
+            for (const mf of mFiles) {
+              const matches = mf === rawId ||
+                (fileName && mf === fileName) ||
+                (fileName && mf.toLowerCase() === fileName.toLowerCase()) ||
+                (rawId && rawId.length > 5 && mf.includes(rawId)) ||
+                (deletedTitle && deletedTitle.length > 5 && mf.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
+              if (matches) {
+                try {
+                  fs.unlinkSync(path.join(mFolder, mf));
+                  purgedMachineFiles.push(path.join(mFolder, mf));
+                  deletedCount++;
+                } catch (e) {}
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
     invalidateAdsCache();
     res.json({
       success: true,
-      message: `Advertisement '${deletedTitle}' deleted successfully (${deletedCount} record(s)/file(s) removed)`
+      message: `Advertisement '${deletedTitle}' deleted successfully (${deletedCount} record(s)/file(s) removed)`,
+      purgedMachineFiles
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

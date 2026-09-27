@@ -25,6 +25,9 @@ export default function AdvertisementsTab() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [previewVideo, setPreviewVideo] = useState(null);
   const [editingCampaign, setEditingCampaign] = useState(null);
+  const [deletingCampaign, setDeletingCampaign] = useState(null);
+  const [purgeLocalFiles, setPurgeLocalFiles] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   // Upload Form State
   const [uploadMode, setUploadMode] = useState('file'); // 'file' or 'url'
@@ -186,6 +189,43 @@ export default function AdvertisementsTab() {
     setCampaigns(prev => prev.map(c => c.id === editingCampaign.id ? editingCampaign : c));
     showToast('success', `Updated broadcast destinations for "${editingCampaign.title}".`);
     setEditingCampaign(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingCampaign) return;
+    try {
+      setDeleting(true);
+      const params = new URLSearchParams({
+        fileName: deletingCampaign.filename || '',
+        title: deletingCampaign.title || '',
+        purgeLocal: purgeLocalFiles ? 'true' : 'false'
+      });
+
+      const res = await fetch(`/api/machine/ads/${encodeURIComponent(deletingCampaign.id)}?${params.toString()}`, {
+        method: 'DELETE'
+      });
+
+      let resData = {};
+      try {
+        resData = await res.json();
+      } catch (e) {}
+
+      // Remove from campaigns and central ads list
+      setCampaigns(prev => prev.filter(c => c.id !== deletingCampaign.id));
+      setAds(prev => prev.filter(a => a.id !== deletingCampaign.id));
+
+      if (purgeLocalFiles) {
+        showToast('success', `🗑️ Video "${deletingCampaign.title}" deleted and purged from RVM & PecoDrop local kiosk folders!`);
+      } else {
+        showToast('success', `🗑️ Video campaign "${deletingCampaign.title}" removed from active playlist.`);
+      }
+      setDeletingCampaign(null);
+    } catch (err) {
+      console.error('Failed to delete campaign:', err);
+      showToast('error', `Failed to delete campaign: ${err.message}`);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleUploadAndSave = async (e) => {
@@ -596,13 +636,26 @@ export default function AdvertisementsTab() {
                     <span>Change Machines</span>
                   </button>
 
-                  <button
-                    onClick={() => handlePushToScreens(camp)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-emerald-600 transition-colors"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Push to {camp.destinations.length > 1 ? 'Screens' : 'Screen'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePushToScreens(camp)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Push to {camp.destinations.length > 1 ? 'Screens' : 'Screen'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setDeletingCampaign(camp);
+                        setPurgeLocalFiles(true);
+                      }}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                      title="Delete video campaign & local kiosk files"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -852,6 +905,126 @@ export default function AdvertisementsTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Campaign Confirmation Modal with Local Kiosk Sync Purge Option */}
+      {deletingCampaign && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="glass-panel border t-border rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b t-border pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold t-text-primary text-base">Delete Signage Video Campaign</h3>
+                  <p className="text-xs t-text-muted">Confirm campaign removal and local kiosk hardware file purging</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setDeletingCampaign(null)} 
+                className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Campaign Summary Card */}
+            <div className="p-4 rounded-2xl t-bg-sec border t-border space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Campaign Title</span>
+                  <div className="text-sm font-black t-text-primary">{deletingCampaign.title}</div>
+                </div>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 dark:bg-slate-800 t-text-primary">
+                  {deletingCampaign.categoryBadge}
+                </span>
+              </div>
+              <div className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2 pt-1 border-t t-border">
+                <span>File: {deletingCampaign.filename}</span>
+                <span>•</span>
+                <span>Size: {deletingCampaign.fileSize}</span>
+              </div>
+            </div>
+
+            {/* Checkbox: Purge from local kiosk folders */}
+            <label 
+              onClick={() => setPurgeLocalFiles(!purgeLocalFiles)}
+              className={`flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all ${
+                purgeLocalFiles
+                  ? 'bg-rose-500/10 border-rose-500/40 text-rose-950 dark:text-rose-100'
+                  : 't-bg-sec border t-border text-slate-600 dark:text-slate-400 hover:border-slate-400'
+              }`}
+            >
+              <div className={`mt-0.5 w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-colors ${
+                purgeLocalFiles
+                  ? 'bg-rose-600 border-rose-600 text-white'
+                  : 'border-slate-400 dark:border-slate-600 bg-white dark:bg-slate-800'
+              }`}>
+                {purgeLocalFiles && <Check className="w-3.5 h-3.5" />}
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs font-black text-rose-700 dark:text-rose-300">
+                  Also permanently delete video file from local folders where it syncs to machines (PecoDrop & RVM desktop apps)
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+                  Deletes the physical .mp4 file from central server uploads (<code>/server/uploads/advertisements/</code>) and kiosk sync folders (<code>/PecoDropDesktopApp/Ads</code>, <code>/RVMDesktopApp/Ads</code>, and <code>C:\RVM\Ads</code>). Machines will immediately stop playing and purge cached video copies.
+                </p>
+              </div>
+            </label>
+
+            {/* Warning Callout */}
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>This broadcast campaign will be removed from all assigned machine playlists across the network.</span>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t t-border">
+              <button
+                type="button"
+                onClick={() => setDeletingCampaign(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold t-text-muted hover:t-bg-sec"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-950/20 flex items-center gap-2 transition-all active:scale-95"
+              >
+                {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>{deleting ? 'Deleting...' : purgeLocalFiles ? 'Delete & Purge Local Files' : 'Delete Campaign Only'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce-in">
+          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md ${
+            toastMsg.type === 'error'
+              ? 'bg-rose-900/95 text-rose-100 border-rose-700/60'
+              : 'bg-slate-900/95 text-white border-emerald-500/50'
+          }`}>
+            {toastMsg.type === 'error' ? (
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            )}
+            <span className="text-xs font-bold leading-relaxed max-w-md">{toastMsg.message}</span>
+            <button
+              onClick={() => setToastMsg(null)}
+              className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
       )}
