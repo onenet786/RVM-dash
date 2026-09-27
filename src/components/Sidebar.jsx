@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
   MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, 
   HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, 
-  Smartphone, FileText, Building2, BarChart3, Folder, FolderOpen
+  BarChart3, ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
@@ -79,9 +79,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   const MENU_SECTIONS = [
     {
       id: 'CORE',
-      label: 'CORE',
+      label: 'Core',
+      badge: 'Core Operations',
       icon: LayoutDashboard,
-      badge: 'Operations',
       items: [
         { id: 'overview', orderNo: 1, label: 'Executive Overview', icon: LayoutDashboard },
         { id: 'machines', orderNo: 2, label: 'Machine Health & Operations', icon: Cpu },
@@ -92,9 +92,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     },
     {
       id: 'COMMUNITY',
-      label: 'COMMUNITY & USERS',
-      icon: Users,
+      label: 'Community & Users',
       badge: 'Public & Mobile',
+      icon: Users,
       items: [
         ...(!isClientAdmin && !isCorporateSubUser ? [
           { id: 'mobile_users', orderNo: 4, label: 'Recycler Community', icon: Users }
@@ -104,9 +104,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     },
     {
       id: 'COMMERCIAL',
-      label: 'COMMERCIAL & ESG',
-      icon: Building2,
+      label: 'Commercial & ESG',
       badge: 'Enterprise & CSR',
+      icon: Building2,
       items: [
         ...(!isClientAdmin && !isCorporateSubUser ? [
           { id: 'enterprise_clients', orderNo: 6, label: 'Enterprise Accounts', icon: Building2 }
@@ -116,18 +116,18 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     },
     {
       id: 'INTELLIGENCE',
-      label: 'INTELLIGENCE',
-      icon: BarChart3,
+      label: 'Intelligence',
       badge: 'Data & Reports',
+      icon: BarChart3,
       items: [
         { id: 'reporting_hub', orderNo: 8, label: 'Analytics & Reports', icon: BarChart3 }
       ]
     },
     {
       id: 'SYSTEM',
-      label: 'SYSTEM & ADMIN',
-      icon: Settings,
+      label: 'System & Admin',
       badge: 'System Governance',
+      icon: ShieldCheck,
       items: [
         ...((isSuperAdmin || isClientAdmin || isMasterDev || isModuleAllowed('security') || isModuleAllowed('sub_users')) ? [
           { 
@@ -219,13 +219,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const renderContent = () => (
     <div className="flex flex-col justify-between h-full space-y-4">
-      <div className="space-y-4">
+      <div className="space-y-3">
         
-
-        {/* Database Status Pill for Super Admin */}
+        {/* Storage Engine Status Pill for Super Admin */}
         {isSuperAdmin && (
-          <div className="px-3 flex items-center justify-between text-xs font-extrabold t-text-muted">
-            <span className="text-[10px] uppercase tracking-wider">Storage Engine:</span>
+          <div className="px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/60 border t-border flex items-center justify-between text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider t-text-muted">Database Engine:</span>
             <span className={`px-2 py-0.5 text-[10px] font-black rounded-md uppercase mono ${
               isPostgres 
                 ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
@@ -236,8 +235,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
           </div>
         )}
 
-        {/* Main Menu Accordion Navigation (Yellow Main Menus & Single Open Behavior) */}
-        <div className="space-y-2">
+        {/* Main Menu Accordion Navigation (Executive Enterprise Style) */}
+        <nav className="space-y-1.5" aria-label="Main Navigation">
           {MENU_SECTIONS.map((section) => {
             const visibleItems = section.items.filter(item => isModuleAllowed(item.id));
             if (visibleItems.length === 0) return null;
@@ -247,50 +246,56 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             const SectionIcon = section.icon;
 
             return (
-              <div 
-                key={section.id} 
-                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-                  isOpen 
-                    ? 'border-amber-400/50 dark:border-amber-400/40 bg-amber-500/5 shadow-xs' 
-                    : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-amber-400/30'
-                }`}
-              >
-                {/* Yellow Main Menu Header (Resolves User instruction: Yellow Main Menu with Accordion) */}
+              <div key={section.id} className="transition-all duration-200">
+                {/* Yellow Main Menu Category Header */}
                 <button
                   type="button"
                   onClick={() => handleToggleSection(section.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-all ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all duration-150 group relative ${
                     isOpen 
-                      ? 'bg-amber-400/20 dark:bg-amber-400/15 border-b border-amber-400/30 text-amber-950 dark:text-amber-200 font-black' 
-                      : 'text-slate-800 dark:text-slate-200 hover:bg-amber-400/10 hover:text-amber-900 dark:hover:text-amber-100 font-extrabold'
+                      ? 'bg-amber-400/15 dark:bg-amber-400/10 text-amber-950 dark:text-amber-200 font-extrabold shadow-xs ring-1 ring-amber-400/30' 
+                      : hasActiveChild
+                        ? 'bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 font-bold hover:bg-amber-400/10'
+                        : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
                   }`}
                   aria-expanded={isOpen}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {/* Yellow/Amber highlighted icon badge representing Main Menu */}
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-xs ${
-                      isOpen
-                        ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-slate-950'
-                        : 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
-                    }`}>
-                      <SectionIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </div>
+                  {/* Left: Yellow Accent Dot/Indicator + Category Icon + Un-truncated Title */}
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    {/* Golden Yellow Accent Bar for Main Menu */}
+                    <div className={`w-1.5 h-4 rounded-full transition-all shrink-0 ${
+                      isOpen 
+                        ? 'bg-amber-500 dark:bg-amber-400' 
+                        : hasActiveChild 
+                          ? 'bg-emerald-500' 
+                          : 'bg-amber-400/40 group-hover:bg-amber-500'
+                    }`} />
 
-                    <span className="text-xs uppercase tracking-wider truncate">
+                    <SectionIcon className={`w-4 h-4 shrink-0 transition-colors ${
+                      isOpen 
+                        ? 'text-amber-600 dark:text-amber-400' 
+                        : hasActiveChild
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 't-text-muted group-hover:text-amber-500'
+                    }`} />
+
+                    {/* Un-truncated, cleanly formatted menu title */}
+                    <span className="text-xs font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {section.label}
                     </span>
 
-                    {/* Active child dot indicator */}
-                    {hasActiveChild && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" title="Active selection inside" />
+                    {/* Active child dot */}
+                    {hasActiveChild && !isOpen && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse ml-0.5" />
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-black px-1.5 py-0.2 rounded ${
-                      isOpen
-                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-200'
-                        : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  {/* Right: Count Badge & Animated Chevron */}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md mono ${
+                      isOpen 
+                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300' 
+                        : 't-bg-sec t-text-muted'
                     }`}>
                       {visibleItems.length}
                     </span>
@@ -300,9 +305,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                   </div>
                 </button>
 
-                {/* Submenu Items (Expanded ONLY when this menu is active) */}
+                {/* Submenu Tree Items (Expanded ONLY when this menu is active) */}
                 {isOpen && (
-                  <div className="p-1.5 space-y-1 animate-fade-in bg-white/60 dark:bg-slate-900/60">
+                  <div className="mt-1 ml-3.5 pl-3 border-l-2 border-amber-400/30 dark:border-amber-400/20 space-y-1 animate-fade-in py-1">
                     {visibleItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = activeTab === item.id;
@@ -310,14 +315,14 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                         <button
                           key={item.id}
                           onClick={() => handleTabClick(item.id)}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left group ${
+                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-all text-left group ${
                             isActive 
-                              ? 'bg-emerald-600/15 text-emerald-900 dark:text-emerald-200 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
-                              : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                              ? 'bg-emerald-600/15 text-emerald-950 dark:text-emerald-200 font-extrabold border-l-2 border-emerald-600 shadow-xs' 
+                              : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`text-[10px] font-mono px-1 rounded shrink-0 font-bold ${
+                            <span className={`text-[10px] font-mono px-1 py-0.2 rounded shrink-0 font-bold ${
                               isActive
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500'
@@ -325,13 +330,13 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                               {item.orderNo}
                             </span>
                             <Icon className={`w-3.5 h-3.5 shrink-0 ${
-                              isActive ? 'text-[#0b5d3b] dark:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-600'
+                              isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-500'
                             }`} />
                             <span className="truncate leading-snug">{item.label}</span>
                           </div>
 
                           {isActive && (
-                            <ChevronRight className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0 ml-1" />
+                            <ChevronRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
                           )}
                         </button>
                       );
@@ -341,17 +346,17 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
               </div>
             );
           })}
-        </div>
+        </nav>
 
         {/* PostgreSQL Relational Tables (Only shown to Super Admins when in Postgres Mode) */}
         {isSuperAdmin && isPostgres && allowedPgTables.length > 0 && (
-          <div className="pt-2 border-t t-border">
-            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-2 text-left">
-              <span className="flex items-center gap-1.5">
+          <div className="pt-3 border-t t-border">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-2 text-left">
+              <span className="flex items-center gap-1.5 text-[11px]">
                 <Table className="w-3.5 h-3.5" />
                 Raw Database Tables
               </span>
-              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-bold text-[10px]">
+              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 font-bold text-[10px]">
                 {allowedPgTables.length} Tables
               </span>
             </div>
@@ -365,10 +370,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-left ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
                       isActive 
-                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
-                        : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border-l-2 border-emerald-600 shadow-xs' 
+                        : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center gap-2 text-left min-w-0 flex-1">
@@ -391,18 +396,18 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
         {/* MongoDB rvmapp Tables Browser (Only shown to Super Admins) */}
         {isSuperAdmin && allowedMongoCollections.length > 0 && (
-          <div className="pt-2 border-t t-border">
+          <div className="pt-3 border-t t-border">
             <button
               onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
-              className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-2 py-1 rounded-lg hover:t-bg-hover transition-colors group text-left"
+              className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider t-text-muted mb-2 px-2 py-1 rounded-lg hover:t-bg-hover transition-colors group text-left"
               title={isMongoCollapsed ? "Click to expand MongoDB collections" : "Click to collapse MongoDB collections"}
             >
-              <span className="flex items-center gap-1.5 text-left">
+              <span className="flex items-center gap-1.5 text-left text-[11px]">
                 <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
-                <span className="text-left text-xs">MongoDB Collections</span>
+                <span className="text-left">MongoDB Collections</span>
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-emerald-800 dark:text-emerald-400 mono text-[10px] bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
+                <span className="text-emerald-800 dark:text-emerald-400 mono text-[10px] bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 font-bold">
                   {allowedMongoCollections.length}
                 </span>
                 <ChevronDown className={`w-3 h-3 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
@@ -419,10 +424,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-left ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
                         isActive 
-                          ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
-                          : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                          ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border-l-2 border-emerald-600 shadow-xs' 
+                          : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60'
                       }`}
                     >
                       <div className="flex items-center gap-2 text-left min-w-0 flex-1">
@@ -447,7 +452,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 t-bg-sec border t-border rounded-xl space-y-0.5 text-left mt-auto">
+      <div className="p-2.5 t-bg-sec border t-border rounded-xl space-y-0.5 text-left mt-auto">
         <div className="text-[11px] font-bold t-text-primary">ISP Smart Recycling Hub</div>
         <div className="text-[10px] t-text-muted truncate">
           {isSuperAdmin ? (
@@ -462,8 +467,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   return (
     <>
-      {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 t-bg-surface border-r t-border flex-col shrink-0 p-3.5 space-y-4 transition-colors duration-300 overflow-y-auto">
+      {/* Desktop Persistent Sidebar (w-[272px] provides generous breathing room with ZERO text truncation) */}
+      <aside className="hidden lg:flex w-[272px] t-bg-surface border-r t-border flex-col shrink-0 p-3.5 space-y-4 transition-colors duration-300 overflow-y-auto">
         {renderContent()}
       </aside>
 
