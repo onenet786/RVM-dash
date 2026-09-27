@@ -729,6 +729,14 @@ async function initProductionPostgresSchemas() {
         updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_machine_ads_target ON machine_advertisements (machine_id, is_active, display_order ASC);
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS category_badge VARCHAR(100) DEFAULT 'Public RVM';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS aspect_ratio VARCHAR(100) DEFAULT '16:9 Landscape';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS category_theme VARCHAR(50) DEFAULT 'emerald';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS location VARCHAR(255) DEFAULT 'All Locations (Nationwide)';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS scope VARCHAR(100) DEFAULT 'ALL';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS destinations JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active Loop';
     `);
 
     // 6. Citizen Loyalty Redemptions Table (for Voucher & Reward History)
@@ -9070,7 +9078,9 @@ app.get('/api/machine/ads', async (req, res) => {
     if (pool && activeDbType === 'postgres') {
       try {
         let queryText = `
-          SELECT id, machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order, created_at, updated_at
+          SELECT id, machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
+                 category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status,
+                 created_at, updated_at
           FROM machine_advertisements
         `;
         let queryParams = [];
@@ -9089,15 +9099,37 @@ app.get('/api/machine/ads', async (req, res) => {
           const dedupeKey = (r.file_name || r.video_url || String(r.id)).toLowerCase();
           if (!seenKeys.has(dedupeKey)) {
             seenKeys.add(dedupeKey);
+            const rawSize = Number(r.file_size || 0);
+            const sizeLabel = rawSize > 0 ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB` : '14.0 MB';
+            const durSec = r.duration_seconds || 30;
+            const durLabel = `${Math.floor(durSec / 60)}:${String(durSec % 60).padStart(2, '0')}`;
+            
+            let destList = [];
+            if (Array.isArray(r.destinations)) {
+              destList = r.destinations;
+            } else if (typeof r.destinations === 'string') {
+              try { destList = JSON.parse(r.destinations); } catch (e) {}
+            }
+
             adsList.push({
               id: r.id,
               machineId: r.machine_id,
               title: r.title,
               videoUrl: r.video_url,
-              fileName: r.file_name,
-              fileSize: Number(r.file_size || 0),
-              durationSeconds: r.duration_seconds || 0,
+              fileName: r.file_name || `${r.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.mp4`,
+              fileSize: sizeLabel,
+              fileSizeBytes: rawSize,
+              duration: durLabel,
+              durationSeconds: durSec,
+              aspectRatio: r.aspect_ratio || '16:9 Landscape',
+              categoryBadge: r.category_badge || 'Public RVM',
+              categoryTheme: r.category_theme || 'emerald',
+              status: r.status || (r.is_active ? 'Active Loop' : 'Paused'),
               isActive: r.is_active,
+              destinations: destList,
+              location: r.location || 'All Locations (Nationwide)',
+              scope: r.scope || 'ALL',
+              thumbnailUrl: r.thumbnail_url || null,
               displayOrder: r.display_order || 1,
               createdAt: r.created_at,
               updatedAt: r.updated_at
@@ -9157,7 +9189,15 @@ app.post('/api/machine/ads', async (req, res) => {
       isActive = true,
       displayOrder = 1,
       replaceMode = 'append', // 'append' (keep old) or 'replace_delete' (delete old) or 'replace_deactivate'
-      cleanupOldVideos = false
+      cleanupOldVideos = false,
+      categoryBadge = 'Public RVM',
+      aspectRatio = '16:9 Landscape',
+      categoryTheme = 'emerald',
+      location = 'All Locations (Nationwide)',
+      scope = 'ALL',
+      destinations = [],
+      thumbnailUrl = null,
+      status = 'Active Loop'
     } = req.body;
 
     if (!title || !videoUrl) {
@@ -9220,24 +9260,42 @@ app.post('/api/machine/ads', async (req, res) => {
       }
     }
 
+    const destJson = JSON.stringify(Array.isArray(destinations) ? destinations : []);
+
     let savedAd;
-    if (id && !String(id).startsWith('disk_')) {
+    if (id && !String(id).startsWith('disk_') && /^\d+$/.test(String(id))) {
       // Update existing ad
       const updateRes = await pool.query(`
         UPDATE machine_advertisements
         SET machine_id = $1, title = $2, video_url = $3, file_name = $4, file_size = $5,
-            duration_seconds = $6, is_active = $7, display_order = $8, updated_at = NOW()
-        WHERE id = $9
+            duration_seconds = $6, is_active = $7, display_order = $8,
+            category_badge = $9, aspect_ratio = $10, category_theme = $11,
+            location = $12, scope = $13, destinations = $14::jsonb,
+            thumbnail_url = $15, status = $16, updated_at = NOW()
+        WHERE id = $17
         RETURNING *;
-      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder, parseInt(id)]);
+      `, [
+        machineId, title, videoUrl, fileName || null, fileSize,
+        durationSeconds, isActive, displayOrder,
+        categoryBadge, aspectRatio, categoryTheme,
+        location, scope, destJson,
+        thumbnailUrl, status, parseInt(id)
+      ]);
       savedAd = updateRes.rows[0];
     } else {
       // Create new ad
       const insertRes = await pool.query(`
-        INSERT INTO machine_advertisements (machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        INSERT INTO machine_advertisements (
+          machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
+          category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status,
+          created_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, NOW(), NOW())
         RETURNING *;
-      `, [machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder]);
+      `, [
+        machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder,
+        categoryBadge, aspectRatio, categoryTheme, location, scope, destJson, thumbnailUrl, status
+      ]);
       savedAd = insertRes.rows[0];
     }
 
@@ -9279,6 +9337,39 @@ app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
 
     invalidateAdsCache();
     res.json({ success: true, message: 'Status updated' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Advertisement Video Destinations / Machines
+app.patch('/api/machine/ads/:id/destinations', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { destinations = [] } = req.body;
+    const pool = getPgPool();
+    if (!pool) return res.status(500).json({ success: false, error: 'Database unavailable' });
+
+    if (/^\d+$/.test(id)) {
+      const destJson = JSON.stringify(Array.isArray(destinations) ? destinations : []);
+      const result = await pool.query(`
+        UPDATE machine_advertisements
+        SET destinations = $1::jsonb, updated_at = NOW()
+        WHERE id = $2
+        RETURNING *;
+      `, [destJson, parseInt(id)]);
+
+      if (result.rowCount > 0) {
+        invalidateAdsCache();
+        return res.json({
+          success: true,
+          ad: result.rows[0],
+          message: 'Destinations updated successfully'
+        });
+      }
+    }
+
+    res.json({ success: true, message: 'Updated' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -107,6 +107,82 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_kiosk_bindings_org ON kiosk_org_bindings (org_id);
       CREATE INDEX IF NOT EXISTS idx_kiosk_bindings_machine ON kiosk_org_bindings (machine_id);
       CREATE INDEX IF NOT EXISTS idx_organizations_domain ON organizations (domain);
+
+      -- 8. Digital Signage Columns & Campaign Seeding
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS category_badge VARCHAR(100) DEFAULT 'Public RVM';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS aspect_ratio VARCHAR(100) DEFAULT '16:9 Landscape';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS category_theme VARCHAR(50) DEFAULT 'emerald';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS location VARCHAR(255) DEFAULT 'All Locations (Nationwide)';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS scope VARCHAR(100) DEFAULT 'ALL';
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS destinations JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+      ALTER TABLE machine_advertisements ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Active Loop';
+
+      INSERT INTO machine_advertisements (
+        title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
+        category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status
+      )
+      SELECT 
+        'PECO Corporate Green Journey',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'peco_corporate_loop_2026.mp4',
+        14889779,
+        30,
+        true,
+        1,
+        'PecoDrop Exclusive',
+        '16:9 Landscape',
+        'purple',
+        'Metro Mall',
+        'PECODROP',
+        '[{"id":"PECO-RWP","label":"PECO-RWP (Metro Mall)","type":"peco"},{"id":"PECO-02","label":"PECO-02 (Corporate HQ)","type":"peco"}]'::jsonb,
+        '/uploads/advertisements/ad_peco_green_journey.jpg',
+        'Active Loop'
+      WHERE NOT EXISTS (SELECT 1 FROM machine_advertisements WHERE title = 'PECO Corporate Green Journey');
+
+      INSERT INTO machine_advertisements (
+        title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
+        category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status
+      )
+      SELECT 
+        'Pepsi Recycle & Earn PKR 200',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        'pepsi_public_ad_1080p.mp4',
+        10276044,
+        15,
+        true,
+        2,
+        'Public RVM',
+        '16:9 Header Display',
+        'emerald',
+        'Rawalpindi North Terminal',
+        'RVM_NEW',
+        '[{"id":"CENTRAL-METRO","label":"Central Metro Station","type":"rvm"},{"id":"RWP-NORTH","label":"Rawalpindi North Terminal","type":"rvm"},{"id":"UCP-CAMPUS","label":"UCP Green Campus","type":"rvm"}]'::jsonb,
+        '/uploads/advertisements/ad_pepsi_recycle_earn.jpg',
+        'Active Loop'
+      WHERE NOT EXISTS (SELECT 1 FROM machine_advertisements WHERE title = 'Pepsi Recycle & Earn PKR 200');
+
+      INSERT INTO machine_advertisements (
+        title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
+        category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status
+      )
+      SELECT 
+        'University Plastic Bottle Drive',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        'ucp_campus_drive_spring26.mp4',
+        25375539,
+        45,
+        true,
+        3,
+        'Campus Specific',
+        'Single Machine Unit',
+        'cyan',
+        'UCP Campus',
+        'RVM_NEW',
+        '[{"id":"UCP-RVM","label":"UCP-RVM (Lahore Campus)","type":"campus"}]'::jsonb,
+        '/uploads/advertisements/ad_university_bottle_drive.jpg',
+        'Single Spot'
+      WHERE NOT EXISTS (SELECT 1 FROM machine_advertisements WHERE title = 'University Plastic Bottle Drive');
     `);
 
     console.log('[Migration] Database schema, indexes, and seeding verified successfully.');

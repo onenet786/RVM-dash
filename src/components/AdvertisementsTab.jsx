@@ -42,72 +42,8 @@ export default function AdvertisementsTab() {
   // Feedback notifications
   const [toastMsg, setToastMsg] = useState(null);
 
-  // Pre-configured campaigns matching the master digital signage architecture
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: 'camp_peco_green',
-      title: 'PECO Corporate Green Journey',
-      filename: 'peco_corporate_loop_2026.mp4',
-      fileSize: '14.2 MB',
-      duration: '0:30',
-      thumbnail: pecoThumb,
-      aspectRatio: '16:9 Landscape',
-      categoryBadge: 'PecoDrop Exclusive',
-      categoryTheme: 'purple', // 'purple' | 'emerald' | 'cyan'
-      status: 'Active Loop',
-      isActive: true,
-      destinations: [
-        { id: 'PECO-RWP', label: 'PECO-RWP (Metro Mall)', type: 'peco' },
-        { id: 'PECO-02', label: 'PECO-02 (Corporate HQ)', type: 'peco' }
-      ],
-      location: 'Metro Mall',
-      scope: 'PECODROP',
-      orientation: '16:9 Landscape',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-    },
-    {
-      id: 'camp_pepsi_recycle',
-      title: 'Pepsi Recycle & Earn PKR 200',
-      filename: 'pepsi_public_ad_1080p.mp4',
-      fileSize: '9.8 MB',
-      duration: '0:15',
-      thumbnail: pepsiThumb,
-      aspectRatio: '16:9 Header Display',
-      categoryBadge: 'Public RVM',
-      categoryTheme: 'emerald',
-      status: 'Active Loop',
-      isActive: true,
-      destinations: [
-        { id: 'CENTRAL-METRO', label: 'Central Metro Station', type: 'rvm' },
-        { id: 'RWP-NORTH', label: 'Rawalpindi North Terminal', type: 'rvm' },
-        { id: 'UCP-CAMPUS', label: 'UCP Green Campus', type: 'rvm' }
-      ],
-      location: 'Rawalpindi North Terminal',
-      scope: 'RVM_NEW',
-      orientation: '16:9 Header Display',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
-    },
-    {
-      id: 'camp_ucp_bottle',
-      title: 'University Plastic Bottle Drive',
-      filename: 'ucp_campus_drive_spring26.mp4',
-      fileSize: '24.2 MB',
-      duration: '0:45',
-      thumbnail: universityThumb,
-      aspectRatio: 'Single Machine Unit',
-      categoryBadge: 'Campus Specific',
-      categoryTheme: 'cyan',
-      status: 'Single Spot',
-      isActive: true,
-      destinations: [
-        { id: 'UCP-RVM', label: 'UCP-RVM (Lahore Campus)', type: 'campus' }
-      ],
-      location: 'UCP Campus',
-      scope: 'RVM_NEW',
-      orientation: 'Single Standalone Display',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-    }
-  ]);
+  // Database-backed campaigns matching digital signage table
+  const [campaigns, setCampaigns] = useState([]);
 
   const fileInputRef = useRef(null);
 
@@ -136,6 +72,39 @@ export default function AdvertisementsTab() {
       const res = await fetch('/api/machine/ads');
       if (res.ok) {
         const data = await res.json();
+        const loadedCampaigns = (data.ads || []).map(ad => {
+          let thumb = pecoThumb;
+          if (ad.categoryBadge?.includes('Campus') || ad.title?.toLowerCase().includes('bottle')) {
+            thumb = universityThumb;
+          } else if (ad.categoryBadge?.includes('Public') || ad.title?.toLowerCase().includes('pepsi')) {
+            thumb = pepsiThumb;
+          }
+          if (ad.thumbnailUrl && (ad.thumbnailUrl.startsWith('http') || ad.thumbnailUrl.startsWith('/uploads'))) {
+            thumb = ad.thumbnailUrl;
+          }
+
+          return {
+            id: ad.id,
+            title: ad.title,
+            filename: ad.fileName,
+            fileSize: ad.fileSize || '14.0 MB',
+            duration: ad.duration || '0:30',
+            thumbnail: thumb,
+            aspectRatio: ad.aspectRatio || '16:9 Landscape',
+            categoryBadge: ad.categoryBadge || 'Public RVM',
+            categoryTheme: ad.categoryTheme || (ad.categoryBadge?.includes('PecoDrop') ? 'purple' : ad.categoryBadge?.includes('Campus') ? 'cyan' : 'emerald'),
+            status: ad.status || 'Active Loop',
+            isActive: ad.isActive !== false,
+            destinations: Array.isArray(ad.destinations) && ad.destinations.length > 0 
+              ? ad.destinations 
+              : [{ id: 'GLOBAL-01', label: 'All Fleet Kiosks', type: 'global' }],
+            location: ad.location || 'All Locations (Nationwide)',
+            scope: ad.scope || 'ALL',
+            orientation: ad.aspectRatio || '16:9 Landscape',
+            videoUrl: ad.videoUrl
+          };
+        });
+        setCampaigns(loadedCampaigns);
         setAds(data.ads || []);
       }
     } catch (err) {
@@ -184,11 +153,21 @@ export default function AdvertisementsTab() {
     setEditingCampaign({ ...editingCampaign, destinations: updated });
   };
 
-  const handleSaveCampaignDestinations = () => {
+  const handleSaveCampaignDestinations = async () => {
     if (!editingCampaign) return;
-    setCampaigns(prev => prev.map(c => c.id === editingCampaign.id ? editingCampaign : c));
-    showToast('success', `Updated broadcast destinations for "${editingCampaign.title}".`);
-    setEditingCampaign(null);
+    try {
+      await fetch(`/api/machine/ads/${editingCampaign.id}/destinations`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destinations: editingCampaign.destinations })
+      });
+      await fetchAds();
+      showToast('success', `Updated broadcast destinations for "${editingCampaign.title}".`);
+    } catch (err) {
+      showToast('error', 'Failed to update destinations.');
+    } finally {
+      setEditingCampaign(null);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -205,19 +184,17 @@ export default function AdvertisementsTab() {
         method: 'DELETE'
       });
 
-      let resData = {};
-      try {
-        resData = await res.json();
-      } catch (e) {}
-
-      // Remove from campaigns and central ads list
-      setCampaigns(prev => prev.filter(c => c.id !== deletingCampaign.id));
-      setAds(prev => prev.filter(a => a.id !== deletingCampaign.id));
-
-      if (purgeLocalFiles) {
-        showToast('success', `🗑️ Video "${deletingCampaign.title}" deleted and purged from RVM & PecoDrop local kiosk folders!`);
+      if (res.ok) {
+        // Refresh live from database to guarantee absolute DB synchronization!
+        await fetchAds();
+        if (purgeLocalFiles) {
+          showToast('success', `🗑️ Video "${deletingCampaign.title}" deleted from database and purged from RVM & PecoDrop local kiosk folders!`);
+        } else {
+          showToast('success', `🗑️ Video campaign "${deletingCampaign.title}" permanently removed from database.`);
+        }
       } else {
-        showToast('success', `🗑️ Video campaign "${deletingCampaign.title}" removed from active playlist.`);
+        const errData = await res.json().catch(() => ({}));
+        showToast('error', errData.error || 'Failed to delete advertisement campaign.');
       }
       setDeletingCampaign(null);
     } catch (err) {
@@ -239,31 +216,52 @@ export default function AdvertisementsTab() {
       setUploading(true);
       let finalVideoUrl = adVideoUrl.trim() || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
       let fileName = selectedFile ? selectedFile.name : `${adTitle.toLowerCase().replace(/\s+/g, '_')}.mp4`;
-      let fileSize = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '18.4 MB';
+      let fileSizeBytes = selectedFile ? selectedFile.size : 14889779;
 
-      const newCampaign = {
-        id: `camp_${Date.now()}`,
-        title: adTitle.trim(),
-        filename: fileName,
-        fileSize,
-        duration: '0:30',
-        thumbnail: targetCategory === 'PecoDrop Exclusive' ? pecoThumb : targetCategory === 'Campus Specific' ? universityThumb : pepsiThumb,
-        aspectRatio: targetOrientation,
-        categoryBadge: targetCategory,
-        categoryTheme: targetCategory === 'PecoDrop Exclusive' ? 'purple' : targetCategory === 'Campus Specific' ? 'cyan' : 'emerald',
-        status: 'Active Loop',
-        isActive: true,
-        destinations: [
-          { id: 'GLOBAL-01', label: 'All Fleet Kiosks', type: 'global' }
-        ],
-        location: 'All Locations (Nationwide)',
-        scope: targetCategory === 'PecoDrop Exclusive' ? 'PECODROP' : 'RVM_NEW',
-        orientation: targetOrientation,
-        videoUrl: finalVideoUrl
-      };
+      // If user uploaded a physical file, post to upload endpoint first
+      if (uploadMode === 'file' && selectedFile) {
+        const formData = new FormData();
+        formData.append('video', selectedFile);
+        formData.append('title', adTitle.trim());
+        const uploadRes = await fetch('/api/machine/ads/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (uploadRes.ok) {
+          const upData = await uploadRes.json();
+          finalVideoUrl = upData.url || finalVideoUrl;
+          fileName = upData.fileName || fileName;
+        }
+      }
 
-      setCampaigns(prev => [newCampaign, ...prev]);
-      showToast('success', `🚀 Campaign "${adTitle}" uploaded & queued for broadcast!`);
+      // Save campaign record directly to PostgreSQL DB
+      const saveRes = await fetch('/api/machine/ads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: adTitle.trim(),
+          videoUrl: finalVideoUrl,
+          fileName,
+          fileSize: fileSizeBytes,
+          durationSeconds: 30,
+          isActive: true,
+          categoryBadge: targetCategory,
+          aspectRatio: targetOrientation,
+          categoryTheme: targetCategory === 'PecoDrop Exclusive' ? 'purple' : targetCategory === 'Campus Specific' ? 'cyan' : 'emerald',
+          location: 'All Locations (Nationwide)',
+          scope: targetCategory === 'PecoDrop Exclusive' ? 'PECODROP' : 'RVM_NEW',
+          destinations: [{ id: 'GLOBAL-01', label: 'All Fleet Kiosks', type: 'global' }],
+          status: 'Active Loop'
+        })
+      });
+
+      if (!saveRes.ok) {
+        const errJson = await saveRes.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to save to database');
+      }
+
+      await fetchAds();
+      showToast('success', `🚀 Campaign "${adTitle}" saved to database & queued for broadcast!`);
       setShowUploadModal(false);
       setAdTitle('');
       setAdVideoUrl('');
@@ -283,6 +281,11 @@ export default function AdvertisementsTab() {
     if (screenProfile !== 'ALL' && c.orientation !== screenProfile) return false;
     return true;
   });
+
+  const activeCount = campaigns.length;
+  const loopCount = campaigns.filter(c => c.status === 'Active Loop').length;
+  const singleCount = campaigns.filter(c => c.status !== 'Active Loop').length;
+  const totalStorageMb = campaigns.reduce((acc, c) => acc + (parseFloat(c.fileSize) || 12.0), 0).toFixed(1);
 
   return (
     <div className="space-y-6 animate-fade-in w-full">
@@ -372,11 +375,11 @@ export default function AdvertisementsTab() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mt-3">
-            <span className="text-3xl font-black t-text-primary tracking-tight">4</span>
+            <span className="text-3xl font-black t-text-primary tracking-tight">{activeCount}</span>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">video assets</span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            3 in rotation • 1 targeted single unit
+            {loopCount} in rotation • {singleCount} targeted single unit
           </div>
         </div>
 
@@ -412,7 +415,7 @@ export default function AdvertisementsTab() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mt-3">
-            <span className="text-3xl font-black t-text-primary tracking-tight">48.2</span>
+            <span className="text-3xl font-black t-text-primary tracking-tight">{totalStorageMb}</span>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">MB Used</span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
