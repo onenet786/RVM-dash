@@ -8,25 +8,44 @@ import {
 
 export const AVAILABLE_SYSTEM_MENUS = [
   {
-    category: 'Core Dashboards & Signage',
-    badge: 'Main Nav',
+    category: 'CORE',
+    badge: 'Core Operations',
     items: [
-      { id: 'overview', label: 'Master Cumulative Overview', icon: LayoutDashboard, desc: 'Master cumulative machine network KPI metrics, material variant breakdown & live drops' },
-      { id: 'reporting_hub', label: 'Reports & Analytics Hub', icon: BarChart3, desc: 'Compliance audits, fleet uptime, material volume variants & financial ledger' },
-      { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users, desc: 'Recycler directory, mobile app accounts, points balances & redemption logs' },
-      { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf, desc: 'ISO 14064 third-party audited carbon offset ledger, diverted landfill & tree equivalents' },
-      { id: 'analytics', label: 'Green Champions & Leaderboard', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
+      { id: 'overview', label: 'Executive Overview', icon: LayoutDashboard, desc: 'Executive network KPI metrics, material variant breakdown & live drops' },
       { id: 'machines', label: 'Machine Health & Operations', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
-      { id: 'advertisements', label: 'Ad Video Signage', icon: Tv, desc: 'Digital signage playlists & promotional kiosk video manager' },
+      { id: 'advertisements', label: 'Digital Signage', icon: Tv, desc: 'Digital signage playlists & promotional kiosk video manager' },
     ]
   },
   {
-    category: 'System Administration & Security',
-    badge: 'Admin Only',
+    category: 'COMMUNITY & USERS',
+    badge: 'Public & Mobile',
     items: [
-      { id: 'security', label: 'User & Security RBAC', icon: Lock, desc: 'Manage user credentials, passwords & Role Permissions Matrix' },
-      { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft, desc: 'PostgreSQL & MongoDB cluster host routing & status' },
-      { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive, desc: 'Database snapshots, SQL dumps & system restore points' },
+      { id: 'mobile_users', label: 'Recycler Community', icon: Users, desc: 'Recycler directory, mobile app accounts, points balances & redemption logs' },
+      { id: 'analytics', label: 'Rewards & Leaderboards', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
+    ]
+  },
+  {
+    category: 'COMMERCIAL & ESG',
+    badge: 'Enterprise & CSR',
+    items: [
+      { id: 'enterprise_clients', label: 'Enterprise Accounts', icon: Building2, desc: 'Corporate client accounts, contract allocations & branch fleets' },
+      { id: 'esg_impact', label: 'ESG & Carbon Impact', icon: Leaf, desc: 'ISO 14064 third-party audited carbon offset ledger, diverted landfill & tree equivalents' },
+    ]
+  },
+  {
+    category: 'INTELLIGENCE',
+    badge: 'Data & Audits',
+    items: [
+      { id: 'reporting_hub', label: 'Analytics & Reports', icon: BarChart3, desc: 'Compliance audits, fleet uptime, material volume variants & financial ledger' },
+    ]
+  },
+  {
+    category: 'SYSTEM & ADMIN',
+    badge: 'System Governance',
+    items: [
+      { id: 'security', label: 'Access & Security (RBAC)', icon: Lock, desc: 'Manage user credentials, passwords & Role Permissions Matrix' },
+      { id: 'db_switcher', label: 'Database Connections', icon: ArrowRightLeft, desc: 'PostgreSQL & MongoDB cluster host routing & status' },
+      { id: 'db_backup', label: 'Backups & Restore', icon: HardDrive, desc: 'Database snapshots, SQL dumps & system restore points' },
     ]
   },
   {

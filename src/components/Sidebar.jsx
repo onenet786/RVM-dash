@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
-  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, Smartphone, FileText, Building2, BarChart3
+  MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, 
+  HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, 
+  Smartphone, FileText, Building2, BarChart3, Folder, FolderOpen
 } from 'lucide-react';
-import ispLogo from '../assets/isp_logo.png';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
   const isMasterDev = currentUser?.username === 'onenet';
@@ -41,7 +42,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
     if (isClientAdmin) {
-      return ['overview', 'sub_users', 'reporting_hub', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+      return ['overview', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'machines', 'advertisements'];
     }
     if (isCorporateSubUser) {
       return ['overview', 'reporting_hub', 'esg_impact', 'analytics', 'machines'];
@@ -61,7 +62,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const isModuleAllowed = (moduleId) => {
     if (isClientAdmin) {
-      if (['enterprise_clients', 'security', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
+      if (['enterprise_clients', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
       if (moduleId.startsWith('col_')) return false;
     }
     if (isCorporateSubUser) {
@@ -74,32 +75,103 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     return allowedModules.includes(moduleId);
   };
 
-  const navItems = [
-    { id: 'overview', label: 'Master Cumulative Overview', icon: LayoutDashboard },
-    ...((isClientAdmin || isSuperAdmin) ? [
-      { id: 'sub_users', label: 'Team & Machine Access', icon: Users },
-    ] : []),
-    { id: 'reporting_hub', label: 'Reports & Analytics Hub', icon: BarChart3 },
-    ...((!isClientAdmin && !isCorporateSubUser) ? [
-      { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
-      { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users },
-    ] : []),
-    { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf },
-    { id: 'analytics', label: 'Green Champions & Leaderboard', icon: Trophy },
-    { id: 'machines', label: 'Machine Health & Operations', icon: Cpu },
-    ...((!isCorporateSubUser) ? [
-      { id: 'advertisements', label: 'Digital Signage & Ads', icon: Tv },
-    ] : []),
-    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('security'))) ? [
-      { id: 'security', label: 'User & Security RBAC', icon: Lock },
-    ] : []),
-    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_switcher'))) ? [
-      { id: 'db_switcher', label: 'DB Connection Manager', icon: ArrowRightLeft },
-    ] : []),
-    ...((!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_backup'))) ? [
-      { id: 'db_backup', label: 'DB Backup & Restore', icon: HardDrive },
-    ] : [])
+  // Structured Accordion Main Menus (Yellow Rows) and Submenus
+  const MENU_SECTIONS = [
+    {
+      id: 'CORE',
+      label: 'CORE',
+      icon: LayoutDashboard,
+      badge: 'Operations',
+      items: [
+        { id: 'overview', orderNo: 1, label: 'Executive Overview', icon: LayoutDashboard },
+        { id: 'machines', orderNo: 2, label: 'Machine Health & Operations', icon: Cpu },
+        ...(!isCorporateSubUser ? [
+          { id: 'advertisements', orderNo: 3, label: 'Digital Signage', icon: Tv }
+        ] : [])
+      ]
+    },
+    {
+      id: 'COMMUNITY',
+      label: 'COMMUNITY & USERS',
+      icon: Users,
+      badge: 'Public & Mobile',
+      items: [
+        ...(!isClientAdmin && !isCorporateSubUser ? [
+          { id: 'mobile_users', orderNo: 4, label: 'Recycler Community', icon: Users }
+        ] : []),
+        { id: 'analytics', orderNo: 5, label: 'Rewards & Leaderboards', icon: Trophy }
+      ]
+    },
+    {
+      id: 'COMMERCIAL',
+      label: 'COMMERCIAL & ESG',
+      icon: Building2,
+      badge: 'Enterprise & CSR',
+      items: [
+        ...(!isClientAdmin && !isCorporateSubUser ? [
+          { id: 'enterprise_clients', orderNo: 6, label: 'Enterprise Accounts', icon: Building2 }
+        ] : []),
+        { id: 'esg_impact', orderNo: 7, label: 'ESG & Carbon Impact', icon: Leaf }
+      ]
+    },
+    {
+      id: 'INTELLIGENCE',
+      label: 'INTELLIGENCE',
+      icon: BarChart3,
+      badge: 'Data & Reports',
+      items: [
+        { id: 'reporting_hub', orderNo: 8, label: 'Analytics & Reports', icon: BarChart3 }
+      ]
+    },
+    {
+      id: 'SYSTEM',
+      label: 'SYSTEM & ADMIN',
+      icon: Settings,
+      badge: 'System Governance',
+      items: [
+        ...((isSuperAdmin || isClientAdmin || isMasterDev || isModuleAllowed('security') || isModuleAllowed('sub_users')) ? [
+          { 
+            id: isClientAdmin ? 'sub_users' : 'security', 
+            orderNo: 9, 
+            label: 'Access & Security (RBAC)', 
+            icon: Lock 
+          }
+        ] : []),
+        ...(!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_switcher')) ? [
+          { id: 'db_switcher', orderNo: 10, label: 'Database Connections', icon: ArrowRightLeft }
+        ] : []),
+        ...(!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_backup')) ? [
+          { id: 'db_backup', orderNo: 11, label: 'Backups & Restore', icon: HardDrive }
+        ] : [])
+      ]
+    }
   ];
+
+  // Helper to determine parent section for any tab
+  const getSectionForTab = (tabId) => {
+    for (const sec of MENU_SECTIONS) {
+      if (sec.items.some(item => item.id === tabId)) {
+        return sec.id;
+      }
+    }
+    return 'CORE';
+  };
+
+  // State: STRICTLY ONLY ONE MENU IS OPEN AT A TIME
+  const [openSectionId, setOpenSectionId] = useState(() => getSectionForTab(activeTab));
+
+  // Auto-sync parent menu when activeTab changes
+  useEffect(() => {
+    const parentSection = getSectionForTab(activeTab);
+    if (parentSection && parentSection !== openSectionId) {
+      setOpenSectionId(parentSection);
+    }
+  }, [activeTab]);
+
+  // Accordion Toggle: only one menu open at a time
+  const handleToggleSection = (sectionId) => {
+    setOpenSectionId(prev => (prev === sectionId ? null : sectionId));
+  };
 
   // Primary PostgreSQL Relational Tables
   const postgresTables = [
@@ -146,84 +218,140 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   };
 
   const renderContent = () => (
-    <div className="flex flex-col justify-between h-full space-y-6">
-      <div className="space-y-6">
+    <div className="flex flex-col justify-between h-full space-y-4">
+      <div className="space-y-4">
         
-        {/* Brand Header Banner in Sidebar (Matches ISP Enterprise Portal Design or Client Organization) */}
-        <div className="px-3 pb-3 mb-1 border-b t-border flex items-center gap-3 sidebar-brand-container">
-          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-black/20 border border-white/20 shrink-0 overflow-hidden">
-            <img 
-              src={currentUser?.organization?.logoUrl || ispLogo} 
-              alt={currentUser?.organization?.name || "Brand Logo"} 
-              className="w-full h-full object-contain" 
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-black tracking-tight t-text-primary sidebar-brand-title leading-tight truncate">
-              {currentUser?.organization?.dashboardTitle || currentUser?.organization?.name || 'ISP Environmental'}
-            </div>
-            <div className="text-[11px] font-semibold t-text-muted sidebar-brand-sub leading-tight truncate flex items-center gap-1.5">
-              {currentUser?.organization ? (
-                <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse"></span>
-                  <span className="truncate">{isCorporateSubUser ? 'Team Sub-User Portal' : 'Corporate Client Portal'}</span>
-                </>
-              ) : (
-                'Solutions Pvt. Ltd'
-              )}
-            </div>
-          </div>
-        </div>
 
-        {/* Main Section */}
-        <div>
-          <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 flex items-center justify-between">
-            <span>Core Dashboards</span>
-            {isSuperAdmin && (
-              <span className={`px-2.5 py-0.5 text-xs font-extrabold rounded-md uppercase mono ${
-                isPostgres 
-                  ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
-                  : 'bg-emerald-50 text-[#0b5d3b] border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
-              }`}>
-                {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
-              </span>
-            )}
+        {/* Database Status Pill for Super Admin */}
+        {isSuperAdmin && (
+          <div className="px-3 flex items-center justify-between text-xs font-extrabold t-text-muted">
+            <span className="text-[10px] uppercase tracking-wider">Storage Engine:</span>
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-md uppercase mono ${
+              isPostgres 
+                ? 'bg-sky-50 text-[#0369a1] border border-sky-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30' 
+                : 'bg-emerald-50 text-[#0b5d3b] border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
+            }`}>
+              {isPostgres ? '🐘 PostgreSQL' : '🍃 MongoDB'}
+            </span>
           </div>
+        )}
 
-          <nav className="space-y-1">
-            {navItems.filter(item => isModuleAllowed(item.id)).map(item => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
+        {/* Main Menu Accordion Navigation (Yellow Main Menus & Single Open Behavior) */}
+        <div className="space-y-2">
+          {MENU_SECTIONS.map((section) => {
+            const visibleItems = section.items.filter(item => isModuleAllowed(item.id));
+            if (visibleItems.length === 0) return null;
+
+            const isOpen = openSectionId === section.id;
+            const hasActiveChild = visibleItems.some(item => item.id === activeTab);
+            const SectionIcon = section.icon;
+
+            return (
+              <div 
+                key={section.id} 
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                  isOpen 
+                    ? 'border-amber-400/50 dark:border-amber-400/40 bg-amber-500/5 shadow-xs' 
+                    : 'border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40 hover:border-amber-400/30'
+                }`}
+              >
+                {/* Yellow Main Menu Header (Resolves User instruction: Yellow Main Menu with Accordion) */}
                 <button
-                  key={item.id}
-                  onClick={() => handleTabClick(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all text-left ${
-                    isActive 
-                      ? 'bg-emerald-600/15 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
-                      : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
+                  type="button"
+                  onClick={() => handleToggleSection(section.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 text-left transition-all ${
+                    isOpen 
+                      ? 'bg-amber-400/20 dark:bg-amber-400/15 border-b border-amber-400/30 text-amber-950 dark:text-amber-200 font-black' 
+                      : 'text-slate-800 dark:text-slate-200 hover:bg-amber-400/10 hover:text-amber-900 dark:hover:text-amber-100 font-extrabold'
                   }`}
+                  aria-expanded={isOpen}
                 >
-                  <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-emerald-400' : 't-text-muted'}`} />
-                    <span className="text-left leading-snug break-words">{item.label}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Yellow/Amber highlighted icon badge representing Main Menu */}
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-xs ${
+                      isOpen
+                        ? 'bg-amber-500 text-white dark:bg-amber-400 dark:text-slate-950'
+                        : 'bg-amber-400/20 text-amber-700 dark:text-amber-300'
+                    }`}>
+                      <SectionIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </div>
+
+                    <span className="text-xs uppercase tracking-wider truncate">
+                      {section.label}
+                    </span>
+
+                    {/* Active child dot indicator */}
+                    {hasActiveChild && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" title="Active selection inside" />
+                    )}
                   </div>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0 ml-1.5" />}
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-black px-1.5 py-0.2 rounded ${
+                      isOpen
+                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-200'
+                        : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}>
+                      {visibleItems.length}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                    }`} />
+                  </div>
                 </button>
-              );
-            })}
-          </nav>
+
+                {/* Submenu Items (Expanded ONLY when this menu is active) */}
+                {isOpen && (
+                  <div className="p-1.5 space-y-1 animate-fade-in bg-white/60 dark:bg-slate-900/60">
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleTabClick(item.id)}
+                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left group ${
+                            isActive 
+                              ? 'bg-emerald-600/15 text-emerald-900 dark:text-emerald-200 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
+                              : 'text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className={`text-[10px] font-mono px-1 rounded shrink-0 font-bold ${
+                              isActive
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500'
+                            }`}>
+                              {item.orderNo}
+                            </span>
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${
+                              isActive ? 'text-[#0b5d3b] dark:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-600'
+                            }`} />
+                            <span className="truncate leading-snug">{item.label}</span>
+                          </div>
+
+                          {isActive && (
+                            <ChevronRight className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0 ml-1" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* PostgreSQL Relational Tables (Only shown to Super Admins when in Postgres Mode) */}
         {isSuperAdmin && isPostgres && allowedPgTables.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-3 text-left">
+          <div className="pt-2 border-t t-border">
+            <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider text-[#0b5d3b] dark:text-cyan-400 mb-2 px-2 text-left">
               <span className="flex items-center gap-1.5">
                 <Table className="w-3.5 h-3.5" />
-                PostgreSQL Relational Tables
+                Raw Database Tables
               </span>
-              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-bold">
+              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 font-bold text-[10px]">
                 {allowedPgTables.length} Tables
               </span>
             </div>
@@ -237,18 +365,18 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all text-left ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-left ${
                       isActive 
-                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
+                        ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
                         : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
-                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-300' : 't-text-muted'}`} />
+                    <div className="flex items-center gap-2 text-left min-w-0 flex-1">
+                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-300' : 't-text-muted'}`} />
                       <span className="truncate mono text-left leading-snug">{item.label}</span>
                     </div>
                     {count !== null && (
-                      <span className={`px-2 py-0.5 text-xs font-bold rounded-md mono shrink-0 ml-1.5 ${
+                      <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md mono shrink-0 ml-1.5 ${
                         isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
                       }`}>
                         {count}
@@ -263,36 +391,26 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
         {/* MongoDB rvmapp Tables Browser (Only shown to Super Admins) */}
         {isSuperAdmin && allowedMongoCollections.length > 0 && (
-          <div>
+          <div className="pt-2 border-t t-border">
             <button
               onClick={() => setIsMongoCollapsed(!isMongoCollapsed)}
-              className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-3 py-1.5 rounded-lg hover:t-bg-hover transition-colors group text-left"
-              title={isMongoCollapsed ? "Click to expand MongoDB rvmapp collections to sync data" : "Click to collapse MongoDB collections"}
+              className="w-full flex items-center justify-between text-xs font-extrabold uppercase tracking-wider t-text-muted mb-2 px-2 py-1 rounded-lg hover:t-bg-hover transition-colors group text-left"
+              title={isMongoCollapsed ? "Click to expand MongoDB collections" : "Click to collapse MongoDB collections"}
             >
               <span className="flex items-center gap-1.5 text-left">
                 <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
-                <span className="text-left">MongoDB rvmapp Collections</span>
+                <span className="text-left text-xs">MongoDB Collections</span>
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-emerald-800 dark:text-emerald-400 mono text-xs bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
+                <span className="text-emerald-800 dark:text-emerald-400 mono text-[10px] bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
                   {allowedMongoCollections.length}
                 </span>
-                <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
+                <ChevronDown className={`w-3 h-3 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
               </div>
             </button>
 
-            {isPostgres && isMongoCollapsed && (
-              <div 
-                onClick={() => setIsMongoCollapsed(false)}
-                className="mx-3 p-2.5 text-xs font-bold bg-amber-50 dark:bg-amber-950/30 border border-amber-400/40 rounded-xl text-amber-800 dark:text-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-100 transition-all shadow-sm text-left"
-              >
-                <span>📁 Collapsed (Connected to PostgreSQL)</span>
-                <span className="text-xs underline font-extrabold text-amber-900 dark:text-amber-200">Sync Data</span>
-              </div>
-            )}
-
             {!isMongoCollapsed && (
-              <nav className="space-y-1 max-h-60 lg:max-h-none overflow-y-auto mt-1 animate-fade-in">
+              <nav className="space-y-1 max-h-48 overflow-y-auto mt-1 animate-fade-in">
                 {allowedMongoCollections.map(item => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -301,18 +419,18 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-semibold transition-all text-left ${
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all text-left ${
                         isActive 
-                          ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-sm' 
+                          ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border border-emerald-600/40 border-l-4 border-l-[#0b5d3b] shadow-xs' 
                           : 't-text-secondary hover:t-text-primary hover:t-bg-hover'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 text-left min-w-0 flex-1">
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
+                      <div className="flex items-center gap-2 text-left min-w-0 flex-1">
+                        <Icon className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
                         <span className="truncate text-xs text-left leading-snug">{item.label}</span>
                       </div>
                       {count !== null && (
-                        <span className={`px-1.5 py-0.5 text-xs font-bold rounded-md mono shrink-0 ml-1.5 ${
+                        <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md mono shrink-0 ml-1.5 ${
                           isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
                         }`}>
                           {count}
@@ -342,11 +460,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     </div>
   );
 
-
   return (
     <>
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex w-64 t-bg-surface border-r t-border flex-col shrink-0 p-4 space-y-6 transition-colors duration-300">
+      <aside className="hidden lg:flex w-64 t-bg-surface border-r t-border flex-col shrink-0 p-3.5 space-y-4 transition-colors duration-300 overflow-y-auto">
         {renderContent()}
       </aside>
 
@@ -358,7 +475,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             onClick={() => setIsMobileOpen(false)}
           ></div>
 
-          <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-5 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
+          <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-4 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
             <div className="flex items-center justify-between border-b t-border pb-3 mb-2">
               <span className="font-extrabold text-sm text-emerald-400">Smart Recycling Navigation</span>
               <button 
