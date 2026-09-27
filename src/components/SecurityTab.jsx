@@ -3,7 +3,7 @@ import {
   ShieldCheck, UserPlus, Users, KeyRound, Cpu, Eye, Lock, 
   CheckCircle2, AlertTriangle, RefreshCw, Trash2, Edit3, Check, X, ShieldAlert, Key, Plus,
   FileText, Smartphone, Leaf, Trophy, Tv, ArrowRightLeft, HardDrive, Recycle, Settings, 
-  MessageSquare, CheckSquare, Square, Sliders, Layers, LayoutDashboard, Table, Shield, BarChart3
+  MessageSquare, CheckSquare, Square, Sliders, Layers, LayoutDashboard, Table, Shield, BarChart3, Building2
 } from 'lucide-react';
 
 export const AVAILABLE_SYSTEM_MENUS = [

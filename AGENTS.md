@@ -143,4 +143,8 @@
     - Purple: `text-purple-700 dark:text-purple-400 bg-purple-500/10 border-purple-500/30`
   - Table headers, dropdown selects, and input controls must enforce distinct background and foreground tokens to prevent white-on-white or gray-on-dark text illegibility.
 
-
+### 4. Database Architecture & MongoDB Usage Rule (Strict Sync-Only)
+- **MongoDB (`rvmapp` Cluster) — Read-Only & Sync-Only**:
+  - **NEVER WRITE TO MONGODB**: MongoDB is strictly **NEVER** used for any `ADD`, `EDIT`, `UPDATE`, or `DELETE` operations.
+  - **SOLE PURPOSE**: MongoDB is retained strictly as a legacy read-only source used exclusively to **sync historical data from MongoDB (`rvmapp`) into PostgreSQL (`rvmpg`)**.
+  - **Single Production Authority**: PostgreSQL (`rvmpg`) is the **sole source of truth** for all production data, real-time ingestion, user management, machine configs, redemptions, and active operations. All mutations, new records, and updates must execute exclusively against PostgreSQL.
