@@ -4,7 +4,8 @@
 # Project: RVM Master Developer Dashboard (ISP Environmental Solutions)
 # Usage:
 #   bash update-server.sh                   (Updates current running branch with zero downtime)
-#   bash update-server.sh 2527Sep2026       (Pulls & switches to 2527Sep2026)
+#   bash update-server.sh B26-28Sep2026     (Pulls & switches to B26-28Sep2026)
+#   bash update-server.sh 2527Sep2026       (Rolls back to 2527Sep2026)
 #   bash update-server.sh 24-Public-App-0   (Rolls back to 24-Public-App-0)
 #   bash update-server.sh B23               (Rolls back to B23 anytime)
 # =========================================================================================
@@ -38,10 +39,10 @@ if ! command -v node &> /dev/null; then
 fi
 
 # 3. Detect Active Branch or Use Passed Argument
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "2527Sep2026")"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "B26-28Sep2026")"
 BRANCH="${1:-$CURRENT_BRANCH}"
 if [ "$BRANCH" = "HEAD" ] || [ -z "$BRANCH" ]; then
-  BRANCH="2527Sep2026"
+  BRANCH="B26-28Sep2026"
 fi
 echo "🌿 Target Branch: $BRANCH (Current: $CURRENT_BRANCH)"
 
