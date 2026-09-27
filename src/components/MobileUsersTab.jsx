@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Smartphone, Users, UserCheck, Trophy, Recycle, RefreshCw, Search, 
-  CheckCircle2, Clock, Calendar, Mail, Phone, Shield, Sparkles, Filter, 
-  Activity, X, ChevronRight, Hash, Award, Gift, Ticket, Copy, Check, Building2
+  Users, UserCheck, Smartphone, Wallet, Gift, Recycle, RefreshCw, Search, 
+  Download, Clock, Phone, Mail, ChevronRight, X, Shield, Sparkles, Trophy, 
+  Check, Copy, Ticket, Star, Building2, CheckCircle2
 } from 'lucide-react';
 
 export default function MobileUsersTab() {
@@ -16,47 +16,62 @@ export default function MobileUsersTab() {
     totalTetra: 0,
     totalPaper: 0,
     totalGlass: 0,
-    totalRedeemed: 0
+    totalRedeemed: 0,
+    totalRedemptions: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'online', 'offline'
+  const [activeSegment, setActiveSegment] = useState('all'); // 'all', 'public', 'corporate', 'top'
   const [selectedUser, setSelectedUser] = useState(null);
   const [userHistory, setUserHistory] = useState([]);
   const [userRedemptions, setUserRedemptions] = useState([]);
   const [activeModalTab, setActiveModalTab] = useState('recycling'); // 'recycling' | 'redemptions'
   const [copiedVoucher, setCopiedVoucher] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchMobileUsers = async () => {
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  const fetchMobileUsers = async (isManual = false) => {
     try {
-      setLoading(true);
+      if (isManual) setRefreshing(true);
+      else setLoading(true);
+
       const res = await fetch('/api/analytics/mobile-users');
       if (res.ok) {
         const data = await res.json();
-        // Public Mobile App users only (enterprise staff belong in Enterprise Clients tab)
-        const citizenOnly = (data.users || []).filter(u => 
-          (u.userType || 'CITIZEN') === 'CITIZEN' && !u.orgId && !u.orgName
-        );
-        setUsers(citizenOnly);
+        const allUsers = data.users || [];
+        setUsers(allUsers);
+
+        const calculatedRedemptions = allUsers.reduce((sum, u) => sum + (u.redemptionsCount || 0), 0);
+
         if (data.stats) {
           setStats({
             ...data.stats,
-            totalUsers: citizenOnly.length,
-            onlineNow: citizenOnly.filter(u => u.isOnline).length
+            totalUsers: allUsers.length,
+            onlineNow: allUsers.filter(u => u.isOnline).length,
+            totalRedemptions: data.stats.totalRedemptions || calculatedRedemptions
           });
         }
+        if (isManual) showToast('Recycler directory refreshed with live telemetry');
       }
     } catch (err) {
-      console.error('Failed to fetch mobile users:', err);
+      console.error('Failed to fetch recyclers directory:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchMobileUsers();
-    const interval = setInterval(fetchMobileUsers, 15000); // Polling every 15s for live online status
+    const interval = setInterval(() => fetchMobileUsers(false), 20000); // Polling every 20s
     return () => clearInterval(interval);
   }, []);
 
@@ -91,25 +106,132 @@ export default function MobileUsersTab() {
     try {
       navigator.clipboard?.writeText(text);
       setCopiedVoucher(text);
+      showToast(`Voucher code copied: ${text}`);
       setTimeout(() => setCopiedVoucher(null), 2000);
     } catch (err) {
       console.error('Copy failed:', err);
     }
   };
 
-  const filteredUsers = users.filter(u => {
-    const query = searchQuery.toLowerCase().trim();
-    const matchesQuery = !query || 
-      (u.username && u.username.toLowerCase().includes(query)) ||
-      (u.fullName && u.fullName.toLowerCase().includes(query)) ||
-      (u.mobile && u.mobile.toLowerCase().includes(query)) ||
-      (u.email && u.email.toLowerCase().includes(query)) ||
-      (u.nic && u.nic.toLowerCase().includes(query));
+  // Category identification
+  const isCorporateUser = (u) => {
+    return (u.userType && u.userType.toUpperCase() === 'ENTERPRISE') || Boolean(u.orgId || u.orgName);
+  };
 
-    if (statusFilter === 'online') return matchesQuery && u.isOnline;
-    if (statusFilter === 'offline') return matchesQuery && !u.isOnline;
-    return matchesQuery;
-  });
+  const isTopChampion = (u) => {
+    const totalItems = (u.bottles || 0) + (u.cups || 0) + (u.tetra || 0) + (u.paper || 0);
+    return (u.points || 0) >= 5000 || totalItems >= 500;
+  };
+
+  // Counts for Segment Buttons
+  const segmentCounts = useMemo(() => {
+    const pub = users.filter(u => !isCorporateUser(u)).length;
+    const corp = users.filter(u => isCorporateUser(u)).length;
+    const top = users.filter(u => isTopChampion(u)).length;
+    return { all: users.length, public: pub, corporate: corp, top };
+  }, [users]);
+
+  // Active in last 30 days
+  const activeThisMonth = useMemo(() => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return users.filter(u => {
+      if (u.isOnline) return true;
+      if (u.lastActive && new Date(u.lastActive).getTime() > thirtyDaysAgo) return true;
+      if (u.sessions > 0) return true;
+      return false;
+    });
+  }, [users]);
+
+  const activeRate = useMemo(() => {
+    if (!users.length) return 0;
+    return Math.min(100, Math.round((activeThisMonth.length / users.length) * 1000) / 10);
+  }, [users, activeThisMonth]);
+
+  // Total Lifetime Items
+  const totalLifetimeItems = useMemo(() => {
+    return (stats.totalBottles || 0) + (stats.totalCups || 0) + (stats.totalTetra || 0) + (stats.totalPaper || 0) + (stats.totalGlass || 0);
+  }, [stats]);
+
+  // Filtering Logic
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      // Segment filter
+      if (activeSegment === 'public' && isCorporateUser(u)) return false;
+      if (activeSegment === 'corporate' && !isCorporateUser(u)) return false;
+      if (activeSegment === 'top' && !isTopChampion(u)) return false;
+
+      // Query filter
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        (u.username && u.username.toLowerCase().includes(q)) ||
+        (u.fullName && u.fullName.toLowerCase().includes(q)) ||
+        (u.mobile && u.mobile.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.id && String(u.id).toLowerCase().includes(q)) ||
+        (u.nic && u.nic.toLowerCase().includes(q)) ||
+        (u.orgName && u.orgName.toLowerCase().includes(q))
+      );
+    });
+  }, [users, activeSegment, searchQuery]);
+
+  // Export CSV
+  const exportCSV = () => {
+    if (!users.length) {
+      showToast('No user records available to export');
+      return;
+    }
+
+    const headers = [
+      'User ID',
+      'Full Name',
+      'Username',
+      'Account Type',
+      'Organization',
+      'Mobile Number',
+      'Email',
+      'Points Balance',
+      'Redeemed Points',
+      'Total Items',
+      'Bottles (PET)',
+      'Cans (ALU)',
+      'Cartons (UBC)',
+      'Paper (kg)',
+      'Total Sessions',
+      'Online Status',
+      'Last Active'
+    ];
+
+    const rows = filteredUsers.map(u => [
+      `"${u.id || ''}"`,
+      `"${(u.fullName || '').replace(/"/g, '""')}"`,
+      `"${(u.username || '').replace(/"/g, '""')}"`,
+      `"${isCorporateUser(u) ? 'Corporate' : 'Public Kiosk'}"`,
+      `"${(u.orgName || 'Public Citizen').replace(/"/g, '""')}"`,
+      `"${u.mobile || ''}"`,
+      `"${u.email || ''}"`,
+      u.points || 0,
+      u.totalRedeemedPoints || u.redeemedPoints || 0,
+      (u.bottles || 0) + (u.cups || 0) + (u.tetra || 0) + (u.paper || 0),
+      u.bottles || 0,
+      u.cups || 0,
+      u.tetra || 0,
+      u.paper || 0,
+      u.sessions || 0,
+      u.isOnline ? 'Online' : 'Offline',
+      `"${u.lastActive ? new Date(u.lastActive).toISOString() : 'Never'}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `ISP_Recyclers_Directory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Exported ${filteredUsers.length} recyclers to CSV successfully`);
+  };
 
   const formatTimeAgo = (dateStr) => {
     if (!dateStr) return 'Never';
@@ -129,355 +251,400 @@ export default function MobileUsersTab() {
     <div className="space-y-6 animate-fade-in">
       
       {/* Header Panel */}
-      <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Smartphone className="w-5 h-5 text-emerald-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Citizen Mobile Ecosystem</span>
+      <div className="glass-panel p-6 rounded-3xl border t-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white shrink-0">
+            <Users className="w-6 h-6 stroke-[2.2]" />
           </div>
-          <h2 className="text-2xl font-extrabold t-text-primary">Mobile App Citizens & Active Logins</h2>
-          <p className="text-xs t-text-secondary mt-1">
-            Real-time monitoring of registered mobile app users, online activity status, reward balances, and voucher redemptions.
-          </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                User Management Portal
+              </span>
+              <span className="text-xs text-slate-400">|</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Mobile Ecosystem Active
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight t-text-primary mt-1">
+              Recyclers &amp; App Community
+            </h1>
+            <p className="text-xs t-text-secondary mt-0.5">
+              Live directory of verified citizen recyclers, corporate campus members, wallet point balances, and machine activity.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <span>{stats.onlineNow} Online Now</span>
-          </div>
+        {/* Header Action Buttons */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+          <button
+            onClick={() => fetchMobileUsers(true)}
+            disabled={refreshing || loading}
+            className="px-3.5 py-2 t-bg-sec hover:t-bg-hover t-text-primary border t-border rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs"
+            title="Refresh Directory"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            <span className="hidden sm:inline">Refresh Directory</span>
+          </button>
 
           <button
-            onClick={fetchMobileUsers}
-            disabled={loading}
-            className="p-2.5 t-text-secondary hover:t-text-primary t-bg-sec border t-border rounded-xl transition-all flex items-center gap-2 text-xs font-semibold"
-            title="Refresh Users"
+            onClick={exportCSV}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm shadow-emerald-600/25 transition-all active:scale-95"
+            title="Export CSV"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Recycler List</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
+      {/* KPI Summary Row (5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        {/* Total Registered Users */}
+        {/* Card 1: Registered Recyclers */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider t-text-muted">Total Citizens</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-              <Users className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Registered Recyclers</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold t-text-primary mono">{stats.totalUsers}</div>
-            <div className="text-[11px] t-text-muted mt-0.5">Registered mobile accounts</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {stats.totalUsers}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">accounts</span>
+          </div>
+          <div className="mt-2.5 text-xs t-text-muted flex items-center justify-between flex-wrap gap-1">
+            <span className="text-emerald-700 dark:text-emerald-400 font-medium">{segmentCounts.public} Public (RVM)</span>
+            <span className="text-slate-400">•</span>
+            <span className="text-purple-700 dark:text-purple-400 font-medium">{segmentCounts.corporate} Corporate</span>
           </div>
         </div>
 
-        {/* Currently Online / Logged In */}
-        <div className="glass-panel p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Active Logins</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-              <UserCheck className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 mono flex items-center gap-2">
-              {stats.onlineNow}
-              <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                {stats.totalUsers > 0 ? Math.round((stats.onlineNow / stats.totalUsers) * 100) : 0}% active
-              </span>
-            </div>
-            <div className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">Currently using mobile app</div>
-          </div>
-        </div>
-
-        {/* Total Points Balance In Circulation */}
+        {/* Card 2: Active This Month */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider t-text-muted">In Circulation</span>
-            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
-              <Trophy className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Active This Month</span>
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+              <Smartphone className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-amber-700 dark:text-amber-400 mono">{(stats.totalPoints || 0).toLocaleString()}</div>
-            <div className="text-[11px] t-text-muted mt-0.5">Active citizen points held</div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
+              {activeThisMonth.length}
+            </span>
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+              {activeRate}% Rate
+            </span>
+          </div>
+          <div className="mt-2.5 text-xs t-text-muted">
+            {stats.onlineNow} users currently logged in
           </div>
         </div>
 
-        {/* Total Redeemed Points Card */}
-        <div className="glass-panel p-5 rounded-2xl border border-purple-500/30 bg-purple-500/5 relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Points Redeemed</span>
-            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-600 dark:text-purple-400">
-              <Gift className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-purple-700 dark:text-purple-400 mono">{(stats.totalRedeemed || 0).toLocaleString()}</div>
-            <div className="text-[11px] text-purple-700/80 dark:text-purple-400/80 mt-0.5">Voucher & reward claims</div>
-          </div>
-        </div>
-
-        {/* Materials Recycled by Citizens */}
+        {/* Card 3: Unclaimed Points */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider t-text-muted">Recycled Items</span>
-            <div className="p-2 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
-              <Recycle className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Unclaimed Points</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Wallet className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl lg:text-3xl font-extrabold text-cyan-700 dark:text-cyan-400 mono">
-              {((stats.totalBottles || 0) + (stats.totalCups || 0) + (stats.totalTetra || 0) + (stats.totalPaper || 0) + (stats.totalGlass || 0)).toLocaleString()}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight mono">
+              {(stats.totalPoints || 0).toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">pts</span>
+          </div>
+          <div className="mt-2.5 text-xs flex items-center justify-between flex-wrap gap-1">
+            <span className="t-text-muted">Voucher Value:</span>
+            <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 mono">
+              PKR {Math.round((stats.totalPoints || 0) * 0.20).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Vouchers Cashed In */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Vouchers Cashed In</span>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Gift className="w-4 h-4" />
             </div>
-            <div className="text-[11px] t-text-muted mt-0.5 flex flex-wrap items-center gap-1">
-              <span>{stats.totalBottles || 0} 🍾</span>
-              <span>•</span>
-              <span>{stats.totalCups || 0} 🥫 (UBC)</span>
-              {(stats.totalTetra > 0) && <span>• {stats.totalTetra} 🧃</span>}
-              {(stats.totalPaper > 0) && <span>• {stats.totalPaper} 📄</span>}
-              {(stats.totalGlass > 0) && <span>• {stats.totalGlass} 🍶</span>}
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold text-purple-600 dark:text-purple-400 tracking-tight mono">
+              {(stats.totalRedeemed || 0).toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">pts</span>
+          </div>
+          <div className="mt-2.5 text-xs t-text-muted">
+            Reconciled across {stats.totalRedemptions || 0} vouchers
+          </div>
+        </div>
+
+        {/* Card 5: Lifetime Items */}
+        <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Total Items Deposited</span>
+            <div className="w-8 h-8 rounded-lg bg-lime-500/10 text-lime-600 dark:text-lime-400 flex items-center justify-center">
+              <Recycle className="w-4 h-4" />
             </div>
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl lg:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 tracking-tight mono">
+              {totalLifetimeItems.toLocaleString()}
+            </span>
+            <span className="text-xs font-semibold t-text-muted">items</span>
+          </div>
+          <div className="mt-2.5 text-xs t-text-muted truncate">
+            {(stats.totalBottles || 0).toLocaleString()} PET • {(stats.totalCups || 0).toLocaleString()} Cans • {(stats.totalTetra || 0) + (stats.totalPaper || 0)} Other
           </div>
         </div>
 
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Filter & Search Strip */}
+      <div className="glass-panel p-4 rounded-2xl border t-border flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         
-        {/* Search Input */}
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 t-text-muted" />
+        {/* Search Box */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 t-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by mobile number, username, full name, or NIC..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs t-bg-sec border t-border rounded-xl t-text-primary focus:outline-none focus:border-emerald-500"
+            placeholder="Search by name, masked mobile number, email, or user ID..."
+            className="w-full pl-10 pr-10 py-2.5 t-bg-sec border t-border text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 t-text-primary placeholder:t-text-muted font-medium transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 t-text-muted hover:t-text-primary"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Status Filter Buttons */}
-        <div className="flex items-center gap-1.5 p-1 t-bg-sec rounded-xl border t-border self-stretch sm:self-auto justify-center">
+        {/* User Category Segment Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-semibold">
           <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'all' 
-                ? 'bg-emerald-500 text-slate-950 shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
+            onClick={() => { setActiveSegment('all'); showToast('Showing: All Recyclers'); }}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeSegment === 'all'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
             }`}
           >
-            All ({users.length})
+            All Recyclers ({segmentCounts.all})
           </button>
+
           <button
-            onClick={() => setStatusFilter('online')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              statusFilter === 'online' 
-                ? 'bg-emerald-500 text-slate-950 shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
+            onClick={() => { setActiveSegment('public'); showToast('Showing: Smart RVM Public Recyclers'); }}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeSegment === 'public'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            Online ({stats.onlineNow})
+            Smart RVM Public ({segmentCounts.public})
           </button>
+
           <button
-            onClick={() => setStatusFilter('offline')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              statusFilter === 'offline' 
-                ? 'bg-emerald-500 text-slate-950 shadow-sm' 
-                : 't-text-secondary hover:t-text-primary'
+            onClick={() => { setActiveSegment('corporate'); showToast('Showing: PecoDrop Corporate Recyclers'); }}
+            className={`px-3 py-1.5 rounded-xl transition-all ${
+              activeSegment === 'corporate'
+                ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
             }`}
           >
-            Offline ({Math.max(0, users.length - stats.onlineNow)})
+            PecoDrop Corporate ({segmentCounts.corporate})
+          </button>
+
+          <button
+            onClick={() => { setActiveSegment('top'); showToast('Showing: Top Green Champions'); }}
+            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
+              activeSegment === 'top'
+                ? 'bg-amber-600 text-white shadow-xs font-bold'
+                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+            }`}
+          >
+            <span>Top Green Champions</span>
+            <Star className="w-3 h-3 fill-current text-amber-300" />
+            <span>({segmentCounts.top})</span>
           </button>
         </div>
 
       </div>
 
-      {/* Citizens Data Table */}
-      <div className="glass-panel p-6 rounded-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold t-text-primary flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-400" />
-            Citizens Directory & Live Status
-          </h3>
-          <span className="text-xs t-text-muted">
-            Showing {filteredUsers.length} of {users.length} users
+      {/* Recyclers Directory Table */}
+      <div className="glass-panel rounded-3xl border t-border overflow-hidden">
+        <div className="p-5 border-b t-border flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="text-sm font-bold t-text-primary flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-500" />
+              Registered Recyclers Directory
+            </h2>
+            <p className="text-xs t-text-secondary mt-0.5">
+              Live points balances, lifetime deposits, verified channel, and machine activity
+            </p>
+          </div>
+          <span className="text-xs font-semibold t-text-secondary t-bg-sec border t-border px-3 py-1 rounded-lg">
+            Showing {filteredUsers.length} of {users.length} Verified Accounts
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b t-border t-text-muted uppercase tracking-wider font-bold">
-                <th className="py-3 px-4">Citizen Profile</th>
-                <th className="py-3 px-4">Mobile / Contact</th>
-                <th className="py-3 px-4 text-center">Status</th>
-                <th className="py-3 px-4 text-right">Points Balance</th>
-                <th className="py-3 px-4 text-center">Recycled Items</th>
-                <th className="py-3 px-4 text-center">Last Active</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+            <thead className="t-bg-sec/70 border-b t-border t-text-muted uppercase font-bold tracking-wider">
+              <tr>
+                <th className="py-3.5 px-4">User Profile</th>
+                <th className="py-3.5 px-4">Account Type &amp; Channel</th>
+                <th className="py-3.5 px-4">Points Balance</th>
+                <th className="py-3.5 px-4">Total Items Recycled</th>
+                <th className="py-3.5 px-4">Material Breakdown</th>
+                <th className="py-3.5 px-4">Last Activity</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y t-border">
+            <tbody className="divide-y t-border t-text-primary">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center t-text-muted">
+                  <td colSpan={7} className="py-14 text-center t-text-muted">
                     <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-400" />
-                    <p className="font-semibold">No mobile app users found matching query</p>
+                    <p className="font-semibold text-sm">No recyclers found matching search criteria</p>
+                    <p className="text-xs mt-1">Try switching category segments or clearing the search query.</p>
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const userRedeemed = user.totalRedeemedPoints || user.redeemedPoints || 0;
+                  const isCorp = isCorporateUser(user);
+                  const isTop = isTopChampion(user);
+                  const totalItems = (user.bottles || 0) + (user.cups || 0) + (user.tetra || 0) + (user.paper || 0) + (user.glass || 0);
+                  const initials = (user.fullName || user.username || 'User').substring(0, 2).toUpperCase();
+
                   return (
                     <tr key={user.id} className="hover:t-bg-hover transition-colors">
                       
-                      {/* Citizen Profile */}
+                      {/* User Profile */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-sm ${
-                            user.profileImage === 'female' || user.gender === 'female' 
-                              ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' 
-                              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          <div className={`w-9 h-9 rounded-xl font-bold flex items-center justify-center shrink-0 text-sm ${
+                            isCorp 
+                              ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30' 
+                              : isTop 
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30' 
+                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                           }`}>
-                            {user.profileImage === 'leaf' ? '🌿' :
-                             user.profileImage === 'earth' ? '🌍' :
-                             user.profileImage === 'recycle' ? '♻️' :
-                             user.profileImage === 'star' ? '⭐' :
-                             (user.fullName || user.username ? (user.fullName || user.username).charAt(0).toUpperCase() : 'U')}
+                            {initials}
                           </div>
                           <div>
-                            <div className="font-bold t-text-primary text-sm flex items-center gap-1.5 flex-wrap">
+                            <div className="font-bold t-text-primary flex items-center gap-1.5 flex-wrap">
                               <span>{user.fullName || user.username}</span>
-                              {user.isBirthday && (
-                                <span title="Happy Birthday! 🎂" className="cursor-default">🎂</span>
-                              )}
-                              {user.isOnline && (
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" title="Online Now"></span>
-                              )}
-                              {user.authProvider === 'google' ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Google 1-Tap Login Verified">
-                                  Google
+                              {isCorp ? (
+                                <span className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/30 font-semibold">
+                                  {user.orgName ? user.orgName.replace('Client: ', '') : 'Corporate'}
+                                </span>
+                              ) : isTop ? (
+                                <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30 font-bold flex items-center gap-0.5">
+                                  <Star className="w-2.5 h-2.5 fill-current" />
+                                  Top Recycler
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Registered Mobile App Citizen">
-                                  App User
+                                <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-500/30 font-semibold">
+                                  Public Kiosk
                                 </span>
                               )}
+                              {user.isOnline && (
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" title="Online Now"></span>
+                              )}
                             </div>
-                            <div className="text-[11px] t-text-muted mono mt-0.5">
-                              @{user.username} {user.dob ? `• DOB: ${user.dob}` : ''} {user.nic && user.nic !== '-' ? `• NIC: ${user.nic}` : ''}
+                            <div className="text-[11px] t-text-muted mt-0.5 mono">
+                              ID: {String(user.id).substring(0, 10)} • {user.authProvider === 'google' ? 'Google Auth' : 'Verified Profile'}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Mobile / Contact */}
+                      {/* Account Type & Channel */}
                       <td className="py-3.5 px-4">
-                        <div className="space-y-0.5">
-                          <div className="font-semibold mono text-emerald-400 flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-emerald-400/70" />
-                            {user.mobile}
-                          </div>
-                          {user.email && !user.email.endsWith('@rvm.local') && (
-                            <div className="text-[11px] t-text-muted flex items-center gap-1 truncate max-w-[180px]">
-                              <Mail className="w-3 h-3" />
-                              {user.email}
-                            </div>
+                        <div className="font-medium mono t-text-primary flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-emerald-500" />
+                          <span>{user.mobile && user.mobile !== '-' ? user.mobile : 'Unlinked Phone'}</span>
+                        </div>
+                        <div className="text-[11px] t-text-muted truncate max-w-[190px] mt-0.5">
+                          {user.email && !user.email.endsWith('@rvm.local') ? user.email : 'SMS OTP Verified'}
+                        </div>
+                      </td>
+
+                      {/* Points Balance */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-black text-sm mono text-amber-600 dark:text-amber-400">
+                          {(user.points || 0).toLocaleString()} Pts
+                        </div>
+                        <div className="text-[11px] t-text-muted mt-0.5">
+                          {user.totalRedeemedPoints > 0 
+                            ? `${user.totalRedeemedPoints.toLocaleString()} redeemed`
+                            : `PKR ${Math.round((user.points || 0) * 0.20)} value`}
+                        </div>
+                      </td>
+
+                      {/* Total Items Recycled */}
+                      <td className="py-3.5 px-4">
+                        <span className="font-extrabold t-text-primary text-sm mono">
+                          {totalItems.toLocaleString()} Items
+                        </span>
+                        <div className="text-[10px] t-text-muted mt-0.5">
+                          {user.sessions || 0} drop sessions
+                        </div>
+                      </td>
+
+                      {/* Material Breakdown */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {(user.bottles || 0) > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-500/30 text-[11px]">
+                              {user.bottles} Bottles
+                            </span>
+                          )}
+                          {(user.cups || 0) > 0 && (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold border border-amber-500/30 text-[11px]">
+                              {user.cups} Cans
+                            </span>
+                          )}
+                          {((user.tetra || 0) > 0 || (user.tetraGrams || 0) > 0) && (
+                            <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold border border-sky-500/30 text-[11px]">
+                              {user.tetra || Math.round((user.tetraGrams || 0) / 25)} Cartons
+                            </span>
+                          )}
+                          {((user.paper || 0) > 0 || (user.paperGrams || 0) > 0) && (
+                            <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 font-semibold border border-purple-500/30 text-[11px]">
+                              {user.paper || Math.round((user.paperGrams || 0) / 50)} Paper
+                            </span>
+                          )}
+                          {totalItems === 0 && (
+                            <span className="text-[11px] t-text-muted italic">No items yet</span>
                           )}
                         </div>
                       </td>
 
-                      {/* Live Online Status */}
-                      <td className="py-3.5 px-4 text-center">
-                        {user.isOnline ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            Online Now
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold t-bg-sec t-text-muted border t-border">
-                            <Clock className="w-3 h-3" />
-                            {formatTimeAgo(user.lastActive)}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Points Balance & Redemptions */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-extrabold text-sm mono text-amber-400 flex items-center justify-end gap-1">
-                          <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                          {(user.points || 0).toLocaleString()} pts
-                        </div>
-                        <div className="text-[10px] mt-0.5 font-semibold flex items-center justify-end">
-                          {userRedeemed > 0 ? (
-                            <span className="text-purple-400 mono inline-flex items-center gap-1" title="Reward points redeemed">
-                              <Ticket className="w-2.5 h-2.5" />
-                              {userRedeemed.toLocaleString()} redeemed
+                      {/* Last Activity */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-xs t-text-primary flex items-center gap-1">
+                          {user.isOnline ? (
+                            <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Online Now
                             </span>
                           ) : (
-                            <span className="t-text-muted mono">0 redeemed</span>
+                            formatTimeAgo(user.lastActive)
                           )}
                         </div>
-                      </td>
-
-                      {/* Recycled Items */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="space-y-0.5">
-                          <div className="font-bold mono text-cyan-400">
-                            {(user.bottles || 0) + (user.cups || 0) + (user.tetra || 0) + (user.paper || 0) + (user.glass || 0)} total
-                          </div>
-                          <div className="text-[10px] t-text-muted flex items-center justify-center gap-1.5 flex-wrap">
-                            <span title="Plastic Bottles">{user.bottles || 0} 🍾</span>
-                            <span>•</span>
-                            <span title="UBC / Aluminium Cans">{user.cups || 0} 🥫 (UBC)</span>
-                            {((user.tetra || 0) > 0 || (user.tetraGrams || 0) > 0) && (
-                              <>
-                                <span>•</span>
-                                <span className="text-orange-400 font-semibold" title="Tetra Pak">{user.tetra || Math.round((user.tetraGrams || 0)/25)} 🧃</span>
-                              </>
-                            )}
-                            {((user.paper || 0) > 0 || (user.paperGrams || 0) > 0) && (
-                              <>
-                                <span>•</span>
-                                <span className="text-indigo-400 font-semibold" title="Paper / Cardboard">{user.paper || Math.round((user.paperGrams || 0)/50)} 📄</span>
-                              </>
-                            )}
-                            {(user.glass || 0) > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="text-teal-400 font-semibold" title="Glass">{user.glass} 🍶</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Last Active Timestamp */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="text-xs font-medium t-text-secondary">
-                          {user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'Never'}
-                        </div>
-                        <div className="text-[10px] t-text-muted mono">
-                          {user.lastActive ? new Date(user.lastActive).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        <div className="text-[11px] t-text-muted mt-0.5">
+                          {user.lastActive ? new Date(user.lastActive).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Never'}
                         </div>
                       </td>
 
@@ -485,9 +652,9 @@ export default function MobileUsersTab() {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => openUserHistory(user)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1 ml-auto"
+                          className="px-3 py-1.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl font-bold transition-all inline-flex items-center gap-1 text-xs"
                         >
-                          <span>History</span>
+                          <span>View History</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </td>
@@ -501,372 +668,211 @@ export default function MobileUsersTab() {
         </div>
       </div>
 
-      {/* User History & Redemption Breakdown Modal */}
+      {/* User History & Activity Modal */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-panel w-full max-w-4xl rounded-3xl p-6 border t-border space-y-6 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl max-w-2xl w-full p-6 border t-border shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b t-border">
+            <div className="flex items-center justify-between pb-3 border-b t-border">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-base">
-                  {selectedUser.username ? selectedUser.username.charAt(0).toUpperCase() : 'U'}
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-sm">
+                  {(selectedUser.fullName || selectedUser.username || 'U').substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold t-text-primary flex items-center gap-2 flex-wrap">
-                    <span>{selectedUser.fullName || selectedUser.username}</span>
-                    {selectedUser.isOnline && (
-                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                        Online Now
-                      </span>
-                    )}
-                    {selectedUser.authProvider === 'google' ? (
-                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
-                        Google Verified
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                        Mobile App User
-                      </span>
-                    )}
+                  <h3 className="font-extrabold t-text-primary text-base flex items-center gap-2">
+                    <span>{selectedUser.fullName || selectedUser.username} – Recycling Activity</span>
                   </h3>
-                  <p className="text-xs t-text-muted mono flex items-center gap-2 flex-wrap mt-0.5">
-                    <span>Mobile: {selectedUser.mobile}</span>
-                    <span>•</span>
-                    <span>Member ID: {selectedUser.id}</span>
+                  <p className="text-xs t-text-muted mono mt-0.5">
+                    User ID: {selectedUser.id} • Mobile: {selectedUser.mobile}
                   </p>
                 </div>
               </div>
-
               <button
                 onClick={() => setSelectedUser(null)}
-                className="p-2 t-text-muted hover:t-text-primary rounded-xl t-bg-sec border t-border"
+                className="p-2 t-text-muted hover:t-text-primary t-bg-sec rounded-xl border t-border"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Quick Metrics: Wallet Balance, Redeemed Points, Lifetime Earned & Materials */}
-            {(() => {
-              const histBottles = userHistory.reduce((acc, s) => acc + parseInt(s.plastic_count || s.bottles || s.plasticCount || 0), 0) || selectedUser.bottles || 0;
-              const histCans = userHistory.reduce((acc, s) => acc + parseInt(s.aluminium_count || s.cups || s.cans || s.aluminiumCount || 0), 0) || selectedUser.cups || 0;
-              const histTetra = userHistory.reduce((acc, s) => {
-                const cnt = parseInt(s.tetrapak_count || s.tetra_count || s.tetraCount || 0);
-                const g = parseInt(s.tetrapak_weight_grams || s.tetrapakWeightGrams || 0);
-                return acc + (cnt > 0 ? cnt : (g > 0 ? Math.max(1, Math.round(g / 25)) : (s.item_variant && s.item_variant.toLowerCase().includes('tetra') ? 1 : 0)));
-              }, 0) || selectedUser.tetra || 0;
-              const histPaper = userHistory.reduce((acc, s) => {
-                const cnt = parseInt(s.paper_cardboard_count || s.paper_count || s.paperCount || 0);
-                const g = parseInt(s.paper_weight_grams || s.paperWeightGrams || 0);
-                return acc + (cnt > 0 ? cnt : (g > 0 ? Math.max(1, Math.round(g / 50)) : (s.item_variant && s.item_variant.toLowerCase().includes('paper') ? 1 : 0)));
-              }, 0) || selectedUser.paper || 0;
-              const histGlass = userHistory.reduce((acc, s) => acc + parseInt(s.glass_count || s.glassCount || s.glass || 0), 0) || selectedUser.glass || 0;
-
-              const totalRedeemedForUser = selectedUser.totalRedeemedPoints ?? (
-                userRedemptions.length > 0 
-                  ? userRedemptions.reduce((acc, r) => acc + (parseInt(r.points_redeemed) || 0), 0)
-                  : (selectedUser.redeemedPoints || 0)
-              );
-              const currentBalance = selectedUser.points || 0;
-              const lifetimeEarned = currentBalance + totalRedeemedForUser;
-
-              return (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                  {/* Current Balance */}
-                  <div className="p-3 rounded-2xl t-bg-sec border border-amber-500/30 bg-amber-500/5 text-center">
-                    <div className="text-[11px] text-amber-400 font-semibold flex items-center justify-center gap-1">
-                      <Trophy className="w-3 h-3" />
-                      Points Balance
-                    </div>
-                    <div className="text-lg font-extrabold text-amber-400 mono mt-1">
-                      {currentBalance.toLocaleString()} pts
-                    </div>
-                  </div>
-
-                  {/* Redeemed Points */}
-                  <div className="p-3 rounded-2xl t-bg-sec border border-purple-500/30 bg-purple-500/5 text-center">
-                    <div className="text-[11px] text-purple-400 font-semibold flex items-center justify-center gap-1">
-                      <Gift className="w-3 h-3" />
-                      Redeemed
-                    </div>
-                    <div className="text-lg font-extrabold text-purple-400 mono mt-1">
-                      {totalRedeemedForUser.toLocaleString()} pts
-                    </div>
-                  </div>
-
-                  {/* Lifetime Earned */}
-                  <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30 bg-emerald-500/5 text-center">
-                    <div className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Lifetime Earned
-                    </div>
-                    <div className="text-lg font-extrabold text-emerald-400 mono mt-1">
-                      {lifetimeEarned.toLocaleString()} pts
-                    </div>
-                  </div>
-
-                  {/* Bottles */}
-                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
-                    <div className="text-[11px] t-text-muted font-semibold">Bottles 🍾</div>
-                    <div className="text-lg font-extrabold text-emerald-400 mono mt-1">
-                      {histBottles.toLocaleString()}
-                    </div>
-                  </div>
-
-                  {/* UBC / Cans */}
-                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
-                    <div className="text-[11px] t-text-muted font-semibold">UBC / Cans 🥫</div>
-                    <div className="text-lg font-extrabold text-cyan-400 mono mt-1">
-                      {histCans.toLocaleString()}
-                    </div>
-                  </div>
-
-                  {/* Other Materials */}
-                  <div className="p-3 rounded-2xl t-bg-sec border t-border text-center">
-                    <div className="text-[11px] t-text-muted font-semibold">Other Recycled</div>
-                    <div className="text-xs font-bold mono mt-1 text-slate-300 space-x-1">
-                      <span className="text-orange-400" title="Tetra Pak">{histTetra}🧃</span>
-                      <span className="text-indigo-400" title="Paper">{histPaper}📄</span>
-                      <span className="text-teal-400" title="Glass">{histGlass}🍶</span>
-                    </div>
-                  </div>
+            {/* Quick Stat Chips */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+              <div className="p-3 rounded-2xl t-bg-sec border border-amber-500/30">
+                <div className="text-[10px] text-amber-500 uppercase font-bold">Active Balance</div>
+                <div className="font-extrabold text-amber-600 dark:text-amber-400 text-base mono mt-0.5">
+                  {(selectedUser.points || 0).toLocaleString()} pts
                 </div>
-              );
-            })()}
+              </div>
+              <div className="p-3 rounded-2xl t-bg-sec border border-purple-500/30">
+                <div className="text-[10px] text-purple-500 uppercase font-bold">Redeemed</div>
+                <div className="font-extrabold text-purple-600 dark:text-purple-400 text-base mono mt-0.5">
+                  {(selectedUser.totalRedeemedPoints || 0).toLocaleString()} pts
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30">
+                <div className="text-[10px] text-emerald-500 uppercase font-bold">Lifetime Items</div>
+                <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mono mt-0.5">
+                  {(selectedUser.bottles || 0) + (selectedUser.cups || 0) + (selectedUser.tetra || 0) + (selectedUser.paper || 0)}
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl t-bg-sec border t-border">
+                <div className="text-[10px] t-text-muted uppercase font-bold">Total Sessions</div>
+                <div className="font-extrabold t-text-primary text-base mono mt-0.5">
+                  {selectedUser.sessions || userHistory.length}
+                </div>
+              </div>
+            </div>
 
-            {/* Modal Tab Switcher: Recycling Sessions vs Redemption & Voucher History */}
+            {/* Activity Modal Tabs */}
             <div className="flex items-center gap-2 border-b t-border pb-2">
               <button
                 onClick={() => setActiveModalTab('recycling')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                   activeModalTab === 'recycling'
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
                     : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
                 }`}
               >
-                <Recycle className="w-4 h-4" />
-                <span>Recycling Sessions</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-bold mono">
-                  {userHistory.length}
-                </span>
+                <Recycle className="w-3.5 h-3.5" />
+                <span>Recycling Sessions ({userHistory.length})</span>
               </button>
 
               <button
                 onClick={() => setActiveModalTab('redemptions')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                   activeModalTab === 'redemptions'
-                    ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm'
+                    ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30'
                     : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
                 }`}
               >
-                <Ticket className="w-4 h-4" />
-                <span>Redemption & Voucher History</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 font-bold mono">
-                  {userRedemptions.length}
-                </span>
+                <Ticket className="w-3.5 h-3.5" />
+                <span>Vouchers & Redemptions ({userRedemptions.length})</span>
               </button>
             </div>
 
-            {/* Tab 1: Recycling History Table */}
-            {activeModalTab === 'recycling' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                    <Recycle className="w-3.5 h-3.5" />
-                    Recycling Session Records
-                  </h4>
-                  <span className="text-[11px] t-text-muted">
-                    {userHistory.length} total sessions recorded
-                  </span>
-                </div>
-
+            {/* Modal Body */}
+            {activeModalTab === 'recycling' ? (
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {loadingHistory ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-xs t-text-muted gap-2">
-                    <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
-                    <span>Loading user sessions...</span>
+                  <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
+                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                    <span>Loading recycling history...</span>
                   </div>
                 ) : userHistory.length === 0 ? (
-                  <div className="py-12 text-center text-xs t-bg-sec rounded-2xl border t-border p-6 space-y-2">
-                    <Recycle className="w-8 h-8 mx-auto text-emerald-400/40" />
-                    <p className="font-bold t-text-primary text-sm">No Recycling Sessions Recorded</p>
-                    <p className="t-text-muted">This citizen has not completed any smart recycling deposits yet.</p>
+                  <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
+                    <Recycle className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-500" />
+                    <p className="font-bold t-text-primary">No Session History Found</p>
+                    <p className="mt-1">This user has not completed any machine deposits yet.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto border t-border rounded-2xl">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b t-border t-bg-sec t-text-muted uppercase tracking-wider text-[10px] font-bold">
-                          <th className="py-2.5 px-3">Session ID</th>
-                          <th className="py-2.5 px-3">Machine</th>
-                          <th className="py-2.5 px-3 text-center">Bottles 🍾</th>
-                          <th className="py-2.5 px-3 text-center">UBC / Cans 🥫</th>
-                          <th className="py-2.5 px-3 text-center">Tetra Pak 🧃</th>
-                          <th className="py-2.5 px-3 text-center">Paper 📄</th>
-                          <th className="py-2.5 px-3 text-center">Glass 🍶</th>
-                          <th className="py-2.5 px-3 text-right">Points ⭐</th>
-                          <th className="py-2.5 px-3 text-right">Date & Time</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y t-border">
-                        {userHistory.map((s, idx) => (
-                          <tr key={s.session_id || idx} className="hover:t-bg-hover">
-                            <td className="py-2.5 px-3 mono text-[11px] t-text-primary">
-                              <div>{(s.session_id || `SES-${idx}`).substring(0, 10)}...</div>
-                              {s.item_variant && (
-                                <div className="text-[9px] t-text-muted font-normal truncate max-w-[120px]">{s.item_variant}</div>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 mono text-[11px] text-cyan-400 font-semibold">
-                              {s.machine_id || 'RVM-01'}
-                            </td>
-                            <td className="py-2.5 px-3 text-center mono font-bold text-emerald-400">
-                              {s.plastic_count || s.bottles || s.plasticCount || 0}
-                            </td>
-                            <td className="py-2.5 px-3 text-center mono font-bold text-cyan-400">
-                              {s.aluminium_count || s.cups || s.cans || s.aluminiumCount || 0}
-                            </td>
-                            <td className="py-2.5 px-3 text-center mono font-bold text-orange-400">
-                              {s.tetrapak_count || s.tetra_count || s.tetraCount || (s.tetrapak_weight_grams > 0 ? `${s.tetrapak_weight_grams}g` : (s.item_variant && s.item_variant.toLowerCase().includes('tetra') ? '1' : 0))}
-                            </td>
-                            <td className="py-2.5 px-3 text-center mono font-bold text-indigo-400">
-                              {s.paper_cardboard_count || s.paper_count || s.paperCount || (s.paper_weight_grams > 0 ? `${s.paper_weight_grams}g` : (s.item_variant && s.item_variant.toLowerCase().includes('paper') ? '1' : 0))}
-                            </td>
-                            <td className="py-2.5 px-3 text-center mono font-bold text-teal-400">
-                              {s.glass_count || s.glassCount || s.glass || 0}
-                            </td>
-                            <td className="py-2.5 px-3 text-right mono font-extrabold text-amber-400">
-                              +{s.points_earned || s.points || 0}
-                            </td>
-                            <td className="py-2.5 px-3 text-right text-[11px] t-text-muted">
-                              {s.created_at || s.recycledAt ? new Date(s.created_at || s.recycledAt).toLocaleString() : '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  userHistory.map((s, idx) => (
+                    <div key={s.session_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
+                      <div>
+                        <div className="font-bold t-text-primary flex items-center gap-2">
+                          <span>{s.machine_id || 'Smart RVM Unit'}</span>
+                          <span className="text-[10px] text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20 font-mono">
+                            {s.session_id ? s.session_id.substring(0, 10) : `SES-${idx + 1}`}
+                          </span>
+                        </div>
+                        <div className="t-text-muted text-[11px] mt-0.5">
+                          {s.created_at || s.recycledAt ? new Date(s.created_at || s.recycledAt).toLocaleString() : 'Recent'} • 
+                          {' '}{s.plastic_count || s.bottles || 0} PET • {s.aluminium_count || s.cups || 0} Cans • {s.tetrapak_count || s.tetra_count || 0} Cartons
+                        </div>
+                      </div>
+                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30 mono">
+                        +{s.points_earned || s.points || 0} Pts
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
-            )}
-
-            {/* Tab 2: Redemption & Voucher History Table */}
-            {activeModalTab === 'redemptions' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                    <Gift className="w-3.5 h-3.5" />
-                    Voucher Claims & Points Redemption History
-                  </h4>
-                  <span className="text-[11px] t-text-muted">
-                    {userRedemptions.length} redemptions recorded
-                  </span>
-                </div>
-
+            ) : (
+              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                 {loadingHistory ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-xs t-text-muted gap-2">
-                    <RefreshCw className="w-6 h-6 animate-spin text-purple-400" />
-                    <span>Loading redemption records...</span>
+                  <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
+                    <RefreshCw className="w-4 h-4 animate-spin text-purple-500" />
+                    <span>Loading voucher redemptions...</span>
                   </div>
                 ) : userRedemptions.length === 0 ? (
-                  <div className="py-12 text-center text-xs t-bg-sec rounded-2xl border t-border p-6 space-y-2">
-                    <Gift className="w-8 h-8 mx-auto text-purple-400/40" />
-                    <p className="font-bold t-text-primary text-sm">No Reward Redemptions Yet</p>
-                    <p className="t-text-muted max-w-md mx-auto">
-                      This citizen has not spent or redeemed points for vouchers yet. 
-                      All earned rewards (<span className="text-amber-400 font-bold mono">{(selectedUser.points || 0).toLocaleString()} pts</span>) remain 100% active in their balance.
-                    </p>
+                  <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
+                    <Ticket className="w-8 h-8 mx-auto mb-2 opacity-40 text-purple-500" />
+                    <p className="font-bold t-text-primary">No Vouchers Cashed</p>
+                    <p className="mt-1">All earned points remain fully active in user balance.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto border t-border rounded-2xl">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b t-border t-bg-sec t-text-muted uppercase tracking-wider text-[10px] font-bold">
-                          <th className="py-2.5 px-3">Redemption ID</th>
-                          <th className="py-2.5 px-3">Reward / Voucher</th>
-                          <th className="py-2.5 px-3">Category</th>
-                          <th className="py-2.5 px-3 text-right">Points Spent</th>
-                          <th className="py-2.5 px-3 text-center">Voucher Code</th>
-                          <th className="py-2.5 px-3 text-center">Status</th>
-                          <th className="py-2.5 px-3 text-right">Redeemed At</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y t-border">
-                        {userRedemptions.map((r, idx) => (
-                          <tr key={r.redemption_id || r.id || idx} className="hover:t-bg-hover">
-                            <td className="py-2.5 px-3 mono text-[11px] t-text-primary">
-                              {(r.redemption_id || `RED-${idx + 1}`).substring(0, 14)}
-                            </td>
-                            <td className="py-2.5 px-3 font-semibold t-text-primary">
-                              <div className="flex items-center gap-1.5">
-                                <Gift className="w-3.5 h-3.5 text-purple-400" />
-                                <span>{r.item_name || 'Reward Voucher'}</span>
-                              </div>
-                              {r.note && <div className="text-[10px] t-text-muted font-normal mt-0.5">{r.note}</div>}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                                {r.category || 'Voucher'}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right mono font-extrabold text-rose-400">
-                              -{parseInt(r.points_redeemed || 0).toLocaleString()} pts
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              {r.voucher_code ? (
-                                <button
-                                  onClick={() => copyToClipboard(r.voucher_code)}
-                                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-purple-500/30 text-purple-300 mono text-[11px] font-bold transition-all"
-                                  title="Click to copy voucher code"
-                                >
-                                  <span>{r.voucher_code}</span>
-                                  {copiedVoucher === r.voucher_code ? (
-                                    <Check className="w-3 h-3 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3 h-3 text-purple-400/70" />
-                                  )}
-                                </button>
-                              ) : (
-                                <span className="text-muted mono text-[10px]">-</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                (r.status || 'claimed').toLowerCase() === 'claimed' || (r.status || '').toLowerCase() === 'completed'
-                                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                              }`}>
-                                {(r.status || 'CLAIMED').toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right text-[11px] t-text-muted">
-                              {r.created_at ? new Date(r.created_at).toLocaleString() : '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  userRedemptions.map((r, idx) => (
+                    <div key={r.redemption_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
+                      <div>
+                        <div className="font-bold t-text-primary flex items-center gap-2">
+                          <Gift className="w-3.5 h-3.5 text-purple-500" />
+                          <span>{r.item_name || 'Voucher Claim'}</span>
+                          {r.voucher_code && (
+                            <button
+                              onClick={() => copyToClipboard(r.voucher_code)}
+                              className="font-mono text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/20 flex items-center gap-1"
+                              title="Click to copy code"
+                            >
+                              <span>{r.voucher_code}</span>
+                              {copiedVoucher === r.voucher_code ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          )}
+                        </div>
+                        <div className="t-text-muted text-[11px] mt-0.5">
+                          {r.created_at ? new Date(r.created_at).toLocaleString() : 'Recent'} • Status: {(r.status || 'Claimed').toUpperCase()}
+                        </div>
+                      </div>
+                      <span className="font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-xl border border-rose-500/30 mono">
+                        -{r.points_redeemed || 0} Pts
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
             )}
 
             {/* Modal Footer */}
-            <div className="flex justify-between items-center pt-2 border-t t-border">
+            <div className="flex items-center justify-between pt-3 border-t t-border">
               <div className="text-[11px] t-text-muted flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Verified citizen database record</span>
+                <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Audited Database Record</span>
               </div>
               <button
                 onClick={() => setSelectedUser(null)}
-                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs transition-all"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all"
               >
-                Done
+                Close Window
               </button>
             </div>
 
           </div>
         </div>
       )}
+
+      {/* Floating Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 text-xs font-semibold animate-slide-up">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Footer Strip */}
+      <footer className="glass-panel p-4 rounded-2xl border t-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs t-text-secondary">
+        <div className="flex items-center gap-2">
+          <span>© 2026 ISP Environmental Solutions Pvt. Ltd.</span>
+          <span>•</span>
+          <span>Recyclers &amp; Mobile App Directory</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span>{users.length} Registered Recyclers</span>
+          <span>•</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Live Directory Synchronized
+          </span>
+        </div>
+      </footer>
 
     </div>
   );

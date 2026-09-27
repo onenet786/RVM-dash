@@ -82,7 +82,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText },
     ...((!isClientAdmin && !isCorporateSubUser) ? [
       { id: 'enterprise_clients', label: 'Enterprise Clients & ESG', icon: Building2 },
-      { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone },
+      { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users },
     ] : []),
     { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf },
     { id: 'analytics', label: 'Green Champions & Leaderboard', icon: Trophy },

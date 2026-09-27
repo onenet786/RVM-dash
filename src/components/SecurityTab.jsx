@@ -13,7 +13,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
     items: [
       { id: 'overview', label: 'System Overview', icon: LayoutDashboard, desc: 'Live fleet KPI metrics, deposit intake breakdown & recent activity' },
       { id: 'reporting_hub', label: 'Reporting & Analytics Hub', icon: FileText, desc: 'PicoDrop paper scale calibration, fleet uptime, ESG & financial audits' },
-      { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone, desc: 'Citizen profiles, registered user balances & mobile registration logs' },
+      { id: 'mobile_users', label: 'Recyclers & App Community', icon: Users, desc: 'Recycler directory, mobile app accounts, points balances & redemption logs' },
       { id: 'esg_impact', label: 'ESG Carbon Impact Audit', icon: Leaf, desc: 'ISO 14064 third-party audited carbon offset ledger, diverted landfill & tree equivalents' },
       { id: 'analytics', label: 'Green Champions & Leaderboard', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
       { id: 'machines', label: 'Machine Health & Operations', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
