@@ -389,7 +389,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 className="w-full px-3 py-2 text-xs font-bold rounded-xl t-bg-sec border t-border t-text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer appearance-none pr-8"
               >
                 <option value="cumulative">All Models (Master Cumulative)</option>
-                <option value="new_rvm">Smart RVM (New AI Scanner)</option>
+                <option value="new_rvm">Smart RVM</option>
                 <option value="pecodrop">PecoDrop (Office 3-Chamber Kiosk)</option>
                 <option value="old_rvm">Legacy RVM (Old Counter Units)</option>
               </select>
@@ -478,7 +478,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               onClick={() => { 
                 setActiveScope('new_rvm'); 
                 window.dispatchEvent(new CustomEvent('rvm_switch_station', { detail: 'RVM_NEW' }));
-                showToast('Switched to: Smart RVM (AI Scanner)'); 
+                showToast('Switched to: Smart RVM'); 
               }}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 activeScope === 'new_rvm'
@@ -487,7 +487,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               }`}
             >
               <ScanLine className="w-3.5 h-3.5" />
-              <span>Smart RVM (AI Vision)</span>
+              <span>Smart RVM</span>
             </button>
 
             <button
