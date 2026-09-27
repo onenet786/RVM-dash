@@ -627,15 +627,15 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     <div className="p-3 bg-slate-100 dark:bg-slate-900/80 rounded-2xl border border-slate-300 dark:border-slate-700 space-y-2">
                       <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                         <span>⚡ Relay Pulse Backlog Queue</span>
-                        <span className="text-[10px] font-mono text-slate-500">Latency: 142ms</span>
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Latency: 142ms</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-center text-xs">
                         <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-bold">Relay Pulses</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Relay Pulses</div>
                           <div className="font-extrabold mono text-slate-800 dark:text-slate-200">{m.totalPulseCount || 1420}</div>
                         </div>
                         <div className="p-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                          <div className="text-[10px] text-slate-500 font-bold">Queue Backlog</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Queue Backlog</div>
                           <div className="font-extrabold mono text-emerald-600">{m.pulseBacklog || 0} msgs</div>
                         </div>
                       </div>
@@ -648,19 +648,19 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                       </div>
                       <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
                         <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-slate-500">Inductive</div>
+                          <div className="text-slate-600 dark:text-slate-300 font-semibold">Inductive</div>
                           <div className="font-bold text-emerald-600">OK</div>
                         </div>
                         <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-slate-500">Ultrasonic</div>
+                          <div className="text-slate-600 dark:text-slate-300 font-semibold">Ultrasonic</div>
                           <div className="font-bold text-emerald-600">OK</div>
                         </div>
                         <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-slate-500">Optical</div>
+                          <div className="text-slate-600 dark:text-slate-300 font-semibold">Optical</div>
                           <div className="font-bold text-emerald-600">OK</div>
                         </div>
                         <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <div className="text-slate-500">Gate Trap</div>
+                          <div className="text-slate-600 dark:text-slate-300 font-semibold">Gate Trap</div>
                           <div className="font-bold text-emerald-600">OK</div>
                         </div>
                       </div>
@@ -726,12 +726,12 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-500 border-t t-border pt-3">
+                <div className="flex items-center justify-between text-xs t-text-muted border-t t-border pt-3">
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#0b5d3b]" />
+                    <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     Last Ping: {m.lastPingAt || m.lastActive ? new Date(m.lastPingAt || m.lastActive).toLocaleTimeString() : 'Never'}
                   </span>
-                  <span className={`font-bold text-xs ${isOnline ? 'text-[#0b5d3b]' : 'text-slate-400'}`}>
+                  <span className={`font-bold text-xs ${isOnline ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
                     {isOnline ? 'Live Ping Active' : 'Offline'}
                   </span>
                 </div>

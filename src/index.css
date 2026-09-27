@@ -280,6 +280,32 @@ html[data-theme="isp-portal"] .glass-panel {
 .t-accent { color: var(--accent-color); }
 .t-accent-bg { background-color: var(--accent-color); }
 
+/* Universal Form Control & Dropdown Contrast Guarantee */
+input, select, textarea {
+  color: var(--text-primary);
+}
+
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+html.dark select option,
+html[data-theme="cyber-dark"] select option,
+html[data-theme="ocean-dark"] select option,
+html[data-theme="neon-violet"] select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html:not(.dark) select option,
+html[data-theme="sleek-light"] select option,
+html[data-theme="isp-eco"] select option,
+html[data-theme="isp-portal"] select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 /* ============================================================ */
 /* WCAG AAA HIGH-CONTRAST READABILITY & HARMONY ENGINE          */
 /* Automatically balances light neon colors on bright surfaces   */

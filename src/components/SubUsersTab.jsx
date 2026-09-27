@@ -476,13 +476,13 @@ export default function SubUsersTab({ currentUser }) {
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 t-text-muted" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search sub-users, emails, or assigned machines..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all text-slate-800 dark:text-slate-100 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl t-bg-sec border t-border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all t-text-primary placeholder:t-text-muted shadow-sm"
             />
           </div>
 
@@ -491,7 +491,7 @@ export default function SubUsersTab({ currentUser }) {
               <select
                 value={orgFilter}
                 onChange={(e) => setOrgFilter(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
+                className="w-full px-3 py-2.5 rounded-2xl t-bg-sec border t-border text-xs font-bold t-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm"
               >
                 <option value="ALL">All Corporate Clients (All Sites)</option>
                 {organizationsList.filter(o => o.id !== 'ALL' && o.id !== 'ISP_MASTER').map(o => (
@@ -501,26 +501,26 @@ export default function SubUsersTab({ currentUser }) {
             </div>
           )}
         </div>
-        <div className="text-xs font-bold text-slate-400 shrink-0 text-right">
+        <div className="text-xs font-bold t-text-muted shrink-0 text-right">
           Showing {filteredUsers.length} of {subUsers.length} team members
         </div>
       </div>
 
       {/* Sub-Users List Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+      <div className="glass-panel rounded-3xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="py-16 text-center space-y-3">
             <RefreshCw className="w-8 h-8 mx-auto text-emerald-500 animate-spin" />
-            <p className="text-sm text-slate-400">Loading authorized sub-users...</p>
+            <p className="text-sm t-text-muted">Loading authorized sub-users...</p>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="py-16 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+            <div className="w-16 h-16 mx-auto rounded-3xl t-bg-sec border t-border flex items-center justify-center t-text-muted">
               <Users className="w-8 h-8" />
             </div>
             <div className="space-y-1 max-w-sm mx-auto">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200">No Sub-Users Found</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-bold t-text-primary">No Sub-Users Found</h3>
+              <p className="text-xs t-text-muted">
                 {searchQuery ? 'No members match your search criteria.' : 'Create sub-users to delegate branch operations and machine monitoring.'}
               </p>
             </div>
@@ -537,7 +537,7 @@ export default function SubUsersTab({ currentUser }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <thead className="t-bg-sec text-[11px] font-black uppercase tracking-wider t-text-muted border-b t-border">
                 <tr>
                   <th className="px-6 py-4">User Details</th>
                   <th className="px-6 py-4">Assigned RVMs / PecoDrops</th>
@@ -546,11 +546,11 @@ export default function SubUsersTab({ currentUser }) {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+              <tbody className="divide-y t-border font-medium">
                 {filteredUsers.map((user) => {
                   const assigned = user.assignedMachines || [];
                   return (
-                    <tr key={user.username} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={user.username} className="hover:t-bg-hover transition-colors">
                       {/* Name & Username */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -558,13 +558,13 @@ export default function SubUsersTab({ currentUser }) {
                             {user.fullName ? user.fullName.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <div className="font-extrabold t-text-primary flex items-center gap-2">
                               {user.fullName || user.username}
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md t-bg-sec t-text-muted border t-border">
                                 @{user.username}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 mt-0.5">{user.email || 'No email registered'}</div>
+                            <div className="text-xs t-text-muted mt-0.5">{user.email || 'No email registered'}</div>
                           </div>
                         </div>
                       </td>
@@ -610,7 +610,7 @@ export default function SubUsersTab({ currentUser }) {
                       </td>
 
                       {/* Created */}
-                      <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
+                      <td className="px-6 py-4 text-xs t-text-muted">
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Active'}
                       </td>
 
@@ -619,7 +619,7 @@ export default function SubUsersTab({ currentUser }) {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleOpenEditModal(user)}
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10 transition-all border border-slate-200 dark:border-slate-700"
+                            className="p-2 rounded-xl t-bg-sec t-text-secondary hover:text-emerald-500 hover:t-bg-hover transition-all border t-border"
                             title="Edit Delegated Machines & Credentials"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -656,20 +656,20 @@ export default function SubUsersTab({ currentUser }) {
       {/* Add / Edit Sub-User Modal */}
       {(showCreateModal || editingUser) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="glass-panel border t-border rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b t-border pb-4">
               <div className="space-y-1">
                 <div className="text-xs font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1.5">
                   <UserPlus className="w-3.5 h-3.5" />
                   {editingUser ? 'Edit Machine Delegation' : 'New Sub-User Registration'}
                 </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                <h2 className="text-xl font-black t-text-primary">
                   {editingUser ? `Configure @${editingUser.username}` : 'Create Sub-User & Assign Machines'}
                 </h2>
               </div>
               <button
                 onClick={() => { setShowCreateModal(false); setEditingUser(null); }}
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-all"
+                className="p-2 rounded-xl hover:t-bg-hover t-text-muted transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -679,7 +679,7 @@ export default function SubUsersTab({ currentUser }) {
               {/* Basic Info Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider t-text-secondary mb-1.5">
                     Full Name / Designation
                   </label>
                   <input
@@ -688,12 +688,12 @@ export default function SubUsersTab({ currentUser }) {
                     value={form.fullName}
                     onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                     placeholder="e.g. Ahmed Khan - Lahore Site Operator"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl t-bg-sec border t-border text-sm t-text-primary focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider t-text-secondary mb-1.5">
                     Username (Login ID)
                   </label>
                   <input
@@ -703,12 +703,12 @@ export default function SubUsersTab({ currentUser }) {
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, '') })}
                     placeholder="e.g. ahmed_lahore"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:outline-none disabled:opacity-60"
+                    className="w-full px-4 py-2.5 rounded-xl t-bg-sec border t-border text-sm t-text-primary focus:ring-2 focus:ring-emerald-500/50 focus:outline-none disabled:opacity-60"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider t-text-secondary mb-1.5">
                     Email Address
                   </label>
                   <input
@@ -716,12 +716,12 @@ export default function SubUsersTab({ currentUser }) {
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="e.g. ahmed.khan@company.com"
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl t-bg-sec border t-border text-sm t-text-primary focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider t-text-secondary mb-1.5">
                     {editingUser ? 'Reset Password (Leave blank to keep)' : 'Login Password'}
                   </label>
                   <div className="relative">
@@ -731,12 +731,12 @@ export default function SubUsersTab({ currentUser }) {
                       value={form.password}
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       placeholder={editingUser ? 'Enter new password...' : 'Secure password'}
-                      className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
+                      className="w-full pl-4 pr-10 py-2.5 rounded-xl t-bg-sec border t-border text-sm t-text-primary focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 t-text-muted hover:t-text-primary"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -745,13 +745,13 @@ export default function SubUsersTab({ currentUser }) {
               </div>
 
               {/* Machine Assignment Multi-select Section */}
-              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-3 pt-3 border-t t-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                    <label className="block text-xs font-black uppercase tracking-wider t-text-primary">
                       Delegate Authorized Kiosks
                     </label>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs t-text-muted">
                       Select which RVM and PecoDrop units this sub-user is authorized to manage and monitor.
                     </p>
                   </div>
@@ -763,11 +763,11 @@ export default function SubUsersTab({ currentUser }) {
                     >
                       Select All
                     </button>
-                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <span className="t-text-muted">|</span>
                     <button
                       type="button"
                       onClick={handleClearMachines}
-                      className="text-[11px] font-bold text-slate-400 hover:underline px-2 py-1 rounded-md"
+                      className="text-[11px] font-bold t-text-muted hover:underline px-2 py-1 rounded-md"
                     >
                       Clear
                     </button>
@@ -775,7 +775,7 @@ export default function SubUsersTab({ currentUser }) {
                 </div>
 
                 {availableMachines.length === 0 ? (
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500 dark:text-amber-300 font-semibold">
                     No fleet machines are currently assigned to your organization. Please contact the administrator.
                   </div>
                 ) : (
@@ -790,31 +790,31 @@ export default function SubUsersTab({ currentUser }) {
                           onClick={() => handleToggleMachine(machine.machineId)}
                           className={`p-3.5 rounded-2xl border cursor-pointer select-none transition-all flex items-start gap-3 ${
                             isSelected
-                              ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300 shadow-md shadow-emerald-500/10'
-                              : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 text-slate-400 hover:border-slate-400'
+                              ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 shadow-md shadow-emerald-500/10'
+                              : 't-bg-sec border t-border t-text-muted hover:border-emerald-500/40'
                           }`}
                         >
                           <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${
-                            isSelected ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-400 dark:border-slate-600'
+                            isSelected ? 'bg-emerald-500 border-emerald-400 text-white' : 'border t-border'
                           }`}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
 
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                              <span className="font-extrabold text-xs t-text-primary truncate">
                                 {machine.machineId}
                               </span>
                               <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md ${
-                                isPeco ? 'bg-purple-500/20 text-purple-300' : 'bg-emerald-500/20 text-emerald-300'
+                                isPeco ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                               }`}>
                                 {isPeco ? '⭕ PecoDrop' : '🥫 RVM'}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-500 truncate">
+                            <div className="text-[11px] t-text-secondary truncate">
                               {machine.name || 'Smart Recycling Station'}
                             </div>
-                            <div className="text-[10px] text-slate-400 truncate">
+                            <div className="text-[10px] t-text-muted truncate">
                               📍 {machine.location || 'Site Location'}
                             </div>
                           </div>
@@ -826,11 +826,11 @@ export default function SubUsersTab({ currentUser }) {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t t-border">
                 <button
                   type="button"
                   onClick={() => { setShowCreateModal(false); setEditingUser(null); }}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  className="px-5 py-2.5 rounded-xl border t-border text-sm font-bold t-text-secondary hover:t-bg-hover transition-all"
                 >
                   Cancel
                 </button>

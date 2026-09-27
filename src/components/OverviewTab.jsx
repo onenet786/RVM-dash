@@ -663,7 +663,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.plasticPieces ?? 0} count</span>
               </div>
               <div className="p-3 bg-sky-50 dark:bg-sky-950/30 rounded-xl border border-sky-200 dark:border-sky-500/20 text-xs">
-                <span className="text-slate-500 font-medium">Internal optical passage sensor count. Compartment #1.</span>
+                <span className="text-slate-600 dark:text-sky-200/70 font-medium">Internal optical passage sensor count. Compartment #1.</span>
               </div>
             </div>
 
@@ -681,7 +681,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="mono font-extrabold">{subTabMetrics?.pecodrop?.metalPieces ?? 0} count</span>
               </div>
               <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-500/20 text-xs">
-                <span className="text-slate-500 font-medium">Inductive proximity loop verified. Compartment #2.</span>
+                <span className="text-slate-600 dark:text-amber-200/70 font-medium">Inductive proximity loop verified. Compartment #2.</span>
               </div>
             </div>
 
@@ -700,7 +700,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               </div>
               <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-500/20 text-xs flex items-center justify-between">
                 <span className="text-purple-700 dark:text-purple-300 font-bold">Tare Accuracy: {subTabMetrics?.pecodrop?.scaleTareAccuracy ?? '99.8%'}</span>
-                <span className="text-[10px] text-slate-500">{subTabMetrics?.pecodrop?.zeroDriftEvents ?? 0} auto-tares</span>
+                <span className="text-[10px] text-slate-600 dark:text-purple-200/70 font-semibold">{subTabMetrics?.pecodrop?.zeroDriftEvents ?? 0} auto-tares</span>
               </div>
             </div>
           </div>
@@ -779,11 +779,11 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               </div>
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">TetraPak Cartons:</span>
+                  <span className="text-slate-600 dark:text-slate-300">TetraPak Cartons:</span>
                   <span className="font-bold mono">{subTabMetrics?.rvmNew?.tetraPakCartons ?? 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Anti-Cheat Drop Intercepts:</span>
+                  <span className="text-slate-600 dark:text-slate-300">Anti-Cheat Drop Intercepts:</span>
                   <span className="font-bold text-rose-500 mono">{subTabMetrics?.rvmNew?.antiCheatTrips ?? 0}</span>
                 </div>
               </div>
@@ -804,7 +804,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="flex items-center gap-1.5">⏱️ Unclassified Bottles Recycled</span>
                 <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.unclassifiedBottles ?? 0}</span>
               </div>
-              <p className="text-xs text-slate-500">Relay pulse hardware without optical grading. Records discrete deposit pulses.</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Relay pulse hardware without optical grading. Records discrete deposit pulses.</p>
             </div>
             <div 
               onClick={() => setFocusedKpi(focusedKpi === 'sessions' ? 'all' : 'sessions')}
@@ -820,8 +820,8 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="mono font-extrabold">{subTabMetrics?.rvmOld?.totalPulseCount ?? 0} pulses</span>
               </div>
               <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs flex justify-between">
-                <span className="text-slate-500">Backlog Queue: <strong className="text-emerald-500">{subTabMetrics?.rvmOld?.syncBacklog ?? 0} msgs</strong></span>
-                <span className="text-slate-500">Latency: <strong className="mono">{subTabMetrics?.rvmOld?.syncLatencyMs ?? 0} ms</strong></span>
+                <span className="text-slate-600 dark:text-slate-300">Backlog Queue: <strong className="text-emerald-500">{subTabMetrics?.rvmOld?.syncBacklog ?? 0} msgs</strong></span>
+                <span className="text-slate-600 dark:text-slate-300">Latency: <strong className="mono">{subTabMetrics?.rvmOld?.syncLatencyMs ?? 0} ms</strong></span>
               </div>
             </div>
           </div>

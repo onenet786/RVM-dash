@@ -83,6 +83,17 @@
 - **Portal Path**: `d:\GIT-HUB\RVM-dash`
 - **Purpose**: Unified SaaS & Master Control Portal for Smart Recycling Machines (Public RVMs) and Corporate Campus Kiosks (PecoDrop). Built with React + Vite + Tailwind CSS + Node.js/Express + PostgreSQL.
 - **Production Server**: Node daemon on `http://localhost:5009` (proxied via NGINX in production at `isprvm.binishaqsoft.com`).
+- **Conversational & Architectural Rule ("Web Dashboard" Reference)**:
+  - Whenever the user refers to **"Web Dashboard"** or **"Master Portal"**, strictly map to `d:\GIT-HUB\RVM-dash` (never confuse with desktop kiosk clients).
+  - Use this conversation as the canonical baseline for UI dimensions, layout, multi-tenant workflows, and operations:
+    - **Enterprise Corporate Clients & ESG Deletion Authority**: Super Admin (`onenet` / `bilalaaqueel` / `roleId: 'super_admin'`) possesses exclusive authority to delete corporate client tenants (individual delete via `DELETE /api/enterprise/organizations/:orgId` and bulk delete via `POST /api/enterprise/organizations/bulk-delete`). Upon deletion, bound kiosks are automatically detached, unlinked from `kiosk_org_bindings`, and safely restored to `client_id = 'ISP_MASTER'` (`ISP Environmental Master (All Sites)`). Associated departments are purged and corporate credentials revoked from `adminaccounts`. Never delete physical machines or recycling logs.
+    - **Card Layout & Widget Architecture Standards**: Enterprise client cards enforce a two-row header:
+      - **Top Utility Row**: Selection checkbox on left (`toggleSelectOrg`), status pill (`ACTIVE`), and Super Admin red trash button on right (strictly contained inside the card padding with `shrink-0` to eliminate border overflow).
+      - **Identity Row**: 48×48 logo, company name with `truncate min-w-0`, and `@domain` badge (`max-w-[200px] truncate`).
+      - **Bound Fleet & Admin Badges**: Enforce `max-w-[190px] truncate` with tooltip to prevent long machine ID strings (e.g. `3 Kiosks (PECO-01, PECO-KHI-01...)`) from overflowing.
+      - **Top KPI Metric Cards**: Standardized 5-column grid (`grid-cols-2 md:grid-cols-3 xl:grid-cols-5`) with uniform `min-h-[84px]`.
+    - **Live Database Verification Protocol**: Always verify database records, roles, and accounts directly via PostgreSQL (`rvmpg` on `127.0.0.1:5432`, user `postgres`, password `Admin786`, tables `users`, `adminaccounts`, `organizations`, `kiosk_org_bindings`, `machines`) via Node/PowerShell instead of guessing in UI forms.
+    - **Production Server & Build Routine**: Node daemon on `http://localhost:5009` (proxied in production at `isprvm.binishaqsoft.com`). Build command: `npm run build`.
 
 ### 1. Hierarchy & Multi-Tenant Access Model
 - **Roles & Permissions**:
