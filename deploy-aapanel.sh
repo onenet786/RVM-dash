@@ -2,7 +2,7 @@
 # =================================================================
 # Automated Production Deployment Script for aaPanel / Ubuntu Server
 # Project: RVM Master Developer Dashboard (ISP Environmental Solutions)
-# Branch:  24-Public-App-0 (PostgreSQL + Enterprise Multi-Tenant Engine)
+# Branch:  2527Sep2026 (PostgreSQL + Enterprise Multi-Tenant Engine)
 # =================================================================
 
 set -e
@@ -19,7 +19,7 @@ echo "📂 Working directory: $PROJECT_DIR"
 # 1. Pull Latest Code Changes
 echo "🔄 [1/6] Updating Repository from GitHub..."
 if [ -d ".git" ]; then
-  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "24-Public-App-0")"
+  CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "2527Sep2026")"
   echo "Current branch: $CURRENT_BRANCH"
   
   # Clean potential build artifacts that cause merge conflicts
@@ -29,7 +29,7 @@ if [ -d ".git" ]; then
   git checkout -- server/index.js 2>/dev/null || true
   
   git fetch origin "$CURRENT_BRANCH" --prune || git fetch origin --prune || true
-  git pull origin "$CURRENT_BRANCH" || git pull origin 24-Public-App-0 || true
+  git pull origin "$CURRENT_BRANCH" || git pull origin 2527Sep2026 || true
 fi
 
 # 2. Install Dependencies
