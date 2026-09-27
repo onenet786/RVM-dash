@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
   MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, 
   HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, 
-  BarChart3, ShieldCheck
+  BarChart3, ShieldCheck, Building2
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
