@@ -252,7 +252,6 @@ export default function AdvertisementsTab() {
       
       {/* Top Banner / Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 dark:from-emerald-950/40 dark:via-cyan-950/30 dark:to-emerald-950/40 border-2 border-emerald-400/40 dark:border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-sm backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-xs">

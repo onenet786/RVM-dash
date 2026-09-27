@@ -299,19 +299,17 @@ export default function SubUsersTab({ currentUser }) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Top Banner */}
-      <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border border-emerald-500/20 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl border t-border shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Building2 className="w-3.5 h-3.5" />
               {orgName} • Machine Delegation Hub
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black t-text-primary tracking-tight">
               Organization Sub-Users & Fleet Scoping
             </h1>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <p className="t-text-muted text-sm leading-relaxed">
               Create dedicated branch managers, shift operators, and site supervisors. Each sub-user is strictly limited to their assigned RVM & PecoDrop kiosks, ensuring localized telemetry and secure data scoping.
             </p>
           </div>
@@ -319,7 +317,7 @@ export default function SubUsersTab({ currentUser }) {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <button
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 transition-all transform active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all transform active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
               Create New Sub-User
@@ -327,35 +325,35 @@ export default function SubUsersTab({ currentUser }) {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 transition-all flex items-center justify-center"
+              className="p-3 rounded-2xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all flex items-center justify-center"
               title="Refresh List"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Fleet KPI Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <div className="text-xs text-slate-400 font-medium">Total Sub-Users</div>
-            <div className="text-2xl font-black text-white mt-1">{subUsers.length}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t t-border">
+          <div className="p-4 rounded-2xl t-bg-sec border t-border">
+            <div className="text-xs t-text-muted font-medium">Total Sub-Users</div>
+            <div className="text-2xl font-black t-text-primary mt-1">{subUsers.length}</div>
           </div>
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <div className="text-xs text-slate-400 font-medium">Active Operators</div>
-            <div className="text-2xl font-black text-emerald-400 mt-1">
+          <div className="p-4 rounded-2xl t-bg-sec border t-border">
+            <div className="text-xs t-text-muted font-medium">Active Operators</div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
               {subUsers.filter(u => u.status === 'active').length}
             </div>
           </div>
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <div className="text-xs text-slate-400 font-medium">Authorized Kiosks</div>
-            <div className="text-2xl font-black text-teal-300 mt-1">
+          <div className="p-4 rounded-2xl t-bg-sec border t-border">
+            <div className="text-xs t-text-muted font-medium">Authorized Kiosks</div>
+            <div className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
               {availableMachines.length}
             </div>
           </div>
-          <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-            <div className="text-xs text-slate-400 font-medium">Access Control</div>
-            <div className="text-xs font-bold text-amber-300 mt-2 inline-flex items-center gap-1">
+          <div className="p-4 rounded-2xl t-bg-sec border t-border">
+            <div className="text-xs t-text-muted font-medium">Access Control</div>
+            <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-2 inline-flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
               Hardware Isolated
             </div>

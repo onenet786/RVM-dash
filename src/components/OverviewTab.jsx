@@ -416,7 +416,6 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       ) : (
         /* Main Standard Header Banner (Super Admin & General Staff) */
         <div className="glass-panel overview-hero-banner p-6 rounded-3xl relative overflow-hidden border border-slate-200 dark:border-emerald-500/20">
-          <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 p-1.5 bg-white rounded-2xl shadow-md border border-emerald-500/20 shrink-0 hidden sm:flex items-center justify-center">

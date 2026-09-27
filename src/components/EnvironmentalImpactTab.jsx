@@ -63,8 +63,6 @@ export default function EnvironmentalImpactTab() {
       
       {/* Audit Header Banner */}
       <div className="glass-panel p-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-emerald-500/30 relative overflow-hidden">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Leaf className="w-4 h-4 text-emerald-400" />
