@@ -126,7 +126,25 @@ export default function App() {
       setIsLoggedOut(true);
     };
     const handleSwitchClient = (e) => {
-      if (e.detail) setSelectedClientId(e.detail);
+      if (e.detail) {
+        let clientId = e.detail;
+        let targetTab = null;
+        if (typeof e.detail === 'object' && e.detail !== null) {
+          clientId = e.detail.clientId || e.detail.id;
+          targetTab = e.detail.targetTab;
+        }
+        if (clientId) setSelectedClientId(clientId);
+        if (targetTab) {
+          setActiveTab(targetTab);
+        } else {
+          setActiveTab((prevTab) => {
+            if (['security', 'db_switcher', 'db_backup'].includes(prevTab) || prevTab.startsWith('col_')) {
+              return 'overview';
+            }
+            return prevTab;
+          });
+        }
+      }
     };
     const handleSwitchStation = (e) => {
       if (e.detail) setStationFilter(e.detail);
@@ -230,9 +248,9 @@ export default function App() {
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
-      if (tab.startsWith('col_') && !isSuperAdmin) return false;
-      if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients'].includes(tab)) return false;
-      if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements'].includes(tab)) return false;
+      if (tab.startsWith('col_') && !['col_machines', 'col_machine_configs', 'col_users'].includes(tab) && !isSuperAdmin) return false;
+      if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
+      if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
       if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
       return userModules.includes(tab);
@@ -248,7 +266,7 @@ export default function App() {
     }
 
     if (activeTab === 'sub_users' && (isSuperAdmin || isClientAdmin)) {
-      return <SubUsersTab currentUser={currentUser} />;
+      return <SubUsersTab currentUser={currentUser} selectedClientId={selectedClientId} />;
     }
 
     if (activeTab === 'reporting_hub') {
@@ -259,8 +277,22 @@ export default function App() {
       return <EnterpriseClientsTab currentUser={currentUser} selectedClientId={selectedClientId} />;
     }
 
-    if (activeTab === 'mobile_users' || activeTab === 'col_users') {
+    if (activeTab === 'mobile_users') {
       return <MobileUsersTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
+    }
+
+    if (activeTab === 'col_users' || activeTab === 'users') {
+      return (
+        <div className="space-y-6">
+          <MobileUsersTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />
+          <div className="glass-panel p-6 rounded-3xl space-y-4 border t-border">
+            <h3 className="text-sm font-extrabold t-text-primary uppercase tracking-wide">
+              Registered Recycler Accounts (Relational Database Table: users)
+            </h3>
+            <DataTable collectionName="users" displayName="Users Database Master Table" />
+          </div>
+        </div>
+      );
     }
 
     if (activeTab === 'esg_impact') {
@@ -276,7 +308,7 @@ export default function App() {
     if (activeTab === 'advertisements') {
       return <AdvertisementsTab stationFilter={stationFilter} selectedClientId={selectedClientId} currentUser={currentUser} />;
     }
-    if (activeTab === 'col_machines') {
+    if (activeTab === 'col_machines' || activeTab === 'machines_mgmt') {
       return <RvmManagementTab currentUser={currentUser} />;
     }
     if (activeTab === 'col_machine_configs' || activeTab === 'machine_configs') {
@@ -298,6 +330,7 @@ export default function App() {
         recyclingsessions: 'Recycling Sessions Table',
         recycling_sessions: 'Recycling Sessions (Relational Table)',
         userprofile: 'Registered User Profiles Table',
+        users: 'Registered Recyclers (users Relational Table)',
         feedbacks: 'User Feedbacks Log Table',
         binfullnotifications: 'Bin Full Alerts Table',
         redemptions: 'Redemptions Table',
@@ -343,6 +376,8 @@ export default function App() {
         setStationFilter={setStationFilter}
         selectedClientId={selectedClientId}
         setSelectedClientId={setSelectedClientId}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
 
       <div className="flex flex-1 overflow-hidden">

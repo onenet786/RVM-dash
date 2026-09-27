@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Activity, Palette, Sun, Moon, Leaf, Check, 
-  LogOut, Menu, Building2, ChevronDown, Search, X, MapPin, Cpu
+  LogOut, Menu, Building2, ChevronDown, Search, X, MapPin, Cpu, LayoutDashboard
 } from 'lucide-react';
 import ispLogo from '../assets/isp_logo.png';
 
@@ -17,7 +17,9 @@ export default function Navbar({
   stationFilter = 'ALL',
   setStationFilter = () => {},
   selectedClientId = 'ALL',
-  setSelectedClientId = () => {}
+  setSelectedClientId = () => {},
+  activeTab = 'overview',
+  setActiveTab = () => {}
 }) {
   const [timeStr, setTimeStr] = useState(new Date().toLocaleTimeString());
   const [showThemeMenu, setShowThemeMenu] = useState(false);
@@ -126,6 +128,28 @@ export default function Navbar({
       (c.id || '').toLowerCase().includes(q)
     );
   }, [clients, clientSearch]);
+
+  const handleSelectClient = (clientId, targetPage = null) => {
+    setSelectedClientId(clientId);
+    setShowClientMenu(false);
+
+    let pageToDisplay = targetPage;
+    if (!pageToDisplay) {
+      if (['security', 'db_switcher', 'db_backup'].includes(activeTab) || (typeof activeTab === 'string' && activeTab.startsWith('col_'))) {
+        pageToDisplay = 'overview';
+      } else {
+        pageToDisplay = activeTab;
+      }
+    }
+
+    if (setActiveTab && pageToDisplay) {
+      setActiveTab(pageToDisplay);
+    }
+
+    window.dispatchEvent(new CustomEvent('rvm_switch_client', { 
+      detail: { clientId, targetTab: pageToDisplay } 
+    }));
+  };
 
   return (
     <header className="sticky top-0 z-40 t-bg-header backdrop-blur-xl border-b t-border transition-colors duration-300 shadow-md">
@@ -244,45 +268,47 @@ export default function Navbar({
                     {filteredClients.map(c => {
                       const isSelected = selectedClientId === c.id;
                       return (
-                        <button
+                        <div
                           key={c.id}
-                          onClick={() => {
-                            setSelectedClientId(c.id);
-                            setShowClientMenu(false);
-                            window.dispatchEvent(new CustomEvent('rvm_switch_client', { detail: c.id }));
-                          }}
-                          className={`w-full text-left p-3 rounded-xl transition-all flex flex-col justify-between group relative border ${
+                          onClick={() => handleSelectClient(c.id)}
+                          className={`w-full text-left p-3 rounded-2xl transition-all flex flex-col justify-between group relative border cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-emerald-500/15 border-2 border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
-                              : 'bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:border-emerald-500/60 shadow-xs'
+                              ? 'bg-emerald-500/15 border-2 border-emerald-500 ring-2 ring-emerald-500/20 shadow-md'
+                              : 'bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/80 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40 hover:border-emerald-500/60 shadow-xs hover:shadow-md'
                           }`}
                         >
                           {/* Top row: Name & Selection Indicator */}
-                          <div className="flex items-start justify-between gap-1.5">
-                            <span className={`text-xs tracking-tight line-clamp-1 ${
-                              isSelected 
-                                ? 'font-black text-emerald-950 dark:text-emerald-200' 
-                                : 'font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-900 dark:group-hover:text-emerald-100'
-                            }`}>
-                              {c.label.replace('Client: ', '')}
-                            </span>
-                            {isSelected && (
-                              <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </div>
-                            )}
-                          </div>
+                          <div>
+                            <div className="flex items-start justify-between gap-1.5">
+                              <span className={`text-xs tracking-tight line-clamp-1 ${
+                                isSelected 
+                                  ? 'font-black text-emerald-950 dark:text-emerald-200' 
+                                  : 'font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-900 dark:group-hover:text-emerald-100'
+                              }`}>
+                                {c.label.replace('Client: ', '')}
+                              </span>
+                              {isSelected ? (
+                                <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </div>
+                              ) : (
+                                <span className="text-[10px] font-bold text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                  Select Scope
+                                </span>
+                              )}
+                            </div>
 
-                          {/* Sub address / Venue value: Clearly visible bold black text in normal state (Resolves QA Issue 1.c) */}
-                          <div className="mt-1 flex items-center gap-1 text-[11px]">
-                            <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
-                            <span className={`font-bold line-clamp-1 ${
-                              isSelected
-                                ? 'text-black dark:text-white'
-                                : 'text-black dark:text-slate-200 group-hover:text-black dark:group-hover:text-white'
-                            }`}>
-                              {c.address || c.badge}
-                            </span>
+                            {/* Sub address / Venue value: Clearly visible bold black text in normal state */}
+                            <div className="mt-1 flex items-center gap-1 text-[11px]">
+                              <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span className={`font-bold line-clamp-1 ${
+                                isSelected
+                                  ? 'text-black dark:text-white'
+                                  : 'text-black dark:text-slate-200 group-hover:text-black dark:group-hover:text-white'
+                              }`}>
+                                {c.address || c.badge}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Bottom metadata tags */}
@@ -296,12 +322,40 @@ export default function Navbar({
                             </span>
                             {c.machineCount > 0 && (
                               <span className="text-slate-600 dark:text-slate-400 font-semibold flex items-center gap-1">
-                                <Cpu className="w-2.5 h-2.5" />
+                                <Cpu className="w-2.5 h-2.5 text-emerald-500" />
                                 {c.machineCount} {c.machineCount === 1 ? 'Kiosk' : 'Kiosks'}
                               </span>
                             )}
                           </div>
-                        </button>
+
+                          {/* Direct Page Jump Buttons */}
+                          <div className="mt-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/40 grid grid-cols-2 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectClient(c.id, 'overview');
+                              }}
+                              className="px-2 py-1 rounded-lg bg-emerald-600/10 hover:bg-emerald-600 text-emerald-700 dark:text-emerald-300 hover:text-white font-bold text-[10px] transition-all flex items-center justify-center gap-1 border border-emerald-500/20"
+                              title="Open Live Executive Dashboard for this organization"
+                            >
+                              <LayoutDashboard className="w-3 h-3" />
+                              <span>{c.id === 'ALL' ? 'Fleet Overview' : 'Live Dashboard'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectClient(c.id, 'enterprise_clients');
+                              }}
+                              className="px-2 py-1 rounded-lg bg-blue-600/10 hover:bg-blue-600 text-blue-700 dark:text-blue-300 hover:text-white font-bold text-[10px] transition-all flex items-center justify-center gap-1 border border-blue-500/20"
+                              title="Open Corporate Client Account Profile & Staff"
+                            >
+                              <Building2 className="w-3 h-3" />
+                              <span>{c.id === 'ALL' ? 'All Accounts' : 'ESG Account'}</span>
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -312,10 +366,42 @@ export default function Navbar({
                     </div>
                   )}
 
-                  {/* Mega Menu Footer Note */}
-                  <div className="mt-2.5 pt-2 border-t t-border flex items-center justify-between text-[11px] t-text-muted">
-                    <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[10px]">Esc</kbd> or click outside to close</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">Multi-Tenant Scoped Isolation Active</span>
+                  {/* Mega Menu Footer Note & Quick View Jump Links */}
+                  <div className="mt-3 pt-2.5 border-t t-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] t-text-muted">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-semibold">Display view:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClient(selectedClientId, 'overview')}
+                        className="px-1.5 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold transition-all"
+                      >
+                        Overview
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClient(selectedClientId, 'enterprise_clients')}
+                        className="px-1.5 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold transition-all"
+                      >
+                        Corporate Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClient(selectedClientId, 'machines')}
+                        className="px-1.5 py-0.5 rounded bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold transition-all"
+                      >
+                        Fleet Kiosks
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectClient(selectedClientId, 'esg_impact')}
+                        className="px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold transition-all"
+                      >
+                        ESG Impact
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[10px]">Esc</kbd> to close</span>
+                    </div>
                   </div>
 
                 </div>

@@ -69,10 +69,15 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
   const getMachinesQuery = () => {
     try {
       const u = currentUser || JSON.parse(localStorage.getItem('rvm_auth_user') || '{}');
-      if (!u.assignedMachines) return '';
-      const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
-      if (arr.includes('*')) return '';
-      return `?assignedMachines=${encodeURIComponent(arr.join(','))}`;
+      const params = new URLSearchParams();
+      if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
+      if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
+      if (u.assignedMachines) {
+        const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
+        if (!arr.includes('*')) params.append('assignedMachines', arr.join(','));
+      }
+      const qs = params.toString();
+      return qs ? `?${qs}` : '';
     } catch (e) {
       return '';
     }
@@ -97,7 +102,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
 
   useEffect(() => {
     fetchImpact();
-  }, []);
+  }, [selectedClientId, stationFilter]);
 
   const handleRefresh = () => {
     fetchImpact();
@@ -287,44 +292,45 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
       </header>
 
       {/* ======================================================== */}
-      {/* 2. EXECUTIVE HERO BANNER (SOLID DARK, NO GRADIENT)       */}
+      {/* 2. EXECUTIVE HERO BANNER (THEME-ADAPTIVE & CONTRAST AAA) */}
       {/* ======================================================== */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 text-white shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
+      <div className="glass-panel rounded-3xl p-6 sm:p-7 border t-border shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
         <div className="space-y-2 max-w-2xl relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white border border-slate-700 text-xs font-bold uppercase tracking-wider">
-            <Award className="w-3.5 h-3.5 text-emerald-400" /> Third-Party Audited Impact Ledger
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 text-xs font-bold uppercase tracking-wider">
+            <Award className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Third-Party Audited Impact Ledger</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight t-text-primary">
             {displayTotalCo2eAvoidedKg.toLocaleString()} kg CO₂e Total Carbon Offset
           </h2>
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+          <p className="text-xs sm:text-sm t-text-secondary leading-relaxed">
             Calculated from {displayTotalWeightProcessedKg.toLocaleString()} kg of raw recyclable materials collected across public Smart RVMs and corporate PecoDrop units, verified under life-cycle emissions reduction standards.
           </p>
         </div>
 
-        {/* Right Metric Cards with Crisp High-Contrast White Text */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 border-t lg:border-t-0 lg:border-l border-slate-800 pt-5 lg:pt-0 lg:pl-8 text-center shrink-0">
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+        {/* Right Metric Cards with Theme Tokens & Paired Contrast */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 border-t lg:border-t-0 lg:border-l t-border pt-5 lg:pt-0 lg:pl-8 text-center shrink-0">
+          <div className="p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+            <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tracking-tight mono">
               {displayTreesPlantedEquivalent.toLocaleString()}
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+            <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">
               Trees Equivalent
             </div>
           </div>
-          <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <div className="p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+            <div className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 tracking-tight mono">
               {displayPassengerCarMilesAvoided.toLocaleString()}
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+            <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">
               Miles Avoided
             </div>
           </div>
-          <div className="col-span-2 sm:col-span-1 bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 sm:p-4 text-center min-w-[125px] shadow-sm">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <div className="col-span-2 sm:col-span-1 p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight mono">
               {(displayTotalWeightProcessedKg / 1000).toFixed(2)} T
             </div>
-            <div className="text-[11px] uppercase tracking-wider text-white/90 font-bold mt-1">
+            <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">
               Diverted Waste
             </div>
           </div>

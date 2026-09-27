@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BarChart3, Leaf, Activity, Layers, Coins, Download, Printer, 
   ShieldCheck, SlidersHorizontal, ChevronDown, CheckCircle2, X,
@@ -10,7 +10,7 @@ import {
   CartesianGrid, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 
-export default function ReportingHubTab() {
+export default function ReportingHubTab({ stationFilter = 'ALL', selectedClientId = 'ALL', currentUser }) {
   const [activeReport, setActiveReport] = useState('sustainability');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'csv'
@@ -21,6 +21,19 @@ export default function ReportingHubTab() {
   const [clientScope, setClientScope] = useState('all');
   const [locationScope, setLocationScope] = useState('all');
   const [machineScope, setMachineScope] = useState('all');
+
+  useEffect(() => {
+    if (selectedClientId && selectedClientId !== 'ALL') {
+      const lower = selectedClientId.toLowerCase();
+      if (lower.includes('metro')) setClientScope('metro');
+      else if (lower.includes('alfalah')) setClientScope('alfalah');
+      else if (lower.includes('engro')) setClientScope('engro');
+      else if (lower.includes('ucp')) setClientScope('ucp');
+      else setClientScope(lower);
+    } else if (selectedClientId === 'ALL') {
+      setClientScope('all');
+    }
+  }, [selectedClientId]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -467,32 +480,34 @@ export default function ReportingHubTab() {
       {activeReport === 'sustainability' && (
         <div className="space-y-6 animate-fade-in">
           
-          {/* Verified Green Impact Hero Strip */}
-          <div className="bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950 rounded-3xl p-6 text-white shadow-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border border-emerald-700/50">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-600/40 text-emerald-200 border border-emerald-400/20 text-xs font-bold uppercase tracking-wider">
-                <ShieldCheck className="w-3.5 h-3.5" />
+          {/* Verified Green Impact Hero Strip (Theme-Adaptive & Contrast Compliant) */}
+          <div className="glass-panel rounded-3xl p-6 sm:p-7 border t-border shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative">
+            <div className="space-y-2 max-w-xl relative z-10">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 text-xs font-bold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Audited Environmental Offset</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mono">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight t-text-primary mono">
                 {esgMetrics.co2Kg.toLocaleString()} kg CO₂e Diverted
               </h2>
-              <p className="text-xs sm:text-sm text-emerald-200/90 max-w-xl">
+              <p className="text-xs sm:text-sm t-text-secondary leading-relaxed">
                 Calculated across verified machine intake using standardized life-cycle emissions saved by recycling PET, Aluminium, and Paper instead of virgin manufacturing.
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t lg:border-t-0 lg:border-l border-emerald-700/60 pt-4 lg:pt-0 lg:pl-6 text-center">
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-300 mono">~{esgMetrics.matureTrees}</div>
-                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">Mature Trees Saved</div>
+            
+            {/* Metric Cards Styled As Per Active Theme */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 border-t lg:border-t-0 lg:border-l t-border pt-5 lg:pt-0 lg:pl-8 text-center shrink-0">
+              <div className="p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+                <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 mono tracking-tight">~{esgMetrics.matureTrees}</div>
+                <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">Mature Trees Saved</div>
               </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-300 mono">{esgMetrics.kwh.toLocaleString()}</div>
-                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">kWh Energy Conserved</div>
+              <div className="p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+                <div className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 mono tracking-tight">{esgMetrics.kwh.toLocaleString()}</div>
+                <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">kWh Energy Conserved</div>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <div className="text-2xl sm:text-3xl font-black text-white mono">{esgMetrics.landfillM3} m³</div>
-                <div className="text-[11px] uppercase tracking-wider text-emerald-200 font-medium">Landfill Diverted</div>
+              <div className="col-span-2 sm:col-span-1 p-3.5 sm:p-4 rounded-2xl t-bg-sec border t-border text-center min-w-[125px] shadow-2xs">
+                <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 mono tracking-tight">{esgMetrics.landfillM3} m³</div>
+                <div className="text-[11px] uppercase tracking-wider t-text-muted font-bold mt-1">Landfill Diverted</div>
               </div>
             </div>
           </div>

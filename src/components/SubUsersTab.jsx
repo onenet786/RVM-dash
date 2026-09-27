@@ -5,7 +5,7 @@ import {
   Sparkles, Layers, Sliders, ArrowUpRight, Smartphone, Eye, EyeOff
 } from 'lucide-react';
 
-export default function SubUsersTab({ currentUser }) {
+export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
   const [subUsers, setSubUsers] = useState([]);
   const [availableMachines, setAvailableMachines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +28,14 @@ export default function SubUsersTab({ currentUser }) {
 
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [actionLoadingUser, setActionLoadingUser] = useState(null);
-  const [orgFilter, setOrgFilter] = useState('ALL');
+  const [orgFilter, setOrgFilter] = useState(selectedClientId || 'ALL');
   const [organizationsList, setOrganizationsList] = useState([]);
+
+  useEffect(() => {
+    if (selectedClientId) {
+      setOrgFilter(selectedClientId);
+    }
+  }, [selectedClientId]);
 
   const isCorporateClient = currentUser?.roleId === 'client_admin' || currentUser?.isCorporateClient;
   const isSuperAdmin = currentUser?.roleId === 'super_admin' || 

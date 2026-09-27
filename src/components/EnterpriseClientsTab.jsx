@@ -485,10 +485,15 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
   const totalTrees = parseFloat((totalPaperKg * 0.017).toFixed(1));
   const totalCo2Kg = parseFloat(((totalPaperKg * 1.5) + (totalBottles * 0.035) + (totalCans * 0.135)).toFixed(1));
 
-  const filteredOrgs = organizations.filter(o => 
-    o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.domain.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrgs = organizations.filter(o => {
+    const matchesSearch = o.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.domain.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (selectedClientId && selectedClientId !== 'ALL' && !searchQuery.trim()) {
+      return o.org_id === selectedClientId || String(o.org_id).toUpperCase() === String(selectedClientId).toUpperCase();
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">
@@ -617,6 +622,36 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         </div>
       )}
 
+      {/* Client Scope Banner */}
+      {selectedClientId && selectedClientId !== 'ALL' && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-950 dark:text-emerald-200 animate-fade-in shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                Filtered by Enterprise Client Scope
+              </div>
+              <div className="text-base font-extrabold flex items-center gap-2">
+                <span>{organizations.find(o => o.org_id === selectedClientId)?.name || selectedClientId}</span>
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  Scoped Tenant View
+                </span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('rvm_switch_client', { detail: 'ALL' }));
+            }}
+            className="self-start sm:self-center px-4 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-bold transition-all shadow-xs"
+          >
+            Show All Organizations
+          </button>
+        </div>
+      )}
+
       {/* 3. Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl t-bg-sec border t-border shadow-sm">
         <div className="flex-1 relative">
@@ -688,11 +723,14 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
             const currentRecycledKg = org.total_recycled_kg || org.total_paper_kg || 0;
             const progressPct = Math.min(100, Math.round((currentRecycledKg / (org.monthly_target_kg || 1)) * 100));
             const isSelected = selectedOrgIds.includes(org.org_id);
+            const isScopedActive = selectedClientId && selectedClientId !== 'ALL' && (selectedClientId === org.org_id || String(selectedClientId).toUpperCase() === String(org.org_id).toUpperCase());
             return (
               <div 
                 key={org.org_id}
                 className={`p-5 sm:p-6 rounded-3xl t-bg-sec border transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between group ${
-                  isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 't-border hover:border-emerald-500/40'
+                  isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 
+                  isScopedActive ? 'border-emerald-500 ring-2 ring-emerald-500/40 shadow-emerald-500/10 shadow-lg' :
+                  't-border hover:border-emerald-500/40'
                 }`}
               >
                 <div>

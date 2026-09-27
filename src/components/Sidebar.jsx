@@ -62,14 +62,17 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   const isModuleAllowed = (moduleId) => {
     if (isClientAdmin) {
-      if (['enterprise_clients', 'db_switcher', 'db_backup'].includes(moduleId)) return false;
+      if (['enterprise_clients', 'db_switcher', 'db_backup', 'col_machines', 'col_machine_configs', 'col_users'].includes(moduleId)) return false;
       if (moduleId.startsWith('col_')) return false;
     }
     if (isCorporateSubUser) {
-      if (['enterprise_clients', 'sub_users', 'security', 'db_switcher', 'db_backup', 'mobile_users', 'advertisements'].includes(moduleId)) return false;
+      if (['enterprise_clients', 'sub_users', 'security', 'db_switcher', 'db_backup', 'mobile_users', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(moduleId)) return false;
       if (moduleId.startsWith('col_')) return false;
     }
-    if (isSuperAdmin) return true;
+    if (isSuperAdmin || isMasterDev) return true;
+    if (['col_machines', 'col_machine_configs', 'col_users'].includes(moduleId)) {
+      return allowedModules.includes(moduleId) || allowedModules.includes('*') || allowedModules.includes('all');
+    }
     if (moduleId.startsWith('col_')) return false;
     if (allowedModules.includes('*') || allowedModules.includes('all')) return true;
     return allowedModules.includes(moduleId);
@@ -137,11 +140,35 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             icon: Lock 
           }
         ] : []),
+        ...(!isClientAdmin && !isCorporateSubUser && (isSuperAdmin || isMasterDev || isModuleAllowed('col_machines')) ? [
+          { 
+            id: 'col_machines', 
+            orderNo: 10, 
+            label: 'Smart Recycling Machines', 
+            icon: Cpu 
+          }
+        ] : []),
+        ...(!isClientAdmin && !isCorporateSubUser && (isSuperAdmin || isMasterDev || isModuleAllowed('col_machine_configs')) ? [
+          { 
+            id: 'col_machine_configs', 
+            orderNo: 11, 
+            label: 'Smart Recycling Configurations', 
+            icon: Settings 
+          }
+        ] : []),
+        ...(!isClientAdmin && !isCorporateSubUser && (isSuperAdmin || isMasterDev || isModuleAllowed('col_users')) ? [
+          { 
+            id: 'col_users', 
+            orderNo: 12, 
+            label: 'Users', 
+            icon: Users 
+          }
+        ] : []),
         ...(!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_switcher')) ? [
-          { id: 'db_switcher', orderNo: 10, label: 'Database Connections', icon: ArrowRightLeft }
+          { id: 'db_switcher', orderNo: 13, label: 'Database Connections', icon: ArrowRightLeft }
         ] : []),
         ...(!isClientAdmin && !isCorporateSubUser && (isMasterDev || isModuleAllowed('db_backup')) ? [
-          { id: 'db_backup', orderNo: 11, label: 'Backups & Restore', icon: HardDrive }
+          { id: 'db_backup', orderNo: 14, label: 'Backups & Restore', icon: HardDrive }
         ] : [])
       ]
     }
@@ -173,12 +200,9 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     setOpenSectionId(prev => (prev === sectionId ? null : sectionId));
   };
 
-  // Primary PostgreSQL Relational Tables
+  // Primary PostgreSQL Relational Tables (Remaining tables not promoted to main sub menus)
   const postgresTables = [
     { id: 'col_recycling_sessions', name: 'recycling_sessions', label: 'recycling_sessions', icon: Recycle },
-    { id: 'col_machines', name: 'machines', label: 'Smart Recycling Machines', icon: Cpu },
-    { id: 'col_users', name: 'users', label: 'users', icon: Users },
-    { id: 'col_machine_configs', name: 'machine_configs', label: 'Smart Recycling Configurations', icon: Settings },
     { id: 'col_redemptions', name: 'redemptions', label: 'redemptions', icon: Trophy },
   ];
 
@@ -194,7 +218,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     ] : [])
   ];
 
-  const pgTableNames = new Set(postgresTables.map(t => t.name));
+  const pgTableNames = new Set([...postgresTables.map(t => t.name), 'machines', 'machine_configs', 'users']);
   const mongoNamesInDefault = new Set(defaultMongoCollections.map(c => c.name));
 
   const dynamicCollections = (health?.collections || [])

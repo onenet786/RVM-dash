@@ -338,6 +338,36 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
           </div>
         </div>
 
+        {/* Scoped Client Alert Banner */}
+        {selectedClientId && selectedClientId !== 'ALL' && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-950 dark:text-emerald-200 animate-fade-in shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Client Scoped Executive View Active
+                </div>
+                <div className="text-sm font-extrabold flex items-center gap-2">
+                  <span>{clientList.find(c => c.id === selectedClientId)?.name || clientList.find(c => c.id === selectedClientId)?.label || selectedClientId}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                    Isolated Hardware & Telemetry
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('rvm_switch_client', { detail: 'ALL' }));
+              }}
+              className="self-start sm:self-center px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-xs font-bold transition-all shadow-xs"
+            >
+              Reset to All Master Fleet
+            </button>
+          </div>
+        )}
+
         {/* Top 4 Filters Bar (Resolves QA Issue 3: Date Range | Machine Model | Client Org | Location) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
           

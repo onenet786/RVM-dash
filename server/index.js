@@ -1506,7 +1506,16 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         scopedMachines = scopedMachines.filter(m => String(m.machine_type || '').toUpperCase() === stationFilter);
       }
       if (clientId !== 'ALL') {
-        scopedMachines = scopedMachines.filter(m => String(m.client_id || '').toUpperCase() === clientId);
+        scopedMachines = scopedMachines.filter(m => {
+          const cId = String(m.client_id || '').toUpperCase();
+          if (clientId === 'METRO_MALL' || clientId === 'ORG_METRO') {
+            return cId === 'ORG_METRO' || cId === 'METRO_MALL' || String(m.machine_id || '').toUpperCase().includes('METRO') || String(m.name || '').toUpperCase().includes('METRO');
+          }
+          if (clientId === 'UCP_LAHORE' || clientId === 'ORG_UCP') {
+            return cId === 'ORG_UCP' || cId === 'UCP_LAHORE' || String(m.machine_id || '').toUpperCase().includes('UCP') || String(m.name || '').toUpperCase().includes('UCP');
+          }
+          return cId === clientId;
+        });
       }
 
       // Enforce authenticated user & query machine scope
