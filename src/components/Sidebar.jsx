@@ -280,7 +280,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                     }`} />
 
                     {/* Un-truncated, cleanly formatted menu title */}
-                    <span className="text-xs font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="text-xs font-bold tracking-tight whitespace-nowrap">
                       {section.label}
                     </span>
 
@@ -307,7 +307,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
                 {/* Submenu Tree Items (Expanded ONLY when this menu is active) */}
                 {isOpen && (
-                  <div className="mt-1 ml-3.5 pl-3 border-l-2 border-amber-400/30 dark:border-amber-400/20 space-y-1 animate-fade-in py-1">
+                  <div className="mt-1 ml-2.5 pl-2 border-l border-amber-400/40 dark:border-amber-400/25 space-y-1 animate-fade-in py-1">
                     {visibleItems.map((item) => {
                       const Icon = item.icon;
                       const isActive = activeTab === item.id;
@@ -315,14 +315,14 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                         <button
                           key={item.id}
                           onClick={() => handleTabClick(item.id)}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs transition-all text-left group ${
+                          className={`w-full flex items-center px-2 py-2 rounded-lg text-xs transition-all text-left group ${
                             isActive 
                               ? 'bg-emerald-600/15 text-emerald-950 dark:text-emerald-200 font-extrabold border-l-2 border-emerald-600 shadow-xs' 
                               : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`text-[10px] font-mono px-1 py-0.2 rounded shrink-0 font-bold ${
+                            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${
                               isActive
                                 ? 'bg-emerald-600 text-white'
                                 : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500'
@@ -332,12 +332,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                             <Icon className={`w-3.5 h-3.5 shrink-0 ${
                               isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-500'
                             }`} />
-                            <span className="truncate leading-snug">{item.label}</span>
+                            <span className="whitespace-nowrap leading-snug">{item.label}</span>
                           </div>
-
-                          {isActive && (
-                            <ChevronRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
-                          )}
                         </button>
                       );
                     })}
@@ -467,8 +463,8 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   return (
     <>
-      {/* Desktop Persistent Sidebar (w-[272px] provides generous breathing room with ZERO text truncation) */}
-      <aside className="hidden lg:flex w-[272px] t-bg-surface border-r t-border flex-col shrink-0 p-3.5 space-y-4 transition-colors duration-300 overflow-y-auto">
+      {/* Desktop Persistent Sidebar (w-[295px] provides generous breathing room with ZERO text truncation) */}
+      <aside className="hidden lg:flex w-[295px] t-bg-surface border-r t-border flex-col shrink-0 p-3 space-y-4 transition-colors duration-300 overflow-y-auto">
         {renderContent()}
       </aside>
 
@@ -480,7 +476,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
             onClick={() => setIsMobileOpen(false)}
           ></div>
 
-          <div className="relative z-10 w-72 max-w-[85vw] t-bg-surface h-full border-r t-border p-4 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
+          <div className="relative z-10 w-80 max-w-[88vw] t-bg-surface h-full border-r t-border p-3.5 flex flex-col justify-between overflow-y-auto shadow-2xl animate-slide-in">
             <div className="flex items-center justify-between border-b t-border pb-3 mb-2">
               <span className="font-extrabold text-sm text-emerald-400">Smart Recycling Navigation</span>
               <button 
