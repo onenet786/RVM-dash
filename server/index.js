@@ -2095,7 +2095,9 @@ app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
 // Analytics Leaderboard Endpoint (Resilient Optional Auth)
 app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
   try {
-    const scope = (req.query.scope || 'all').toLowerCase(); // 'all', 'month', 'corporate'
+    const scope = (req.query.scope || 'all').toLowerCase(); // 'all', 'month', 'corporate', 'citizens'
+    const targetClient = (req.query.client || '').trim(); // specific corporate client org_id or name
+    const searchQuery = (req.query.search || '').trim().toLowerCase();
     const pool = getPgPool();
 
     if (activeDbType === 'postgres' && activePgConfig) {
@@ -2104,16 +2106,33 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         sessions = await fetchCollectionDocs('recyclingsessions');
       }
 
-      // Query registered users for real profiles
+      // Query registered users joined with organizations for verified real profiles
       const userProfileMap = {};
       if (pool) {
         try {
-          const uRes = await pool.query(`SELECT user_id, full_name, mobile, username, user_type, org_name FROM users;`);
+          const uRes = await pool.query(`
+            SELECT u.user_id, u.full_name, u.mobile, u.username, u.user_type, u.org_id, o.name AS org_name 
+            FROM users u 
+            LEFT JOIN organizations o ON u.org_id = o.org_id;
+          `);
           uRes.rows.forEach(u => {
             const key = u.user_id || u.mobile || u.username;
             if (key) userProfileMap[key] = u;
             if (u.mobile) userProfileMap[u.mobile] = u;
             if (u.username) userProfileMap[u.username] = u;
+          });
+        } catch (e) {
+          console.error('[Leaderboard PG users join notice]:', e.message);
+        }
+      }
+
+      // Query machines to map client names
+      const machineClientMap = {};
+      if (pool) {
+        try {
+          const mRes = await pool.query(`SELECT machine_id, client_id, client_name FROM machines;`);
+          mRes.rows.forEach(m => {
+            machineClientMap[String(m.machine_id).toUpperCase()] = m.client_name;
           });
         } catch (e) {
           // non-blocking
@@ -2137,6 +2156,13 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
           const uProf = userProfileMap[uId] || userProfileMap[s.phoneNumber];
           return mId.startsWith('PECO') || uProf?.user_type === 'ENTERPRISE' || uProf?.org_name;
         });
+      } else if (scope === 'citizens') {
+        filteredSessions = sessions.filter(s => {
+          const mId = String(s.machineId || s.machine_id || '').toUpperCase();
+          const uId = String(s.userId || s.user_id || '').toLowerCase();
+          const uProf = userProfileMap[uId] || userProfileMap[s.phoneNumber];
+          return !mId.startsWith('PECO') && (!uProf || uProf.user_type === 'CITIZEN');
+        });
       }
 
       // Respect assignedMachines filter if present
@@ -2153,11 +2179,20 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         const phone = s.phoneNumber || s.userId || s.user_id || 'Unknown';
         if (!grouped[phone]) {
           const uProf = userProfileMap[phone] || userProfileMap[s.userId];
+          const mId = String(s.machineId || s.machine_id || '').toUpperCase();
+          const mClient = machineClientMap[mId] || '';
+          const clientName = uProf?.org_name || (mClient && !mClient.includes('Master') ? mClient.replace('Client: ', '') : '');
+          const isRegistered = Boolean(uProf && uProf.full_name && uProf.full_name.trim().length > 0);
+          const registeredName = isRegistered ? uProf.full_name.trim() : '';
+
           grouped[phone] = {
             _id: phone,
-            userName: uProf?.full_name || s.userName || s.fullName || (phone.includes('@') ? phone.split('@')[0] : phone),
-            userType: uProf?.user_type || (String(s.machineId || '').startsWith('PECO') ? 'ENTERPRISE' : 'CITIZEN'),
-            orgName: uProf?.org_name || '',
+            userName: registeredName || s.userName || s.fullName || (phone.includes('@') ? phone.split('@')[0] : phone),
+            registeredName: registeredName,
+            isRegistered: isRegistered,
+            userType: uProf?.user_type || (mId.startsWith('PECO') ? 'ENTERPRISE' : 'CITIZEN'),
+            orgId: uProf?.org_id || '',
+            clientName: clientName || (uProf?.user_type === 'ENTERPRISE' ? 'Corporate Client' : 'Public Citizen'),
             mobile: uProf?.mobile || phone,
             machineId: s.machineId || s.machine_id || '',
             totalBottles: 0,
@@ -2170,7 +2205,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         }
         const pCount = parseInt(s.plasticCount || s.plastic_count || s.bottles || 0);
         const aCount = parseInt(s.aluminiumCount || s.aluminium_count || s.cups || 0);
-        const tCount = parseInt(s.paperCardboardCount || s.paper_cardboard_count || s.tetrapak_weight_grams ? 1 : 0);
+        const tCount = parseInt(s.paperCardboardCount || s.paper_cardboard_count || (s.tetrapak_weight_grams ? 1 : 0));
         const pts = parseInt(s.points || s.totalPoints || s.pointsEarned || 0);
 
         grouped[phone].totalBottles += pCount;
@@ -2181,7 +2216,33 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         grouped[phone].totalSessions += 1;
       });
 
-      const leaderboard = Object.values(grouped)
+      let leaderboard = Object.values(grouped);
+
+      // Filter by specific corporate client if requested
+      if (targetClient && targetClient !== 'all') {
+        const tc = targetClient.toLowerCase();
+        if (tc === 'citizens') {
+          leaderboard = leaderboard.filter(u => u.userType === 'CITIZEN' && (!u.orgId || u.clientName === 'Public Citizen'));
+        } else {
+          leaderboard = leaderboard.filter(u => 
+            (u.orgId && u.orgId.toLowerCase() === tc) ||
+            (u.clientName && u.clientName.toLowerCase().includes(tc))
+          );
+        }
+      }
+
+      // Filter by search query if passed to API
+      if (searchQuery) {
+        leaderboard = leaderboard.filter(u => 
+          (u.registeredName && u.registeredName.toLowerCase().includes(searchQuery)) ||
+          (u.userName && u.userName.toLowerCase().includes(searchQuery)) ||
+          (u.mobile && u.mobile.toLowerCase().includes(searchQuery)) ||
+          (u._id && String(u._id).toLowerCase().includes(searchQuery)) ||
+          (u.clientName && u.clientName.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      leaderboard = leaderboard
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .slice(0, 50)
         .map((u, idx) => ({

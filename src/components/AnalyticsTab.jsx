@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Trophy, Award, RefreshCw, BarChart2, Sparkles, Gift, Building2, Send, 
   Search, CheckCircle2, ChevronRight, X, Phone, User, Filter, ArrowUpRight,
-  ShieldCheck, Zap, Flame, HeartHandshake, DollarSign, Calendar
+  ShieldCheck, Zap, Flame, HeartHandshake, DollarSign, Calendar, Check,
+  UserCheck, Users
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell 
@@ -10,9 +11,11 @@ import {
 
 export default function AnalyticsTab({ stationFilter, selectedClientId, currentUser }) {
   const [leaderboard, setLeaderboard] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [scope, setScope] = useState('all'); // 'all' | 'month' | 'corporate'
+  const [scope, setScope] = useState('all'); // 'all' | 'month' | 'corporate' | 'citizens'
+  const [selectedClient, setSelectedClient] = useState('all'); // 'all' | 'citizens' | specific orgId or clientName
   const [scaleMetric, setScaleMetric] = useState('kilo'); // 'kilo' | 'points'
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -40,18 +43,27 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     }, 3200);
   };
 
-  // Helper to mask phone numbers for public privacy
+  // Helper to mask phone numbers for contact column
   const maskPhone = (val) => {
     if (!val) return 'Anonymous';
     const s = String(val).trim();
-    if (s.length >= 10 && !s.includes('@')) {
-      return s.slice(0, 4) + '****' + s.slice(-3);
+    if (s.length >= 10 && !s.includes('@') && /^\d+$/.test(s.replace(/[-+ ]/g, ''))) {
+      const clean = s.replace(/[-+ ]/g, '');
+      return clean.slice(0, 4) + '****' + clean.slice(-3);
     }
     if (s.includes('@')) {
       const parts = s.split('@');
       return parts[0].slice(0, 3) + '***@' + parts[1];
     }
     return s;
+  };
+
+  // Helper to get initials
+  const getInitials = (name) => {
+    if (!name) return 'EC';
+    const parts = name.trim().split(' ').filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
   const getMachinesQuery = () => {
@@ -66,10 +78,27 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     }
   };
 
-  const fetchAnalytics = async (selectedScope = scope) => {
+  // Fetch organizations for the client filter dropdown
+  const fetchOrganizations = async () => {
+    try {
+      const res = await fetch('/api/enterprise/organizations');
+      if (res.ok) {
+        const data = await res.json();
+        setOrganizations(Array.isArray(data) ? data : (data.organizations || []));
+      }
+    } catch (e) {
+      console.error('Failed to fetch orgs:', e);
+    }
+  };
+
+  const fetchAnalytics = async (selectedScope = scope, client = selectedClient) => {
     try {
       setRefreshing(true);
-      const res = await fetch(`/api/analytics/leaderboard?scope=${selectedScope}${getMachinesQuery()}`);
+      let url = `/api/analytics/leaderboard?scope=${selectedScope}${getMachinesQuery()}`;
+      if (client && client !== 'all') {
+        url += `&client=${encodeURIComponent(client)}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setLeaderboard(Array.isArray(data) ? data : []);
@@ -84,38 +113,71 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   };
 
   useEffect(() => {
-    fetchAnalytics(scope);
-  }, [scope]);
+    fetchOrganizations();
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics(scope, selectedClient);
+  }, [scope, selectedClient]);
 
   const handleRefresh = () => {
-    fetchAnalytics(scope);
+    fetchAnalytics(scope, selectedClient);
     showToast('Leaderboard rankings updated in real-time');
   };
 
   const handleScopeChange = (newScope) => {
     setScope(newScope);
-    const label = newScope === 'all' ? 'All Time' : newScope === 'month' ? 'This Month' : 'Corporate Units';
+    const label = newScope === 'all' ? 'All Time' : newScope === 'month' ? 'This Month' : newScope === 'corporate' ? 'Corporate Units' : 'Citizens Only';
     showToast(`Showing leaderboard for: ${label}`);
   };
 
-  // Filter leaderboard table by search query
+  const handleClientChange = (newClient) => {
+    setSelectedClient(newClient);
+    const label = newClient === 'all' 
+      ? 'All Clients & Citizens' 
+      : newClient === 'citizens' 
+      ? 'Citizens Only (Public RVMs)' 
+      : organizations.find(o => o.org_id === newClient)?.name || newClient;
+    showToast(`Filtered by: ${label}`);
+  };
+
+  // Filter leaderboard table by search query and client
   const filteredLeaderboard = useMemo(() => {
-    if (!searchQuery.trim()) return leaderboard;
-    const q = searchQuery.toLowerCase().trim();
-    return leaderboard.filter(u => 
-      (u.userName && u.userName.toLowerCase().includes(q)) ||
-      (u.mobile && u.mobile.toLowerCase().includes(q)) ||
-      (u._id && String(u._id).toLowerCase().includes(q)) ||
-      (u.machineId && u.machineId.toLowerCase().includes(q))
-    );
-  }, [leaderboard, searchQuery]);
+    return leaderboard.filter(u => {
+      // 1. Client filter
+      if (selectedClient !== 'all') {
+        if (selectedClient === 'citizens') {
+          if (u.userType !== 'CITIZEN' && u.orgId) return false;
+        } else {
+          const matchOrg = (u.orgId && u.orgId.toLowerCase() === selectedClient.toLowerCase()) ||
+                           (u.clientName && u.clientName.toLowerCase().includes(selectedClient.toLowerCase()));
+          if (!matchOrg) return false;
+        }
+      }
+
+      // 2. Search query filter
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        (u.registeredName && u.registeredName.toLowerCase().includes(q)) ||
+        (u.userName && u.userName.toLowerCase().includes(q)) ||
+        (u.clientName && u.clientName.toLowerCase().includes(q)) ||
+        (u.mobile && u.mobile.toLowerCase().includes(q)) ||
+        (u._id && String(u._id).toLowerCase().includes(q)) ||
+        (u.machineId && u.machineId.toLowerCase().includes(q))
+      );
+    });
+  }, [leaderboard, searchQuery, selectedClient]);
 
   // Open voucher modal targeted to a specific user
   const handleOpenVoucherModal = (champion = null) => {
-    const target = champion || leaderboard[0] || {
+    const target = champion || filteredLeaderboard[0] || leaderboard[0] || {
       _id: '03074146663',
-      userName: '0307****663',
-      mobile: '0307-4146663',
+      userName: 'Tariq Mehmood',
+      registeredName: 'Tariq Mehmood',
+      isRegistered: true,
+      clientName: 'Engro Corporation',
+      mobile: '0300-4146663',
       totalPoints: 712795,
       rank: 1
     };
@@ -144,7 +206,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
         const data = await res.json();
         setIsVoucherModalOpen(false);
         setVoucherNote('');
-        showToast(data.message || `E-Voucher dispatched to Champion via SMS!`);
+        showToast(data.message || `E-Voucher dispatched to ${selectedChampion.registeredName || selectedChampion.userName} via SMS!`);
       } else {
         showToast('Failed to dispatch voucher. Please try again.', 'error');
       }
@@ -183,11 +245,17 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     }
   };
 
-  // Top 3 Podium Champions calculation
-  const top1 = leaderboard[0] || {
+  // Top 3 Podium Champions calculation based on current filtered list
+  const activePool = filteredLeaderboard.length > 0 ? filteredLeaderboard : leaderboard;
+
+  const top1 = activePool[0] || {
     _id: '03074146663',
-    userName: '0307****663',
-    mobile: '0307-4146663',
+    userName: 'Tariq Mehmood',
+    registeredName: 'Tariq Mehmood',
+    isRegistered: true,
+    userType: 'ENTERPRISE',
+    clientName: 'Engro Corporation',
+    mobile: '0300-4146663',
     rank: 1,
     totalPoints: 712795,
     totalBottles: 142463,
@@ -195,12 +263,16 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     totalItems: 142463,
     totalSessions: 733,
     equivalentPkr: 142559,
-    subtitle: 'National Eco Leader • 733 Sessions'
+    subtitle: 'Engro Corporation • Corporate Eco Leader'
   };
 
-  const top2 = leaderboard[1] || {
+  const top2 = activePool[1] || {
     _id: '03009482110',
-    userName: '0300****110',
+    userName: 'Kamran Akmal',
+    registeredName: 'Kamran Akmal',
+    isRegistered: true,
+    userType: 'ENTERPRISE',
+    clientName: 'Metro Cash & Carry',
     mobile: '0300-9482110',
     rank: 2,
     totalPoints: 10974,
@@ -209,13 +281,17 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     totalItems: 1945,
     totalSessions: 343,
     equivalentPkr: 2194,
-    subtitle: 'GL-00421 • Smart RVM User'
+    subtitle: 'Metro Cash & Carry • Silver Champion'
   };
 
-  const top3 = leaderboard[2] || {
+  const top3 = activePool[2] || {
     _id: '03234350805',
-    userName: 'Muhammad Hassan',
-    mobile: '0323-4350805',
+    userName: 'Farhan Saeed',
+    registeredName: 'Farhan Saeed',
+    isRegistered: true,
+    userType: 'ENTERPRISE',
+    clientName: 'Metro Cash & Carry',
+    mobile: '0333-5566778',
     rank: 3,
     totalPoints: 6617,
     totalBottles: 586,
@@ -223,29 +299,31 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     totalItems: 603,
     totalSessions: 34,
     equivalentPkr: 1323,
-    subtitle: 'Campus App Citizen'
+    subtitle: 'Metro Cash & Carry • Bronze Champion'
   };
 
   // Chart data for Top 8 Champions
-  const chartSource = leaderboard.length >= 4 
-    ? leaderboard.slice(0, 8) 
-    : [
-        top1, top2, top3,
-        { _id: '03180222990', userName: '0318****990', totalPoints: 4275, totalBottles: 366, totalCans: 0, rank: 4, equivalentPkr: 855 },
-        { _id: '03104457234', userName: '0310****234', totalPoints: 4062, totalBottles: 403, totalCans: 0, rank: 5, equivalentPkr: 812 },
-        { _id: '03278634792', userName: '0327****792', totalPoints: 3820, totalBottles: 764, totalCans: 0, rank: 6, equivalentPkr: 764 },
-        { _id: '03144122425', userName: '0314****425', totalPoints: 3523, totalBottles: 493, totalCans: 0, rank: 7, equivalentPkr: 704 },
-        { _id: '03091451985', userName: '0309****985', totalPoints: 3135, totalBottles: 286, totalCans: 0, rank: 8, equivalentPkr: 627 }
-      ];
+  const chartSource = activePool.slice(0, 8);
 
   const chartData = chartSource.map((u, i) => {
     const rawPts = u.totalPoints || 0;
     const isKilo = scaleMetric === 'kilo';
     const displayValue = isKilo ? Number((rawPts / 1000).toFixed(1)) : rawPts;
-    const label = `#${i + 1} ${maskPhone(u.userName || u._id)}`;
+    
+    // Use registered user name or clean short name
+    let shortName = u.registeredName || u.userName || u._id;
+    if (shortName.includes(' ') && shortName.length > 12) {
+      const parts = shortName.split(' ');
+      shortName = `${parts[0]} ${parts[1][0]}.`;
+    } else if (shortName.length > 14) {
+      shortName = shortName.slice(0, 12) + '..';
+    }
+
     return {
-      name: label,
-      fullName: u.userName || u._id,
+      name: `#${i + 1} ${shortName}`,
+      fullName: u.registeredName || u.userName || u._id,
+      isRegistered: u.isRegistered,
+      clientName: u.clientName,
       displayPoints: displayValue,
       rawPoints: rawPts,
       bottles: u.totalBottles || 0,
@@ -265,9 +343,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   // User initials avatar
   const userInitials = useMemo(() => {
     const name = currentUser?.name || currentUser?.username || 'Admin';
-    const parts = name.split(' ').filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
+    return getInitials(name);
   }, [currentUser]);
 
   if (loading && leaderboard.length === 0) {
@@ -278,7 +354,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
         </div>
         <div className="text-center">
           <h3 className="text-base font-bold t-text-primary">Loading Green Champions Leaderboard</h3>
-          <p className="text-xs t-text-muted mt-1">Auditing real-time recycling points and session metrics...</p>
+          <p className="text-xs t-text-muted mt-1">Auditing real-time recycling points and verified citizen profiles...</p>
         </div>
       </div>
     );
@@ -345,7 +421,101 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </header>
 
       {/* ======================================================== */}
-      {/* 2. TOP 3 PODIUM CHAMPIONS CARDS                          */}
+      {/* 2. ADVANCED SEARCH & CLIENT/CITIZEN FILTER BAR          */}
+      {/* ======================================================== */}
+      <div className="glass-panel p-4 rounded-2xl border t-border flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 shadow-xs">
+        
+        {/* Left Side: Specific Citizen & Corporate Client Search Input */}
+        <div className="flex-1 relative">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Search by registered citizen name, contact number, or corporate client (e.g. Tariq, Engro, Alfalah)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-9 py-2 text-xs rounded-xl border t-border t-bg-sec t-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-md"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Right Side: Specific Corporate Client / Citizen Dropdown + Scope Tabs */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
+          
+          {/* Specific Corporate Client Filter Dropdown */}
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
+            <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
+            <select
+              value={selectedClient}
+              onChange={(e) => handleClientChange(e.target.value)}
+              className="w-full sm:w-56 px-3 py-2 text-xs rounded-xl border t-border t-bg-sec t-text-primary font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            >
+              <option value="all">🏢 All Clients &amp; Citizens</option>
+              <option value="citizens">👤 General Citizens (Public RVMs)</option>
+              {organizations.length > 0 ? (
+                organizations.map(org => (
+                  <option key={org.org_id} value={org.org_id}>
+                    🏢 {org.name}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="ORG_ENGRO">🏢 Engro Corporation</option>
+                  <option value="ORG_ALFALAH">🏢 Bank Alfalah Limited</option>
+                  <option value="ORG_METRO">🏢 Metro Cash &amp; Carry</option>
+                  <option value="ORG_UCP">🏢 University of Central Punjab</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Leaderboard Scope Filter Pills */}
+          <div className="inline-flex rounded-xl border t-border p-1 text-xs font-semibold t-bg-sec shrink-0">
+            <button 
+              onClick={() => handleScopeChange('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all text-xs ${
+                scope === 'all' 
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30 shadow-xs' 
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              All Time
+            </button>
+            <button 
+              onClick={() => handleScopeChange('month')}
+              className={`px-3 py-1.5 rounded-lg transition-all text-xs ${
+                scope === 'month' 
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30 shadow-xs' 
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              This Month
+            </button>
+            <button 
+              onClick={() => handleScopeChange('corporate')}
+              className={`px-3 py-1.5 rounded-lg transition-all text-xs ${
+                scope === 'corporate' 
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30 shadow-xs' 
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Corporate Units
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ======================================================== */}
+      {/* 3. TOP 3 PODIUM CHAMPIONS CARDS                          */}
       {/* ======================================================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
@@ -356,13 +526,22 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
               <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-black text-lg border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs">
                 🥈 2
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">Silver Recycler</span>
-                <h3 className="font-bold t-text-primary text-base leading-tight mt-0.5">{maskPhone(top2.userName || top2._id)}</h3>
-                <p className="text-xs t-text-muted mt-0.5">{top2.subtitle || 'Metro Kiosk Frequent'}</p>
+                <h3 className="font-bold t-text-primary text-base leading-tight mt-0.5 flex items-center gap-1.5 truncate">
+                  {top2.registeredName || top2.userName || maskPhone(top2._id)}
+                  {top2.isRegistered && (
+                    <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400" title="Verified Registered User">
+                      <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500/20" />
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  {top2.clientName ? `${top2.clientName} • Silver Tier` : (top2.subtitle || 'Smart RVM User')}
+                </p>
               </div>
             </div>
-            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
               {top2.totalSessions || 0} Sessions
             </span>
           </div>
@@ -396,15 +575,24 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
               <div className="w-14 h-14 rounded-2xl bg-amber-400 text-amber-950 flex items-center justify-center font-black text-2xl shadow-md shadow-amber-500/30 shrink-0">
                 🥇 1
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/60 dark:border-amber-700/60 px-2 py-0.5 rounded-full">
                   All-Time Champion
                 </span>
-                <h3 className="font-black t-text-primary text-lg mt-1 leading-tight">{maskPhone(top1.userName || top1._id)}</h3>
-                <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-0.5">{top1.subtitle || `${top1.totalSessions} Sessions • Diverted ${top1.totalItems || top1.totalBottles} Items`}</p>
+                <h3 className="font-black t-text-primary text-lg mt-1 leading-tight flex items-center gap-1.5 truncate">
+                  {top1.registeredName || top1.userName || maskPhone(top1._id)}
+                  {top1.isRegistered && (
+                    <span className="inline-flex items-center text-amber-600 dark:text-amber-400" title="Verified Registered User">
+                      <CheckCircle2 className="w-4 h-4 fill-amber-500/20" />
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 font-medium truncate">
+                  {top1.clientName ? `${top1.clientName} • National Eco Leader` : (top1.subtitle || `${top1.totalSessions} Sessions • Diverted ${top1.totalItems || top1.totalBottles} Items`)}
+                </p>
               </div>
             </div>
-            <span className="text-xs font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-1 rounded-full border border-amber-300 dark:border-amber-700/60">
+            <span className="text-xs font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-1 rounded-full border border-amber-300 dark:border-amber-700/60 shrink-0">
               Gold Tier
             </span>
           </div>
@@ -435,13 +623,22 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
               <div className="w-12 h-12 rounded-2xl bg-amber-700/10 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 flex items-center justify-center font-black text-lg border border-amber-700/20 shrink-0 shadow-xs">
                 🥉 3
               </div>
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Bronze Recycler</span>
-                <h3 className="font-bold t-text-primary text-base leading-tight mt-0.5">{maskPhone(top3.userName || top3._id)}</h3>
-                <p className="text-xs t-text-muted mt-0.5">{top3.subtitle || 'Campus App Citizen'}</p>
+                <h3 className="font-bold t-text-primary text-base leading-tight mt-0.5 flex items-center gap-1.5 truncate">
+                  {top3.registeredName || top3.userName || maskPhone(top3._id)}
+                  {top3.isRegistered && (
+                    <span className="inline-flex items-center text-amber-700 dark:text-amber-400" title="Verified Registered User">
+                      <CheckCircle2 className="w-3.5 h-3.5 fill-amber-700/20" />
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs t-text-muted mt-0.5 truncate">
+                  {top3.clientName ? `${top3.clientName} • Bronze Tier` : (top3.subtitle || 'Campus App Citizen')}
+                </p>
               </div>
             </div>
-            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-extrabold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shrink-0">
               {top3.totalSessions || 0} Sessions
             </span>
           </div>
@@ -468,7 +665,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </div>
 
       {/* ======================================================== */}
-      {/* 3. ANALYTICS CHART & ENGAGEMENT BANNER (12 COLS)          */}
+      {/* 4. ANALYTICS CHART & ENGAGEMENT BANNER (12 COLS)          */}
       {/* ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -480,7 +677,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                 <BarChart2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 Top 8 Recyclers Point Intake Distribution
               </h3>
-              <p className="text-xs t-text-muted">Audited loyalty points generated per active user</p>
+              <p className="text-xs t-text-muted">Audited loyalty points generated per verified active recycler</p>
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="font-semibold text-slate-500 dark:text-slate-400">Metric Scale:</span>
@@ -518,7 +715,17 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                       const data = payload[0].payload;
                       return (
                         <div className="glass-panel p-3 rounded-xl border t-border shadow-xl text-xs space-y-1">
-                          <p className="font-bold t-text-primary">{data.fullName}</p>
+                          <p className="font-bold t-text-primary flex items-center gap-1.5">
+                            {data.fullName}
+                            {data.isRegistered && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/20" />
+                            )}
+                          </p>
+                          {data.clientName && (
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                              🏢 {data.clientName}
+                            </p>
+                          )}
                           <p className="text-emerald-700 dark:text-emerald-400 font-extrabold">
                             {data.rawPoints.toLocaleString()} Points
                           </p>
@@ -544,7 +751,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
           </div>
         </div>
 
-        {/* Gamification Tips & Voucher Rules (4 Cols) */}
+        {/* Gamification Tips & Motivation Rules (4 Cols) */}
         <div className="lg:col-span-4 glass-panel rounded-2xl p-5 border t-border shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -601,66 +808,28 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </div>
 
       {/* ======================================================== */}
-      {/* 4. COMPLETE RANKED LEADERBOARD TABLE                     */}
+      {/* 5. COMPLETE RANKED LEADERBOARD TABLE                     */}
       {/* ======================================================== */}
       <div className="glass-panel rounded-2xl border t-border shadow-xs overflow-hidden">
-        <div className="p-5 border-b t-border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="p-5 border-b t-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold t-text-primary">Full Community Leaderboard Roster</h2>
-            <p className="text-xs t-text-muted">Ranked by verified cumulative points and diverted recycling items</p>
+            <h2 className="text-sm font-bold t-text-primary flex items-center gap-2">
+              Full Community Leaderboard Roster
+              <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                {filteredLeaderboard.length} Recyclers
+              </span>
+            </h2>
+            <p className="text-xs t-text-muted">Ranked by verified cumulative points, registered user accounts, and diverted items</p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Search Input */}
-            <div className="relative flex-1 md:w-56">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text"
-                placeholder="Search citizen / phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border t-border t-bg-sec t-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Scope Filter Pills */}
-            <div className="inline-flex rounded-lg border t-border p-0.5 text-xs font-semibold t-bg-sec">
-              <button 
-                onClick={() => handleScopeChange('all')}
-                className={`px-3 py-1 rounded-md transition-all ${
-                  scope === 'all' 
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30' 
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                All Time
-              </button>
-              <button 
-                onClick={() => handleScopeChange('month')}
-                className={`px-3 py-1 rounded-md transition-all ${
-                  scope === 'month' 
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30' 
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                This Month
-              </button>
-              <button 
-                onClick={() => handleScopeChange('corporate')}
-                className={`px-3 py-1 rounded-md transition-all ${
-                  scope === 'corporate' 
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30' 
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Corporate Units
-              </button>
-            </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Active Filter: <span className="font-bold text-emerald-600 dark:text-emerald-400">
+              {selectedClient === 'all' 
+                ? 'All Clients' 
+                : selectedClient === 'citizens' 
+                ? 'Citizens Only' 
+                : organizations.find(o => o.org_id === selectedClient)?.name || selectedClient}
+            </span>
           </div>
         </div>
 
@@ -682,8 +851,20 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
             <tbody className="divide-y t-border text-slate-700 dark:text-slate-300">
               {filteredLeaderboard.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center t-text-muted">
-                    No active eco-recyclers found matching the filter.
+                  <td colSpan={9} className="py-12 text-center t-text-muted">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Search className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                      <p className="font-semibold text-sm">No eco-recyclers found</p>
+                      <p className="text-xs">No records matched your search query or client filter.</p>
+                      {(searchQuery || selectedClient !== 'all') && (
+                        <button 
+                          onClick={() => { setSearchQuery(''); setSelectedClient('all'); }}
+                          className="mt-2 text-xs text-emerald-600 font-bold hover:underline"
+                        >
+                          Reset Filters &amp; Search
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -693,6 +874,9 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                   const isTop2 = rank === 2;
                   const isTop3 = rank === 3;
                   const voucherVal = user.equivalentPkr || Math.round((user.totalPoints || 0) * 0.2);
+
+                  // Display Name: Show real registered name if registered, otherwise user name / masked id
+                  const displayName = user.registeredName || user.userName || maskPhone(user._id);
 
                   return (
                     <tr 
@@ -716,10 +900,20 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                         )}
                       </td>
 
-                      {/* User Details */}
+                      {/* User Details Column - Displays Registered Name if registered */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold t-text-primary flex items-center gap-1.5">
-                          {maskPhone(user.userName || user._id)}
+                          <span>{displayName}</span>
+                          
+                          {/* Registered user badge */}
+                          {user.isRegistered && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold px-1.5 py-0.2 rounded border border-emerald-500/30" title="Verified Registered User">
+                              <CheckCircle2 className="w-3 h-3 fill-emerald-500/20 shrink-0" />
+                              Verified
+                            </span>
+                          )}
+
+                          {/* Top 3 Champion Badges */}
                           {isTop1 && (
                             <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded">Champion</span>
                           )}
@@ -730,10 +924,23 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                             <span className="text-[10px] bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded">Bronze</span>
                           )}
                         </div>
-                        <div className="text-[11px] t-text-muted">
-                          {user.userType === 'ENTERPRISE' 
-                            ? 'Corporate PecoDrop Pioneer' 
-                            : 'Public Smart RVM Citizen'}
+
+                        {/* Corporate Client / Citizen Subtitle */}
+                        <div className="text-[11px] t-text-muted flex items-center gap-1.5 mt-0.5">
+                          {user.userType === 'ENTERPRISE' || user.clientName ? (
+                            <>
+                              <span className="font-medium text-slate-600 dark:text-slate-400">
+                                🏢 {user.clientName || 'Corporate Client'}
+                              </span>
+                              <span>•</span>
+                              <span>PecoDrop User</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Public Smart RVM Citizen</span>
+                              {user.isRegistered && <span>• Mobile App</span>}
+                            </>
+                          )}
                         </div>
                       </td>
 
@@ -774,7 +981,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                         <button
                           onClick={() => handleOpenVoucherModal(user)}
                           className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition-all active:scale-95 inline-flex items-center gap-1"
-                          title="Issue Incentive Voucher"
+                          title={`Issue Incentive Voucher to ${displayName}`}
                         >
                           <Award className="w-3 h-3" />
                           Reward
@@ -790,7 +997,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </div>
 
       {/* ======================================================== */}
-      {/* 5. FOOTER (Matches Analytics_Leaderboard_Hub.html)        */}
+      {/* 6. FOOTER (Matches Analytics_Leaderboard_Hub.html)        */}
       {/* ======================================================== */}
       <footer className="glass-panel rounded-2xl border t-border py-4 px-6 text-xs t-text-muted flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-medium">
@@ -809,7 +1016,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </footer>
 
       {/* ======================================================== */}
-      {/* 6. MODAL: ISSUE VOUCHER REWARD                           */}
+      {/* 7. MODAL: ISSUE VOUCHER REWARD                           */}
       {/* ======================================================== */}
       {isVoucherModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -841,7 +1048,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
                 <label className="block text-xs font-semibold t-text-primary mb-1">Target Champion</label>
                 <input 
                   type="text" 
-                  value={`${selectedChampion?.mobile || selectedChampion?.userName || selectedChampion?._id} (Rank #${selectedChampion?.rank || 1} • ${(selectedChampion?.totalPoints || 0).toLocaleString()} Pts)`} 
+                  value={`${selectedChampion?.registeredName || selectedChampion?.userName || selectedChampion?._id} (${selectedChampion?.mobile || selectedChampion?._id}) • Rank #${selectedChampion?.rank || 1} • ${(selectedChampion?.totalPoints || 0).toLocaleString()} Pts`} 
                   readOnly 
                   className="w-full t-bg-sec border t-border t-text-primary text-xs rounded-xl p-2.5 font-bold focus:outline-none"
                 />
@@ -909,7 +1116,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       )}
 
       {/* ======================================================== */}
-      {/* 7. MODAL: BROADCAST MOTIVATION NOTIFICATION               */}
+      {/* 8. MODAL: BROADCAST MOTIVATION NOTIFICATION               */}
       {/* ======================================================== */}
       {isBroadcastModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -997,7 +1204,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       )}
 
       {/* ======================================================== */}
-      {/* 8. FLOATING TOAST NOTIFICATION                            */}
+      {/* 9. FLOATING TOAST NOTIFICATION                            */}
       {/* ======================================================== */}
       {toast.show && (
         <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl text-xs font-medium border border-slate-700/60 animate-bounce-subtle">
