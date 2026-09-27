@@ -15,6 +15,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   const [overview, setOverview] = useState(null);
   const [health, setHealth] = useState(null);
   const [trends, setTrends] = useState([]);
+  const [machineSummary, setMachineSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -84,15 +85,17 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      const [ovRes, trRes, hlRes] = await Promise.all([
+      const [ovRes, trRes, hlRes, msRes] = await Promise.all([
         fetch(`/api/overview${query}`, { headers }),
         fetch(`/api/analytics/trends${query}`, { headers }),
-        fetch('/api/health', { headers })
+        fetch('/api/health', { headers }),
+        fetch(`/api/analytics/machines/summary${query}`, { headers })
       ]);
 
       if (ovRes.ok) setOverview(await ovRes.json().catch(() => null));
       if (trRes.ok) setTrends(await trRes.json().catch(() => []));
       if (hlRes.ok) setHealth(await hlRes.json().catch(() => null));
+      if (msRes.ok) setMachineSummary(await msRes.json().catch(() => null));
 
       if (isManual) showToast('Machine network data refreshed successfully');
     } catch (err) {
@@ -102,6 +105,19 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       setRefreshing(false);
     }
   };
+
+  const liveNetworkStatus = useMemo(() => {
+    const total = machineSummary?.totalActive ?? overview?.totalMachines ?? 7;
+    const online = machineSummary?.onlineCount ?? total;
+    const pct = total > 0 ? Math.round((online / total) * 100) : 100;
+    const label = `${pct}% Network Online (${online} of ${total} ${total === 1 ? 'Kiosk' : 'Kiosks'} Active)`;
+    return {
+      total,
+      online,
+      pct,
+      label
+    };
+  }, [machineSummary, overview]);
 
   useEffect(() => {
     fetchOverview();
@@ -298,19 +314,21 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/25">
-                  Master Cumulative Overview
+                  {selectedClientId !== 'ALL'
+                    ? `${(clientList.find(c => c.id === selectedClientId)?.name || selectedClientId).replace('Client: ', '')} Scope`
+                    : 'Master Cumulative Overview'}
                 </span>
                 <span className="text-xs text-slate-400">•</span>
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  98% Network Online (12 Kiosks Active)
+                  <span className={`w-2 h-2 rounded-full ${liveNetworkStatus.online > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                  {liveNetworkStatus.label}
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight t-text-primary mt-0.5">
-                Heterogeneous Hardware Stream Operations
+                Machine Operation Overview
               </h1>
               <p className="text-xs t-text-secondary mt-0.5">
-                Unified live metrics across Smart AI Kiosks, PecoDrop load-cell stations, and Legacy pulse counter units.
+                Real-time telemetrics across Smart AI Kiosks, PecoDrop stations, and Legacy pulse units.
               </p>
             </div>
           </div>

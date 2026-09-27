@@ -2946,11 +2946,17 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
         const upperId = String(m.machine_id || '').toUpperCase();
         const upperName = String(m.name || '').toUpperCase();
         const cId = String(m.client_id || '').toUpperCase();
-        if (clientId === 'METRO_MALL') {
-          return cId === 'METRO_MALL' || upperId.includes('METRO') || upperName.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067';
+        if (clientId === 'METRO_MALL' || clientId === 'ORG_METRO') {
+          return cId === 'METRO_MALL' || cId === 'ORG_METRO' || upperId.includes('METRO') || upperName.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067';
         }
-        if (clientId === 'UCP_LAHORE') {
-          return cId === 'UCP_LAHORE' || upperId.includes('UCP') || upperName.includes('UCP') || upperId === 'RVM:01';
+        if (clientId === 'UCP_LAHORE' || clientId === 'ORG_UCP') {
+          return cId === 'UCP_LAHORE' || cId === 'ORG_UCP' || upperId.includes('UCP') || upperName.includes('UCP') || upperId === 'RVM:01';
+        }
+        if (clientId === 'ORG_ENGRO') {
+          return cId === 'ORG_ENGRO' || upperId.includes('ENGRO') || upperName.includes('ENGRO') || upperId.includes('LHR-01');
+        }
+        if (clientId === 'ORG_ALFALAH') {
+          return cId === 'ORG_ALFALAH' || upperId.includes('ALFALAH') || upperName.includes('ALFALAH') || upperId.includes('KHI-01');
         }
         return cId === clientId;
       });
@@ -2959,7 +2965,9 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
     let onlineCount = 0;
     scopedMachines.forEach(m => {
       const pingTime = m.last_ping_at ? new Date(m.last_ping_at).getTime() : 0;
-      if (pingTime > 0 && (now - pingTime <= 60000)) onlineCount++;
+      const isRecentPing = pingTime > 0 && (now - pingTime <= 180000);
+      const isOnlineStatus = String(m.status || '').toUpperCase() === 'ONLINE' || String(m.status || '').toUpperCase() === 'ACTIVE';
+      if (isRecentPing || isOnlineStatus) onlineCount++;
     });
     const offlineCount = Math.max(0, scopedMachines.length - onlineCount);
 
