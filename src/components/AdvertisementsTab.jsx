@@ -240,6 +240,41 @@ export default function AdvertisementsTab() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingCampaign) return;
+    try {
+      setDeleting(true);
+      const params = new URLSearchParams({
+        fileName: deletingCampaign.filename || '',
+        title: deletingCampaign.title || '',
+        purgeLocal: purgeLocalFiles ? 'true' : 'false'
+      });
+
+      const res = await fetch(`/api/machine/ads/${encodeURIComponent(deletingCampaign.id)}?${params.toString()}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        // Refresh live from database to guarantee absolute DB synchronization!
+        await fetchAds();
+        if (purgeLocalFiles) {
+          showToast('success', `🗑️ Video "${deletingCampaign.title}" deleted from database and purged from RVM & PecoDrop local kiosk folders!`);
+        } else {
+          showToast('success', `🗑️ Video campaign "${deletingCampaign.title}" permanently removed from database.`);
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast('error', errData.error || 'Failed to delete advertisement campaign.');
+      }
+      setDeletingCampaign(null);
+    } catch (err) {
+      console.error('Failed to delete campaign:', err);
+      showToast('error', `Failed to delete campaign: ${err.message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleToggleUploadMachine = (mId) => {
     setSelectedUploadMachines(prev => 
       prev.includes(mId) ? prev.filter(id => id !== mId) : [...prev, mId]
