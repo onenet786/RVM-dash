@@ -3,7 +3,7 @@ import {
   Trophy, Award, RefreshCw, BarChart2, Sparkles, Gift, Building2, Send, 
   Search, CheckCircle2, ChevronRight, X, Phone, User, Filter, ArrowUpRight,
   ShieldCheck, Zap, Flame, HeartHandshake, DollarSign, Calendar, Check,
-  UserCheck, Users
+  UserCheck, Users, Wallet, Smartphone, Landmark, CheckCheck
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell 
@@ -19,14 +19,69 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   const [scaleMetric, setScaleMetric] = useState('kilo'); // 'kilo' | 'points'
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Modals state
+  // Payout & Voucher Modal state
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [selectedChampion, setSelectedChampion] = useState(null);
+  const [payoutMethod, setPayoutMethod] = useState('easypaisa'); // 'easypaisa' | 'jazzcash' | 'mobile_load' | 'voucher' | 'raast'
   const [voucherAmount, setVoucherAmount] = useState('1000');
-  const [voucherTitle, setVoucherTitle] = useState('Special Milestone Voucher');
+  const [isCustomAmount, setIsCustomAmount] = useState(false);
+  const [customAmountInput, setCustomAmountInput] = useState('1000');
+  const [walletNumber, setWalletNumber] = useState('');
+  const [accountTitle, setAccountTitle] = useState('');
+  const [voucherTitle, setVoucherTitle] = useState('Special Milestone Payout');
   const [voucherNote, setVoucherNote] = useState('');
   const [isSubmittingVoucher, setIsSubmittingVoucher] = useState(false);
+
+  const PAYOUT_METHODS = [
+    {
+      id: 'easypaisa',
+      name: 'EasyPaisa Wallet',
+      tagline: 'Instant 03XX mobile wallet transfer',
+      badge: 'Instant 24/7',
+      theme: 'emerald',
+      icon: Wallet
+    },
+    {
+      id: 'jazzcash',
+      name: 'JazzCash Wallet',
+      tagline: 'Direct mobile wallet cash transfer',
+      badge: 'Instant 24/7',
+      theme: 'rose',
+      icon: Smartphone
+    },
+    {
+      id: 'mobile_load',
+      name: 'Mobile Airtime Top-Up',
+      tagline: 'Prepaid load (Jazz/Zong/Telenor/Ufone)',
+      badge: 'Airtime',
+      theme: 'amber',
+      icon: Zap
+    },
+    {
+      id: 'voucher',
+      name: 'Retail Merchant E-Voucher',
+      tagline: 'Vouch365 SMS retail & grocery coupon',
+      badge: 'SMS Voucher',
+      theme: 'purple',
+      icon: Gift
+    },
+    {
+      id: 'raast',
+      name: 'Raast Instant Pay',
+      tagline: 'SBP 1-Link National IBAN payout',
+      badge: 'Bank Transfer',
+      theme: 'cyan',
+      icon: Landmark
+    }
+  ];
+
+  const PRESET_AMOUNTS = [
+    { value: '500', label: 'PKR 500', points: '2,500 pts', tier: 'Quick Eco Reward' },
+    { value: '1000', label: 'PKR 1,000', points: '5,000 pts', tier: 'Special Milestone Payout' },
+    { value: '2500', label: 'PKR 2,500', points: '12,500 pts', tier: 'Monthly Champion Payout' },
+    { value: '5000', label: 'PKR 5,000', points: '25,000 pts', tier: 'Corporate ESG Hero Award' },
+  ];
 
   // Broadcast modal state
   const [broadcastAudience, setBroadcastAudience] = useState('Top 10 Recyclers');
@@ -169,7 +224,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
     });
   }, [leaderboard, searchQuery, selectedClient]);
 
-  // Open voucher modal targeted to a specific user
+  // Open voucher & payout modal targeted to a specific user
   const handleOpenVoucherModal = (champion = null) => {
     const target = champion || filteredLeaderboard[0] || leaderboard[0] || {
       _id: '03074146663',
@@ -182,23 +237,46 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       rank: 1
     };
     setSelectedChampion(target);
+    const phone = target.mobile || target._id || '';
+    setWalletNumber(phone);
+    setAccountTitle(target.registeredName || target.userName || '');
+    setPayoutMethod('easypaisa');
+    setVoucherAmount('1000');
+    setIsCustomAmount(false);
+    setCustomAmountInput('1000');
+    setVoucherTitle('Special Milestone Payout');
+    setVoucherNote('');
     setIsVoucherModalOpen(true);
   };
 
-  // Submit issue voucher
+  // Submit issue voucher or mobile wallet payout
   const handleDispatchVoucher = async () => {
     if (!selectedChampion) return;
+    const finalAmount = isCustomAmount ? parseInt(customAmountInput || '0') : parseInt(voucherAmount || '1000');
+    if (!finalAmount || finalAmount < 50) {
+      showToast('Please specify a valid amount of at least PKR 50', 'error');
+      return;
+    }
+    const cleanPhone = (walletNumber || selectedChampion.mobile || selectedChampion._id || '').trim();
+    if (!cleanPhone) {
+      showToast('Please specify a destination mobile or wallet number', 'error');
+      return;
+    }
+
     try {
       setIsSubmittingVoucher(true);
+      const selectedMethodObj = PAYOUT_METHODS.find(m => m.id === payoutMethod);
       const res = await fetch('/api/analytics/issue-voucher', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetUserId: selectedChampion._id,
-          recipientPhone: selectedChampion.mobile || selectedChampion._id,
-          amountPkr: voucherAmount,
-          voucherTitle: `PKR ${Number(voucherAmount).toLocaleString()} ${voucherTitle}`,
-          note: voucherNote || 'Leaderboard Champion Incentive Award'
+          recipientPhone: cleanPhone,
+          recipientName: accountTitle || selectedChampion.registeredName || selectedChampion.userName || 'Champion Recycler',
+          payoutMethod,
+          amountPkr: finalAmount,
+          voucherTitle: `PKR ${finalAmount.toLocaleString()} ${selectedMethodObj?.name || 'Payout'}`,
+          note: voucherNote || `${selectedMethodObj?.name || 'Wallet'} payout for Green Champion`
         })
       });
 
@@ -206,13 +284,14 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
         const data = await res.json();
         setIsVoucherModalOpen(false);
         setVoucherNote('');
-        showToast(data.message || `E-Voucher dispatched to ${selectedChampion.registeredName || selectedChampion.userName} via SMS!`);
+        showToast(data.message || `PKR ${finalAmount.toLocaleString()} successfully dispatched to ${cleanPhone}!`);
       } else {
-        showToast('Failed to dispatch voucher. Please try again.', 'error');
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.error || 'Failed to dispatch payout. Please try again.', 'error');
       }
     } catch (e) {
       console.error(e);
-      showToast('Network error while issuing voucher', 'error');
+      showToast('Network error while issuing payout', 'error');
     } finally {
       setIsSubmittingVoucher(false);
     }
@@ -406,9 +485,9 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
             onClick={() => handleOpenVoucherModal(null)}
             className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm shadow-emerald-600/30 transition-all"
           >
-            <Award className="w-4 h-4" />
-            <span className="hidden sm:inline">Issue Voucher Reward</span>
-            <span className="sm:hidden">Reward</span>
+            <Wallet className="w-4 h-4" />
+            <span className="hidden sm:inline">Issue Payout / Voucher</span>
+            <span className="sm:hidden">Payout</span>
           </button>
 
           {/* User Profile Avatar Pill */}
@@ -1016,104 +1095,316 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       </footer>
 
       {/* ======================================================== */}
-      {/* 7. MODAL: ISSUE VOUCHER REWARD                           */}
+      {/* 7. MODAL: ISSUE PAYOUT & E-VOUCHER (EASYPAISA / JAZZCASH / VOUCHERS) */}
       {/* ======================================================== */}
       {isVoucherModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="glass-panel bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border t-border transition-all">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="glass-panel bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border t-border max-h-[92vh] flex flex-col transition-all">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b t-border shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-                  <Award className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+                  <Wallet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold t-text-primary text-base">Issue Incentive Voucher</h3>
-                  <p className="text-[11px] t-text-muted">Direct SMS e-voucher reward dispatch</p>
+                  <h3 className="font-extrabold t-text-primary text-base">Issue Cash Payout &amp; Reward</h3>
+                  <p className="text-[11px] t-text-muted">Instant EasyPaisa, JazzCash, Airtime Load or Merchant Vouchers</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsVoucherModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <p className="text-xs t-text-muted mb-4 leading-relaxed">
-              Send a direct SMS e-voucher code to celebrate the citizen's recycling milestone and encourage continuous participation.
-            </p>
-
-            <div className="space-y-3.5 mb-5">
-              <div>
-                <label className="block text-xs font-semibold t-text-primary mb-1">Target Champion</label>
-                <input 
-                  type="text" 
-                  value={`${selectedChampion?.registeredName || selectedChampion?.userName || selectedChampion?._id} (${selectedChampion?.mobile || selectedChampion?._id}) • Rank #${selectedChampion?.rank || 1} • ${(selectedChampion?.totalPoints || 0).toLocaleString()} Pts`} 
-                  readOnly 
-                  className="w-full t-bg-sec border t-border t-text-primary text-xs rounded-xl p-2.5 font-bold focus:outline-none"
-                />
+            {/* Modal Scrollable Body */}
+            <div className="overflow-y-auto py-3 space-y-4 pr-1 text-left flex-1">
+              
+              {/* Target Recycler Hero Card */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border t-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black text-sm flex items-center justify-center shrink-0">
+                    #{selectedChampion?.rank || 1}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold t-text-primary text-xs flex items-center gap-1.5 truncate">
+                      <span>{selectedChampion?.registeredName || selectedChampion?.userName || selectedChampion?._id}</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    </div>
+                    <div className="text-[11px] t-text-muted truncate">
+                      {selectedChampion?.clientName || 'Smart RVM Public Citizen'} • {selectedChampion?.totalSessions || 1} Sessions
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                    {(selectedChampion?.totalPoints || 0).toLocaleString()} pts
+                  </div>
+                  <div className="text-[10px] font-bold t-text-muted">
+                    Balance: PKR {(Math.round((selectedChampion?.totalPoints || 0) * 0.2)).toLocaleString()}
+                  </div>
+                </div>
               </div>
 
+              {/* Step 1: Select Payout Gateway / Wallet */}
               <div>
-                <label className="block text-xs font-semibold t-text-primary mb-1">Reward Voucher Value</label>
-                <select 
-                  value={voucherAmount}
-                  onChange={(e) => {
-                    setVoucherAmount(e.target.value);
-                    if (e.target.value === '500') setVoucherTitle('Quick Eco Reward');
-                    if (e.target.value === '1000') setVoucherTitle('Special Milestone Voucher');
-                    if (e.target.value === '2500') setVoucherTitle('Monthly Champion Voucher');
-                    if (e.target.value === '5000') setVoucherTitle('Corporate ESG Hero Award');
-                  }}
-                  className="w-full t-bg-sec border t-border t-text-primary text-xs rounded-xl p-2.5 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                >
-                  <option value="500">PKR 500 Quick Eco Reward</option>
-                  <option value="1000">PKR 1,000 Special Milestone Voucher</option>
-                  <option value="2500">PKR 2,500 Monthly Champion Voucher</option>
-                  <option value="5000">PKR 5,000 Corporate ESG Hero Award</option>
-                </select>
+                <label className="block text-xs font-bold t-text-primary mb-1.5">
+                  1. Select Payout Channel / Wallet
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PAYOUT_METHODS.map((method) => {
+                    const MethodIcon = method.icon;
+                    const isSelected = payoutMethod === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => {
+                          setPayoutMethod(method.id);
+                          if (method.id === 'voucher') {
+                            setVoucherTitle('Vouch365 Retail Discount Coupon');
+                          } else {
+                            setVoucherTitle(`${method.name} Payout`);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between ${
+                          isSelected
+                            ? method.id === 'easypaisa'
+                              ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30'
+                              : method.id === 'jazzcash'
+                                ? 'border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/30'
+                                : method.id === 'mobile_load'
+                                  ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30'
+                                  : method.id === 'raast'
+                                    ? 'border-cyan-500 bg-cyan-500/10 ring-2 ring-cyan-500/30'
+                                    : 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30'
+                            : 't-bg-sec t-border hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            method.id === 'easypaisa' 
+                              ? 'bg-emerald-500 text-white' 
+                              : method.id === 'jazzcash'
+                                ? 'bg-rose-600 text-white'
+                                : method.id === 'mobile_load'
+                                  ? 'bg-amber-500 text-white'
+                                  : method.id === 'raast'
+                                    ? 'bg-cyan-600 text-white'
+                                    : 'bg-purple-600 text-white'
+                          }`}>
+                            <MethodIcon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-bold text-xs t-text-primary leading-tight truncate">
+                              {method.name}
+                            </div>
+                            <div className="text-[10px] t-text-muted leading-tight truncate">
+                              {method.tagline}
+                            </div>
+                          </div>
+                        </div>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ml-1 uppercase ${
+                          isSelected 
+                            ? 'bg-white dark:bg-slate-900 font-extrabold shadow-2xs' 
+                            : 'bg-slate-200/60 dark:bg-slate-700/60 text-slate-500'
+                        }`}>
+                          {method.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* Step 2: Destination Wallet / Account Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-xs font-semibold t-text-primary mb-1">
+                    Destination Mobile / Wallet No.
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={walletNumber} 
+                      onChange={(e) => setWalletNumber(e.target.value)}
+                      placeholder="e.g. 0300-1234567"
+                      className="w-full pl-9 pr-3 py-2 t-bg-sec border t-border t-text-primary text-xs rounded-xl font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold t-text-primary mb-1">
+                    Account Title / Beneficiary
+                  </label>
+                  <div className="relative">
+                    <User className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={accountTitle} 
+                      onChange={(e) => setAccountTitle(e.target.value)}
+                      placeholder="e.g. Tariq Mehmood"
+                      className="w-full pl-9 pr-3 py-2 t-bg-sec border t-border t-text-primary text-xs rounded-xl font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Select Payout Amount */}
               <div>
-                <label className="block text-xs font-semibold t-text-primary mb-1">Custom Message / Note (Optional)</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold t-text-primary">
+                    2. Select Payout Amount (PKR)
+                  </label>
+                  <span className="text-[11px] t-text-muted">
+                    Rule: 1 pt = Rs. 0.20 (5 pts = PKR 1)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  {PRESET_AMOUNTS.map((p) => {
+                    const isSelected = !isCustomAmount && voucherAmount === p.value;
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => {
+                          setIsCustomAmount(false);
+                          setVoucherAmount(p.value);
+                          setVoucherTitle(p.tier);
+                        }}
+                        className={`p-2.5 rounded-xl border text-center transition-all ${
+                          isSelected
+                            ? 'border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/30'
+                            : 't-bg-sec t-border hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className={`font-extrabold text-xs ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 't-text-primary'}`}>
+                          {p.label}
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mono mt-0.5">
+                          {p.points}
+                        </div>
+                        <div className="text-[9px] t-text-muted mt-0.5 truncate">
+                          {p.tier}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Amount Toggle Button */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomAmount(!isCustomAmount)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                      isCustomAmount 
+                        ? 'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' 
+                        : 't-bg-sec t-border t-text-secondary hover:t-text-primary'
+                    }`}
+                  >
+                    <span>Custom Amount</span>
+                  </button>
+                  
+                  {isCustomAmount && (
+                    <div className="flex-1 flex items-center gap-2 animate-fade-in">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">PKR</span>
+                        <input
+                          type="number"
+                          min="50"
+                          step="50"
+                          value={customAmountInput}
+                          onChange={(e) => setCustomAmountInput(e.target.value)}
+                          placeholder="e.g. 750, 1500, 3000"
+                          className="w-full pl-12 pr-3 py-1.5 t-bg-sec border t-border t-text-primary text-xs rounded-lg font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        = {((parseInt(customAmountInput) || 0) * 5).toLocaleString()} pts
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 4: Live Payout Gateway Verification Summary */}
+              {(() => {
+                const finalAmt = isCustomAmount ? (parseInt(customAmountInput) || 0) : (parseInt(voucherAmount) || 1000);
+                const activeMethod = PAYOUT_METHODS.find(m => m.id === payoutMethod) || PAYOUT_METHODS[0];
+                return (
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-extrabold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                        <CheckCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>Ready to Transfer: PKR {finalAmt.toLocaleString()} via {activeMethod.name}</span>
+                      </div>
+                      <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
+                        Destination: <span className="font-mono font-bold">{walletNumber || '03XX-XXXXXXX'}</span> • Recipient: <span className="font-semibold">{accountTitle || 'Champion'}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-emerald-500/30 mono">
+                        -{(finalAmt * 5).toLocaleString()} Pts
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Custom Message / Reference Note */}
+              <div>
+                <label className="block text-xs font-semibold t-text-primary mb-1">
+                  Custom Transaction Reference / SMS Note (Optional)
+                </label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Thanks for contributing to Clean Pakistan!"
+                  placeholder="e.g. ISP RVM Recycling Champion Incentive Payout"
                   value={voucherNote}
                   onChange={(e) => setVoucherNote(e.target.value)}
                   className="w-full t-bg-sec border t-border t-text-primary text-xs rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
+
             </div>
 
-            <div className="flex justify-end gap-2 text-xs font-semibold pt-3 border-t t-border">
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-3 border-t t-border shrink-0">
               <button 
                 onClick={() => setIsVoucherModalOpen(false)}
-                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-xs font-semibold"
               >
                 Cancel
               </button>
+              
               <button 
                 onClick={handleDispatchVoucher}
                 disabled={isSubmittingVoucher}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl transition-colors shadow-sm flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2 text-xs font-extrabold"
               >
                 {isSubmittingVoucher ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    Dispatching...
+                    <span>Processing Gateway Transfer...</span>
                   </>
                 ) : (
                   <>
-                    <Award className="w-3.5 h-3.5" />
-                    Dispatch SMS Voucher
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Dispatch PKR {isCustomAmount ? (parseInt(customAmountInput) || 0).toLocaleString() : Number(voucherAmount).toLocaleString()} via {PAYOUT_METHODS.find(m => m.id === payoutMethod)?.name || 'Wallet'}</span>
                   </>
                 )}
               </button>
             </div>
+
           </div>
         </div>
       )}
+
 
       {/* ======================================================== */}
       {/* 8. MODAL: BROADCAST MOTIVATION NOTIFICATION               */}

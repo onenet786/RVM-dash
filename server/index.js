@@ -2287,39 +2287,82 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
 });
 
 // Issue Voucher Reward Endpoint
+// Issue Voucher & Mobile Wallet Payout Reward Endpoint (EasyPaisa, JazzCash, Mobile Load, Raast, Vouchers)
 app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
   try {
-    const { targetUserId, recipientPhone, amountPkr, voucherTitle, note } = req.body;
+    const { 
+      targetUserId, 
+      recipientPhone, 
+      recipientName, 
+      payoutMethod = 'easypaisa', 
+      amountPkr, 
+      voucherTitle, 
+      note 
+    } = req.body;
+    
     const pool = getPgPool();
     const cleanAmount = parseInt(amountPkr || 1000);
-    const voucherCode = `VOUCH-PKR${cleanAmount}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const redemptionId = `RED_VOUCH_${Date.now()}`;
-    const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1
+    
+    // Channel-specific reference prefix and display name
+    let prefix = 'EP';
+    let methodLabel = 'EasyPaisa Wallet';
+    let category = 'easypaisa';
+    
+    if (payoutMethod === 'jazzcash') {
+      prefix = 'JC';
+      methodLabel = 'JazzCash Wallet';
+      category = 'jazzcash';
+    } else if (payoutMethod === 'mobile_load') {
+      prefix = 'LOAD';
+      methodLabel = 'Direct Mobile Airtime Top-Up';
+      category = 'mobile_load';
+    } else if (payoutMethod === 'raast') {
+      prefix = 'RAAST';
+      methodLabel = 'Raast Instant Bank Pay';
+      category = 'raast';
+    } else if (payoutMethod === 'voucher') {
+      prefix = 'VOUCH';
+      methodLabel = 'Merchant Retail E-Voucher';
+      category = 'voucher';
+    }
+
+    const txCode = `${prefix}-PKR${cleanAmount}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const redemptionId = `RED_${prefix}_${Date.now()}`;
+    const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1 (1 pt = Rs. 0.20)
+    const phone = recipientPhone || targetUserId || '03000000000';
+    const userLabel = recipientName || targetUserId || 'Leaderboard Champion';
+    const finalTitle = voucherTitle || `PKR ${cleanAmount.toLocaleString()} ${methodLabel} Payout`;
+    const finalNote = note || `${methodLabel} incentive payout for Green Champion`;
 
     if (pool) {
       await pool.query(`
         INSERT INTO redemptions (
           redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', 'voucher', NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', $9, NOW())
         ON CONFLICT (redemption_id) DO NOTHING;
       `, [
         redemptionId, 
-        targetUserId || recipientPhone || 'CHAMPION',
-        targetUserId || 'Leaderboard Champion',
-        recipientPhone || targetUserId || '03000000000',
-        voucherTitle || `PKR ${cleanAmount} Leaderboard Milestone Reward`,
+        targetUserId || phone || 'CHAMPION',
+        userLabel,
+        phone,
+        finalTitle,
         ptsRedeemed,
-        voucherCode,
-        note || 'Leaderboard Champion Incentive Award'
+        txCode,
+        finalNote,
+        category
       ]).catch(e => console.error('PG insert redemption notice:', e.message));
     }
 
     res.json({
       success: true,
-      message: `E-Voucher code "${voucherCode}" for PKR ${cleanAmount.toLocaleString()} dispatched successfully!`,
-      voucherCode,
-      amountPkr: cleanAmount
+      message: `${methodLabel} payout "${txCode}" of PKR ${cleanAmount.toLocaleString()} dispatched successfully to ${phone}!`,
+      voucherCode: txCode,
+      payoutMethod: category,
+      methodLabel,
+      amountPkr: cleanAmount,
+      pointsRedeemed: ptsRedeemed,
+      recipientPhone: phone
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

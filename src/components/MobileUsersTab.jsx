@@ -804,9 +804,34 @@ export default function MobileUsersTab() {
                   userRedemptions.map((r, idx) => (
                     <div key={r.redemption_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
                       <div>
-                        <div className="font-bold t-text-primary flex items-center gap-2">
-                          <Gift className="w-3.5 h-3.5 text-purple-500" />
-                          <span>{r.item_name || 'Voucher Claim'}</span>
+                        <div className="font-bold t-text-primary flex items-center gap-2 flex-wrap">
+                          {r.category === 'easypaisa' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              <Wallet className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                              EasyPaisa
+                            </span>
+                          ) : r.category === 'jazzcash' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                              <Smartphone className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                              JazzCash
+                            </span>
+                          ) : r.category === 'mobile_load' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              <Smartphone className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                              Mobile Load
+                            </span>
+                          ) : r.category === 'raast' ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                              <Wallet className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                              Raast
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                              <Gift className="w-3 h-3 text-purple-500" />
+                              Voucher
+                            </span>
+                          )}
+                          <span>{r.item_name || 'Reward Payout'}</span>
                           {r.voucher_code && (
                             <button
                               onClick={() => copyToClipboard(r.voucher_code)}
@@ -819,7 +844,7 @@ export default function MobileUsersTab() {
                           )}
                         </div>
                         <div className="t-text-muted text-[11px] mt-0.5">
-                          {r.created_at ? new Date(r.created_at).toLocaleString() : 'Recent'} • Status: {(r.status || 'Claimed').toUpperCase()}
+                          {r.created_at ? new Date(r.created_at).toLocaleString() : 'Recent'} • Status: {(r.status || 'Completed').toUpperCase()}
                         </div>
                       </div>
                       <span className="font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-xl border border-rose-500/30 mono">
