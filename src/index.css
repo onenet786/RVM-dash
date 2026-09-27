@@ -706,40 +706,21 @@ html[data-theme="isp-eco"] aside .bg-emerald-500\/10 {
 
 /* --- 4. UNIVERSAL CONTRAST HARMONIZATION (NEVER SAME-COLOR BG & TEXT) --- */
 
-/* Guarantee all headings, titles, and table cells on cards are crisp Slate Charcoal (never white on white) */
-html[data-theme="isp-eco"] .glass-panel h1.text-white,
-html[data-theme="isp-eco"] .glass-panel h2.text-white,
-html[data-theme="isp-eco"] .glass-panel h3.text-white,
-html[data-theme="isp-eco"] .glass-panel h4.text-white,
-html[data-theme="isp-eco"] .glass-panel td.text-white,
-html[data-theme="isp-eco"] .glass-panel div.text-white:not(button *):not([class*="bg-emerald-600"]):not([class*="bg-cyan-600"]),
-html[data-theme="isp-eco"] .glass-panel span.text-white:not(button *):not([class*="bg-emerald-600"]):not([class*="bg-cyan-600"]),
-html[data-theme="isp-eco"] main h1.text-white:not(button *),
-html[data-theme="isp-eco"] main h2.text-white:not(button *),
-html[data-theme="isp-eco"] main h3.text-white:not(button *),
-html[data-theme="isp-eco"] main h4.text-white:not(button *),
-html[data-theme="isp-eco"] main td.text-white {
+/* Guarantee light card headings are crisp Slate Charcoal without breaking intentional dark containers */
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) h1.text-white,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) h2.text-white,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) h3.text-white,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) h4.text-white,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) td.text-white {
   color: #1e293b !important;
 }
 
-html[data-theme="isp-eco"] .glass-panel .text-gray-300,
-html[data-theme="isp-eco"] .glass-panel .text-gray-400,
-html[data-theme="isp-eco"] .glass-panel .text-slate-400 {
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) .text-gray-300,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) .text-gray-400,
+html[data-theme="isp-eco"] .glass-panel:not([class*="from-slate-"]):not([class*="bg-slate-"]) .text-slate-400 {
   color: #475569 !important;
 }
 
-/* Hardcoded dark cards inside tabs (e.g. ReportingHub bg-black/40, bg-emerald-950) -> Clean light cards */
-html[data-theme="isp-eco"] .bg-black\/40,
-html[data-theme="isp-eco"] .bg-gray-800,
-html[data-theme="isp-eco"] [class*="bg-slate-900"],
-html[data-theme="isp-eco"] [class*="bg-slate-950"],
-html[data-theme="sleek-light"] [class*="bg-slate-900"],
-html[data-theme="sleek-light"] [class*="bg-slate-950"] {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
-  color: #1e293b !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-}
 
 /* Machine Health grid and IP capsule under ISP Eco */
 html[data-theme="isp-eco"] .glass-panel .grid.grid-cols-2.p-3 {
@@ -942,27 +923,29 @@ html[data-theme="isp-eco"] .glass-panel.border-cyan-500\/20 {
   border-color: #e2e8f0 !important;
 }
 
-html[data-theme="isp-eco"] .p-4.t-bg-sec {
-  background-color: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+/* --- 7. DATA TABLES & HEADERS (Clean Modern Enterprise Styling) --- */
+html[data-theme="isp-eco"] table thead tr,
+html[data-theme="sleek-light"] table thead tr,
+html[data-theme="isp-portal"] table thead tr {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
 }
 
-/* --- 7. DATA TABLES & HEADERS --- */
-html[data-theme="isp-eco"] table thead tr {
-  background-color: #0b5d3b !important;
-  color: #ffffff !important;
-  border-bottom: 2px solid #08422a !important;
-}
-
-html[data-theme="isp-eco"] table thead th {
-  color: #ffffff !important;
+html[data-theme="isp-eco"] table thead th,
+html[data-theme="sleek-light"] table thead th,
+html[data-theme="isp-portal"] table thead th {
+  color: #475569 !important;
   font-weight: 800 !important;
   letter-spacing: 0.05em !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
 }
 
-html[data-theme="isp-eco"] table thead th svg {
-  color: #e5a919 !important;
+html[data-theme="isp-eco"] table thead th svg,
+html[data-theme="sleek-light"] table thead th svg,
+html[data-theme="isp-portal"] table thead th svg {
+  color: #10b981 !important;
 }
 
 html[data-theme="isp-eco"] table tbody tr:nth-child(even) {
@@ -974,7 +957,7 @@ html[data-theme="isp-eco"] table tbody tr:nth-child(odd) {
 }
 
 html[data-theme="isp-eco"] table tbody tr:hover {
-  background-color: #e6f3ec !important;
+  background-color: #f0fdf4 !important;
 }
 
 html[data-theme="isp-eco"] table tbody td {

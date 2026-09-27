@@ -298,34 +298,36 @@ export default function SubUsersTab({ currentUser }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Top Banner */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border t-border shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Top Banner - Professional Theme Architecture */}
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border t-border shadow-sm space-y-6 relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
               <Building2 className="w-3.5 h-3.5" />
-              {orgName} • Machine Delegation Hub
+              <span>{orgName} • Machine Delegation Hub</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black t-text-primary tracking-tight">
-              Organization Sub-Users & Fleet Scoping
+              Organization Sub-Users & <span className="text-emerald-600 dark:text-emerald-400">Fleet Scoping</span>
             </h1>
-            <p className="t-text-muted text-sm leading-relaxed">
+            <p className="t-text-muted text-sm leading-relaxed font-normal">
               Create dedicated branch managers, shift operators, and site supervisors. Each sub-user is strictly limited to their assigned RVM & PecoDrop kiosks, ensuring localized telemetry and secure data scoping.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 relative z-10">
             <button
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all transform active:scale-95"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-md transition-all transform active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
-              Create New Sub-User
+              <span>Create New Sub-User</span>
             </button>
             <button
               onClick={fetchData}
               disabled={loading}
-              className="p-3 rounded-2xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all flex items-center justify-center"
+              className="p-3 rounded-2xl t-bg-sec hover:t-bg-hover t-text-primary border t-border transition-all flex items-center justify-center shadow-xs"
               title="Refresh List"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
@@ -334,29 +336,55 @@ export default function SubUsersTab({ currentUser }) {
         </div>
 
         {/* Fleet KPI Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t t-border">
-          <div className="p-4 rounded-2xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-medium">Total Sub-Users</div>
-            <div className="text-2xl font-black t-text-primary mt-1">{subUsers.length}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t t-border relative z-10">
+          <div className="p-4 sm:p-5 rounded-2xl t-bg-sec border t-border border-l-4 border-l-emerald-500 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase font-extrabold tracking-wider t-text-muted">Total Sub-Users</span>
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                <Users className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black t-text-primary mt-2 tracking-tight">{subUsers.length}</div>
+            <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">Provisioned accounts</div>
           </div>
-          <div className="p-4 rounded-2xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-medium">Active Operators</div>
-            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+
+          <div className="p-4 sm:p-5 rounded-2xl t-bg-sec border t-border border-l-4 border-l-teal-500 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase font-extrabold tracking-wider t-text-muted">Active Operators</span>
+              <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-600 dark:text-teal-400">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-teal-600 dark:text-teal-400 mt-2 tracking-tight">
               {subUsers.filter(u => u.status === 'active').length}
             </div>
+            <div className="text-xs text-teal-600 dark:text-teal-400 font-semibold mt-1">Live session access</div>
           </div>
-          <div className="p-4 rounded-2xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-medium">Authorized Kiosks</div>
-            <div className="text-2xl font-black text-teal-600 dark:text-teal-400 mt-1">
+
+          <div className="p-4 sm:p-5 rounded-2xl t-bg-sec border t-border border-l-4 border-l-cyan-500 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase font-extrabold tracking-wider t-text-muted">Authorized Kiosks</span>
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400">
+                <Cpu className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 mt-2 tracking-tight">
               {availableMachines.length}
             </div>
+            <div className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold mt-1">Assigned fleet units</div>
           </div>
-          <div className="p-4 rounded-2xl t-bg-sec border t-border">
-            <div className="text-xs t-text-muted font-medium">Access Control</div>
-            <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-2 inline-flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
+
+          <div className="p-4 sm:p-5 rounded-2xl t-bg-sec border t-border border-l-4 border-l-amber-500 hover:shadow-md transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase font-extrabold tracking-wider t-text-muted">Access Control</span>
+              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold tracking-wide">
               Hardware Isolated
             </div>
+            <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1">Perimeter secured</div>
           </div>
         </div>
       </div>
