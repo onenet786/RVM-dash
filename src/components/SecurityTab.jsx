@@ -16,7 +16,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
       { id: 'mobile_users', label: 'Mobile App Citizens', icon: Smartphone, desc: 'Citizen profiles, registered user balances & mobile registration logs' },
       { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf, desc: 'CO₂ emission offsets, diverted landfill volume & tree equivalents' },
       { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy, desc: 'Recycler rankings, points incentive rules & voucher redemptions' },
-      { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
+      { id: 'machines', label: 'Machine Health & Operations', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
       { id: 'advertisements', label: 'Ad Video Signage', icon: Tv, desc: 'Digital signage playlists & promotional kiosk video manager' },
     ]
   },

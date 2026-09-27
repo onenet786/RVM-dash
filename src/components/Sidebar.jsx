@@ -86,7 +86,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     ] : []),
     { id: 'esg_impact', label: 'ESG Carbon Impact', icon: Leaf },
     { id: 'analytics', label: 'Analytics & Leaderboard', icon: Trophy },
-    { id: 'machines', label: 'Smart Recycling Fleet Health', icon: Cpu },
+    { id: 'machines', label: 'Machine Health & Operations', icon: Cpu },
     ...((!isCorporateSubUser) ? [
       { id: 'advertisements', label: 'Digital Signage & Ads', icon: Tv },
     ] : []),
