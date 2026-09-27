@@ -124,16 +124,16 @@ export default function Navbar({
             </div>
           </div>
 
-          <div className="h-4 w-[1px] bg-white/20 hidden sm:block mx-0.5" />
+          <div className="h-4 w-[1px] bg-slate-300 dark:bg-white/20 hidden sm:block mx-0.5" />
 
           {/* Multi-Client Organization Dropdown or Scoped Kiosk Indicator */}
           {isCorporatePortal ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs font-bold">
-              <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="text-[10px] uppercase text-emerald-400 font-extrabold hidden md:inline">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <Building2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+              <span className="text-[10px] uppercase text-emerald-700 dark:text-emerald-400 font-extrabold hidden md:inline">
                 {isCorporateSubUser ? 'Assigned Kiosks:' : 'Organization Fleet:'}
               </span>
-              <span className="text-xs font-black mono text-white">
+              <span className="text-xs font-black mono t-text-primary">
                 {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
                   ? currentUser.assignedMachines.join(', ')
                   : 'All Assigned Fleet'}
@@ -145,24 +145,24 @@ export default function Navbar({
                 onClick={() => setShowClientMenu(!showClientMenu)}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all shadow-xs ${
                   selectedClientId === 'ALL'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20'
-                    : 'bg-blue-500/15 border-blue-500/40 text-blue-300 hover:bg-blue-500/25'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                    : 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20'
                 }`}
                 title="Switch Enterprise Client Scope"
               >
-                <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
                 <div className="text-left flex items-center gap-1">
-                  <span className="text-[10px] uppercase text-slate-400 hidden md:inline">Scope:</span>
-                  <span className="text-xs font-extrabold truncate max-w-[130px] sm:max-w-[180px] text-white">
+                  <span className="text-[10px] uppercase t-text-muted hidden md:inline">Scope:</span>
+                  <span className="text-xs font-extrabold truncate max-w-[130px] sm:max-w-[180px] t-text-primary">
                     {selectedClientObj.label.replace('Client: ', '')}
                   </span>
                 </div>
-                <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+                <ChevronDown className="w-3 h-3 t-text-muted shrink-0" />
               </button>
 
               {showClientMenu && (
-                <div className="absolute left-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2 z-50 animate-fade-in backdrop-blur-2xl">
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
+                <div className="absolute left-0 mt-2 w-80 glass-panel border t-border rounded-2xl shadow-2xl p-2 z-50 animate-fade-in backdrop-blur-2xl">
+                <div className="text-[10px] font-black uppercase tracking-wider t-text-muted px-3 py-1.5 border-b t-border">
                   Select Enterprise Client Scope
                 </div>
                 <div className="space-y-1 mt-1.5">
@@ -177,15 +177,15 @@ export default function Navbar({
                         }}
                         className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs text-left transition-all ${
                           isSelected
-                            ? 'bg-[#e6f3ec] dark:bg-emerald-500/20 text-[#0b5d3b] dark:text-emerald-300 font-extrabold border border-[#0b5d3b]/30 shadow-xs'
-                            : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-extrabold border border-emerald-500/30 shadow-xs'
+                            : 't-text-primary hover:t-bg-hover'
                         }`}
                       >
                         <div>
-                          <div className="font-extrabold text-slate-900 dark:text-slate-100">{c.label}</div>
-                          <div className={`text-[10px] ${isSelected ? 'text-[#065f46] dark:text-emerald-400 font-bold' : 'text-slate-500 dark:text-slate-400'}`}>{c.badge}</div>
+                          <div className="font-extrabold t-text-primary">{c.label}</div>
+                          <div className={`text-[10px] ${isSelected ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 't-text-muted'}`}>{c.badge}</div>
                         </div>
-                        {isSelected && <Check className="w-4 h-4 text-[#0b5d3b] dark:text-emerald-400" />}
+                        {isSelected && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                       </button>
                     );
                   })}
@@ -199,24 +199,24 @@ export default function Navbar({
         {/* Right: Clock, Palette, User Info & Logout */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Clock */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-[#083622] border border-[#146c43] rounded-xl text-xs mono text-white">
-            <Activity className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-white font-bold">{timeStr}</span>
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 t-bg-sec border t-border rounded-xl text-xs mono t-text-primary shadow-xs">
+            <Activity className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-bold">{timeStr}</span>
           </div>
 
           {/* Theme Selector Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="p-1.5 bg-[#083622] hover:bg-[#062919] border border-[#146c43] rounded-xl text-xs font-bold text-white transition-all shadow-xs"
+              className="p-1.5 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-xs"
               title="Theme Color"
             >
-              <Palette className="w-3.5 h-3.5 text-amber-400" />
+              <Palette className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
             </button>
 
             {showThemeMenu && (
-              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-2.5 z-50 animate-fade-in backdrop-blur-2xl">
-                <div className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-3 py-1.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="absolute right-0 mt-2 w-72 glass-panel border t-border rounded-2xl shadow-2xl p-2.5 z-50 animate-fade-in backdrop-blur-2xl">
+                <div className="text-xs font-extrabold uppercase tracking-wider t-text-muted px-3 py-1.5 border-b t-border">
                   Master Themes
                 </div>
                 <div className="space-y-1 mt-1.5">
@@ -232,17 +232,17 @@ export default function Navbar({
                         }}
                         className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl text-xs text-left transition-all ${
                           isSelected
-                            ? 'bg-[#e6f3ec] text-[#0b5d3b] font-bold border border-[#0b5d3b]/40 shadow-xs'
-                            : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/40 shadow-xs'
+                            : 't-text-primary hover:t-bg-hover'
                         }`}
                       >
                         <div className={`w-3.5 h-3.5 rounded-full mt-0.5 shrink-0 ${t.color} border border-black/10`} />
                         <div className="flex-1">
                           <div className="flex items-center justify-between font-bold">
-                            <span className={isSelected ? 'text-[#0b5d3b]' : 'text-slate-900 dark:text-white'}>{t.label}</span>
-                            {isSelected && <Check className="w-4 h-4 text-[#0b5d3b]" />}
+                            <span className={isSelected ? 'text-emerald-700 dark:text-emerald-300' : 't-text-primary'}>{t.label}</span>
+                            {isSelected && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
                           </div>
-                          <p className={`text-xs leading-snug mt-0.5 ${isSelected ? 'text-[#065f46] font-medium' : 'text-slate-600 dark:text-slate-400 font-normal'}`}>
+                          <p className={`text-xs leading-snug mt-0.5 ${isSelected ? 'text-emerald-700 dark:text-emerald-400 font-medium' : 't-text-muted font-normal'}`}>
                             {t.desc}
                           </p>
                         </div>
@@ -256,23 +256,23 @@ export default function Navbar({
 
           {/* User Profile & Logout */}
           {currentUser && (
-            <div className="flex items-center gap-2 pl-2 border-l border-emerald-700/50">
+            <div className="flex items-center gap-2 pl-2 border-l t-border">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-extrabold text-white leading-tight flex items-center justify-end gap-1">
+                <span className="text-xs font-extrabold t-text-primary leading-tight flex items-center justify-end gap-1">
                   {isMasterDev && <span>👑</span>}
                   {currentUser.fullName || currentUser.username}
                 </span>
-                <span className="text-[10px] font-black text-[#fde68a] uppercase tracking-wider">
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                   {isMasterDev ? 'IMMUTABLE SUPER ADMIN' : (currentUser.roleName || currentUser.roleId)}
                 </span>
               </div>
 
               <button
                 onClick={onLogout}
-                className="p-1.5 sm:px-2.5 sm:py-1 bg-rose-950/40 hover:bg-rose-900/80 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
+                className="p-1.5 sm:px-2.5 sm:py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 rounded-xl border border-rose-500/25 transition-all flex items-center gap-1.5 text-xs font-bold shadow-xs"
                 title="Sign Out"
               >
-                <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                <LogOut className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                 <span className="hidden md:inline">Sign Out</span>
               </button>
             </div>

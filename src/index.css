@@ -52,7 +52,7 @@ html {
   --bg-surface: #ffffff;
   --bg-surface-sec: #f1f5f9;
   --bg-surface-hover: #e6f3ec;
-  --bg-header: #0b5d3b;
+  --bg-header: #ffffff;
   --border-color: #e2e8f0;
   --border-accent: #0b5d3b;
   --text-primary: #1e293b;
@@ -158,7 +158,7 @@ html[data-theme="isp-eco"], body[data-theme="isp-eco"] {
   --bg-surface: #ffffff;
   --bg-surface-sec: #f1f5f9;
   --bg-surface-hover: #e6f3ec;
-  --bg-header: #0b5d3b;
+  --bg-header: #ffffff;
   --border-color: #e2e8f0;
   --border-accent: #0b5d3b;
   --text-primary: #1e293b;
@@ -540,115 +540,61 @@ html.dark .t-bg-sec .text-slate-900:not([class*="dark:"]) {
 /* UI COMPONENT STYLING RULES: ISP ECO VANGUARD (ENTERPRISE)    */
 /* ============================================================ */
 
-/* --- 1. TOP NAVIGATION BAR (Forest Green Executive Bar) --- */
+/* --- 1. TOP NAVIGATION BAR (Clean Modern Executive Bar) --- */
 html[data-theme="isp-eco"] header.t-bg-header,
 body[data-theme="isp-eco"] header.t-bg-header {
-  background-color: #0b5d3b !important;
-  border-bottom: 1px solid #08422a !important;
-  box-shadow: 0 4px 14px -2px rgba(8, 66, 42, 0.3) !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .t-text-primary {
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
-html[data-theme="isp-eco"] header.t-bg-header .t-text-secondary,
+html[data-theme="isp-eco"] header.t-bg-header .t-text-secondary {
+  color: #334155 !important;
+}
+
 html[data-theme="isp-eco"] header.t-bg-header .t-text-muted {
-  color: #d1fae5 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-logo-badge {
-  background: #08422a !important;
-  border: 1px solid rgba(229, 169, 25, 0.4) !important;
-  box-shadow: 0 2px 8px rgba(8, 66, 42, 0.4) !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-logo-badge svg {
-  color: #e5a919 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-badge-pro {
-  background-color: #08422a !important;
-  color: #e5a919 !important;
-  border: 1px solid #e5a919 !important;
-  font-weight: 800 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-server-host {
-  color: #ffffff !important;
-  font-weight: 600 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-server-db {
-  color: #fde68a !important;
-  font-weight: 700 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-server-loc {
-  color: #a7f3d0 !important;
-  font-weight: 600 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-server-loc svg {
-  color: #e5a919 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-divider {
-  color: rgba(255, 255, 255, 0.35) !important;
+  color: #64748b !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .t-bg-sec {
-  background-color: #08422a !important;
-  border: 1px solid #146c43 !important;
-  color: #ffffff !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .t-bg-hover:hover,
 html[data-theme="isp-eco"] header.t-bg-header button:hover {
-  background-color: #0e6e46 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-db-highlight {
-  color: #a7f3d0 !important;
+  background-color: #e2e8f0 !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .nav-clock {
-  color: #ffffff !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-clock svg {
-  color: #e5a919 !important;
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .nav-theme-btn {
-  background-color: #08422a !important;
-  border: 1px solid #146c43 !important;
-  color: #ffffff !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-theme-btn svg {
-  color: #e5a919 !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-user-container {
-  border-left-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-html[data-theme="isp-eco"] header.t-bg-header .nav-user-role {
-  color: #fde68a !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .nav-logout-btn {
-  background-color: #08422a !important;
-  color: #fecdd3 !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3 !important;
 }
 
 html[data-theme="isp-eco"] header.t-bg-header .nav-logout-btn:hover {
-  background-color: #991b1b !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
+  background-color: #ffe4e6 !important;
+  color: #9f1239 !important;
+  border-color: #fda4af !important;
 }
+
 
 /* --- 2. THEME DROPDOWN SELECTOR MENU --- */
 html[data-theme="isp-eco"] .theme-picker-menu {
