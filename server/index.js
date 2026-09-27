@@ -2843,25 +2843,77 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
   try {
     const pool = getPgPool();
     let dynamicClients = [
-      { id: 'ALL', name: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
-      { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites / Public Network)', badge: 'Master Network' }
+      { 
+        id: 'ALL', 
+        name: 'ISP Environmental Master (All Sites)', 
+        rawName: 'ISP Environmental Master',
+        badge: 'Master Nationwide', 
+        address: 'Nationwide Public Network',
+        domain: 'isprvm.binishaqsoft.com',
+        machineCount: 12
+      }
     ];
+
+    const formatOrgDetails = (r, machineCount, locations) => {
+      const clientLabel = r.name.startsWith('Client:') ? r.name : `Client: ${r.name}`;
+      const nameLower = (r.name || '').toLowerCase();
+      let badge = 'Corporate Client';
+      let address = locations || 'Corporate Facility';
+
+      if (nameLower.includes('ucp') || nameLower.includes('university') || nameLower.includes('college')) {
+        badge = 'Education Venue';
+        address = address || 'Lahore Campus, Johar Town';
+      } else if (nameLower.includes('metro') || nameLower.includes('mall') || nameLower.includes('retail')) {
+        badge = 'Commercial Retail';
+        address = address || 'Metro Mall RWP / Wholesale';
+      } else if (nameLower.includes('bank') || nameLower.includes('alfalah') || nameLower.includes('finance')) {
+        badge = 'Financial Corporate HQ';
+        address = address || 'I.I. Chundrigar Rd, Karachi';
+      } else if (nameLower.includes('engro') || nameLower.includes('industr')) {
+        badge = 'Enterprise Industry';
+        address = address || 'Commercial Centre, Gulberg III';
+      } else if (nameLower.includes('pepsi') || nameLower.includes('beverage')) {
+        badge = 'Consumer FMCG Partner';
+        address = address || 'Industrial Estate, Lahore';
+      }
+
+      return {
+        id: r.org_id,
+        name: clientLabel,
+        rawName: r.name,
+        domain: r.domain || `${r.org_id.toLowerCase().replace('org_', '')}.com`,
+        logoUrl: r.logo_url,
+        badge,
+        address,
+        machineCount: machineCount || 1
+      };
+    };
+
     if (pool) {
       try {
-        const orgRes = await pool.query('SELECT org_id, name, domain, logo_url FROM organizations ORDER BY name ASC');
-        orgRes.rows.forEach(r => {
-          const clientLabel = r.name.startsWith('Client:') ? r.name : `Client: ${r.name}`;
-          dynamicClients.push({
-            id: r.org_id,
-            name: clientLabel,
-            rawName: r.name,
-            domain: r.domain,
-            logoUrl: r.logo_url,
-            badge: 'Corporate Client'
+        const orgRes = await pool.query(`
+          SELECT o.org_id, o.name, o.domain, o.logo_url,
+                 COUNT(m.machine_id) as machine_count,
+                 STRING_AGG(DISTINCT m.location, '; ') as locations
+          FROM organizations o
+          LEFT JOIN machines m ON m.client_id = o.org_id
+          GROUP BY o.org_id, o.name, o.domain, o.logo_url
+          ORDER BY o.name ASC
+        `);
+        if (orgRes.rows.length > 0) {
+          orgRes.rows.forEach(r => {
+            dynamicClients.push(formatOrgDetails(r, parseInt(r.machine_count) || 0, r.locations));
           });
-        });
+        }
       } catch (e) {}
     }
+
+    if (dynamicClients.length <= 1 && Array.isArray(inMemoryOrganizations)) {
+      inMemoryOrganizations.forEach(org => {
+        dynamicClients.push(formatOrgDetails(org, 2, null));
+      });
+    }
+
     res.json({ success: true, clients: dynamicClients });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
