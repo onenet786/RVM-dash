@@ -30,6 +30,8 @@ const byte BIN_BLOCKED_STATE = LOW;
 const byte MQ6_ALARM_STATE = LOW;
 const unsigned long BIN_BLOCK_MS = 500UL;
 const unsigned long BIN_CLEAR_MS = 2000UL;
+const unsigned long BIN_POWERUP_CLEAR_STABLE_MS = 750UL;
+const unsigned long BIN_POWERUP_SETTLE_TIMEOUT_MS = 2500UL;
 const unsigned long MQ6_DEBOUNCE_MS = 1000UL;
 const byte METAL_DETECTED_STATE = LOW;
 const byte IRIS_CLOSED_ANGLE = 178;
@@ -1107,20 +1109,29 @@ void calibrateAll() {
 
   // Stabilize bin sensor INPUT_PULLUP lines before broadcasting initial status.
   // On hot-plug (cable inserted after software launch), the USB 5V rail and
-  // pull-up resistors take up to ~600 ms to settle. Without this settling loop
+  // pull-up resistors can take several seconds to settle. Without this loop
   // the very first digitalRead() may see LOW (= BIN_BLOCKED_STATE) and fire a
   // false BIN:FULL to the PC before the debounce timer can reject it.
-  // We poll for BIN_BLOCK_MS + 100 ms with 10 ms intervals so the debounce
-  // window expires on any spurious LOW that appeared at power-on. This loop
+  // We poll throughout the power-up settling interval so the debounce state
+  // follows the stabilized input rather than the first transient read. This loop
   // runs only at startup/recalibrate — never during normal intake cycles.
   {
-    const unsigned long SETTLE_MS = BIN_BLOCK_MS + 100UL; // 600 ms
     unsigned long settleStart = millis();
-    while (millis() - settleStart < SETTLE_MS) {
+    unsigned long allClearSince = 0;
+    while (millis() - settleStart < BIN_POWERUP_SETTLE_TIMEOUT_MS) {
       // Only poll bin sensors — do not servicePurge or MQ6 here
       pollBin(plastic, PLASTIC_BIN_PIN);
       pollBin(metal, METAL_BIN_PIN);
       pollBin(paper, PAPER_BIN_PIN);
+      bool allClear = (!PLASTIC_BIN_SENSOR_ENABLED || digitalRead(PLASTIC_BIN_PIN) != BIN_BLOCKED_STATE) &&
+                      (!METAL_BIN_SENSOR_ENABLED || digitalRead(METAL_BIN_PIN) != BIN_BLOCKED_STATE) &&
+                      (!PAPER_BIN_SENSOR_ENABLED || digitalRead(PAPER_BIN_PIN) != BIN_BLOCKED_STATE);
+      if (allClear) {
+        if (allClearSince == 0) allClearSince = millis();
+        if (millis() - allClearSince >= BIN_POWERUP_CLEAR_STABLE_MS) break;
+      } else {
+        allClearSince = 0;
+      }
       delay(10);
     }
     // Force all binFull flags clear — any real full bin will re-trigger

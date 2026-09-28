@@ -47,22 +47,19 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private readonly CompartmentAvailability compartmentAvailability = new();
     private string? activeScanCompartment;
     private double paperTotalWeightKg;
-    // Timestamp of last Arduino connect — used to suppress transient BIN:FULL
-    // false-positives that occur during INPUT_PULLUP stabilization on hot-plug.
-    private DateTime _connectionTime = DateTime.MinValue;
-    private static readonly TimeSpan BinFullSuppressWindow = TimeSpan.FromSeconds(4);
+    // Bin-full readings are provisional until the board confirms calibration.
+    // This follows hardware state instead of an unreliable fixed delay.
+    private bool _hardwareCalibrating = true;
 
     private bool ProcessCompartmentStatus(string message)
     {
         // Suppress BIN:FULL during the INPUT_PULLUP settling window after connect.
-        // The Arduino firmware adds a 600 ms stabilization loop, but the C# side
-        // guards an extra 4 s window as belt-and-braces against USB enumeration
-        // jitter or bootloader garbage bytes that arrive before setup() runs.
-        if (_connectionTime != DateTime.MinValue &&
-            DateTime.Now - _connectionTime < BinFullSuppressWindow &&
+        // Ignore only pre-calibration full readings. Once CALIBRATION:OK arrives,
+        // a fresh STATUS snapshot provides the authoritative sensor state.
+        if (_hardwareCalibrating &&
             message.Contains("BIN:FULL", StringComparison.OrdinalIgnoreCase))
         {
-            LogTelemetry($"[HW GUARD] Suppressing premature BIN:FULL during connect window: {message}");
+            LogTelemetry($"[HW GUARD] Deferring BIN:FULL until calibration completes: {message}");
             // Still mark the compartment as known-and-OK so cards don't stay dark
             string sanitized = message.Replace("BIN:FULL", "BIN:CLEAR", StringComparison.OrdinalIgnoreCase);
             if (!compartmentAvailability.TryApply(sanitized)) return false;
@@ -1179,13 +1176,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void ConnectArduino(bool autoRecalibrate = false, string? portOverride = null)
     {
+        _hardwareCalibrating = true;
         compartmentAvailability.ResetConnection();
         RefreshCompartmentCards();
         string targetPort = portOverride ?? settings.ArduinoPort;
         try
         {
             serial.Connect(targetPort, settings.ArduinoBaud);
-            _connectionTime = DateTime.Now; // Start suppression window for hot-plug BIN:FULL transients
             ConnectionText.Text = $"HARDWARE: {targetPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
@@ -1196,26 +1193,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {targetPort} at {settings.ArduinoBaud} baud");
 
-            if (autoRecalibrate)
-            {
-                LogTelemetry("[HARDWARE] Cable reconnected: Triggering automatic CALIBRATE sequence...");
-                Task.Delay(600).ContinueWith(_ =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (serial.IsConnected)
-                        {
-                            serial.SendCommand("CALIBRATE");
-                            LogTelemetry("[CMD] CALIBRATE (Auto-triggered after cable reconnect)");
-                        }
-                    });
-                });
-            }
-            else
-            {
-                LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
-                serial.SendCommand("STATUS");
-            }
+            // Opening the port resets the Mega through DTR/RTS. Firmware setup()
+            // calibrates automatically, so do not race it with another command.
+            LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
         }
         catch (Exception ex)
         {
@@ -1310,6 +1290,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void HandleHardwareDisconnected()
     {
+        _hardwareCalibrating = true;
         machineStarted = false;
         pendingBottleResult = null;
         pendingBottlePoints = 0;
@@ -1731,9 +1712,20 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         // Compartment diagnostics do not reject an item or stop healthy intakes.
         if (message.StartsWith("FAULT:", StringComparison.OrdinalIgnoreCase)) return;
 
+        if (message == "CALIBRATION:OK")
+        {
+            _hardwareCalibrating = false;
+            serial.SendCommand("STATUS");
+            ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
+            ConnectionText.Foreground = Brushes.LightGreen;
+            StatusDot.Fill = Brushes.LightGreen;
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
+            LogTelemetry("[HARDWARE] Calibration complete; requesting verified compartment status");
+            return;
+        }
+
         if (message == "READY" ||
             message == "RVM:PLASTIC_METAL_PAPER_READY" ||
-            message == "CALIBRATION:OK" ||
             message.StartsWith("STATUS:READY", StringComparison.OrdinalIgnoreCase) ||
             message.StartsWith("STATUS:RUNNING", StringComparison.OrdinalIgnoreCase) ||
             message == "STATUS:ONLINE")
