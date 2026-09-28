@@ -32,6 +32,7 @@ const unsigned long BIN_BLOCK_MS = 500UL;
 const unsigned long BIN_CLEAR_MS = 2000UL;
 const unsigned long BIN_POWERUP_CLEAR_STABLE_MS = 750UL;
 const unsigned long BIN_POWERUP_SETTLE_TIMEOUT_MS = 2500UL;
+const unsigned long HOST_LEASE_TIMEOUT_MS = 5000UL;
 const unsigned long MQ6_DEBOUNCE_MS = 1000UL;
 const byte METAL_DETECTED_STATE = LOW;
 const byte IRIS_CLOSED_ANGLE = 178;
@@ -168,6 +169,8 @@ bool mq6Candidate = false;
 unsigned long mq6CandidateSince = 0;
 unsigned long lastStatusMs = 0;
 bool hardwareStatusDirty = true;
+bool hostOnline = false;
+unsigned long lastHostAliveMs = 0;
 
 // Fast integer-based distance output (10x faster than floating point division, zero SRAM overhead)
 void printDistanceCm(int distanceMm) {
@@ -369,6 +372,7 @@ bool readHx711Average(byte samples, long& raw);
 float readPaperGrams(byte samples);
 void calibrateAll();
 void makeSafe();
+void enforceHostLease();
 void executeCommand(char* command);
 void autoRecover(Compartment& c);
 
@@ -415,18 +419,15 @@ void setup() {
     pinMode(metal.materialSensorPin, INPUT_PULLUP);
   }
   if (!PAPER_DISABLED) setupPaper();
-  calibrateAll();
-  if (calibrated) {
-    if (!PLASTIC_DISABLED && !METAL_DISABLED && !PAPER_DISABLED)
-      Serial.println(F("RVM:PLASTIC_METAL_PAPER_READY"));
-    else if (!PLASTIC_DISABLED && METAL_DISABLED && PAPER_DISABLED)
-      Serial.println(F("RVM:PLASTIC_ONLY_READY"));
-    else Serial.println(F("RVM:ENABLED_COMPARTMENTS_READY"));
-  }
+  // Safety-first boot: hardware remains closed and inactive until the
+  // PecoDrop desktop application begins renewing the host lease.
+  makeSafe();
+  Serial.println(F("HOST:WAITING"));
 }
 
 void loop() {
   handleSerial();
+  enforceHostLease();
   if (!machineRunning || !calibrated) {
     delay(10);
     return;
@@ -1197,7 +1198,8 @@ void calibrateAll() {
   paper.hasEmptyCalibration = !paper.workingFailed;
   plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
   plastic.missingEntranceReadings = metal.missingEntranceReadings = paper.missingEntranceReadings = 0;
-  calibrated = !plastic.workingFailed || !metal.workingFailed || !paper.workingFailed;
+  calibrated = hostOnline &&
+    (!plastic.workingFailed || !metal.workingFailed || !paper.workingFailed);
   calibrating = false;
   pollSensors();
   reportHardwareStatus();
@@ -1227,7 +1229,7 @@ void calibrateAll() {
     }
     if (!paperScaleReady) Serial.println(F("ERROR:PAPER_SCALE_NOT_READY"));
   }
-  if (calibrated) {
+  if (calibrated && hostOnline) {
     machineRunning = true;
     Serial.println(F("CALIBRATION:OK"));
     Serial.println(F("MACHINE:STARTED"));
@@ -1261,6 +1263,18 @@ void makeSafe() {
   if (!PAPER_DISABLED)   { paperIris.detach();   paperDrop.detach(); }
 }
 
+void enforceHostLease() {
+  if (!hostOnline || millis() - lastHostAliveMs <= HOST_LEASE_TIMEOUT_MS) return;
+  hostOnline = false;
+  machineRunning = false;
+  calibrated = false;
+  calibrationCancelled = calibrating;
+  activeCycleAborted = true;
+  makeSafe();
+  Serial.println(F("HOST:TIMEOUT"));
+  Serial.println(F("MACHINE:STOPPED"));
+}
+
 // Zero-allocation serial reader: eliminates heap fragmentation and dynamic memory churn
 void handleSerial() {
   pollSensors();
@@ -1280,6 +1294,7 @@ void handleSerial() {
       serialBuffer[serialBufIdx++] = ch;
     }
   }
+  enforceHostLease();
 }
 
 void executeCommand(char* cmd) {
@@ -1295,6 +1310,23 @@ void executeCommand(char* cmd) {
   // Uppercase in place
   for (int i = 0; cmd[i]; i++) {
     if (cmd[i] >= 'a' && cmd[i] <= 'z') cmd[i] -= 32;
+  }
+
+  if (strcmp(cmd, "HOST:ALIVE") == 0) {
+    bool newSession = !hostOnline;
+    hostOnline = true;
+    lastHostAliveMs = millis();
+    if (newSession) Serial.println(F("HOST:ONLINE"));
+    if (!calibrated && !calibrating) calibrateAll();
+    return;
+  }
+
+  // Only safety and diagnostic status commands are accepted without the
+  // desktop lease. In particular, CALIBRATE must never move gates standalone.
+  if (!hostOnline && strcmp(cmd, "STOP") != 0 &&
+      strcmp(cmd, "RESET") != 0 && strcmp(cmd, "STATUS") != 0) {
+    Serial.println(F("ERROR:HOST_OFFLINE"));
+    return;
   }
 
   if ((calibrating || activeCompartment != NULL) &&
@@ -1323,8 +1355,9 @@ void executeCommand(char* cmd) {
       Serial.println();
     }
   } else if (strcmp(cmd, "START") == 0) {
-    machineRunning = calibrated;
-    Serial.println(machineRunning ? F("MACHINE:STARTED") : F("ERROR:NOT_CALIBRATED"));
+    machineRunning = calibrated && hostOnline;
+    Serial.println(machineRunning ? F("MACHINE:STARTED") :
+                   (hostOnline ? F("ERROR:NOT_CALIBRATED") : F("ERROR:HOST_OFFLINE")));
   } else if (strcmp(cmd, "STOP") == 0 || strcmp(cmd, "RESET") == 0) {
     if (calibrating) calibrationCancelled = true;
     machineRunning = false;

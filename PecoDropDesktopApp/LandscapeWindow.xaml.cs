@@ -189,6 +189,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private readonly DispatcherTimer clockTimer = new();
     private readonly DispatcherTimer hardwareWatchdogTimer = new();
     private bool _isReconnecting = false;
+    private string? _connectedArduinoPort;
     private DispatcherTimer? _demo001Timer;
     private DispatcherTimer? _layoutToastTimer;
     private DispatcherTimer? apiCheckTimer;
@@ -1183,6 +1184,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         try
         {
             serial.Connect(targetPort, settings.ArduinoBaud);
+            _connectedArduinoPort = targetPort;
             ConnectionText.Text = $"HARDWARE: {targetPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
@@ -1199,6 +1201,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
         catch (Exception ex)
         {
+            _connectedArduinoPort = null;
             ConnectionText.Text = "HARDWARE: OFFLINE";
             ConnectionText.Foreground = Brushes.OrangeRed;
             StatusDot.Fill = Brushes.OrangeRed;
@@ -1228,8 +1231,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             bool portStillPresent = false;
             try
             {
+                string expectedPort = _connectedArduinoPort ?? settings.ArduinoPort;
                 portStillPresent = SerialPort.GetPortNames()
-                    .Any(p => p.Equals(settings.ArduinoPort, StringComparison.OrdinalIgnoreCase));
+                    .Any(p => p.Equals(expectedPort, StringComparison.OrdinalIgnoreCase));
             }
             catch { }
 
@@ -1238,6 +1242,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 LogTelemetry($"[HARDWARE WATCHDOG] Arduino USB cable unplugged! {settings.ArduinoPort} is missing.");
                 serial.Disconnect();
                 HandleHardwareDisconnected();
+            }
+            else
+            {
+                // Firmware requires this renewable lease. If the application
+                // exits or hangs, the lease expires and all actuators stop.
+                serial.SendCommand("HOST:ALIVE");
             }
             return;
         }
@@ -1290,6 +1300,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void HandleHardwareDisconnected()
     {
+        _connectedArduinoPort = null;
         _hardwareCalibrating = true;
         machineStarted = false;
         pendingBottleResult = null;
