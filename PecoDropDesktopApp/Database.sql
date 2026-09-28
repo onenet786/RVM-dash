@@ -67,6 +67,16 @@ VALUES
     ('SMALL', 'TETRA', 5), ('MEDIUM', 'TETRA', 10), ('LARGE', 'TETRA', 15);
 GO
 
+IF OBJECT_ID('dbo.KioskDisplaySettings', 'U') IS NULL
+CREATE TABLE dbo.KioskDisplaySettings
+(
+    MachineId NVARCHAR(100) NOT NULL PRIMARY KEY,
+    LayoutCode NVARCHAR(4) NOT NULL,
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT CK_KioskDisplaySettings_LayoutCode CHECK (LayoutCode IN ('0012', '0021'))
+);
+GO
+
 MERGE dbo.PointSettings AS target
 USING (VALUES
     ('SMALL', 'CAN', 5), ('MEDIUM', 'CAN', 10), ('LARGE', 'CAN', 15),

@@ -106,7 +106,7 @@ public static class ScreenHelper
     /// Hotkey 0012: Hardware Screen LEFT, Video Signage RIGHT.
     /// Hotkey 0021: Video Signage LEFT, Hardware Screen RIGHT.
     /// </summary>
-    public static void ApplyLayout(ScreenLayoutOrder order, Window? callingWindow = null)
+    public static void ApplyLayout(ScreenLayoutOrder order, Window? callingWindow = null, bool persist = true)
     {
         if (Application.Current == null) return;
 
@@ -118,9 +118,14 @@ public static class ScreenHelper
                 var mainWindow = Application.Current.MainWindow;
                 var adWindow = App.SecondaryDisplayWindow;
 
-                // Save layout preference to config.txt
                 string layoutCode = order == ScreenLayoutOrder.HardwareLeftVideoRight ? "0012" : "0021";
-                AppSettings.UpdateDisplayLayout(layoutCode);
+                if (persist)
+                {
+                    // SQL is authoritative; config.txt remains an offline fallback.
+                    var settings = AppSettings.Load();
+                    DatabaseManager.SaveDisplayLayout(settings.MachineId, layoutCode);
+                    AppSettings.UpdateDisplayLayout(layoutCode);
+                }
 
                 if (screens.Count > 1)
                 {

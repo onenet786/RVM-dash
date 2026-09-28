@@ -137,6 +137,21 @@ public partial class App : Application
             TryLaunchSecondaryDisplay();
         }
 
+        // Restore the machine-specific SQL preference after both windows exist.
+        // If SQL is temporarily unavailable, retain the config.txt fallback.
+        string? databaseLayout = DatabaseManager.GetDisplayLayout(settings.MachineId);
+        string savedLayout = databaseLayout ?? settings.DisplayLayout;
+        if (databaseLayout == null && savedLayout is "0012" or "0021")
+        {
+            // One-time non-blocking migration of the existing config preference.
+            _ = Task.Run(() => DatabaseManager.SaveDisplayLayout(settings.MachineId, savedLayout));
+        }
+        ScreenLayoutOrder savedOrder = savedLayout == "0021"
+            ? ScreenLayoutOrder.VideoLeftHardwareRight
+            : ScreenLayoutOrder.HardwareLeftVideoRight;
+        Dispatcher.BeginInvoke(() => ScreenHelper.ApplyLayout(savedOrder, startupWindow, persist: false),
+            System.Windows.Threading.DispatcherPriority.Loaded);
+
         bool launchDemo = e.Args.Any(a => a.Equals("--demo", StringComparison.OrdinalIgnoreCase) ||
                                           a.Equals("-d", StringComparison.OrdinalIgnoreCase) ||
                                           a.Equals("/demo", StringComparison.OrdinalIgnoreCase));

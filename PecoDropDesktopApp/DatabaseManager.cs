@@ -11,6 +11,12 @@ public static class DatabaseManager
     private static string? _connectionString;
     private static string ConnectionString => _connectionString ??= ResolveConnectionString();
 
+    private static SqlConnection CreateDisplaySettingsConnection()
+    {
+        var builder = new SqlConnectionStringBuilder(ConnectionString) { ConnectTimeout = 3 };
+        return new SqlConnection(builder.ConnectionString);
+    }
+
     private static string ResolveConnectionString()
     {
         string configPath = Path.Combine(AppContext.BaseDirectory, "config.txt");
@@ -47,6 +53,7 @@ public static class DatabaseManager
             using var connection = new SqlConnection(ConnectionString);
             connection.Open();
             EnsurePointSettingsTable();
+            EnsureDisplaySettingsTable();
             message = "Database connected.";
             return true;
         }
@@ -54,6 +61,80 @@ public static class DatabaseManager
         {
             message = ex.Message;
             return false;
+        }
+    }
+
+    public static void EnsureDisplaySettingsTable()
+    {
+        try
+        {
+            using var connection = CreateDisplaySettingsConnection();
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+        }
+        catch { }
+    }
+
+    private static void EnsureDisplaySettingsTable(SqlConnection connection)
+    {
+        using var command = new SqlCommand(@"
+                IF OBJECT_ID('dbo.KioskDisplaySettings', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.KioskDisplaySettings (
+                        MachineId NVARCHAR(100) NOT NULL PRIMARY KEY,
+                        LayoutCode NVARCHAR(4) NOT NULL,
+                        UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                        CONSTRAINT CK_KioskDisplaySettings_LayoutCode
+                            CHECK (LayoutCode IN ('0012', '0021'))
+                    );
+                END", connection);
+        command.ExecuteNonQuery();
+    }
+
+    public static bool SaveDisplayLayout(string machineId, string layoutCode)
+    {
+        if (string.IsNullOrWhiteSpace(machineId) || (layoutCode != "0012" && layoutCode != "0021")) return false;
+        try
+        {
+            using var connection = CreateDisplaySettingsConnection();
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(@"
+                MERGE dbo.KioskDisplaySettings AS target
+                USING (SELECT @MachineId AS MachineId) AS source
+                ON target.MachineId = source.MachineId
+                WHEN MATCHED THEN
+                    UPDATE SET LayoutCode = @LayoutCode, UpdatedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN
+                    INSERT (MachineId, LayoutCode) VALUES (@MachineId, @LayoutCode);", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            command.Parameters.AddWithValue("@LayoutCode", layoutCode);
+            command.ExecuteNonQuery();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string? GetDisplayLayout(string machineId)
+    {
+        if (string.IsNullOrWhiteSpace(machineId)) return null;
+        try
+        {
+            using var connection = CreateDisplaySettingsConnection();
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(
+                "SELECT LayoutCode FROM dbo.KioskDisplaySettings WHERE MachineId = @MachineId", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            string? layout = command.ExecuteScalar()?.ToString();
+            return layout is "0012" or "0021" ? layout : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 
