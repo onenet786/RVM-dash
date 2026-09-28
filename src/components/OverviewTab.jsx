@@ -46,13 +46,8 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       .catch(() => {});
   }, []);
 
-  // Maintenance Alerts State (Allows interactive clearing/dispatching)
-  const [alerts, setAlerts] = useState([
-    { id: 'alert-1', machine: 'PECO-02', type: 'Bin 95% Full', desc: 'Paper bin ready for clearing', level: 'danger', icon: Trash2, actionLabel: 'Clear Bin', completed: false },
-    { id: 'alert-2', machine: 'RVM-0067', type: 'Entry Gate Jam', desc: 'Item stuck near scanner flap', level: 'warning', icon: AlertTriangle, actionLabel: 'Send Tech', completed: false },
-    { id: 'alert-3', machine: 'PECO-01', type: 'Bin 90% Full', desc: 'Plastic storage compartment', level: 'danger', icon: Trash2, actionLabel: 'Clear Bin', completed: false },
-    { id: 'alert-4', machine: 'RVM-OLD-01', type: 'Sensor Check', desc: 'Scheduled sensor routine check', level: 'info', icon: Wrench, actionLabel: 'Acknowledge', completed: false }
-  ]);
+  // Maintenance Alerts State (Dynamically populated from backend live telemetry)
+  const [alerts, setAlerts] = useState([]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -92,7 +87,24 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         fetch(`/api/analytics/machines/summary${query}`, { headers })
       ]);
 
-      if (ovRes.ok) setOverview(await ovRes.json().catch(() => null));
+      if (ovRes.ok) {
+        const ovData = await ovRes.json().catch(() => null);
+        setOverview(ovData);
+        if (ovData?.recentAlerts && Array.isArray(ovData.recentAlerts) && ovData.recentAlerts.length > 0) {
+          setAlerts(ovData.recentAlerts.map((a, i) => ({
+            id: a._id || `alert-${i}`,
+            machine: a.machineId || 'Kiosk',
+            type: a.binType ? `Bin ${a.binType}` : 'Hardware Alert',
+            desc: a.message || 'System service required',
+            level: a.severity || 'warning',
+            icon: a.binType === 'PAPER' || a.binType === 'PLASTIC' ? Trash2 : AlertTriangle,
+            actionLabel: 'Clear Bin',
+            completed: false
+          })));
+        } else {
+          setAlerts([]);
+        }
+      }
       if (trRes.ok) setTrends(await trRes.json().catch(() => []));
       if (hlRes.ok) setHealth(await hlRes.json().catch(() => null));
       if (msRes.ok) setMachineSummary(await msRes.json().catch(() => null));
@@ -133,14 +145,14 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     else setActiveScope('cumulative');
   }, [stationFilter]);
 
-  // Scope Data Models (Dynamically responsive to Date Range & Location filters)
+  // Scope Data Models (Dynamically responsive to live DB data, Date Range & Location filters)
   const scopeData = useMemo(() => {
     let multiplier = 1.0;
     if (dateRange === 'today') multiplier = 0.045;
     else if (dateRange === 'yesterday') multiplier = 0.042;
     else if (dateRange === '7d') multiplier = 0.26;
     else if (dateRange === 'this_month') multiplier = 0.95;
-    else if (dateRange === 'all_time') multiplier = 1.65;
+    else if (dateRange === 'all_time') multiplier = 1.0;
     else multiplier = 1.0; // 30d
 
     let locFactor = 1.0;
@@ -149,19 +161,35 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     else if (selectedLocation === 'Rawalpindi') locFactor = 0.16;
     else if (selectedLocation === 'Islamabad') locFactor = 0.08;
 
-    const baseBottles = Math.round((overview?.totalBottles ?? 152357) * multiplier * locFactor);
-    const baseCans = Math.round((overview?.totalCans ?? 941) * multiplier * locFactor);
-    const baseTetra = Math.round((overview?.totalTetra ?? 2) * multiplier * locFactor);
-    const basePaperKg = parseFloat(((overview?.totalPaperKg ?? 8.80) * multiplier * locFactor).toFixed(2));
-    const basePoints = Math.round((overview?.totalPoints ?? 788651) * multiplier * locFactor);
-    const baseSessions = Math.round((overview?.totalSessions ?? 2221) * multiplier * locFactor);
+    const rawBottles = overview?.totalBottles ?? 0;
+    const rawCans = overview?.totalCans ?? 0;
+    const rawTetra = overview?.totalTetra ?? (overview?.totalTetraPakGrams ? Math.round(overview.totalTetraPakGrams / 35) : 0);
+    const rawPaperKg = overview?.totalPaperKg ?? (overview?.totalPaperGrams ? parseFloat((overview.totalPaperGrams / 1000).toFixed(2)) : 0);
+    const rawPoints = overview?.totalPoints ?? 0;
+    const rawSessions = overview?.totalSessions ?? 0;
+    const rawUsers = overview?.totalUsers ?? 0;
+
+    const baseBottles = Math.round(rawBottles * multiplier * locFactor);
+    const baseCans = Math.round(rawCans * multiplier * locFactor);
+    const baseTetra = Math.round(rawTetra * multiplier * locFactor);
+    const basePaperKg = parseFloat((rawPaperKg * multiplier * locFactor).toFixed(2));
+    const basePoints = Math.round(rawPoints * multiplier * locFactor);
+    const baseSessions = Math.round(rawSessions * multiplier * locFactor);
+    const baseUsers = Math.round(rawUsers * locFactor);
     const totalMassTons = ((baseBottles * 0.025 + baseCans * 0.015 + basePaperKg + baseTetra * 0.035) / 1000).toFixed(2);
     const carbonKg = (parseFloat(totalMassTons) * 1573).toFixed(1);
     const trees = Math.round(parseFloat(totalMassTons) * 63);
+    const itemsPerVisit = baseSessions > 0 ? Math.round((baseBottles + baseCans + baseTetra) / baseSessions) : 0;
+    const targetProgress = Math.min(100, Math.round((parseFloat(totalMassTons) / 5.0) * 100));
+
+    // Sub-tab breakdown values from live DB
+    const rvmNewSub = overview?.subTabs?.rvmNew;
+    const pecoSub = overview?.subTabs?.pecodrop;
+    const rvmOldSub = overview?.subTabs?.rvmOld;
 
     return {
       cumulative: {
-        mass: totalMassTons > 0 ? totalMassTons : '3.89',
+        mass: totalMassTons,
         massUnit: 'Tonnes',
         units: baseBottles + baseCans + baseTetra,
         bottles: baseBottles,
@@ -173,91 +201,102 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         points: basePoints,
         liability: Math.round(basePoints * 0.20),
         sessions: baseSessions,
-        activeUsers: Math.max(1, Math.round(101 * locFactor)),
-        itemsPerVisit: 69,
-        targetProgress: 77.8
+        activeUsers: baseUsers,
+        itemsPerVisit,
+        targetProgress
       },
       new_rvm: {
-        mass: (parseFloat(totalMassTons) * 0.25).toFixed(2),
+        mass: ((rvmNewSub ? (rvmNewSub.totalBottles * 0.025 + rvmNewSub.totalCans * 0.015 + (rvmNewSub.tetraPakCartons || 0) * 0.035) : 0) / 1000).toFixed(2),
         massUnit: 'Tonnes',
-        units: Math.round(baseBottles * 0.25) + Math.round(baseCans * 0.15) + baseTetra,
-        bottles: Math.round(baseBottles * 0.25),
-        cans: Math.round(baseCans * 0.15),
-        cartons: baseTetra,
+        units: rvmNewSub ? (rvmNewSub.totalBottles + rvmNewSub.totalCans + (rvmNewSub.tetraPakCartons || 0)) : 0,
+        bottles: rvmNewSub?.totalBottles ?? 0,
+        cans: rvmNewSub?.totalCans ?? 0,
+        cartons: rvmNewSub?.tetraPakCartons ?? 0,
         paperKg: 0,
-        carbon: (parseFloat(carbonKg) * 0.25).toFixed(1),
-        trees: `${Math.round(trees * 0.25)} Mature Trees`,
-        points: Math.round(basePoints * 0.24),
-        liability: Math.round(basePoints * 0.24 * 0.20),
-        sessions: Math.round(baseSessions * 0.29),
-        activeUsers: Math.max(1, Math.round(54 * locFactor)),
-        itemsPerVisit: 59,
-        targetProgress: 65.3
+        carbon: (((rvmNewSub ? (rvmNewSub.totalBottles * 0.025 + rvmNewSub.totalCans * 0.015 + (rvmNewSub.tetraPakCartons || 0) * 0.035) : 0) / 1000) * 1573).toFixed(1),
+        trees: `${Math.round(((rvmNewSub ? (rvmNewSub.totalBottles * 0.025 + rvmNewSub.totalCans * 0.015 + (rvmNewSub.tetraPakCartons || 0) * 0.035) : 0) / 1000) * 63)} Mature Trees`,
+        points: rvmNewSub?.points ?? 0,
+        liability: Math.round((rvmNewSub?.points ?? 0) * 0.20),
+        sessions: rvmNewSub?.totalSessions ?? 0,
+        activeUsers: baseUsers,
+        itemsPerVisit: (rvmNewSub?.totalSessions ?? 0) > 0 ? Math.round(((rvmNewSub?.totalBottles ?? 0) + (rvmNewSub?.totalCans ?? 0)) / rvmNewSub.totalSessions) : 0,
+        targetProgress: 0
       },
       pecodrop: {
-        mass: (parseFloat(totalMassTons) * 0.06).toFixed(2),
+        mass: ((pecoSub ? (pecoSub.totalBottles * 0.025 + (parseFloat(pecoSub.paperMassKg) || 0)) : 0) / 1000).toFixed(2),
         massUnit: 'Tonnes',
-        units: Math.round(baseBottles * 0.05) + Math.round(baseCans * 0.02),
-        bottles: Math.round(baseBottles * 0.05),
-        cans: Math.round(baseCans * 0.02),
+        units: pecoSub ? (pecoSub.totalBottles + pecoSub.metalPieces) : 0,
+        bottles: pecoSub?.totalBottles ?? 0,
+        cans: pecoSub?.metalPieces ?? 0,
         cartons: 0,
-        paperKg: basePaperKg,
-        carbon: (parseFloat(carbonKg) * 0.06).toFixed(1),
-        trees: `${Math.round(trees * 0.06)} Mature Trees`,
-        points: Math.round(basePoints * 0.06),
-        liability: Math.round(basePoints * 0.06 * 0.20),
-        sessions: Math.round(baseSessions * 0.14),
-        activeUsers: Math.max(1, Math.round(17 * locFactor)),
-        itemsPerVisit: 24,
-        targetProgress: 44.0
+        paperKg: parseFloat(pecoSub?.paperMassKg || 0),
+        carbon: (((pecoSub ? (pecoSub.totalBottles * 0.025 + (parseFloat(pecoSub.paperMassKg) || 0)) : 0) / 1000) * 1573).toFixed(1),
+        trees: `${Math.round(((pecoSub ? (pecoSub.totalBottles * 0.025 + (parseFloat(pecoSub.paperMassKg) || 0)) : 0) / 1000) * 63)} Mature Trees`,
+        points: pecoSub?.points ?? 0,
+        liability: Math.round((pecoSub?.points ?? 0) * 0.20),
+        sessions: pecoSub?.totalSessions ?? 0,
+        activeUsers: baseUsers,
+        itemsPerVisit: (pecoSub?.totalSessions ?? 0) > 0 ? Math.round((pecoSub?.totalBottles ?? 0) / pecoSub.totalSessions) : 0,
+        targetProgress: 0
       },
       old_rvm: {
-        mass: (parseFloat(totalMassTons) * 0.69).toFixed(2),
+        mass: ((rvmOldSub ? (rvmOldSub.totalBottles * 0.025) : 0) / 1000).toFixed(2),
         massUnit: 'Tonnes',
-        units: Math.round(baseBottles * 0.70) + Math.round(baseCans * 0.83),
-        bottles: Math.round(baseBottles * 0.70),
-        cans: Math.round(baseCans * 0.83),
+        units: rvmOldSub?.totalBottles ?? 0,
+        bottles: rvmOldSub?.totalBottles ?? 0,
+        cans: 0,
         cartons: 0,
         paperKg: 0,
-        carbon: (parseFloat(carbonKg) * 0.69).toFixed(1),
-        trees: `${Math.round(trees * 0.69)} Mature Trees`,
-        points: Math.round(basePoints * 0.70),
-        liability: Math.round(basePoints * 0.70 * 0.20),
-        sessions: Math.round(baseSessions * 0.57),
-        activeUsers: Math.max(1, Math.round(84 * locFactor)),
-        itemsPerVisit: 84,
-        targetProgress: 89.6
+        carbon: (((rvmOldSub ? (rvmOldSub.totalBottles * 0.025) : 0) / 1000) * 1573).toFixed(1),
+        trees: `${Math.round(((rvmOldSub ? (rvmOldSub.totalBottles * 0.025) : 0) / 1000) * 63)} Mature Trees`,
+        points: rvmOldSub?.points ?? 0,
+        liability: Math.round((rvmOldSub?.points ?? 0) * 0.20),
+        sessions: rvmOldSub?.totalSessions ?? 0,
+        activeUsers: baseUsers,
+        itemsPerVisit: (rvmOldSub?.totalSessions ?? 0) > 0 ? Math.round((rvmOldSub?.totalBottles ?? 0) / rvmOldSub.totalSessions) : 0,
+        targetProgress: 0
       }
     };
   }, [overview, dateRange, selectedLocation]);
 
   const currentScope = scopeData[activeScope] || scopeData.cumulative;
 
-  // Daily Trend Stacked Chart Data (Past 14 Days)
-  const dailyTrendData = useMemo(() => [
-    { day: '11 Sep', bottles: 380, cans: 65, cartons: 5 },
-    { day: '12 Sep', bottles: 590, cans: 80, cartons: 10 },
-    { day: '13 Sep', bottles: 810, cans: 100, cartons: 10 },
-    { day: '14 Sep', bottles: 980, cans: 110, cartons: 10 },
-    { day: '15 Sep', bottles: 760, cans: 80, cartons: 10 },
-    { day: '16 Sep', bottles: 640, cans: 70, cartons: 10 },
-    { day: '17 Sep', bottles: 850, cans: 90, cartons: 10 },
-    { day: '18 Sep', bottles: 1150, cans: 130, cartons: 20 },
-    { day: '19 Sep', bottles: 930, cans: 110, cartons: 10 },
-    { day: '20 Sep', bottles: 790, cans: 90, cartons: 10 },
-    { day: '21 Sep', bottles: 1260, cans: 140, cartons: 20 },
-    { day: '22 Sep', bottles: 1070, cans: 115, cartons: 15 },
-    { day: '23 Sep', bottles: 1200, cans: 130, cartons: 20 },
-    { day: '24 Sep', bottles: 1420, cans: 160, cartons: 20 },
-  ], []);
+  // Daily Trend Stacked Chart Data (Live from /api/analytics/trends)
+  const dailyTrendData = useMemo(() => {
+    if (!trends || !Array.isArray(trends) || trends.length === 0) return [];
+    return trends.map(t => {
+      let label = t._id || 'Day';
+      try {
+        if (t._id && t._id.length >= 10) {
+          label = new Date(t._id).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+        }
+      } catch (e) {}
+      return {
+        day: label,
+        bottles: t.bottles || 0,
+        cans: t.cups || t.cans || 0,
+        cartons: t.cartons || 0
+      };
+    });
+  }, [trends]);
 
-  // Material Weight Share Donut Data
-  const materialShareData = [
-    { name: 'Plastic Bottles (3.80 T)', value: 97.5, color: '#059669' },
-    { name: 'Aluminium Cans (14.1 kg)', value: 1.8, color: '#f59e0b' },
-    { name: 'Paper Weight (8.8 kg)', value: 0.6, color: '#a855f7' },
-    { name: 'Tetra Pak (0.07 kg)', value: 0.1, color: '#0ea5e9' }
-  ];
+  // Material Weight Share Donut Data (Dynamically computed from actual masses)
+  const materialShareData = useMemo(() => {
+    const pWeight = (currentScope?.bottles || 0) * 0.025;
+    const cWeight = (currentScope?.cans || 0) * 0.015;
+    const tWeight = (currentScope?.cartons || 0) * 0.035;
+    const paperWeight = currentScope?.paperKg || 0;
+    const totalWeightKg = pWeight + cWeight + tWeight + paperWeight;
+
+    if (totalWeightKg <= 0) return [];
+
+    const items = [];
+    if (pWeight > 0) items.push({ name: `Plastic Bottles (${(pWeight >= 1000 ? (pWeight / 1000).toFixed(2) + ' T' : pWeight.toFixed(1) + ' kg')})`, value: parseFloat(((pWeight / totalWeightKg) * 100).toFixed(1)), color: '#059669' });
+    if (cWeight > 0) items.push({ name: `Aluminium Cans (${cWeight.toFixed(1)} kg)`, value: parseFloat(((cWeight / totalWeightKg) * 100).toFixed(1)), color: '#f59e0b' });
+    if (paperWeight > 0) items.push({ name: `Office Paper (${paperWeight.toFixed(1)} kg)`, value: parseFloat(((paperWeight / totalWeightKg) * 100).toFixed(1)), color: '#a855f7' });
+    if (tWeight > 0) items.push({ name: `Tetra Pak (${tWeight.toFixed(2)} kg)`, value: parseFloat(((tWeight / totalWeightKg) * 100).toFixed(1)), color: '#0ea5e9' });
+    return items;
+  }, [currentScope]);
 
   // Dispatch / Complete an alert
   const handleAlertAction = (alertId, machine) => {
@@ -723,39 +762,37 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                   <h3 className="font-bold t-text-primary text-sm">Plastic Bottles</h3>
                 </div>
                 <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  ~3.80 Tonnes
+                  {((currentScope.bottles * 0.025) >= 1000 ? `~${((currentScope.bottles * 0.025) / 1000).toFixed(2)} Tonnes` : `~${(currentScope.bottles * 0.025).toFixed(2)} kg`)}
                 </span>
               </div>
               
               <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
-                152,357 <span className="text-xs font-normal t-text-muted">bottles</span>
+                {currentScope.bottles.toLocaleString()} <span className="text-xs font-normal t-text-muted">bottles</span>
               </p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">Small 345ml</span>
-                  <span className="text-xs font-bold t-text-primary mono">46</span>
+                  <span className="text-xs font-bold t-text-primary mono">{overview?.variantBreakdown?.plasticSmall ?? 0}</span>
                 </div>
                 <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Med 500-1L</span>
-                  <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 mono">151,864</span>
+                  <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 mono">{overview?.variantBreakdown?.plasticMedium ?? 0}</span>
                 </div>
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">Large 1.5L</span>
-                  <span className="text-xs font-bold t-text-primary mono">55</span>
+                  <span className="text-xs font-bold t-text-primary mono">{overview?.variantBreakdown?.plasticLarge ?? 0}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-5 pt-3 border-t t-border">
               <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
-                <span>Collection by Machine</span>
-                <span className="t-text-primary">Legacy (70%) • Smart (25%) • Peco (5%)</span>
+                <span>Collection Status</span>
+                <span className="t-text-primary">{currentScope.bottles > 0 ? `${currentScope.bottles} logged` : 'No active deposits'}</span>
               </div>
               <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
-                <div className="bg-amber-500 h-full" style={{ width: '70%' }} title="Legacy RVM"></div>
-                <div className="bg-emerald-500 h-full" style={{ width: '25%' }} title="Smart RVM"></div>
-                <div className="bg-teal-600 h-full" style={{ width: '5%' }} title="PecoDrop"></div>
+                <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: currentScope.bottles > 0 ? '100%' : '0%' }} title="Plastic Stream"></div>
               </div>
             </div>
           </div>
@@ -771,38 +808,37 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                   <h3 className="font-bold t-text-primary text-sm">Aluminium Cans</h3>
                 </div>
                 <span className="text-xs font-extrabold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                  ~14.12 kg
+                  ~{(currentScope.cans * 0.015).toFixed(2)} kg
                 </span>
               </div>
               
               <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
-                941 <span className="text-xs font-normal t-text-muted">cans</span>
+                {currentScope.cans.toLocaleString()} <span className="text-xs font-normal t-text-muted">cans</span>
               </p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">Small 250ml</span>
-                  <span className="text-xs font-bold t-text-primary mono">31</span>
+                  <span className="text-xs font-bold t-text-primary mono">{overview?.variantBreakdown?.canSmall ?? 0}</span>
                 </div>
                 <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Med 375ml</span>
-                  <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 mono">928</span>
+                  <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300 mono">{overview?.variantBreakdown?.canMedium ?? 0}</span>
                 </div>
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">Large 500ml</span>
-                  <span className="text-xs font-bold t-text-primary mono">11</span>
+                  <span className="text-xs font-bold t-text-primary mono">{overview?.variantBreakdown?.canLarge ?? 0}</span>
                 </div>
               </div>
             </div>
 
             <div className="mt-5 pt-3 border-t t-border">
               <div className="flex justify-between text-[11px] font-semibold t-text-muted mb-1.5">
-                <span>Collection by Machine</span>
-                <span className="t-text-primary">Legacy (85%) • Smart RVM (15%)</span>
+                <span>Collection Status</span>
+                <span className="t-text-primary">{currentScope.cans > 0 ? `${currentScope.cans} logged` : 'No active deposits'}</span>
               </div>
               <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
-                <div className="bg-amber-500 h-full" style={{ width: '85%' }} title="Legacy RVM"></div>
-                <div className="bg-emerald-500 h-full" style={{ width: '15%' }} title="Smart RVM"></div>
+                <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: currentScope.cans > 0 ? '100%' : '0%' }} title="Can Stream"></div>
               </div>
             </div>
           </div>
@@ -818,12 +854,12 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                   <h3 className="font-bold t-text-primary text-sm">Tetra Pak Cartons</h3>
                 </div>
                 <span className="text-xs font-extrabold text-sky-700 dark:text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/30">
-                  0.07 kg (70g)
+                  {(currentScope.cartons * 0.035).toFixed(2)} kg
                 </span>
               </div>
               
               <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
-                2 <span className="text-xs font-normal t-text-muted">cartons</span>
+                {currentScope.cartons.toLocaleString()} <span className="text-xs font-normal t-text-muted">cartons</span>
               </p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
@@ -833,7 +869,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 </div>
                 <div className="bg-sky-500/10 border border-sky-500/20 p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400">Med 1000ml</span>
-                  <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 mono">2</span>
+                  <span className="text-xs font-extrabold text-sky-700 dark:text-sky-300 mono">{currentScope.cartons}</span>
                 </div>
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">Large 1.5L</span>
@@ -848,7 +884,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="text-sky-700 dark:text-sky-400 font-bold">Smart RVM Only</span>
               </div>
               <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
-                <div className="bg-sky-500 h-full" style={{ width: '100%' }} title="Smart RVM"></div>
+                <div className="bg-sky-500 h-full transition-all duration-500" style={{ width: currentScope.cartons > 0 ? '100%' : '0%' }} title="Smart RVM"></div>
               </div>
             </div>
           </div>
@@ -869,21 +905,21 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               </div>
               
               <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
-                8.80 <span className="text-xs font-normal t-text-muted">kg collected</span>
+                {currentScope.paperKg.toFixed(2)} <span className="text-xs font-normal t-text-muted">kg collected</span>
               </p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">&lt;50g Light</span>
-                  <span className="text-xs font-bold t-text-primary mono">12 drops</span>
+                  <span className="text-xs font-bold t-text-primary mono">0 drops</span>
                 </div>
                 <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400">100-250g File</span>
-                  <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 mono">8 drops</span>
+                  <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 mono">0 drops</span>
                 </div>
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
                   <span className="block text-[10px] uppercase font-bold t-text-muted">500g-1kg Bulk</span>
-                  <span className="text-xs font-bold t-text-primary mono">3 drops</span>
+                  <span className="text-xs font-bold t-text-primary mono">0 drops</span>
                 </div>
               </div>
             </div>
@@ -894,7 +930,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <span className="text-purple-700 dark:text-purple-400 font-bold">PecoDrop Corporate Only</span>
               </div>
               <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full flex overflow-hidden">
-                <div className="bg-purple-500 h-full" style={{ width: '100%' }} title="PecoDrop Corporate"></div>
+                <div className="bg-purple-500 h-full transition-all duration-500" style={{ width: currentScope.paperKg > 0 ? '100%' : '0%' }} title="PecoDrop Corporate"></div>
               </div>
             </div>
           </div>
@@ -929,20 +965,28 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
           </div>
 
           <div className="relative h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
-                  formatter={(value, name) => [value, name === 'bottles' ? 'PET Bottles' : name === 'cans' ? 'Cans' : 'Cartons']}
-                />
-                <Bar dataKey="bottles" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="cans" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="cartons" stackId="a" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {dailyTrendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#888' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                    formatter={(value, name) => [value, name === 'bottles' ? 'PET Bottles' : name === 'cans' ? 'Cans' : 'Cartons']}
+                  />
+                  <Bar dataKey="bottles" stackId="a" fill="#059669" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="cans" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="cartons" stackId="a" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center text-xs t-text-muted gap-2 border border-dashed t-border rounded-xl">
+                <BarChart3 className="w-8 h-8 opacity-30 text-emerald-500" />
+                <span className="font-semibold t-text-secondary">No activity recorded for this period</span>
+                <span className="text-[11px] opacity-70">Daily deposit trends will display here as containers are recycled</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -954,51 +998,59 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                 <PieIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 Material Weight Share
               </h3>
-              <span className="text-[11px] font-bold t-text-muted mono">Total: 3.89 Tonnes</span>
+              <span className="text-[11px] font-bold t-text-muted mono">Total: {currentScope.mass} {currentScope.massUnit}</span>
             </div>
             <p className="text-xs t-text-muted mb-4">Percentage share of total collected waste</p>
 
             <div className="relative h-44 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={materialShareData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {materialShareData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
-                    formatter={(val) => [`${val}%`, 'Share']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {materialShareData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={materialShareData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {materialShareData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                      formatter={(val) => [`${val}%`, 'Share']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center text-xs t-text-muted gap-1.5 border border-dashed t-border rounded-xl">
+                  <PieIcon className="w-8 h-8 opacity-30 text-teal-500" />
+                  <span className="font-semibold t-text-secondary">No materials collected</span>
+                  <span className="text-[10px] opacity-70">Weight breakdown will compute automatically</span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Machine Status Summary */}
           <div className="mt-4 pt-4 border-t t-border">
             <div className="flex items-center justify-between mb-2 text-xs">
-              <span className="font-bold t-text-primary">Machine Network Status (12 Machines)</span>
+              <span className="font-bold t-text-primary">Machine Network Status ({liveNetworkStatus.total} Machines)</span>
               <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                66.7% Ready
+                {liveNetworkStatus.pct}% Ready
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-center text-xs">
               <div className="t-bg-sec p-2 rounded-xl border t-border">
                 <span className="t-text-muted block text-[10px] font-semibold uppercase">Operational &amp; Ready</span>
-                <span className="font-bold t-text-primary text-sm mono">8 Machines</span>
+                <span className="font-bold t-text-primary text-sm mono">{liveNetworkStatus.online} Machines</span>
               </div>
               <div className="bg-amber-500/10 p-2 rounded-xl border border-amber-500/20">
                 <span className="text-amber-700 dark:text-amber-400 block text-[10px] font-semibold uppercase">Needs Emptying / Tech</span>
-                <span className="font-bold text-amber-800 dark:text-amber-300 text-sm mono">4 Machines</span>
+                <span className="font-bold text-amber-800 dark:text-amber-300 text-sm mono">{machineSummary?.activeAlerts ?? 0} Machines</span>
               </div>
             </div>
           </div>
@@ -1025,95 +1077,40 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               </span>
             </div>
 
-            <div className="space-y-3">
-              {/* Row 1 */}
-              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    <Check className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold t-text-primary">0300****110</span>
-                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-RWP</span>
-                      <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">Smart RVM</span>
+            {overview?.recentSessions && overview.recentSessions.length > 0 ? (
+              <div className="space-y-3">
+                {overview.recentSessions.map((s, idx) => (
+                  <div key={s.session_id || s._id || idx} className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold t-text-primary">{s.userName || s.user_id || 'Citizen Recycler'}</span>
+                          <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">{s.machineId || s.machine_id || 'RVM'}</span>
+                          <span className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">{s.hardwareBadge || s.machineType || 'Smart RVM'}</span>
+                        </div>
+                        <span className="t-text-muted text-[11px]">
+                          {s.created_at ? new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'} • {s.verifiedWeightText || `${s.bottles || s.plasticCount || 1} items`}
+                        </span>
+                      </div>
                     </div>
-                    <span className="t-text-muted text-[11px]">Today at 3:30 PM • 1x Medium PET Bottle (500ml)</span>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
-                    +5 Pts
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 2 */}
-              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-700 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold t-text-primary">abiddutt12</span>
-                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">PECO-HQ-01</span>
-                      <span className="bg-purple-500/10 text-purple-700 dark:text-purple-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-purple-500/20">PecoDrop</span>
+                    <div className="text-right shrink-0">
+                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
+                        +{s.points || s.pointsEarned || 0} Pts
+                      </span>
                     </div>
-                    <span className="t-text-muted text-[11px]">Today at 1:44 PM • Confidential Paper Drop (250g)</span>
                   </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
-                    +25 Pts
-                  </span>
-                </div>
+                ))}
               </div>
-
-              {/* Row 3 */}
-              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    <Check className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold t-text-primary">0328****785</span>
-                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-UCP</span>
-                      <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-amber-500/20">Legacy RVM</span>
-                    </div>
-                    <span className="t-text-muted text-[11px]">Today at 12:23 PM • 2x Aluminium Cans (375ml)</span>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
-                    +30 Pts
-                  </span>
-                </div>
+            ) : (
+              <div className="py-12 text-center text-xs t-text-muted flex flex-col items-center justify-center gap-2 border border-dashed t-border rounded-xl">
+                <Activity className="w-8 h-8 opacity-30 text-emerald-500" />
+                <span className="font-semibold t-text-secondary">No recent recycling sessions</span>
+                <span className="text-[11px] opacity-70">Container deposits across the kiosk fleet will appear here live</span>
               </div>
-
-              {/* Row 4 */}
-              <div className="p-3 rounded-xl t-bg-sec border t-border hover:t-bg-hover transition-colors flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    <Package className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold t-text-primary">0302****949</span>
-                      <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono px-1.5 py-0.5 rounded text-[10px]">RVM-RWP</span>
-                      <span className="bg-sky-500/10 text-sky-700 dark:text-sky-400 font-semibold px-1.5 py-0.5 rounded text-[10px] border border-sky-500/20">Smart RVM</span>
-                    </div>
-                    <span className="t-text-muted text-[11px]">Today at 11:46 AM • 1x Tetra Pak Carton (1000ml)</span>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/30 mono">
-                    +20 Pts
-                  </span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -1133,62 +1130,68 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               </span>
             </div>
 
-            <div className="space-y-2.5">
-              {alerts.map((item) => {
-                const IconComp = item.icon;
-                return (
-                  <div
-                    key={item.id}
-                    className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs transition-colors ${
-                      item.completed 
-                        ? 'border-emerald-500/30 bg-emerald-500/5' 
-                        : item.level === 'danger' 
-                          ? 'border-rose-500/30 bg-rose-500/5' 
-                          : item.level === 'warning' 
-                            ? 'border-amber-500/30 bg-amber-500/5' 
-                            : 't-border t-bg-sec'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        item.completed ? 'bg-emerald-500/20 text-emerald-400' :
-                        item.level === 'danger' ? 'bg-rose-500/20 text-rose-500' :
-                        item.level === 'warning' ? 'bg-amber-500/20 text-amber-500' :
-                        'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}>
-                        <IconComp className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold t-text-primary mono">{item.machine}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
-                            item.completed ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
-                            item.level === 'danger' ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/30' :
-                            item.level === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30' :
-                            't-bg-sec t-text-secondary t-border'
-                          }`}>
-                            {item.completed ? 'Cleared & Ready' : item.type}
-                          </span>
-                        </div>
-                        <span className="t-text-muted text-[11px]">{item.desc}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleAlertAction(item.id, item.machine)}
-                      disabled={item.completed}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all shadow-xs ${
-                        item.completed
-                          ? 'bg-emerald-600 text-white cursor-default'
-                          : 'bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-700 dark:hover:bg-slate-600'
+            {alerts.filter(a => !a.completed).length > 0 ? (
+              <div className="space-y-2.5">
+                {alerts.map((item) => {
+                  const IconComp = item.icon || AlertTriangle;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs transition-colors ${
+                        item.completed 
+                          ? 'border-emerald-500/30 bg-emerald-500/5' 
+                          : item.level === 'danger' 
+                            ? 'border-rose-500/30 bg-rose-500/5' 
+                            : item.level === 'warning' 
+                              ? 'border-amber-500/30 bg-amber-500/5' 
+                              : 't-border t-bg-sec'
                       }`}
                     >
-                      {item.completed ? 'Completed' : item.actionLabel}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          item.completed ? 'bg-emerald-500/20 text-emerald-400' :
+                          item.level === 'danger' ? 'bg-rose-500/20 text-rose-500' :
+                          item.level === 'warning' ? 'bg-amber-500/20 text-amber-500' :
+                          'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}>
+                          <IconComp className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold t-text-primary mono">{item.machine}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
+                              item.completed ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' :
+                              item.level === 'danger' ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/30' :
+                              item.level === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30' :
+                              't-bg-sec t-text-secondary t-border'
+                            }`}>
+                              {item.completed ? 'Cleared & Ready' : item.type}
+                            </span>
+                          </div>
+                          <span className="t-text-muted text-[11px]">{item.desc}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleAlertAction(item.id, item.machine)}
+                        disabled={item.completed}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all shadow-xs ${
+                          item.completed ? 'bg-emerald-600 text-white cursor-default' : 'bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-700 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {item.completed ? 'Completed' : item.actionLabel}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-xs t-text-muted flex flex-col items-center justify-center gap-2 border border-dashed t-border rounded-xl">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 opacity-60" />
+                <span className="font-semibold t-text-primary">All Machines Healthy &amp; Ready</span>
+                <span className="text-[11px]">No active bin overflow or hardware service alerts</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1292,7 +1295,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
           <span>All Recycling Machines Live Overview</span>
         </div>
         <div className="flex items-center gap-4">
-          <span>12 Connected Machines</span>
+          <span>{liveNetworkStatus.total} Connected {liveNetworkStatus.total === 1 ? 'Machine' : 'Machines'}</span>
           <span>•</span>
           <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

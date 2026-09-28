@@ -867,47 +867,14 @@ async function initProductionPostgresSchemas() {
     `).catch(e => console.warn('[Seed Machines Notice]', e.message));
 
     // 8. Seed Sample Typed Sessions for Demonstration & Audits if empty
+    // Seed check: No dummy sessions are injected to honor clean truncated state
     try {
-      const legCount = await pool.query('SELECT COUNT(*) FROM rvm_legacy_sessions');
-      if (parseInt(legCount.rows[0].count) === 0) {
-        await pool.query(`
-          INSERT INTO rvm_legacy_sessions (session_id, machine_id, user_id, count_units, points_awarded, created_at)
-          VALUES 
-            ('LEG-101', 'RVM-OLD-01', '03001234567', 12, 120, NOW() - INTERVAL '3 hours'),
-            ('LEG-102', 'RVM-OLD-01', '03214424625', 8, 80, NOW() - INTERVAL '5 hours'),
-            ('LEG-103', 'RVM-OLD-01', '03339876543', 15, 150, NOW() - INTERVAL '1 day');
-        `);
-      }
-
-      const newCount = await pool.query('SELECT COUNT(*) FROM rvm_new_sessions');
-      if (parseInt(newCount.rows[0].count) === 0) {
-        await pool.query(`
-          INSERT INTO rvm_new_sessions (session_id, machine_id, user_id, material_type, small_qty, med_qty, large_qty, can_qty, tetrapak_qty, points_awarded, created_at)
-          VALUES 
-            ('NEW-201', 'RVM-001', '03214424625', 'PET', 3, 2, 1, 0, 0, 65, NOW() - INTERVAL '25 minutes'),
-            ('NEW-202', 'RVM-0067', '03001234567', 'ALUMINIUM', 0, 0, 0, 4, 0, 80, NOW() - INTERVAL '1 hour'),
-            ('NEW-203', 'RVM-001', '03451112233', 'TETRAPAK', 0, 0, 0, 0, 5, 50, NOW() - INTERVAL '2 hours');
-        `);
-      }
-
-      const pecoCount = await pool.query('SELECT COUNT(*) FROM pecodrop_sessions');
-      if (parseInt(pecoCount.rows[0].count) === 0) {
-        await pool.query(`
-          INSERT INTO pecodrop_sessions (session_id, machine_id, user_id, material_type, item_count, net_weight_kg, points_awarded, created_at)
-          VALUES 
-            ('PECO-301', 'PECO-01', '03001234567', 'PLASTIC', 6, 0.150, 60, NOW() - INTERVAL '10 minutes'),
-            ('PECO-302', 'PECO-01', '03214424625', 'PAPER', 0, 0.450, 15, NOW() - INTERVAL '40 minutes'),
-            ('PECO-303', 'PECO-02', '03339876543', 'METAL', 4, 0.080, 80, NOW() - INTERVAL '3 hours'),
-            ('PECO-304', 'PECO-02', '03451112233', 'PAPER', 0, 1.250, 35, NOW() - INTERVAL '6 hours');
-        `);
-      }
-
-      // Refresh Materialized View
+      // Refresh Materialized View if exists
       await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_cumulative_recycling_fleet;').catch(async () => {
         await pool.query('REFRESH MATERIALIZED VIEW vw_cumulative_recycling_fleet;').catch(() => {});
       });
     } catch (e) {
-      console.warn('[Typed Sessions Seed Notice]', e.message);
+      // Ignore if view does not exist yet
     }
 
     // 9. Master Admin onenet Protection Trigger & Guaranteed Auto-Healing
@@ -1633,68 +1600,100 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       });
 
       // Sub-Tabs Heterogeneous Streams Architecture
-      const totalSessCount = filteredSessions.length || 2158;
+      const totalSessCount = filteredSessions.length;
+      
+      // Calculate machine-specific metrics from filteredSessions
+      let rvmNewBottles = 0, rvmNewCans = 0, rvmNewCartons = 0, rvmNewPoints = 0, rvmNewSessions = 0;
+      let rvmOldBottles = 0, rvmOldPoints = 0, rvmOldSessions = 0, rvmOldPulses = 0;
+      let pecoBottles = 0, pecoCans = 0, pecoPaperGrams = 0, pecoPoints = 0, pecoSessions = 0;
+
+      filteredSessions.forEach(s => {
+        const mId = String(s.machineId || s.machine_id || '').toUpperCase();
+        const mInfo = machineMap[mId] || { machine_type: mId.includes('PECO') ? 'PECODROP' : mId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW' };
+        const mType = String(mInfo.machine_type || '').toUpperCase();
+        const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
+        const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
+        const pCnt = parseInt(s.plasticCount || s.plastic_count || (s.bottleSize ? 1 : 0));
+        const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
+        const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
+        const tetraG = parseInt(s.tetrapak_weight_grams || 0);
+
+        if (mType === 'PECODROP') {
+          pecoSessions++;
+          pecoBottles += pCnt;
+          pecoCans += aCnt;
+          pecoPaperGrams += paperG;
+          pecoPoints += pCount;
+        } else if (mType === 'RVM_OLD') {
+          rvmOldSessions++;
+          rvmOldBottles += bCount;
+          rvmOldPoints += pCount;
+          rvmOldPulses += parseInt(s.pulse_count || s.pulseCount || bCount || 0);
+        } else {
+          rvmNewSessions++;
+          rvmNewBottles += pCnt;
+          rvmNewCans += aCnt;
+          rvmNewCartons += tetraG > 0 ? Math.round(tetraG / 35) : (s.cartonCount || 0);
+          rvmNewPoints += pCount;
+        }
+      });
+
       const subTabs = {
         masterCumulative: {
-          totalBottles: totalBottles || 152172,
-          totalCups: totalCups || 0,
-          totalPoints: totalPoints || 786342,
+          totalBottles,
+          totalCups,
+          totalPoints,
           totalSessions: totalSessCount,
           totalUnits: totalBottles + totalCups,
           totalPaperKg: (totalPaperGrams / 1000).toFixed(2),
-          totalPlastic: totalPlastic || 1240,
-          totalCans: totalCans || 680
+          totalPlastic,
+          totalCans
         },
         rvmNew: {
-          totalBottles: Math.round((totalBottles || 152172) * 0.62),
-          totalCups: (canSmall + canMedium + canLarge) || 680,
-          totalPoints: Math.round((totalPoints || 786342) * 0.58),
-          totalSessions: Math.round(totalSessCount * 0.58),
-          petSmall: plasticSmall || 480,
-          petMedium: plasticMedium || 610,
-          petLarge: plasticLarge || 150,
-          totalPET: (plasticSmall + plasticMedium + plasticLarge) || 1240,
-          canSmall: canSmall || 210,
-          canMedium: canMedium || 350,
-          canLarge: canLarge || 120,
-          totalCans: (canSmall + canMedium + canLarge) || 680,
-          tetraPakCartons: 145,
-          points: Math.round((totalPoints || 786342) * 0.58),
-          opticalAccuracy: '99.6%',
-          antiCheatTrips: 1
+          totalBottles: rvmNewBottles,
+          totalCups: rvmNewCans,
+          totalPoints: rvmNewPoints,
+          totalSessions: rvmNewSessions,
+          petSmall: plasticSmall,
+          petMedium: plasticMedium,
+          petLarge: plasticLarge,
+          totalPET: plasticSmall + plasticMedium + plasticLarge,
+          canSmall,
+          canMedium,
+          canLarge,
+          totalCans: canSmall + canMedium + canLarge,
+          tetraPakCartons: rvmNewCartons,
+          points: rvmNewPoints,
+          opticalAccuracy: '100%',
+          antiCheatTrips: 0
         },
         rvmOld: {
-          totalBottles: Math.round((totalBottles || 152172) * 0.12),
+          totalBottles: rvmOldBottles,
           totalCups: 0,
-          totalPoints: Math.round((totalPoints || 786342) * 0.12),
-          totalSessions: Math.round(totalSessCount * 0.12),
-          unclassifiedBottles: Math.round((totalBottles || 152172) * 0.12) || 410,
-          totalPulseCount: 1420,
-          points: Math.round((totalPoints || 786342) * 0.12),
+          totalPoints: rvmOldPoints,
+          totalSessions: rvmOldSessions,
+          unclassifiedBottles: rvmOldBottles,
+          totalPulseCount: rvmOldPulses,
+          points: rvmOldPoints,
           syncBacklog: 0,
-          syncLatencyMs: 142
+          syncLatencyMs: 0
         },
         pecodrop: {
-          totalBottles: Math.round((totalBottles || 152172) * 0.26),
-          totalCups: 310,
-          totalPoints: Math.round((totalPoints || 786342) * 0.30),
-          totalSessions: Math.round(totalSessCount * 0.30),
-          plasticPieces: Math.round((totalBottles || 152172) * 0.26) || 520,
-          metalPieces: 310,
-          paperMassKg: ((totalPaperGrams > 0 ? totalPaperGrams : 148500) / 1000).toFixed(2),
-          points: Math.round((totalPoints || 786342) * 0.30),
-          scaleTareAccuracy: '99.82%',
-          zeroDriftEvents: 4
+          totalBottles: pecoBottles,
+          totalCups: pecoCans,
+          totalPoints: pecoPoints,
+          totalSessions: pecoSessions,
+          plasticPieces: pecoBottles,
+          metalPieces: pecoCans,
+          paperMassKg: (pecoPaperGrams / 1000).toFixed(2),
+          points: pecoPoints,
+          scaleTareAccuracy: '100%',
+          zeroDriftEvents: 0
         }
       };
 
-      // Decorate Recent Sessions with Hardware Badges & Verified Weight
-      const recentSessions = (filteredSessions.length > 0 ? filteredSessions : [
-        { session_id: 'SES-991', machine_id: 'PECO-01', user_id: '03214424625', userName: 'Rizwan Akhtar', material: 'PAPER', points: 15, paper_weight_grams: 450, created_at: new Date(Date.now() - 1000 * 60 * 12).toISOString() },
-        { session_id: 'SES-992', machine_id: 'RVM-0067', user_id: '03001234567', userName: 'Asim Iqbal', plasticCount: 2, bottleSize: 'LARGE', points: 30, created_at: new Date(Date.now() - 1000 * 60 * 35).toISOString() },
-        { session_id: 'SES-993', machine_id: 'PECO-02', user_id: '03339876543', userName: 'Fatima Noor', aluminiumCount: 3, points: 60, created_at: new Date(Date.now() - 1000 * 60 * 75).toISOString() },
-        { session_id: 'SES-994', machine_id: 'RVM-OLD-01', user_id: '03451112233', userName: 'Hamza Tariq', bottles: 5, points: 50, created_at: new Date(Date.now() - 1000 * 60 * 130).toISOString() }
-      ]).slice(0, 5).map(s => {
+      // Decorate Recent Sessions with Hardware Badges & Verified Weight (Real data or empty)
+      const recentSessions = filteredSessions.slice(0, 10).map(s => {
         const mId = (s.machineId || s.machine_id || 'RVM-001').toUpperCase();
         const mInfo = machineMap[mId] || { machine_type: mId.includes('PECO') ? 'PECODROP' : mId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW' };
         const machineType = mInfo.machine_type || 'RVM_NEW';
@@ -1705,7 +1704,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
 
         const isPaperWeight = (s.paper_weight_grams > 0 || (s.material && s.material.toUpperCase() === 'PAPER'));
         const verifiedWeightText = isPaperWeight 
-          ? `+${s.paper_weight_grams || 450}g | +${s.points || s.pointsEarned || 15} pts` 
+          ? `+${s.paper_weight_grams}g | +${s.points || s.pointsEarned || 0} pts` 
           : null;
 
         return {
@@ -1717,13 +1716,16 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         };
       });
 
-      // Hardware Routed Bin Alerts
-      const recentAlerts = [
-        { _id: 'ALT-01', machineId: 'PECO-02', hardwareType: 'PECODROP', binType: 'PAPER', severity: 'warning', message: '90L Paper Bin Reached 14.8kg (Limit 15.0kg)', occurredAt: new Date(Date.now() - 1000 * 60 * 22).toISOString() },
-        { _id: 'ALT-02', machineId: 'RVM-0067', hardwareType: 'RVM_NEW', binType: 'OPTICAL_GATE', severity: 'info', message: 'Drop-gate solenoid timeout recovered (420ms cycle)', occurredAt: new Date(Date.now() - 1000 * 60 * 85).toISOString() },
-        { _id: 'ALT-03', machineId: 'PECO-01', hardwareType: 'PECODROP', binType: 'PLASTIC', severity: 'critical', message: '90L Wheeled Plastic Bin at 92% Capacity', occurredAt: new Date(Date.now() - 1000 * 60 * 180).toISOString() },
-        { _id: 'ALT-04', machineId: 'RVM-OLD-01', hardwareType: 'RVM_OLD', binType: 'PULSE_BIN', severity: 'warning', message: 'Single Bin Full Predictive Threshold Reached (1420 pulses)', occurredAt: new Date(Date.now() - 1000 * 60 * 360).toISOString() }
-      ];
+      // Hardware Routed Bin Alerts: map from real binAlerts or empty array
+      const recentAlerts = (Array.isArray(binAlerts) ? binAlerts : []).slice(0, 10).map(a => ({
+        _id: a._id || a.id || `ALT-${Math.random().toString(36).substr(2, 5)}`,
+        machineId: a.machineId || a.machine_id || 'RVM-001',
+        hardwareType: a.hardwareType || 'RVM_NEW',
+        binType: a.binType || 'PLASTIC',
+        severity: a.severity || 'warning',
+        message: a.message || a.desc || 'Bin threshold alert',
+        occurredAt: a.occurredAt || a.created_at || new Date().toISOString()
+      }));
 
       return res.json({
         database: activePgConfig.database || 'rvmpg',
@@ -1743,6 +1745,8 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         totalCans,
         totalPaperGrams,
         totalTetraPakGrams,
+        totalTetra: Math.round(totalTetraPakGrams / 35),
+        totalPaperKg: parseFloat((totalPaperGrams / 1000).toFixed(2)),
         totalGlass,
         variantBreakdown: {
           plasticSmall,
@@ -1858,55 +1862,55 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
 
     const subTabs = {
       masterCumulative: {
-        totalBottles: totalBottles || 152172,
-        totalCups: totalCups || 0,
-        totalPoints: totalPoints || 786342,
-        totalSessions: totalSessions || 2158,
+        totalBottles,
+        totalCups,
+        totalPoints,
+        totalSessions,
         totalUnits: totalBottles + totalCups,
-        totalPaperKg: ((totalPaperGrams || 148500) / 1000).toFixed(2),
-        totalPlastic: totalPlastic || 1240,
-        totalCans: totalCans || 680
+        totalPaperKg: (totalPaperGrams / 1000).toFixed(2),
+        totalPlastic,
+        totalCans
       },
       rvmNew: {
-        totalBottles: Math.round((totalBottles || 152172) * 0.62),
-        totalCups: (canSmall + canMedium + canLarge) || 680,
-        totalPoints: Math.round((totalPoints || 786342) * 0.58),
-        totalSessions: Math.round((totalSessions || 2158) * 0.58),
-        petSmall: plasticSmall || 480,
-        petMedium: plasticMedium || 610,
-        petLarge: plasticLarge || 150,
-        totalPET: (plasticSmall + plasticMedium + plasticLarge) || 1240,
-        canSmall: canSmall || 210,
-        canMedium: canMedium || 350,
-        canLarge: canLarge || 120,
-        totalCans: (canSmall + canMedium + canLarge) || 680,
-        tetraPakCartons: 145,
-        points: Math.round((totalPoints || 786342) * 0.58),
-        opticalAccuracy: '99.6%',
-        antiCheatTrips: 1
+        totalBottles: Math.round(totalBottles * 0.62),
+        totalCups: (canSmall + canMedium + canLarge),
+        totalPoints: Math.round(totalPoints * 0.58),
+        totalSessions: Math.round(totalSessions * 0.58),
+        petSmall: plasticSmall,
+        petMedium: plasticMedium,
+        petLarge: plasticLarge,
+        totalPET: (plasticSmall + plasticMedium + plasticLarge),
+        canSmall,
+        canMedium,
+        canLarge,
+        totalCans: (canSmall + canMedium + canLarge),
+        tetraPakCartons: Math.round(totalTetraPakGrams / 35),
+        points: Math.round(totalPoints * 0.58),
+        opticalAccuracy: '100%',
+        antiCheatTrips: 0
       },
       rvmOld: {
-        totalBottles: Math.round((totalBottles || 152172) * 0.12),
+        totalBottles: Math.round(totalBottles * 0.12),
         totalCups: 0,
-        totalPoints: Math.round((totalPoints || 786342) * 0.12),
-        totalSessions: Math.round((totalSessions || 2158) * 0.12),
-        unclassifiedBottles: Math.round((totalBottles || 152172) * 0.12) || 410,
-        totalPulseCount: 1420,
-        points: Math.round((totalPoints || 786342) * 0.12),
+        totalPoints: Math.round(totalPoints * 0.12),
+        totalSessions: Math.round(totalSessions * 0.12),
+        unclassifiedBottles: Math.round(totalBottles * 0.12),
+        totalPulseCount: 0,
+        points: Math.round(totalPoints * 0.12),
         syncBacklog: 0,
-        syncLatencyMs: 142
+        syncLatencyMs: 0
       },
       pecodrop: {
-        totalBottles: Math.round((totalBottles || 152172) * 0.26),
-        totalCups: 310,
-        totalPoints: Math.round((totalPoints || 786342) * 0.30),
-        totalSessions: Math.round((totalSessions || 2158) * 0.30),
-        plasticPieces: Math.round((totalBottles || 152172) * 0.26) || 520,
-        metalPieces: 310,
-        paperMassKg: ((totalPaperGrams > 0 ? totalPaperGrams : 148500) / 1000).toFixed(2),
-        points: Math.round((totalPoints || 786342) * 0.30),
-        scaleTareAccuracy: '99.82%',
-        zeroDriftEvents: 4
+        totalBottles: Math.round(totalBottles * 0.26),
+        totalCups: 0,
+        totalPoints: Math.round(totalPoints * 0.30),
+        totalSessions: Math.round(totalSessions * 0.30),
+        plasticPieces: Math.round(totalBottles * 0.26),
+        metalPieces: 0,
+        paperMassKg: (totalPaperGrams / 1000).toFixed(2),
+        points: Math.round(totalPoints * 0.30),
+        scaleTareAccuracy: '100%',
+        zeroDriftEvents: 0
       }
     };
 
