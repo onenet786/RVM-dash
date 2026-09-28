@@ -19,7 +19,7 @@ const bool PAPER_DISABLED = false;
 
 // Digital obstacle sensors: LOW means blocked. Change polarity for your modules.
 // Enable only installed bin sensors. Plastic is currently not connected.
-const bool PLASTIC_BIN_SENSOR_ENABLED = false;
+const bool PLASTIC_BIN_SENSOR_ENABLED = true;
 const bool METAL_BIN_SENSOR_ENABLED = true;
 const bool PAPER_BIN_SENSOR_ENABLED = true;
 const byte PLASTIC_BIN_PIN = 47;

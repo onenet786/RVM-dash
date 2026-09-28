@@ -27,6 +27,15 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         Activate();
         Focus();
+        try
+        {
+            var helper = new System.Windows.Interop.WindowInteropHelper(this);
+            if (helper.Handle != IntPtr.Zero)
+            {
+                ScreenHelper.SetForegroundWindow(helper.Handle);
+            }
+        }
+        catch { }
     }
 
     private static readonly TimeSpan ScanTimeout = TimeSpan.FromSeconds(25);
@@ -406,6 +415,43 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
+            if (_demoSecretSequence.EndsWith("66"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                TriggerStart();
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("77"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                TriggerStop();
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("88"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                digit8PressCount = 0;
+                TriggerReset();
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("99"))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                TriggerCalibrate();
+                e.Handled = true;
+                return;
+            }
+
             if (_demoSecretSequence.EndsWith("0012"))
             {
                 _demo001Timer?.Stop();
@@ -667,11 +713,39 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (WaterSavedText != null) WaterSavedText.Text = (totalItems * 0.75).ToString("0.00");
     }
 
-    private void StartButton_Click(object sender, RoutedEventArgs e) => StartMachine();
+    public void TriggerStart()
+    {
+        LogTelemetry("[HOTKEY 66] START machine triggered via hotkey");
+        ShowLayoutToast("MACHINE: START (66)");
+        StartMachine();
+    }
+
+    public void TriggerStop()
+    {
+        LogTelemetry("[HOTKEY 77] STOP machine triggered via hotkey");
+        ShowLayoutToast("MACHINE: STOP (77)");
+        StopMachine();
+    }
+
+    public void TriggerReset()
+    {
+        LogTelemetry("[HOTKEY 88] RESET machine triggered via hotkey");
+        ShowLayoutToast("MACHINE: RESET (88)");
+        ResetHardwareButton_Click(this, new RoutedEventArgs());
+    }
+
+    public void TriggerCalibrate()
+    {
+        LogTelemetry("[HOTKEY 99] CALIBRATE machine triggered via hotkey");
+        ShowLayoutToast("MACHINE: CALIBRATING (99)");
+        CalibrateHardwareButton_Click(this, new RoutedEventArgs());
+    }
+
+    private void StartButton_Click(object sender, RoutedEventArgs e) => TriggerStart();
 
     private void DemoTestingButton_Click(object sender, RoutedEventArgs e) => DemoTestingWindow.OpenOrBringToFront(this);
 
-    private void StopButton_Click(object sender, RoutedEventArgs e) => StopMachine();
+    private void StopButton_Click(object sender, RoutedEventArgs e) => TriggerStop();
 
     private void ResetHardwareButton_Click(object sender, RoutedEventArgs e)
     {

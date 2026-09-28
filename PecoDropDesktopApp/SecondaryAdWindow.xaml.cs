@@ -13,11 +13,26 @@ public partial class SecondaryAdWindow : Window
     private int playlistIndex = 0;
     private readonly AppSettings settings;
     private static readonly string[] VideoExtensions = [".mp4", ".avi", ".wmv", ".mov", ".mkv"];
+    private readonly System.Windows.Threading.DispatcherTimer _mouseNoMoveTimer = new();
+    private Point _lastMousePosition;
+    private bool _hasLastMousePosition = false;
 
     public SecondaryAdWindow(AppSettings? appSettings = null)
     {
         InitializeComponent();
         settings = appSettings ?? AppSettings.Load();
+
+        _mouseNoMoveTimer.Interval = TimeSpan.FromMilliseconds(1200);
+        _mouseNoMoveTimer.Tick += (s, ev) =>
+        {
+            _mouseNoMoveTimer.Stop();
+            ReturnFocusToHardwareScreen();
+        };
+
+        MouseMove += SecondaryAdWindow_MouseMove;
+        MouseLeave += SecondaryAdWindow_MouseLeave;
+        Activated += SecondaryAdWindow_Activated;
+
         Loaded += SecondaryAdWindow_Loaded;
         SourceInitialized += (s, ev) =>
         {
@@ -123,11 +138,82 @@ public partial class SecondaryAdWindow : Window
         PlayNextVideo();
     }
 
+    private void SecondaryAdWindow_MouseMove(object sender, MouseEventArgs e)
+    {
+        Point currentPos = e.GetPosition(this);
+        if (_hasLastMousePosition)
+        {
+            if (Math.Abs(currentPos.X - _lastMousePosition.X) < 2 && Math.Abs(currentPos.Y - _lastMousePosition.Y) < 2)
+            {
+                return;
+            }
+        }
+        _lastMousePosition = currentPos;
+        _hasLastMousePosition = true;
+
+        // Reset timer when mouse moves; when it stops moving for 1.2s, focus will return to hardware screen
+        _mouseNoMoveTimer.Stop();
+        _mouseNoMoveTimer.Start();
+    }
+
+    private void SecondaryAdWindow_MouseLeave(object sender, MouseEventArgs e)
+    {
+        _mouseNoMoveTimer.Stop();
+        _hasLastMousePosition = false;
+        ReturnFocusToHardwareScreen();
+    }
+
+    private void SecondaryAdWindow_Activated(object? sender, EventArgs e)
+    {
+        _mouseNoMoveTimer.Stop();
+        _mouseNoMoveTimer.Start();
+    }
+
+    public static void ReturnFocusToHardwareScreen()
+    {
+        try
+        {
+            if (Application.Current == null) return;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var hwWindow = Application.Current.MainWindow;
+                if (hwWindow != null && hwWindow.IsLoaded)
+                {
+                    if (hwWindow is IKioskSimulatorTarget target)
+                    {
+                        target.FocusKiosk();
+                    }
+                    else
+                    {
+                        hwWindow.Activate();
+                        hwWindow.Focus();
+                        var helper = new System.Windows.Interop.WindowInteropHelper(hwWindow);
+                        if (helper.Handle != IntPtr.Zero)
+                        {
+                            ScreenHelper.SetForegroundWindow(helper.Handle);
+                        }
+                    }
+                }
+            });
+        }
+        catch { }
+    }
+
     private string _demoSecretSequence = "";
     private DateTime _lastDemoSecretTime = DateTime.MinValue;
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            try { HeartbeatService.Stop(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
+            return;
+        }
+
         char digit = e.Key switch
         {
             Key.D0 or Key.NumPad0 => '0',
@@ -157,10 +243,47 @@ public partial class SecondaryAdWindow : Window
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
+            if (_demoSecretSequence.EndsWith("66"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerStart();
+                ReturnFocusToHardwareScreen();
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("77"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerStop();
+                ReturnFocusToHardwareScreen();
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("88"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerReset();
+                ReturnFocusToHardwareScreen();
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("99"))
+            {
+                _demoSecretSequence = "";
+                e.Handled = true;
+                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerCalibrate();
+                ReturnFocusToHardwareScreen();
+                return;
+            }
+
             if (_demoSecretSequence.EndsWith("0012"))
             {
                 _demoSecretSequence = "";
                 ScreenHelper.ApplyLayout(ScreenLayoutOrder.HardwareLeftVideoRight, this);
+                ReturnFocusToHardwareScreen();
                 e.Handled = true;
                 return;
             }
@@ -169,6 +292,7 @@ public partial class SecondaryAdWindow : Window
             {
                 _demoSecretSequence = "";
                 ScreenHelper.ApplyLayout(ScreenLayoutOrder.VideoLeftHardwareRight, this);
+                ReturnFocusToHardwareScreen();
                 e.Handled = true;
                 return;
             }
@@ -190,15 +314,16 @@ public partial class SecondaryAdWindow : Window
             }
         }
 
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Enter)
         {
+            (Application.Current.MainWindow as IKioskSimulatorTarget)?.CompleteSessionToWallet();
+            ReturnFocusToHardwareScreen();
             e.Handled = true;
-            try { HeartbeatService.Stop(); } catch { }
-            try { DemoTestingWindow.CloseIfOpen(); } catch { }
-            try { Application.Current?.Shutdown(); } catch { }
-            Environment.Exit(0);
             return;
         }
+
+        // Always redirect keyboard / numpad focus back to hardware kiosk screen immediately
+        ReturnFocusToHardwareScreen();
         base.OnPreviewKeyDown(e);
     }
 

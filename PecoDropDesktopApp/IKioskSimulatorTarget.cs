@@ -49,4 +49,16 @@ public interface IKioskSimulatorTarget
 
     /// <summary>Brings the main kiosk display to the front.</summary>
     void FocusKiosk();
+
+    /// <summary>Triggers machine START (Hotkey 66).</summary>
+    void TriggerStart();
+
+    /// <summary>Triggers machine STOP (Hotkey 77).</summary>
+    void TriggerStop();
+
+    /// <summary>Triggers hardware RESET (Hotkey 88).</summary>
+    void TriggerReset();
+
+    /// <summary>Triggers hardware CALIBRATION (Hotkey 99).</summary>
+    void TriggerCalibrate();
 }
