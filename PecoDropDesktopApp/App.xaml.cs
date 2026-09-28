@@ -13,7 +13,7 @@ public partial class App : Application
 {
     private static Mutex? singleInstanceMutex;
     private const string MutexId = @"Local\PecoDropDesktopApp_SingleInstance_Mutex";
-    public static SecondaryAdWindow? SecondaryDisplayWindow { get; private set; }
+    public static SecondaryAdWindow? SecondaryDisplayWindow { get; set; }
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

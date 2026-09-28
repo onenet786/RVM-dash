@@ -157,6 +157,22 @@ public partial class SecondaryAdWindow : Window
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
+            if (_demoSecretSequence.EndsWith("0012"))
+            {
+                _demoSecretSequence = "";
+                ScreenHelper.ApplyLayout(ScreenLayoutOrder.HardwareLeftVideoRight, this);
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("0021"))
+            {
+                _demoSecretSequence = "";
+                ScreenHelper.ApplyLayout(ScreenLayoutOrder.VideoLeftHardwareRight, this);
+                e.Handled = true;
+                return;
+            }
+
             if (_demoSecretSequence.EndsWith("1218"))
             {
                 _demoSecretSequence = "";

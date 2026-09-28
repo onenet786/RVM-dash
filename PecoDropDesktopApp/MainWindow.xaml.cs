@@ -2,6 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Ports;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -107,6 +109,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         Closed += MainWindow_Closed;
         serial.DataReceived += Serial_DataReceived;
         serial.ErrorReceived += Serial_ErrorReceived;
+        serial.ConnectionLost += () => Dispatcher.InvokeAsync(HandleHardwareDisconnected);
         AdvertisementPlayer.MediaFailed += AdvertisementPlayer_MediaFailed;
 
         scanTimer.Interval = ScanTimeout;
@@ -115,16 +118,24 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         clockTimer.Interval = TimeSpan.FromSeconds(1);
         clockTimer.Tick += (s, args) => UpdateClockDisplay();
 
+        hardwareWatchdogTimer.Interval = TimeSpan.FromMilliseconds(1500);
+        hardwareWatchdogTimer.Tick += HardwareWatchdogTimer_Tick;
+
         TelemetryList.ItemsSource = telemetryLog;
     }
 
     private readonly DispatcherTimer clockTimer = new();
+    private readonly DispatcherTimer hardwareWatchdogTimer = new();
+    private bool _isReconnecting = false;
+    private DispatcherTimer? _demo001Timer;
+    private DispatcherTimer? _layoutToastTimer;
     private DispatcherTimer? apiCheckTimer;
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         UpdateClockDisplay();
         clockTimer.Start();
+        hardwareWatchdogTimer.Start();
         UpdateImpactMetrics();
 
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
@@ -303,20 +314,57 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = _demoSecretSequence[^8..];
             }
 
-            if (_demoSecretSequence.EndsWith("001"))
+            if (_demoSecretSequence.EndsWith("0012"))
             {
+                _demo001Timer?.Stop();
+                _demo001Timer = null;
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                LogTelemetry("[DEMO HOTKEY] Demo Mode activated via sequence '001'");
-                DemoTestingWindow.CloseIfOpen();
-                IsDemoMode = true;
-                StartMachine(forceSimulator: true);
+                LogTelemetry("[HOTKEY 0012] Display layout switch: Hardware Screen (LEFT) | Video Signage (RIGHT)");
+                ScreenHelper.ApplyLayout(ScreenLayoutOrder.HardwareLeftVideoRight, this);
+                ShowLayoutToast("Layout: Hardware Screen [LEFT] | Video Signage [RIGHT] (0012)");
                 e.Handled = true;
                 return;
             }
 
+            if (_demoSecretSequence.EndsWith("0021"))
+            {
+                _demo001Timer?.Stop();
+                _demo001Timer = null;
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                LogTelemetry("[HOTKEY 0021] Display layout switch: Video Signage (LEFT) | Hardware Screen (RIGHT)");
+                ScreenHelper.ApplyLayout(ScreenLayoutOrder.VideoLeftHardwareRight, this);
+                ShowLayoutToast("Layout: Video Signage [LEFT] | Hardware Screen [RIGHT] (0021)");
+                e.Handled = true;
+                return;
+            }
+
+            if (_demoSecretSequence.EndsWith("001"))
+            {
+                _demo001Timer?.Stop();
+                _demo001Timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(450) };
+                _demo001Timer.Tick += (s, ev) =>
+                {
+                    _demo001Timer?.Stop();
+                    _demo001Timer = null;
+                    if (_demoSecretSequence.EndsWith("001"))
+                    {
+                        _demoSecretSequence = "";
+                        digit1PressCount = 0;
+                        LogTelemetry("[DEMO HOTKEY] Demo Mode activated via sequence '001'");
+                        DemoTestingWindow.CloseIfOpen();
+                        IsDemoMode = true;
+                        StartMachine(forceSimulator: true);
+                    }
+                };
+                _demo001Timer.Start();
+            }
+
             if (_demoSecretSequence.EndsWith("1122"))
             {
+                _demo001Timer?.Stop();
+                _demo001Timer = null;
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
                 LogTelemetry("[HOTKEY] Demo testing simulator opened via secret code 1122");
@@ -1122,49 +1170,188 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         }
     }
 
-    private void ConnectArduino()
+    private void ShowLayoutToast(string message)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (LayoutToastBanner != null && LayoutToastText != null)
+            {
+                LayoutToastText.Text = message;
+                LayoutToastBanner.Visibility = Visibility.Visible;
+                _layoutToastTimer?.Stop();
+                _layoutToastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+                _layoutToastTimer.Tick += (s, e) =>
+                {
+                    _layoutToastTimer?.Stop();
+                    _layoutToastTimer = null;
+                    LayoutToastBanner.Visibility = Visibility.Collapsed;
+                };
+                _layoutToastTimer.Start();
+            }
+        });
+    }
+
+    private void ConnectArduino(bool autoRecalibrate = false, string? portOverride = null)
     {
         compartmentAvailability.ResetConnection();
         RefreshCompartmentCards();
+        string targetPort = portOverride ?? settings.ArduinoPort;
         try
         {
-            serial.Connect(settings.ArduinoPort, settings.ArduinoBaud);
-            ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
+            serial.Connect(targetPort, settings.ArduinoBaud);
+            ConnectionText.Text = $"HARDWARE: {targetPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
-            StatusText.Text = "Calibrating...";
+            StatusText.Text = autoRecalibrate ? "Recalibrating..." : "Calibrating...";
             StatusText.Foreground = Brushes.Gold;
-            BottleInfoText.Text = "Keep pipe empty";
+            BottleInfoText.Text = autoRecalibrate ? "Arduino reconnected — recalibrating chamber" : "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
-            LogTelemetry($"[HARDWARE] Connected on {settings.ArduinoPort} at {settings.ArduinoBaud} baud");
-            LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
-            serial.SendCommand("STATUS");
+            LogTelemetry($"[HARDWARE] Connected on {targetPort} at {settings.ArduinoBaud} baud");
+
+            if (autoRecalibrate)
+            {
+                LogTelemetry("[HARDWARE] Cable reconnected: Triggering automatic CALIBRATE sequence...");
+                Task.Delay(600).ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (serial.IsConnected)
+                        {
+                            serial.SendCommand("CALIBRATE");
+                            LogTelemetry("[CMD] CALIBRATE (Auto-triggered after cable reconnect)");
+                        }
+                    });
+                });
+            }
+            else
+            {
+                LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
+                serial.SendCommand("STATUS");
+            }
         }
         catch (Exception ex)
         {
             ConnectionText.Text = "HARDWARE: OFFLINE";
             ConnectionText.Foreground = Brushes.OrangeRed;
             StatusDot.Fill = Brushes.OrangeRed;
-            StatusText.Text = "Ready";
-            StatusText.Foreground = Brushes.LimeGreen;
-            BottleInfoText.Text = "• Insert container";
-            MachineStateText.Text = "MACHINE: ERROR";
+            StatusText.Text = "Hardware Disconnected";
+            StatusText.Foreground = Brushes.OrangeRed;
+            BottleInfoText.Text = "Arduino cable disconnected";
+            MachineStateText.Text = "MACHINE: OFFLINE";
             if (HardwareErrorBanner != null)
             {
                 HardwareErrorBanner.Visibility = Visibility.Visible;
                 if (HardwareErrorText != null)
                 {
-                    HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: Check {settings.ArduinoPort} connection or update config.txt • ہارڈویئر منسلک نہیں ہے";
+                    HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: Check {targetPort} connection or update config.txt • ہارڈویئر منسلک نہیں ہے";
                 }
             }
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
         }
     }
 
+    private void HardwareWatchdogTimer_Tick(object? sender, EventArgs e)
+    {
+        if (IsDemoMode) return;
+
+        // 1. If currently connected, verify the USB COM port is still present in Windows
+        if (serial.IsConnected)
+        {
+            bool portStillPresent = false;
+            try
+            {
+                portStillPresent = SerialPort.GetPortNames()
+                    .Any(p => p.Equals(settings.ArduinoPort, StringComparison.OrdinalIgnoreCase));
+            }
+            catch { }
+
+            if (!portStillPresent)
+            {
+                LogTelemetry($"[HARDWARE WATCHDOG] Arduino USB cable unplugged! {settings.ArduinoPort} is missing.");
+                serial.Disconnect();
+                HandleHardwareDisconnected();
+            }
+            return;
+        }
+
+        // 2. If disconnected, scan for Arduino COM port and auto-reconnect + recalibrate
+        if (!serial.IsConnected && !_isReconnecting)
+        {
+            string? detectedPort = null;
+            try
+            {
+                var availablePorts = SerialPort.GetPortNames();
+                if (availablePorts.Any(p => p.Equals(settings.ArduinoPort, StringComparison.OrdinalIgnoreCase)))
+                {
+                    detectedPort = settings.ArduinoPort;
+                }
+                else
+                {
+                    // Fallback to single active USB COM port
+                    var usbCandidates = availablePorts
+                        .Where(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase) &&
+                                    !p.Equals(settings.CameraPort, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    if (usbCandidates.Count == 1)
+                    {
+                        detectedPort = usbCandidates[0];
+                    }
+                }
+            }
+            catch { }
+
+            if (!string.IsNullOrEmpty(detectedPort))
+            {
+                _isReconnecting = true;
+                LogTelemetry($"[HARDWARE WATCHDOG] Arduino detected on {detectedPort}! Reconnecting and auto-recalibrating...");
+                try
+                {
+                    ConnectArduino(autoRecalibrate: true, portOverride: detectedPort);
+                }
+                catch (Exception ex)
+                {
+                    LogTelemetry($"[HARDWARE WATCHDOG] Reconnect error: {ex.Message}");
+                }
+                finally
+                {
+                    _isReconnecting = false;
+                }
+            }
+        }
+    }
+
+    private void HandleHardwareDisconnected()
+    {
+        machineStarted = false;
+        pendingBottleResult = null;
+        pendingBottlePoints = 0;
+        scanTimer.Stop();
+
+        compartmentAvailability.ResetConnection();
+        RefreshCompartmentCards();
+
+        ConnectionText.Text = "HARDWARE: OFFLINE";
+        ConnectionText.Foreground = Brushes.OrangeRed;
+        StatusDot.Fill = Brushes.OrangeRed;
+        StatusText.Text = "Cable Disconnected";
+        StatusText.Foreground = Brushes.OrangeRed;
+        BottleInfoText.Text = "Arduino cable unplugged — reconnect cable to resume";
+        MachineStateText.Text = "MACHINE: OFFLINE";
+
+        if (HardwareErrorBanner != null)
+        {
+            HardwareErrorBanner.Visibility = Visibility.Visible;
+            if (HardwareErrorText != null)
+            {
+                HardwareErrorText.Text = $"HARDWARE UNPLUGGED: Check {settings.ArduinoPort} USB cable • ہارڈویئر کیبل منسلک نہیں ہے";
+            }
+        }
+    }
+
     private void RetryHardwareConnection_Click(object sender, RoutedEventArgs e)
     {
-        ConnectArduino();
+        ConnectArduino(autoRecalibrate: true);
     }
 
     public void StartMachine(bool forceSimulator = false)
@@ -1358,20 +1545,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
-            compartmentAvailability.ResetConnection();
-            RefreshCompartmentCards();
-            ConnectionText.Text = "HARDWARE: ERROR";
-            ConnectionText.Foreground = Brushes.OrangeRed;
-            StatusDot.Fill = Brushes.OrangeRed;
-            if (HardwareErrorBanner != null)
-            {
-                HardwareErrorBanner.Visibility = Visibility.Visible;
-                if (HardwareErrorText != null)
-                {
-                    HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: {error.Message} • ہارڈویئر کا رابطہ منقطع ہے";
-                }
-            }
             LogTelemetry($"[HARDWARE] Serial error: {error.Message}");
+            HandleHardwareDisconnected();
         });
     }
 

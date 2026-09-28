@@ -209,38 +209,60 @@ $SWP_SHOWWINDOW = 0x0040
 $SWP_FRAMECHANGED = 0x0020
 $flags = $SWP_NOZORDER -bor $SWP_SHOWWINDOW -bor $SWP_FRAMECHANGED
 
-if (-not $BothOnPrimary) {
-    $primaryScreen = $screens | Where-Object { $_.Primary } | Select-Object -First 1
-    if (-not $primaryScreen) { $primaryScreen = $screens[0] }
+# Read DisplayLayout from config.txt (0012 = Hardware Left, Video Right; 0021 = Video Left, Hardware Right)
+$displayLayout = "0012"
+$configDir = Split-Path $ExePath
+$possibleConfigs = @(
+    (Join-Path $configDir "config.txt"),
+    (Join-Path (Get-Location) "PecoDropDesktopApp\config.txt"),
+    (Join-Path (Get-Location) "config.txt")
+)
+foreach ($cfg in $possibleConfigs) {
+    if (Test-Path $cfg) {
+        Get-Content $cfg | ForEach-Object {
+            if ($_ -match "^\s*DisplayLayout\s*=\s*(.+)$") {
+                $displayLayout = $matches[1].Trim()
+            }
+        }
+        break
+    }
+}
+Write-Host "[LAYOUT] Configured Display Layout: $displayLayout $(if ($displayLayout -eq '0021') { '(Video Signage LEFT, Hardware Kiosk RIGHT)' } else { '(Hardware Kiosk LEFT, Video Signage RIGHT)' })" -ForegroundColor Yellow
 
-    $secondaryScreen = $screens | Where-Object { -not $_.Primary } | Select-Object -First 1
-    if (-not $secondaryScreen -and $screens.Count -gt 1) { $secondaryScreen = $screens[1] }
+if (-not $BothOnPrimary) {
+    # Sort screens horizontally from physical Left to physical Right
+    $sortedScreens = $screens | Sort-Object { $_.Bounds.X }
+    $leftScreen = $sortedScreens[0]
+    $rightScreen = if ($sortedScreens.Count -gt 1) { $sortedScreens[-1] } else { $sortedScreens[0] }
+
+    $hwTargetScreen = if ($displayLayout -eq "0021" -and $sortedScreens.Count -gt 1) { $rightScreen } else { $leftScreen }
+    $adTargetScreen = if ($displayLayout -eq "0021" -and $sortedScreens.Count -gt 1) { $leftScreen } else { $rightScreen }
 
     foreach ($w in $winList) {
         if ($w.Title -like "*Signage*" -or $w.Title -like "*Secondary*" -or $w.Title -like "*Ad*") {
-            if ($secondaryScreen) {
-                Write-Host "[TARGET 2] Routing Commercial Advertisements to HDMI Display ($($secondaryScreen.DeviceName)) -> ($($secondaryScreen.Bounds.X), $($secondaryScreen.Bounds.Y), $($secondaryScreen.Bounds.Width)x$($secondaryScreen.Bounds.Height))..." -ForegroundColor Cyan
+            if ($screens.Count -gt 1) {
+                Write-Host "[TARGET 2] Routing Commercial Advertisements to $($adTargetScreen.DeviceName) -> ($($adTargetScreen.Bounds.X), $($adTargetScreen.Bounds.Y), $($adTargetScreen.Bounds.Width)x$($adTargetScreen.Bounds.Height))..." -ForegroundColor Cyan
                 [Win32PecoMultiDisplay]::ShowWindow($w.Handle, $SW_RESTORE) | Out-Null
                 Start-Sleep -Milliseconds 100
-                [Win32PecoMultiDisplay]::SetWindowPos($w.Handle, [IntPtr]::Zero, $secondaryScreen.Bounds.X, $secondaryScreen.Bounds.Y, $secondaryScreen.Bounds.Width, $secondaryScreen.Bounds.Height, $flags) | Out-Null
+                [Win32PecoMultiDisplay]::SetWindowPos($w.Handle, [IntPtr]::Zero, $adTargetScreen.Bounds.X, $adTargetScreen.Bounds.Y, $adTargetScreen.Bounds.Width, $adTargetScreen.Bounds.Height, $flags) | Out-Null
                 Start-Sleep -Milliseconds 150
                 [Win32PecoMultiDisplay]::ShowWindow($w.Handle, $SW_MAXIMIZE) | Out-Null
             }
         }
         else {
-            Write-Host "[TARGET 1] Routing Main Kiosk 50/50 to Primary Display ($($primaryScreen.DeviceName)) -> ($($primaryScreen.Bounds.X), $($primaryScreen.Bounds.Y), $($primaryScreen.Bounds.Width)x$($primaryScreen.Bounds.Height))..." -ForegroundColor Green
+            Write-Host "[TARGET 1] Routing Main Kiosk to $($hwTargetScreen.DeviceName) -> ($($hwTargetScreen.Bounds.X), $($hwTargetScreen.Bounds.Y), $($hwTargetScreen.Bounds.Width)x$($hwTargetScreen.Bounds.Height))..." -ForegroundColor Green
             [Win32PecoMultiDisplay]::ShowWindow($w.Handle, $SW_RESTORE) | Out-Null
             Start-Sleep -Milliseconds 100
-            [Win32PecoMultiDisplay]::SetWindowPos($w.Handle, [IntPtr]::Zero, $primaryScreen.Bounds.X, $primaryScreen.Bounds.Y, $primaryScreen.Bounds.Width, $primaryScreen.Bounds.Height, $flags) | Out-Null
+            [Win32PecoMultiDisplay]::SetWindowPos($w.Handle, [IntPtr]::Zero, $hwTargetScreen.Bounds.X, $hwTargetScreen.Bounds.Y, $hwTargetScreen.Bounds.Width, $hwTargetScreen.Bounds.Height, $flags) | Out-Null
             Start-Sleep -Milliseconds 150
             [Win32PecoMultiDisplay]::ShowWindow($w.Handle, $SW_MAXIMIZE) | Out-Null
             [Win32PecoMultiDisplay]::SetForegroundWindow($w.Handle) | Out-Null
         }
     }
 
-    Write-Host "`n[SUCCESS] Display 1 (Primary Touchscreen): Landscape Kiosk running full-screen!" -ForegroundColor Green
-    if ($secondaryScreen) {
-        Write-Host "[SUCCESS] Display 2 (HDMI Second Display LED): Commercial Advertisements running full-screen!" -ForegroundColor Cyan
+    Write-Host "`n[SUCCESS] Hardware Screen routed to: $($hwTargetScreen.DeviceName)" -ForegroundColor Green
+    if ($screens.Count -gt 1) {
+        Write-Host "[SUCCESS] Video Signage routed to: $($adTargetScreen.DeviceName)" -ForegroundColor Cyan
     }
     else {
         Write-Host "[NOTICE] Only 1 display connected; secondary window is ready once HDMI display is plugged in." -ForegroundColor Yellow

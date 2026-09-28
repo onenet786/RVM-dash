@@ -10,9 +10,9 @@ public class SerialManager : IDisposable
     private readonly object _portLock = new();
     private readonly StringBuilder _receiveBuffer = new();
     private SerialPort? _port;
-
     public event Action<string>? DataReceived;
     public event Action<Exception>? ErrorReceived;
+    public event Action? ConnectionLost;
 
     public bool IsConnected
     {
@@ -20,8 +20,20 @@ public class SerialManager : IDisposable
         {
             lock (_portLock)
             {
-                return _port?.IsOpen == true;
+                return _port != null && _port.IsOpen;
             }
+        }
+    }
+
+    public static bool IsPortPresent(string portName)
+    {
+        try
+        {
+            return SerialPort.GetPortNames().Any(p => p.Equals(portName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -261,6 +273,26 @@ public class SerialManager : IDisposable
     private void ReportError(Exception ex)
     {
         Debug.WriteLine($"SerialManager error: {ex}");
+        if (ex is System.IO.IOException || ex is UnauthorizedAccessException || ex is ObjectDisposedException)
+        {
+            lock (_portLock)
+            {
+                try
+                {
+                    if (_port != null)
+                    {
+                        _port.DataReceived -= OnDataReceived;
+                        _port.ErrorReceived -= OnSerialErrorReceived;
+                        if (_port.IsOpen) _port.Close();
+                        _port.Dispose();
+                    }
+                }
+                catch { }
+                _port = null;
+                _receiveBuffer.Clear();
+            }
+            ConnectionLost?.Invoke();
+        }
         ErrorReceived?.Invoke(ex);
     }
 }

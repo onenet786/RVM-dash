@@ -18,6 +18,7 @@ public sealed class AppSettings
     public string ModelPath { get; init; } = @"Models\rvm_classifier.onnx";
     public string CaptureDirectory { get; init; } = @"Captures";
     public string DisplayMode { get; init; } = "MultiDisplay";
+    public string DisplayLayout { get; init; } = "0012";
     public string Location { get; init; } = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
     public double? Latitude { get; init; } = 31.5826;
     public double? Longitude { get; init; } = 74.3276;
@@ -42,7 +43,8 @@ public sealed class AppSettings
             InstructionVideoFolder = Get(values, "InstructionVideoFolder", @"Ads\Instructions"),
             ModelPath = Get(values, "ModelPath", @"Models\rvm_classifier.onnx"),
             CaptureDirectory = Get(values, "CaptureDirectory", "Captures"),
-            DisplayMode = Get(values, "DisplayMode", "MultiDisplay")
+            DisplayMode = Get(values, "DisplayMode", "MultiDisplay"),
+            DisplayLayout = Get(values, "DisplayLayout", "0012")
         };
     }
 
@@ -97,6 +99,7 @@ public sealed class AppSettings
         content.AppendLine($"CameraBaud={configValues.GetValueOrDefault("CameraBaud", "921600")}");
         content.AppendLine($"ModelPath={configValues.GetValueOrDefault("ModelPath", @"Models\rvm_classifier.onnx")}");
         content.AppendLine($"CaptureDirectory={configValues.GetValueOrDefault("CaptureDirectory", "Captures")}");
+        content.AppendLine($"DisplayLayout={configValues.GetValueOrDefault("DisplayLayout", "0012")}");
         content.AppendLine($"MachineId = {configValues.GetValueOrDefault("MachineId", "RVM-RWP")}");
         content.AppendLine($"CentralApiUrl = {configValues.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com")}");
         content.AppendLine($"Location = {configValues.GetValueOrDefault("Location", "Islamabad Campus")}");
@@ -119,6 +122,17 @@ public sealed class AppSettings
             }
         }
         catch {}
+    }
+
+    public static void UpdateDisplayLayout(string layout)
+    {
+        try
+        {
+            var values = LoadRawConfig();
+            values["DisplayLayout"] = layout;
+            SaveConfigToFile(values);
+        }
+        catch { }
     }
 
     private static double? GetDoubleOrNull(Dictionary<string, string> values, string key)
