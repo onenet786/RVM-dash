@@ -1959,9 +1959,23 @@ app.get('/api/collections/:name', authenticateToken, async (req, res) => {
       const docs = await fetchCollectionDocs(name);
       let filteredDocs = docs;
 
+      // PostgreSQL JSON-backed collections must enforce the same machine scope
+      // as Mongo queries. Without this, tenant users could see another fleet's
+      // sessions, bin alerts, and feedback records in raw tables.
+      if (['recyclingsessions', 'recycling_sessions', 'binfullnotifications', 'feedbacks'].includes(name.toLowerCase())) {
+        const effectiveScope = getEffectiveMachineScope(req);
+        if (effectiveScope && effectiveScope.length > 0 && !effectiveScope.includes('*')) {
+          const allowed = new Set(effectiveScope.map(id => String(id).toUpperCase()));
+          filteredDocs = filteredDocs.filter(doc => {
+            const machineId = doc.machineId || doc.machine_id || doc.kioskId || doc.kiosk_id || '';
+            return allowed.has(String(machineId).toUpperCase());
+          });
+        }
+      }
+
       if (search.trim()) {
         const term = search.trim().toLowerCase();
-        filteredDocs = docs.filter(d => {
+        filteredDocs = filteredDocs.filter(d => {
           const jsonStr = JSON.stringify(d).toLowerCase();
           return jsonStr.includes(term);
         });

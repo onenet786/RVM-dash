@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import JsonViewerModal from './JsonViewerModal';
 
-export default function DataTable({ collectionName, displayName }) {
+export default function DataTable({ collectionName, displayName, machineIds = null }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +52,12 @@ export default function DataTable({ collectionName, displayName }) {
         sortOrder
       });
 
-      const machines = getMachinesParam();
+      const scopedMachineIds = Array.isArray(machineIds)
+        ? machineIds.map(id => String(id).trim()).filter(Boolean)
+        : null;
+      const machines = scopedMachineIds
+        ? (scopedMachineIds.length > 0 ? scopedMachineIds.join(',') : '__RESTRICTED_NO_ACCESS__')
+        : getMachinesParam();
       if (machines) {
         queryParams.append('assignedMachines', machines);
       }
@@ -75,7 +80,7 @@ export default function DataTable({ collectionName, displayName }) {
 
   useEffect(() => {
     fetchData();
-  }, [collectionName, page, limit, debouncedSearch, sortBy, sortOrder]);
+  }, [collectionName, page, limit, debouncedSearch, sortBy, sortOrder, JSON.stringify(machineIds)]);
 
   const handleSort = (field) => {
     if (sortBy === field) {

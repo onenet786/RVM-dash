@@ -77,48 +77,9 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
   const [clientsList, setClientsList] = useState([]);
 
   // Maintenance Service Log Events (Audited history)
-  const [serviceLogs, setServiceLogs] = useState([
-    {
-      id: 'EVT-90421',
-      machineId: 'UCP-RVM',
-      location: 'Lahore Campus Zone',
-      trigger: 'Plastic Bin >95% Full',
-      triggerType: 'alert',
-      timestamp: '24-Sep-2026, 7:52 PM',
-      status: 'Tech Dispatched',
-      statusType: 'pending'
-    },
-    {
-      id: 'EVT-90388',
-      machineId: 'RVM-ISB-01',
-      location: 'Metro Station Terminal',
-      trigger: 'Entry Gate Trap Cleared',
-      triggerType: 'warning',
-      timestamp: '24-Sep-2026, 6:49 PM',
-      status: 'Cleared & Tested',
-      statusType: 'completed'
-    },
-    {
-      id: 'EVT-90310',
-      machineId: 'PECO-01',
-      location: 'Corporate HQ Engro',
-      trigger: 'Paper Compartment Full',
-      triggerType: 'warning',
-      timestamp: '24-Sep-2026, 5:14 PM',
-      status: 'Emptied by Staff',
-      statusType: 'completed'
-    },
-    {
-      id: 'EVT-90250',
-      machineId: 'PECO-02',
-      location: 'Islamabad Campus Kiosk',
-      trigger: 'Routine Diagnostic Check',
-      triggerType: 'info',
-      timestamp: '24-Sep-2026, 2:14 PM',
-      status: 'Completed',
-      statusType: 'completed'
-    }
-  ]);
+  // Only real, in-session dispatch events are kept here. Historical records
+  // come from the scoped raw notifications table; never seed another tenant's data.
+  const [serviceLogs, setServiceLogs] = useState([]);
 
   const showToast = (message) => {
     setToastMsg(message);
@@ -380,7 +341,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     const csvRows = [
       ['Event Ref', 'Machine ID', 'Location', 'Trigger Type', 'Timestamp', 'Status'].join(',')
     ];
-    serviceLogs.forEach(l => {
+    visibleServiceLogs.forEach(l => {
       csvRows.push([`"${l.id}"`, `"${l.machineId}"`, `"${l.location}"`, `"${l.trigger}"`, `"${l.timestamp}"`, `"${l.status}"`].join(','));
     });
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
@@ -445,6 +406,9 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     const timeB = new Date(b.lastPingAt || b.lastActive || 0).getTime();
     return timeB - timeA;
   });
+
+  const visibleMachineIds = new Set(machines.map(m => String(m.machineId || '').toUpperCase()));
+  const visibleServiceLogs = serviceLogs.filter(log => visibleMachineIds.has(String(log.machineId || '').toUpperCase()));
 
   return (
     <div className="space-y-6 animate-fade-in w-full text-slate-900 dark:text-slate-100">
@@ -1010,7 +974,13 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
               </tr>
             </thead>
             <tbody className="divide-y t-border text-slate-700 dark:text-slate-300">
-              {serviceLogs.map((log) => (
+              {visibleServiceLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-10 text-center t-text-muted">
+                    No maintenance or emptying events exist for the selected organization fleet.
+                  </td>
+                </tr>
+              ) : visibleServiceLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="py-3.5 px-4 font-bold t-text-primary mono">{log.id}</td>
                   <td className="py-3.5 px-4 font-semibold t-text-primary mono">{log.machineId}</td>
@@ -1047,7 +1017,11 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       {/* Raw Bin Notifications Full Table (Toggled on request) */}
       {showRawLogs && (
         <div className="pt-2 animate-fade-in">
-          <DataTable collectionName="binfullnotifications" displayName="Raw Bin Full Alerts Table Log" />
+          <DataTable
+            collectionName="binfullnotifications"
+            displayName="Raw Bin Full Alerts Table Log"
+            machineIds={machines.map(m => m.machineId).filter(Boolean)}
+          />
         </div>
       )}
 
