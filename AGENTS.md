@@ -147,4 +147,30 @@
 - **MongoDB (`rvmapp` Cluster) — Read-Only & Sync-Only**:
   - **NEVER WRITE TO MONGODB**: MongoDB is strictly **NEVER** used for any `ADD`, `EDIT`, `UPDATE`, or `DELETE` operations.
   - **SOLE PURPOSE**: MongoDB is retained strictly as a legacy read-only source used exclusively to **sync historical data from MongoDB (`rvmapp`) into PostgreSQL (`rvmpg`)**.
-  - **Single Production Authority**: PostgreSQL (`rvmpg`) is the **sole source of truth** for all production data, real-time ingestion, user management, machine configs, redemptions, and active operations. All mutations, new records, and updates must execute exclusively against PostgreSQL.
+- **Single Production Authority**: PostgreSQL (`rvmpg`) is the **sole source of truth** for all production data, real-time ingestion, user management, machine configs, redemptions, and active operations. All mutations, new records, and updates must execute exclusively against PostgreSQL.
+
+---
+
+## Saved Reference: `pedo arduino`
+
+Use the phrase **`pedo arduino`** as an alias for this PecoDrop Arduino integration reference in future chats. It always refers to `PecoDropDesktopApp` and its enterprise dual-display kiosk: QR scanner, ⭕ plastic intake, 🔺 metal/can intake, and 🟦 paper intake.
+
+- Firmware: `PecoDropDesktopApp/Arduino/RVM_Arduino/RVM_Arduino.ino` for Arduino Mega 2560.
+- The Arduino must remain inactive without the PecoDrop application. It boots into `HOST:WAITING`; the desktop renews `HOST:ALIVE`, sends explicit `HOST:START`, and firmware enters a safe closed state after a 5-second host-lease timeout.
+- USB hot-plug and application relaunch must automatically reconnect, request calibration, retry bounded calibration requests, and wait for `CALIBRATION:OK` before accepting authoritative bin-full state.
+- Bin-sensor startup uses adaptive settling to avoid false METAL/PAPER `BIN:FULL` reports while preserving genuine post-calibration full-bin detection.
+- Admin servo tests use the kiosk's existing serial connection; never open a competing COM connection from `AdminWindow`.
+- Direct numeric servo hotkeys work from the kiosk without opening Admin:
+  - `601` / `602`: Plastic iris open / close.
+  - `603` / `604`: Plastic drop gate open / close.
+  - `605` / `606`: Metal iris open / close.
+  - `607` / `608`: Metal drop gate open / close.
+  - `609` / `610`: Paper iris open / close.
+  - `611` / `612`: Paper drop gate open / close.
+- Manual servo testing stops normal intake. Individual close commands settle and detach PWM; closing Admin after a test or losing the host lease closes all servos.
+- Display layout hotkeys:
+  - `0012`: Hardware kiosk left, video signage right.
+  - `0021`: Video signage left, hardware kiosk right.
+- Display preference is machine-scoped in local SQL table `dbo.KioskDisplaySettings`, with `config.txt` as an offline fallback, and must be restored after both windows are created on application/Windows restart.
+- Existing confidential machine hotkeys remain: `1122` demo, `1218` restart, `1219` shutdown, `66` start, `77` stop, `88` reset, and `99` calibrate.
+- After firmware changes, upload the updated `.ino` with PecoDrop closed. Normal target: Arduino Mega or Mega 2560 / ATmega2560. COM-port and `stk500v2_getsync()` failures are upload/bootloader/port issues, not sketch-size failures.

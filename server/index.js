@@ -2551,6 +2551,14 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             const upperId = String(r.machine_id || '').toUpperCase();
             const upperName = String(r.name || '').toUpperCase();
             const upperLoc = String(r.location || '').toUpperCase();
+            const rawMachineType = String(r.machine_type || '').trim().toUpperCase();
+            const mType = rawMachineType === 'PECODROP' || rawMachineType === 'PECO_DROP'
+              || upperId.includes('PECO') || upperName.includes('PECO')
+              ? 'PECODROP'
+              : rawMachineType === 'RVM_OLD' || rawMachineType === 'LEGACY'
+                || upperId.includes('OLD') || upperName.includes('OLD')
+                ? 'RVM_OLD'
+                : 'RVM_NEW';
 
             let cId = r.client_id || 'ISP_MASTER';
             let cName = r.client_name || 'ISP Environmental Master (All Sites)';
@@ -2616,7 +2624,9 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               configVersion: r.config_version ?? 1
             });
           });
-        } catch (e) {}
+        } catch (e) {
+          console.error('[GET /api/analytics/machines] PostgreSQL machine metadata query failed:', e.message);
+        }
       }
 
       const grouped = {};
@@ -3302,9 +3312,16 @@ app.post('/api/machines', async (req, res) => {
     if (isNaN(parsedLng)) parsedLng = null;
     const machineStatus = status || 'ONLINE';
 
-    // PostgreSQL ONLY Database Update
-    if (pool) {
-      try {
+    // PostgreSQL is the production source of truth. Do not report a successful
+    // registration unless the machine was actually persisted there.
+    if (!pool) {
+      return res.status(503).json({
+        error: 'PostgreSQL is unavailable. Machine registration was not saved.'
+      });
+    }
+
+    let savedMachine;
+    try {
         await pool.query(`
           CREATE TABLE IF NOT EXISTS machines (
             machine_id VARCHAR(100) PRIMARY KEY,
@@ -3327,7 +3344,7 @@ app.post('/api/machines', async (req, res) => {
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';`);
         await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';`);
 
-        await pool.query(`
+        const upsertResult = await pool.query(`
           INSERT INTO machines (machine_id, name, location, latitude, longitude, status, machine_type, client_id, client_name, last_ping_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
           ON CONFLICT (machine_id)
@@ -3340,7 +3357,10 @@ app.post('/api/machines', async (req, res) => {
                         client_id = EXCLUDED.client_id,
                         client_name = EXCLUDED.client_name,
                         last_ping_at = NOW()
-        `, [machineId, machineName, machineLocation, parsedLat, parsedLng, machineStatus, mType, cId, cName]);
+          RETURNING machine_id, name, location, latitude, longitude, status, machine_type, client_id, client_name
+        `, [cleanId, machineName, machineLocation, parsedLat, parsedLng, machineStatus, mType, cId, cName]);
+        savedMachine = upsertResult.rows[0];
+        if (!savedMachine) throw new Error('PostgreSQL did not return the saved machine row.');
 
         await pool.query(`
           INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
@@ -3351,7 +3371,9 @@ app.post('/api/machines', async (req, res) => {
             points_per_aluminium = EXCLUDED.points_per_aluminium,
             points_per_paper_kg = EXCLUDED.points_per_paper_kg,
             updated_at = NOW();
-        `, [machineId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]).catch(() => {});
+        `, [cleanId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]).catch((configErr) => {
+          console.error('[POST /api/machines] Machine config save failed:', configErr.message);
+        });
 
         // Automatically synchronize Kiosk-Organization bindings and client admin fleets
         const cleanUpperId = String(machineId).trim().toUpperCase();
@@ -3401,19 +3423,25 @@ app.post('/api/machines', async (req, res) => {
             await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(machine_id) = $1', [cleanUpperId]);
           } catch (e) {}
         }
-      } catch (pgErr) {
-        console.error('[POST /api/machines] PostgreSQL write notice:', pgErr.message);
-      }
+    } catch (pgErr) {
+      console.error('[POST /api/machines] PostgreSQL machine upsert failed:', pgErr.message);
+      return res.status(500).json({
+        error: 'Machine registration could not be saved to PostgreSQL.',
+        details: pgErr.message
+      });
     }
 
     res.json({ 
       message: 'Machine registered successfully', 
-      machineId, 
-      name: machineName, 
-      location: machineLocation, 
-      latitude: parsedLat,
-      longitude: parsedLng,
-      status: machineStatus 
+      machineId: savedMachine.machine_id,
+      name: savedMachine.name,
+      location: savedMachine.location,
+      latitude: savedMachine.latitude,
+      longitude: savedMachine.longitude,
+      status: savedMachine.status,
+      machineType: savedMachine.machine_type,
+      clientId: savedMachine.client_id,
+      clientName: savedMachine.client_name
     });
   } catch (err) {
     console.error('[POST /api/machines] Error:', err);
