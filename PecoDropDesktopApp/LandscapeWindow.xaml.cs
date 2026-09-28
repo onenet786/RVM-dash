@@ -47,9 +47,29 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private readonly CompartmentAvailability compartmentAvailability = new();
     private string? activeScanCompartment;
     private double paperTotalWeightKg;
+    // Timestamp of last Arduino connect — used to suppress transient BIN:FULL
+    // false-positives that occur during INPUT_PULLUP stabilization on hot-plug.
+    private DateTime _connectionTime = DateTime.MinValue;
+    private static readonly TimeSpan BinFullSuppressWindow = TimeSpan.FromSeconds(4);
 
     private bool ProcessCompartmentStatus(string message)
     {
+        // Suppress BIN:FULL during the INPUT_PULLUP settling window after connect.
+        // The Arduino firmware adds a 600 ms stabilization loop, but the C# side
+        // guards an extra 4 s window as belt-and-braces against USB enumeration
+        // jitter or bootloader garbage bytes that arrive before setup() runs.
+        if (_connectionTime != DateTime.MinValue &&
+            DateTime.Now - _connectionTime < BinFullSuppressWindow &&
+            message.Contains("BIN:FULL", StringComparison.OrdinalIgnoreCase))
+        {
+            LogTelemetry($"[HW GUARD] Suppressing premature BIN:FULL during connect window: {message}");
+            // Still mark the compartment as known-and-OK so cards don't stay dark
+            string sanitized = message.Replace("BIN:FULL", "BIN:CLEAR", StringComparison.OrdinalIgnoreCase);
+            if (!compartmentAvailability.TryApply(sanitized)) return false;
+            RefreshCompartmentCards();
+            return true;
+        }
+
         if (!compartmentAvailability.TryApply(message)) return false;
         RefreshCompartmentCards();
         return true;
@@ -1165,6 +1185,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         try
         {
             serial.Connect(targetPort, settings.ArduinoBaud);
+            _connectionTime = DateTime.Now; // Start suppression window for hot-plug BIN:FULL transients
             ConnectionText.Text = $"HARDWARE: {targetPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;

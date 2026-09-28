@@ -47,14 +47,18 @@ const unsigned long ECHO_TIMEOUT_US = 12000UL;
 // Standard HC-SR04 ping cycle interval (30ms provides clean echo decay without cross-talk)
 const unsigned long ULTRASONIC_MIN_INTERVAL_MS = 30UL;
 
-// A valid echo at least 15 mm (1.5 cm) nearer OR farther than calibration is occupied.
-const int DETECTION_CHANGE_MM = 15;
+// A valid echo at least 20 mm (2 cm) nearer OR farther than calibration is occupied.
+// Raised from 15mm: reduces echo noise false-triggers on the metal entrance ultrasonic.
+const int DETECTION_CHANGE_MM = 20;
+// Require 5 consecutive changed readings + 400 ms hold before treating as real detection.
+// Raised from 3/3 and 200ms: prevents metal iris from opening on 1-3 jitter echoes
+// that resolve within a single ULTRASONIC_MIN_INTERVAL cycle (tick-tick symptom).
 const byte REQUIRED_DETECTIONS = 3;
-const byte ENTRANCE_CONFIRM_READINGS = 3;
+const byte ENTRANCE_CONFIRM_READINGS = 5;
 const byte ENTRANCE_CLEAR_READINGS = 5;
 // Clear must stay below the active threshold (no overlapping states).
 const byte ENTRANCE_CLEAR_TOLERANCE_MM = 14;
-const unsigned long ENTRANCE_HOLD_MS = 200;
+const unsigned long ENTRANCE_HOLD_MS = 400;
 
 // Hold the iris open long enough for insertion; keep processing STOP commands.
 const unsigned long IRIS_MIN_OPEN_MS = 3000UL;
@@ -194,6 +198,25 @@ void closeCompartment(Compartment& c) {
   if (compartmentDisabled(c)) return;
   c.irisServo->write(IRIS_CLOSED_ANGLE);
   c.bottomGateServo->write(&c == &paper ? PAPER_DROP_CLOSED_ANGLE : DROP_CLOSED_ANGLE);
+  // Hold position briefly, then detach to kill continuous PWM.
+  // An attached-but-idle servo fires a 50Hz pulse indefinitely; any
+  // 1-tick jitter in the AVR timer creates audible tick-tick buzzing.
+  // Detaching removes PWM entirely while the servo gear-train holds
+  // the last angle. The servo is re-attached inside openCompartment()
+  // before the next write so positioning is never lost.
+  delay(300);
+  c.irisServo->detach();
+  c.bottomGateServo->detach();
+}
+
+// Re-attach both servos to their PWM timer slots before moving them.
+// Servos are detached after every closeCompartment() to kill idle PWM jitter.
+// The AVR Servo library silently ignores write() on a detached servo,
+// so re-attach is mandatory before any open/movement command.
+void reattachServos(Compartment& c) {
+  if (compartmentDisabled(c)) return;
+  if (!c.irisServo->attached())       c.irisServo->attach(c.irisServoPin);
+  if (!c.bottomGateServo->attached()) c.bottomGateServo->attach(c.bottomGateServoPin);
 }
 
 byte binPin(const Compartment& c) {
@@ -208,6 +231,7 @@ void beginPurge(Compartment& c) {
   if (compartmentDisabled(c)) return;
   c.detectionCount = c.entranceClearCount = 0;
   c.entranceArmed = false;
+  reattachServos(c);
   c.irisServo->write(IRIS_CLOSED_ANGLE);
   // Do not release into a blocked bin, including during sensor debounce.
   if ((binSensorEnabled(c) && c.binFull) || binInputBlocked(c)) {
@@ -519,6 +543,7 @@ void processSizedItem(Compartment& c) {
   // Scope cleanup also runs on STOP, timeout, and invalid-size returns.
   MetalPulseCapture metalCapture(&c == &metal);
   Serial.print(c.name); Serial.println(F(":OBJECT_DETECTED"));
+  reattachServos(c); // servos were detached after last closeCompartment()
   c.irisServo->write(IRIS_OPEN_ANGLE);
   unsigned long irisOpenedAt = millis();
   if (!waitActive(700)) return;
@@ -655,10 +680,20 @@ void autoRecover(Compartment& c) {
   }
 
   if (&c == &paper && r.weightSamples < AUTO_RECOVERY_SAMPLES) {
-    if (!paperScaleReady || digitalRead(c.loadCellDoutPin) != LOW) {
-      if (millis() - r.scaleWaitSince >= 1000UL) retryAutoRecovery(c);
+    // Wait up to 120 ms for HX711 DOUT to go LOW (ready). The HX711 samples
+    // at ~10 Hz (100 ms period), so a single-shot digitalRead() misses the
+    // ready window most of the time, immediately fires the 1-second retry
+    // timeout, and produces the "paper re-initializing repeatedly" loop.
+    if (!paperScaleReady) {
+      retryAutoRecovery(c);
       return;
     }
+    if (!waitForHx711Ready(120UL)) {
+      // DOUT did not go LOW within 120 ms — scale may be noisy or disconnected.
+      if (millis() - r.scaleWaitSince >= 2000UL) retryAutoRecovery(c);
+      return;
+    }
+    r.scaleWaitSince = millis(); // reset on every successful DOUT wait
     long raw;
     if (!readHx711Raw(raw) ||
         fabs((float)(raw - paperTareRaw) / PAPER_COUNTS_PER_GRAM) > PAPER_CLEAR_WEIGHT_G) {
@@ -812,6 +847,7 @@ bool waitForIrisOpenHold(unsigned long openedAt) {
 
 void processPaper() {
   Serial.println(F("PAPER:OBJECT_DETECTED"));
+  reattachServos(paper); // servos were detached after last closeCompartment()
   paper.irisServo->write(IRIS_OPEN_ANGLE);
   if (!waitForIrisOpenHold(millis())) return;
   float grams = 0.0f;
@@ -1068,6 +1104,33 @@ void calibrateAll() {
   calibrated = false;
   paperScaleReady = false;
   plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
+
+  // Stabilize bin sensor INPUT_PULLUP lines before broadcasting initial status.
+  // On hot-plug (cable inserted after software launch), the USB 5V rail and
+  // pull-up resistors take up to ~600 ms to settle. Without this settling loop
+  // the very first digitalRead() may see LOW (= BIN_BLOCKED_STATE) and fire a
+  // false BIN:FULL to the PC before the debounce timer can reject it.
+  // We poll for BIN_BLOCK_MS + 100 ms with 10 ms intervals so the debounce
+  // window expires on any spurious LOW that appeared at power-on. This loop
+  // runs only at startup/recalibrate — never during normal intake cycles.
+  {
+    const unsigned long SETTLE_MS = BIN_BLOCK_MS + 100UL; // 600 ms
+    unsigned long settleStart = millis();
+    while (millis() - settleStart < SETTLE_MS) {
+      // Only poll bin sensors — do not servicePurge or MQ6 here
+      pollBin(plastic, PLASTIC_BIN_PIN);
+      pollBin(metal, METAL_BIN_PIN);
+      pollBin(paper, PAPER_BIN_PIN);
+      delay(10);
+    }
+    // Force all binFull flags clear — any real full bin will re-trigger
+    // within BIN_BLOCK_MS once the machine is running.
+    if (plastic.binFull) { plastic.binFull = false; plastic.binCandidate = false; }
+    if (metal.binFull)   { metal.binFull   = false; metal.binCandidate   = false; }
+    if (paper.binFull)   { paper.binFull   = false; paper.binCandidate   = false; }
+    plastic.binCandidateSince = metal.binCandidateSince = paper.binCandidateSince = millis();
+  }
+
   reportHardwareStatus();
   Serial.println(F("CALIBRATION:REMOVE_OBJECTS"));
   beginPurge(plastic);
@@ -1171,12 +1234,20 @@ void makeSafe() {
   plastic.detectionCount = metal.detectionCount = paper.detectionCount = 0;
   plastic.entranceClearCount = metal.entranceClearCount = paper.entranceClearCount = 0;
   plastic.entranceArmed = metal.entranceArmed = paper.entranceArmed = false;
+  if (!PLASTIC_DISABLED) reattachServos(plastic);
   if (!PLASTIC_DISABLED) plastic.irisServo->write(IRIS_CLOSED_ANGLE);
   if (!PLASTIC_DISABLED) plastic.bottomGateServo->write(DROP_CLOSED_ANGLE);
+  if (!METAL_DISABLED) reattachServos(metal);
   if (!METAL_DISABLED) metal.irisServo->write(IRIS_CLOSED_ANGLE);
   if (!METAL_DISABLED) metal.bottomGateServo->write(DROP_CLOSED_ANGLE);
+  if (!PAPER_DISABLED) reattachServos(paper);
   if (!PAPER_DISABLED) paper.irisServo->write(IRIS_CLOSED_ANGLE);
   if (!PAPER_DISABLED) paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
+  // After makeSafe the machine is in a stable rest state — detach all.
+  delay(400);
+  if (!PLASTIC_DISABLED) { plasticIris.detach(); plasticDrop.detach(); }
+  if (!METAL_DISABLED)   { metalIris.detach();   metalDrop.detach(); }
+  if (!PAPER_DISABLED)   { paperIris.detach();   paperDrop.detach(); }
 }
 
 // Zero-allocation serial reader: eliminates heap fragmentation and dynamic memory churn
