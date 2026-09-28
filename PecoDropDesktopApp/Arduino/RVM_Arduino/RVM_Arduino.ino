@@ -372,6 +372,7 @@ bool readHx711Average(byte samples, long& raw);
 float readPaperGrams(byte samples);
 void calibrateAll();
 void makeSafe();
+bool executeServoTestCommand(char* command);
 void enforceHostLease();
 void executeCommand(char* command);
 void autoRecover(Compartment& c);
@@ -1263,6 +1264,58 @@ void makeSafe() {
   if (!PAPER_DISABLED)   { paperIris.detach();   paperDrop.detach(); }
 }
 
+bool executeServoTestCommand(char* cmd) {
+  if (strcmp(cmd, "SERVO:ALL:CLOSE") == 0) {
+    machineRunning = false;
+    activeCycleAborted = true;
+    makeSafe();
+    Serial.println(F("SERVO:ALL:CLOSED"));
+    return true;
+  }
+
+  Compartment* compartment = NULL;
+  bool iris = false;
+  bool open = false;
+  if (strcmp(cmd, "SERVO:PLASTIC:IRIS:OPEN") == 0)       { compartment = &plastic; iris = true; open = true; }
+  else if (strcmp(cmd, "SERVO:PLASTIC:IRIS:CLOSE") == 0) { compartment = &plastic; iris = true; }
+  else if (strcmp(cmd, "SERVO:PLASTIC:DROP:OPEN") == 0)  { compartment = &plastic; open = true; }
+  else if (strcmp(cmd, "SERVO:PLASTIC:DROP:CLOSE") == 0) { compartment = &plastic; }
+  else if (strcmp(cmd, "SERVO:METAL:IRIS:OPEN") == 0)    { compartment = &metal; iris = true; open = true; }
+  else if (strcmp(cmd, "SERVO:METAL:IRIS:CLOSE") == 0)  { compartment = &metal; iris = true; }
+  else if (strcmp(cmd, "SERVO:METAL:DROP:OPEN") == 0)   { compartment = &metal; open = true; }
+  else if (strcmp(cmd, "SERVO:METAL:DROP:CLOSE") == 0)  { compartment = &metal; }
+  else if (strcmp(cmd, "SERVO:PAPER:IRIS:OPEN") == 0)   { compartment = &paper; iris = true; open = true; }
+  else if (strcmp(cmd, "SERVO:PAPER:IRIS:CLOSE") == 0)  { compartment = &paper; iris = true; }
+  else if (strcmp(cmd, "SERVO:PAPER:DROP:OPEN") == 0)   { compartment = &paper; open = true; }
+  else if (strcmp(cmd, "SERVO:PAPER:DROP:CLOSE") == 0)  { compartment = &paper; }
+  else return false;
+
+  if (calibrating || activeCompartment != NULL) {
+    Serial.println(F("ERROR:COMPARTMENT_BUSY"));
+    return true;
+  }
+  if (compartmentDisabled(*compartment)) {
+    Serial.println(F("ERROR:COMPARTMENT_DISABLED"));
+    return true;
+  }
+
+  machineRunning = false;
+  activeCycleAborted = true;
+  Servo* target = iris ? compartment->irisServo : compartment->bottomGateServo;
+  byte pin = iris ? compartment->irisServoPin : compartment->bottomGateServoPin;
+  byte angle = iris ? (open ? IRIS_OPEN_ANGLE : IRIS_CLOSED_ANGLE)
+                    : (open ? (compartment == &paper ? PAPER_DROP_OPEN_ANGLE : DROP_OPEN_ANGLE)
+                            : (compartment == &paper ? PAPER_DROP_CLOSED_ANGLE : DROP_CLOSED_ANGLE));
+  if (!target->attached()) target->attach(pin);
+  target->write(angle);
+  if (!open) {
+    delay(400);
+    target->detach();
+  }
+  Serial.print(F("SERVO:OK:")); Serial.println(cmd);
+  return true;
+}
+
 void enforceHostLease() {
   if (!hostOnline || millis() - lastHostAliveMs <= HOST_LEASE_TIMEOUT_MS) return;
   hostOnline = false;
@@ -1317,7 +1370,22 @@ void executeCommand(char* cmd) {
     hostOnline = true;
     lastHostAliveMs = millis();
     if (newSession) Serial.println(F("HOST:ONLINE"));
-    if (!calibrated && !calibrating) calibrateAll();
+    return;
+  }
+
+  if (strcmp(cmd, "HOST:START") == 0) {
+    bool newSession = !hostOnline;
+    hostOnline = true;
+    lastHostAliveMs = millis();
+    if (newSession) Serial.println(F("HOST:ONLINE"));
+    if (calibrating || activeCompartment != NULL) {
+      Serial.println(F("ERROR:COMPARTMENT_BUSY"));
+    } else if (!calibrated) {
+      calibrateAll();
+    } else {
+      machineRunning = true;
+      Serial.println(F("MACHINE:STARTED"));
+    }
     return;
   }
 
@@ -1328,6 +1396,8 @@ void executeCommand(char* cmd) {
     Serial.println(F("ERROR:HOST_OFFLINE"));
     return;
   }
+
+  if (executeServoTestCommand(cmd)) return;
 
   if ((calibrating || activeCompartment != NULL) &&
       (strcmp(cmd, "START") == 0 || strcmp(cmd, "CALIBRATE") == 0 || strcmp(cmd, "SCALE") == 0)) {

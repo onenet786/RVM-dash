@@ -12,10 +12,12 @@ namespace PecoDropDesktopApp;
 public partial class AdminWindow : Window
 {
     private readonly AppSettings settings = AppSettings.Load();
+    private bool servoTestActive;
 
     public AdminWindow()
     {
         InitializeComponent();
+        Closed += AdminWindow_Closed;
         Loaded += async (sender, e) => {
             TxtServerUrl.Text = settings.CentralApiUrl;
             TxtMachineId.Text = settings.MachineId;
@@ -27,6 +29,35 @@ public partial class AdminWindow : Window
             await CheckCentralConnectionAsync();
             await RefreshComparisonDataAsync();
         };
+    }
+
+    private void ServoTest_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string command }) SendServoTestCommand(command);
+    }
+
+    private void SendServoTestCommand(string command)
+    {
+        bool sent = Owner switch
+        {
+            MainWindow main => main.SendAdminHardwareCommand(command),
+            LandscapeWindow landscape => landscape.SendAdminHardwareCommand(command),
+            _ => false
+        };
+        if (!sent)
+        {
+            RvmMessageDialog.ShowWarning("Servo Test", "Arduino is offline or Demo Mode is active.", this);
+            return;
+        }
+        servoTestActive = true;
+        LogConsole($"[SERVO TEST] {command}");
+    }
+
+    private void AdminWindow_Closed(object? sender, EventArgs e)
+    {
+        if (!servoTestActive) return;
+        if (Owner is MainWindow main) main.SendAdminHardwareCommand("SERVO:ALL:CLOSE");
+        else if (Owner is LandscapeWindow landscape) landscape.SendAdminHardwareCommand("SERVO:ALL:CLOSE");
     }
 
     private void OpenSimulator_Click(object sender, RoutedEventArgs e)

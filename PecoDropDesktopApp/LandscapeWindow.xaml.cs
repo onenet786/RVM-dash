@@ -190,6 +190,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private readonly DispatcherTimer hardwareWatchdogTimer = new();
     private bool _isReconnecting = false;
     private string? _connectedArduinoPort;
+    private DateTime _lastCalibrationRequest = DateTime.MinValue;
+    private int _calibrationRequestAttempts;
+    private static readonly TimeSpan CalibrationRetryInterval = TimeSpan.FromSeconds(8);
+    private const int MaxCalibrationRequestAttempts = 6;
     private DispatcherTimer? _demo001Timer;
     private DispatcherTimer? _layoutToastTimer;
     private DispatcherTimer? apiCheckTimer;
@@ -431,6 +435,19 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             if (_demoSecretSequence.Length > 8)
             {
                 _demoSecretSequence = _demoSecretSequence[^8..];
+            }
+
+            if (ServoTestHotkeys.TryResolve(_demoSecretSequence, out string servoCode, out string servoCommand))
+            {
+                _demoSecretSequence = "";
+                digit1PressCount = 0;
+                if (SendAdminHardwareCommand(servoCommand))
+                {
+                    ShowLayoutToast($"SERVO TEST: {servoCode}");
+                    LogTelemetry($"[HOTKEY {servoCode}] {servoCommand}");
+                }
+                e.Handled = true;
+                return;
             }
 
             if (_demoSecretSequence.EndsWith("66"))
@@ -757,6 +774,15 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         LogTelemetry("[HOTKEY 99] CALIBRATE machine triggered via hotkey");
         ShowLayoutToast("MACHINE: CALIBRATING (99)");
         CalibrateHardwareButton_Click(this, new RoutedEventArgs());
+    }
+
+    public bool SendAdminHardwareCommand(string command)
+    {
+        if (IsDemoMode || !serial.IsConnected || string.IsNullOrWhiteSpace(command)) return false;
+        serial.SendCommand("HOST:ALIVE");
+        serial.SendCommand(command);
+        LogTelemetry($"[ADMIN CMD] {command}");
+        return true;
     }
 
     private void StartButton_Click(object sender, RoutedEventArgs e) => TriggerStart();
@@ -1178,6 +1204,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private void ConnectArduino(bool autoRecalibrate = false, string? portOverride = null)
     {
         _hardwareCalibrating = true;
+        _lastCalibrationRequest = DateTime.MinValue;
+        _calibrationRequestAttempts = 0;
         compartmentAvailability.ResetConnection();
         RefreshCompartmentCards();
         string targetPort = portOverride ?? settings.ArduinoPort;
@@ -1248,6 +1276,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 // Firmware requires this renewable lease. If the application
                 // exits or hangs, the lease expires and all actuators stop.
                 serial.SendCommand("HOST:ALIVE");
+                TryRequestHardwareCalibration();
             }
             return;
         }
@@ -1298,10 +1327,24 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
     }
 
+    private void TryRequestHardwareCalibration()
+    {
+        if (!serial.IsConnected || !_hardwareCalibrating ||
+            _calibrationRequestAttempts >= MaxCalibrationRequestAttempts ||
+            DateTime.Now - _lastCalibrationRequest < CalibrationRetryInterval) return;
+
+        serial.SendCommand("HOST:START");
+        _lastCalibrationRequest = DateTime.Now;
+        _calibrationRequestAttempts++;
+        LogTelemetry($"[HARDWARE] Calibration request {_calibrationRequestAttempts}/{MaxCalibrationRequestAttempts}");
+    }
+
     private void HandleHardwareDisconnected()
     {
         _connectedArduinoPort = null;
         _hardwareCalibrating = true;
+        _lastCalibrationRequest = DateTime.MinValue;
+        _calibrationRequestAttempts = 0;
         machineStarted = false;
         pendingBottleResult = null;
         pendingBottlePoints = 0;
@@ -1719,6 +1762,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private void ProcessArduinoMessage(string message)
     {
         LogTelemetry($"[RX] {message}");
+        if (message == "HOST:WAITING")
+        {
+            _hardwareCalibrating = true;
+            serial.SendCommand("HOST:ALIVE");
+            TryRequestHardwareCalibration();
+            return;
+        }
         if (ProcessCompartmentStatus(message)) return;
         // Compartment diagnostics do not reject an item or stop healthy intakes.
         if (message.StartsWith("FAULT:", StringComparison.OrdinalIgnoreCase)) return;
@@ -1726,6 +1776,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (message == "CALIBRATION:OK")
         {
             _hardwareCalibrating = false;
+            _calibrationRequestAttempts = 0;
             serial.SendCommand("STATUS");
             ConnectionText.Text = $"HARDWARE: {settings.ArduinoPort}";
             ConnectionText.Foreground = Brushes.LightGreen;
