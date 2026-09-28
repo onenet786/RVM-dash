@@ -2131,8 +2131,12 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
           uRes.rows.forEach(u => {
             const key = u.user_id || u.mobile || u.username;
             if (key) userProfileMap[key] = u;
+            if (key) userProfileMap[String(key).toLowerCase()] = u;
             if (u.mobile) userProfileMap[u.mobile] = u;
-            if (u.username) userProfileMap[u.username] = u;
+            if (u.username) {
+              userProfileMap[u.username] = u;
+              userProfileMap[String(u.username).toLowerCase()] = u;
+            }
           });
         } catch (e) {
           console.error('[Leaderboard PG users join notice]:', e.message);
@@ -2165,7 +2169,10 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         try {
           const mRes = await pool.query(`SELECT machine_id, client_id, client_name FROM machines;`);
           mRes.rows.forEach(m => {
-            machineClientMap[String(m.machine_id).toUpperCase()] = m.client_name;
+            machineClientMap[String(m.machine_id).toUpperCase()] = {
+              clientId: m.client_id || '',
+              clientName: m.client_name || ''
+            };
           });
         } catch (e) {
           // non-blocking
@@ -2211,10 +2218,14 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
       filteredSessions.forEach(s => {
         const phone = s.phoneNumber || s.userId || s.user_id || 'Unknown';
         if (!grouped[phone]) {
-          const uProf = userProfileMap[phone] || userProfileMap[s.userId];
+          const uProf = userProfileMap[phone]
+            || userProfileMap[String(phone).toLowerCase()]
+            || userProfileMap[s.userId]
+            || userProfileMap[String(s.userId || '').toLowerCase()];
           const mId = String(s.machineId || s.machine_id || '').toUpperCase();
-          const mClient = machineClientMap[mId] || '';
-          const clientName = uProf?.org_name || (mClient && !mClient.includes('Master') ? mClient.replace('Client: ', '') : '');
+          const mClient = machineClientMap[mId] || {};
+          const machineClientName = mClient.clientName || '';
+          const clientName = uProf?.org_name || (machineClientName && !machineClientName.includes('Master') ? machineClientName.replace('Client: ', '') : '');
           const isRegistered = Boolean(uProf && uProf.full_name && uProf.full_name.trim().length > 0);
           const registeredName = isRegistered ? uProf.full_name.trim() : '';
           const explicitBalance = uProf?.points_balance !== undefined && uProf?.points_balance !== null ? parseInt(uProf.points_balance) : null;
@@ -2226,7 +2237,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
             registeredName: registeredName,
             isRegistered: isRegistered,
             userType: uProf?.user_type || (mId.startsWith('PECO') ? 'ENTERPRISE' : 'CITIZEN'),
-            orgId: uProf?.org_id || '',
+            orgId: uProf?.org_id || (mClient.clientId !== 'ISP_MASTER' ? mClient.clientId : '') || '',
             clientName: clientName || (uProf?.user_type === 'ENTERPRISE' ? 'Corporate Client' : 'Public Citizen'),
             mobile: uProf?.mobile || phone,
             machineId: s.machineId || s.machine_id || '',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Trophy, Award, RefreshCw, BarChart2, Sparkles, Gift, Building2, Send, 
   Search, CheckCircle2, ChevronRight, X, Phone, User, Filter, ArrowUpRight,
@@ -15,9 +15,12 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [scope, setScope] = useState('all'); // 'all' | 'month' | 'corporate' | 'citizens'
-  const [selectedClient, setSelectedClient] = useState('all'); // 'all' | 'citizens' | specific orgId or clientName
+  const [selectedClient, setSelectedClient] = useState(
+    selectedClientId && selectedClientId !== 'ALL' ? selectedClientId : 'all'
+  ); // 'all' | 'citizens' | specific orgId or clientName
   const [scaleMetric, setScaleMetric] = useState('kilo'); // 'kilo' | 'points'
   const [searchQuery, setSearchQuery] = useState('');
+  const analyticsRequestId = useRef(0);
   
   // Payout & Voucher Modal state
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
@@ -148,6 +151,7 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   };
 
   const fetchAnalytics = async (selectedScope = scope, client = selectedClient) => {
+    const requestId = ++analyticsRequestId.current;
     try {
       setRefreshing(true);
       let url = `/api/analytics/leaderboard?scope=${selectedScope}${getMachinesQuery()}`;
@@ -157,20 +161,34 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setLeaderboard(Array.isArray(data) ? data : []);
+        if (requestId === analyticsRequestId.current) {
+          setLeaderboard(Array.isArray(data) ? data : []);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch leaderboard:', err);
       showToast('Error syncing live leaderboard data', 'error');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === analyticsRequestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchOrganizations();
   }, []);
+
+  // Keep this tab aligned with the organization selected in the master portal
+  // navbar. The tab still allows an independent filter while the global scope is ALL.
+  useEffect(() => {
+    if (selectedClientId && selectedClientId !== 'ALL') {
+      setSelectedClient(selectedClientId);
+    } else if (selectedClientId === 'ALL') {
+      setSelectedClient('all');
+    }
+  }, [selectedClientId]);
 
   useEffect(() => {
     fetchAnalytics(scope, selectedClient);
@@ -227,17 +245,11 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
 
   // Open voucher & payout modal targeted to a specific user
   const handleOpenVoucherModal = (champion = null) => {
-    const target = champion || filteredLeaderboard[0] || leaderboard[0] || {
-      _id: '03074146663',
-      userName: 'Tariq Mehmood',
-      registeredName: 'Tariq Mehmood',
-      isRegistered: true,
-      clientName: 'Engro Corporation',
-      mobile: '0300-4146663',
-      totalPoints: 712795,
-      availablePoints: 712795,
-      rank: 1
-    };
+    const target = champion || filteredLeaderboard[0];
+    if (!target) {
+      showToast('No recycler is available for the selected organization and filters.', 'error');
+      return;
+    }
     setSelectedChampion(target);
     const phone = target.mobile || target._id || '';
     setWalletNumber(phone);
@@ -369,61 +381,26 @@ export default function AnalyticsTab({ stationFilter, selectedClientId, currentU
   };
 
   // Top 3 Podium Champions calculation based on current filtered list
-  const activePool = filteredLeaderboard.length > 0 ? filteredLeaderboard : leaderboard;
-
-  const top1 = activePool[0] || {
-    _id: '03074146663',
-    userName: 'Tariq Mehmood',
-    registeredName: 'Tariq Mehmood',
-    isRegistered: true,
-    userType: 'ENTERPRISE',
-    clientName: 'Engro Corporation',
-    mobile: '0300-4146663',
-    rank: 1,
-    totalPoints: 712795,
-    totalBottles: 142463,
+  const activePool = filteredLeaderboard;
+  const emptyChampion = (rank) => ({
+    _id: '',
+    userName: 'No recycler data',
+    registeredName: '',
+    isRegistered: false,
+    clientName: '',
+    rank,
+    totalPoints: 0,
+    totalBottles: 0,
     totalCans: 0,
-    totalItems: 142463,
-    totalSessions: 733,
-    equivalentPkr: 142559,
-    subtitle: 'Engro Corporation • Corporate Eco Leader'
-  };
+    totalItems: 0,
+    totalSessions: 0,
+    equivalentPkr: 0,
+    subtitle: 'No matching activity for this filter'
+  });
 
-  const top2 = activePool[1] || {
-    _id: '03009482110',
-    userName: 'Kamran Akmal',
-    registeredName: 'Kamran Akmal',
-    isRegistered: true,
-    userType: 'ENTERPRISE',
-    clientName: 'Metro Cash & Carry',
-    mobile: '0300-9482110',
-    rank: 2,
-    totalPoints: 10974,
-    totalBottles: 1620,
-    totalCans: 325,
-    totalItems: 1945,
-    totalSessions: 343,
-    equivalentPkr: 2194,
-    subtitle: 'Metro Cash & Carry • Silver Champion'
-  };
-
-  const top3 = activePool[2] || {
-    _id: '03234350805',
-    userName: 'Farhan Saeed',
-    registeredName: 'Farhan Saeed',
-    isRegistered: true,
-    userType: 'ENTERPRISE',
-    clientName: 'Metro Cash & Carry',
-    mobile: '0333-5566778',
-    rank: 3,
-    totalPoints: 6617,
-    totalBottles: 586,
-    totalCans: 17,
-    totalItems: 603,
-    totalSessions: 34,
-    equivalentPkr: 1323,
-    subtitle: 'Metro Cash & Carry • Bronze Champion'
-  };
+  const top1 = activePool[0] || emptyChampion(1);
+  const top2 = activePool[1] || emptyChampion(2);
+  const top3 = activePool[2] || emptyChampion(3);
 
   // Chart data for Top 8 Champions
   const chartSource = activePool.slice(0, 8);
