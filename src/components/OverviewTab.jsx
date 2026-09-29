@@ -60,6 +60,8 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       const params = new URLSearchParams();
       if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
       if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
+      if (dateRange) params.append('dateRange', dateRange);
+      if (selectedLocation && selectedLocation !== 'ALL') params.append('location', selectedLocation);
       if (u.assignedMachines) {
         const arr = Array.isArray(u.assignedMachines) ? u.assignedMachines : [u.assignedMachines];
         if (!arr.includes('*')) params.append('assignedMachines', arr.join(','));
@@ -135,7 +137,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     fetchOverview();
     const interval = setInterval(() => fetchOverview(false), 30000);
     return () => clearInterval(interval);
-  }, [stationFilter, selectedClientId]);
+  }, [stationFilter, selectedClientId, dateRange, selectedLocation]);
 
   // Sync active scope when parent stationFilter changes
   useEffect(() => {
@@ -147,19 +149,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
 
   // Scope Data Models (Dynamically responsive to live DB data, Date Range & Location filters)
   const scopeData = useMemo(() => {
-    let multiplier = 1.0;
-    if (dateRange === 'today') multiplier = 0.045;
-    else if (dateRange === 'yesterday') multiplier = 0.042;
-    else if (dateRange === '7d') multiplier = 0.26;
-    else if (dateRange === 'this_month') multiplier = 0.95;
-    else if (dateRange === 'all_time') multiplier = 1.0;
-    else multiplier = 1.0; // 30d
-
-    let locFactor = 1.0;
-    if (selectedLocation === 'Lahore') locFactor = 0.48;
-    else if (selectedLocation === 'Karachi') locFactor = 0.28;
-    else if (selectedLocation === 'Rawalpindi') locFactor = 0.16;
-    else if (selectedLocation === 'Islamabad') locFactor = 0.08;
+    // Date and location are filtered by the API using actual session records.
+    // Never estimate scoped totals with percentage multipliers.
+    const multiplier = 1.0;
+    const locFactor = 1.0;
 
     const rawBottles = overview?.totalBottles ?? 0;
     const rawCans = overview?.totalCans ?? 0;
@@ -260,6 +253,22 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   }, [overview, dateRange, selectedLocation]);
 
   const currentScope = scopeData[activeScope] || scopeData.cumulative;
+  const emptyPaperBreakdown = {
+    light: { sessions: 0, grams: 0 },
+    file: { sessions: 0, grams: 0 },
+    bulk: { sessions: 0, grams: 0 }
+  };
+  const paperBreakdown = (activeScope === 'cumulative' || activeScope === 'pecodrop')
+    ? (overview?.subTabs?.pecodrop?.paperBreakdown || emptyPaperBreakdown)
+    : emptyPaperBreakdown;
+  const formatPaperTier = (tier) => {
+    const sessions = Number(tier?.sessions || 0);
+    const grams = Number(tier?.grams || 0);
+    const weight = grams >= 1000
+      ? `${(grams / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} kg`
+      : `${grams.toLocaleString()} g`;
+    return { sessions, weight };
+  };
 
   // Daily Trend Stacked Chart Data (Live from /api/analytics/trends)
   const dailyTrendData = useMemo(() => {
@@ -910,16 +919,19 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
-                  <span className="block text-[10px] uppercase font-bold t-text-muted">&lt;50g Light</span>
-                  <span className="text-xs font-bold t-text-primary mono">0 drops</span>
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">&lt;100g Light</span>
+                  <span className="block text-xs font-bold t-text-primary mono">{formatPaperTier(paperBreakdown.light).sessions} sessions</span>
+                  <span className="block text-[10px] font-semibold text-purple-700 dark:text-purple-400 mono">{formatPaperTier(paperBreakdown.light).weight}</span>
                 </div>
                 <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-xl">
-                  <span className="block text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400">100-250g File</span>
-                  <span className="text-xs font-extrabold text-purple-700 dark:text-purple-300 mono">0 drops</span>
+                  <span className="block text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400">100-499g File</span>
+                  <span className="block text-xs font-extrabold text-purple-700 dark:text-purple-300 mono">{formatPaperTier(paperBreakdown.file).sessions} sessions</span>
+                  <span className="block text-[10px] font-semibold text-purple-700 dark:text-purple-400 mono">{formatPaperTier(paperBreakdown.file).weight}</span>
                 </div>
                 <div className="t-bg-sec border t-border p-2 rounded-xl">
-                  <span className="block text-[10px] uppercase font-bold t-text-muted">500g-1kg Bulk</span>
-                  <span className="text-xs font-bold t-text-primary mono">0 drops</span>
+                  <span className="block text-[10px] uppercase font-bold t-text-muted">≥500g Bulk</span>
+                  <span className="block text-xs font-bold t-text-primary mono">{formatPaperTier(paperBreakdown.bulk).sessions} sessions</span>
+                  <span className="block text-[10px] font-semibold text-purple-700 dark:text-purple-400 mono">{formatPaperTier(paperBreakdown.bulk).weight}</span>
                 </div>
               </div>
             </div>

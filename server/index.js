@@ -1533,6 +1533,12 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
           return cId === clientId;
         });
       }
+      const locationFilter = String(req.query.location || 'ALL').trim().toUpperCase();
+      if (locationFilter && locationFilter !== 'ALL') {
+        scopedMachines = scopedMachines.filter(machine =>
+          String(machine.location || '').toUpperCase().includes(locationFilter)
+        );
+      }
 
       // Enforce authenticated user & query machine scope
       const effectiveScope = getEffectiveMachineScope(req);
@@ -1570,6 +1576,31 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         if (allowedMachineIds.size > 0 && !allowedMachineIds.has(mId)) return false;
         return true;
       });
+
+      const dateRange = String(req.query.dateRange || '30d').toLowerCase();
+      if (dateRange !== 'all_time') {
+        const now = new Date();
+        let rangeStart;
+        let rangeEnd = null;
+        if (dateRange === 'today') {
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (dateRange === 'yesterday') {
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (dateRange === '7d') {
+          rangeStart = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        } else if (dateRange === 'this_month') {
+          rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else {
+          rangeStart = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        }
+        filteredSessions = filteredSessions.filter(session => {
+          const rawDate = session.created_at || session.createdAt || session.recycledAt || session.timestamp || session.synced_at;
+          const sessionDate = rawDate ? new Date(rawDate) : null;
+          if (!sessionDate || Number.isNaN(sessionDate.getTime())) return false;
+          return sessionDate >= rangeStart && (!rangeEnd || sessionDate < rangeEnd);
+        });
+      }
 
       let totalBottles = 0;
       let totalCups = 0;
@@ -1655,6 +1686,13 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       let rvmNewBottles = 0, rvmNewCans = 0, rvmNewCartons = 0, rvmNewPoints = 0, rvmNewSessions = 0;
       let rvmOldBottles = 0, rvmOldPoints = 0, rvmOldSessions = 0, rvmOldPulses = 0;
       let pecoBottles = 0, pecoCans = 0, pecoPaperGrams = 0, pecoPoints = 0, pecoSessions = 0;
+      const pecoPaperBreakdown = {
+        light: { sessions: 0, grams: 0 },
+        file: { sessions: 0, grams: 0 },
+        bulk: { sessions: 0, grams: 0 },
+        totalSessions: 0,
+        maxGrams: 0
+      };
 
       filteredSessions.forEach(s => {
         const mId = String(s.machineId || s.machine_id || '').toUpperCase();
@@ -1673,6 +1711,13 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
           pecoCans += aCnt;
           pecoPaperGrams += paperG;
           pecoPoints += pCount;
+          if (paperG > 0) {
+            const tier = paperG < 100 ? 'light' : paperG < 500 ? 'file' : 'bulk';
+            pecoPaperBreakdown[tier].sessions += 1;
+            pecoPaperBreakdown[tier].grams += paperG;
+            pecoPaperBreakdown.totalSessions += 1;
+            pecoPaperBreakdown.maxGrams = Math.max(pecoPaperBreakdown.maxGrams, paperG);
+          }
         } else if (mType === 'RVM_OLD') {
           rvmOldSessions++;
           rvmOldBottles += bCount;
@@ -1735,6 +1780,10 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
           plasticPieces: pecoBottles,
           metalPieces: pecoCans,
           paperMassKg: (pecoPaperGrams / 1000).toFixed(2),
+          paperBreakdown: pecoPaperBreakdown,
+          averagePaperGrams: pecoPaperBreakdown.totalSessions > 0
+            ? Math.round(pecoPaperGrams / pecoPaperBreakdown.totalSessions)
+            : 0,
           points: pecoPoints,
           scaleTareAccuracy: '100%',
           zeroDriftEvents: 0
