@@ -287,8 +287,8 @@ public static class CentralSyncService
                 totalItems = totalItems,
                 totalBottles = plasticCount,
                 bottles = plasticCount,
-                pointsEarned = pointsEarned > 0 ? pointsEarned : 30,
-                points = pointsEarned > 0 ? pointsEarned : 30,
+                pointsEarned = Math.Max(0, pointsEarned),
+                points = Math.Max(0, pointsEarned),
                 weightKg = weightKg,
                 createdAt = DateTime.UtcNow.ToString("o")
             };

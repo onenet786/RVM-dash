@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS = [
   { id: 9, materialType: 'TETRA PAK', bottleSize: 'SMALL', points: 5, unit: 'per_piece', isActive: true },
   { id: 10, materialType: 'TETRA PAK', bottleSize: 'MEDIUM', points: 10, unit: 'per_piece', isActive: true },
   { id: 11, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
-  { id: 12, materialType: 'PAPER', bottleSize: 'MEDIUM', points: 5, unit: 'per_piece', isActive: true },
+  { id: 12, materialType: 'PAPER', bottleSize: 'WEIGHT', points: 15, unit: 'per_kg', isActive: true },
   { id: 13, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
   { id: 14, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
   { id: 15, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },

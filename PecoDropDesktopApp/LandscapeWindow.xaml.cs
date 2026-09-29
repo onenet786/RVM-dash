@@ -2107,7 +2107,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         StatusText.Foreground = Brushes.LimeGreen;
         string itemDescription = result.Material.ToLowerInvariant();
         BottleInfoText.Text = result.Material.Contains("PAPER", StringComparison.OrdinalIgnoreCase) && result.WeightKg > 0
-            ? $"Paper: {result.WeightKg:0.000} kg - {points} points"
+            ? $"Paper: {result.WeightKg * 1000.0:0} g ({result.WeightKg:0.000} kg) – {points} points"
             : result.DurationMs > 0
                 ? $"{result.Size} {itemDescription} - {points} points | Length: {result.DurationMs} ms"
                 : $"{result.Size} {itemDescription} - {points} points";
@@ -2176,7 +2176,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         if (result.Material.Contains("PAPER", StringComparison.OrdinalIgnoreCase) && result.WeightKg > 0)
         {
-            return Math.Max(1, (int)Math.Round(result.WeightKg * PointRulesCache.PaperPerKg));
+            int before = (int)Math.Round(paperTotalWeightKg * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
+            int after = (int)Math.Round((paperTotalWeightKg + result.WeightKg) * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
+            return Math.Max(0, after - before);
         }
 
         // 1. Check live synced PointRulesCache first

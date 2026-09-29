@@ -8922,8 +8922,13 @@ app.post('/api/machine/sync-session', async (req, res) => {
       ? Number(plasticCount || 0)
       : Number(req.body.totalBottles || req.body.bottles || 0);
     const co2AvoidedKg = parseFloat(((plasticCount * 0.05) + (aluminiumCount * 0.09) + (glassCount * 0.03)).toFixed(3));
-    let pointsEarned = req.body.pointsEarned || req.body.points || ((plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15) + (glassCount * 10));
-    if (pointsEarned === 0) pointsEarned = 30;
+    const suppliedPoints = req.body.pointsEarned ?? req.body.points;
+    const effectivePaperGrams = Number(paperWeightGrams || 0)
+      || (paperCardboardCount > 0 ? Math.round((Number(weightKg) || 0) * 1000) : 0);
+    let pointsEarned = suppliedPoints !== undefined && suppliedPoints !== null
+      ? Math.max(0, Number(suppliedPoints) || 0)
+      : ((plasticCount * 10) + (aluminiumCount * 20)
+        + Math.round((effectivePaperGrams / 1000) * 15) + (glassCount * 10));
 
     const bSize = bottleSize || req.body.size || 'MEDIUM';
     let variant = itemVariant || req.body.material;
@@ -9550,7 +9555,8 @@ const DEFAULT_INITIAL_POINT_SETTINGS = [
   { id: 9, materialType: 'TETRA PAK', bottleSize: 'LARGE', points: 15, unit: 'per_piece', isActive: true },
   { id: 10, materialType: 'GLASS', bottleSize: 'SMALL', points: 10, unit: 'per_piece', isActive: true },
   { id: 11, materialType: 'GLASS', bottleSize: 'MEDIUM', points: 15, unit: 'per_piece', isActive: true },
-  { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true }
+  { id: 12, materialType: 'GLASS', bottleSize: 'LARGE', points: 20, unit: 'per_piece', isActive: true },
+  { id: 13, materialType: 'PAPER', bottleSize: 'WEIGHT', points: 15, unit: 'per_kg', isActive: true }
 ];
 
 let MEMORY_POINT_SETTINGS = { '*': DEFAULT_INITIAL_POINT_SETTINGS };
