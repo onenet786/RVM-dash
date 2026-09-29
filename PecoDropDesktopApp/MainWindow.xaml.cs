@@ -2238,7 +2238,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 currentSessionId,
                 plasticCount,
                 canCount,
-                paperCount)
+                paperCount,
+                paperTotalWeightKg)
             {
                 Owner = this
             };

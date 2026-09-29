@@ -22,6 +22,7 @@ public sealed class WalletPhoneWindow : Window
     private readonly int _plasticCount;
     private readonly int _canCount;
     private readonly int _paperCount;
+    private readonly double _paperWeightKg;
 
     // Controls for Step 1: Phone + QR Claim
     private readonly Grid _rootGrid = new();
@@ -83,7 +84,8 @@ public sealed class WalletPhoneWindow : Window
         string localSessionId = "",
         int plasticCount = 0,
         int canCount = 0,
-        int paperCount = 0)
+        int paperCount = 0,
+        double paperWeightKg = 0)
     {
         _itemCount = itemCount;
         _points = points;
@@ -92,6 +94,7 @@ public sealed class WalletPhoneWindow : Window
         _plasticCount = plasticCount;
         _canCount = canCount;
         _paperCount = paperCount;
+        _paperWeightKg = double.IsFinite(paperWeightKg) && paperWeightKg > 0 ? paperWeightKg : 0;
 
         Title = "Send Points to Your Wallet";
         try
@@ -197,6 +200,20 @@ public sealed class WalletPhoneWindow : Window
             FontWeight = FontWeights.Bold,
             Foreground = Brushes.White,
             Margin = new Thickness(0, 1, 0, 0)
+        });
+        string materialSummary = $"⭕ Plastic: {_plasticCount}   🔺 Cans: {_canCount}";
+        if (_paperWeightKg > 0)
+        {
+            double paperGrams = _paperWeightKg * 1000.0;
+            materialSummary += $"   🟦 Paper: {paperGrams:0} g ({_paperWeightKg:0.000} kg)";
+        }
+        sumLeft.Children.Add(new TextBlock
+        {
+            Text = materialSummary,
+            FontSize = 10.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(103, 232, 249)),
+            Margin = new Thickness(0, 3, 0, 0)
         });
         summaryGrid.Children.Add(sumLeft);
 

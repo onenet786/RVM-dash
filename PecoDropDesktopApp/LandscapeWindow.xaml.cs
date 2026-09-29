@@ -2309,7 +2309,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 currentSessionId,
                 plasticCount,
                 canCount,
-                paperCount)
+                paperCount,
+                paperTotalWeightKg)
             {
                 Owner = this
             };

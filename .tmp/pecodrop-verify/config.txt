@@ -1,0 +1,18 @@
+# Database connection settings.
+ConnectionString=Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;
+
+# Hardware and classifier settings
+ArduinoPort=COM6
+ArduinoBaud=115200
+AdvertisementVideoFolder=Ads\Advertisements
+InstructionVideoFolder=Ads\Instructions
+CameraPort=COM31
+CameraBaud=921600
+ModelPath=Models\rvm_classifier.onnx
+CaptureDirectory=Captures
+DisplayLayout=0012
+MachineId = PECO-LHR-01
+CentralApiUrl = https://isprvm.binishaqsoft.com
+Location = Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan
+Latitude = 31.5826
+Longitude = 74.3276

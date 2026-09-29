@@ -1,0 +1,4 @@
+Place advertisement videos in the Advertisements folder.
+Place the instruction video in the Instructions folder.
+
+All supported advertisement videos play in filename order and loop continuously.

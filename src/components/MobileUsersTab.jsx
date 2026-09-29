@@ -15,6 +15,7 @@ export default function MobileUsersTab() {
     totalCups: 0,
     totalTetra: 0,
     totalPaper: 0,
+    totalPaperGrams: 0,
     totalGlass: 0,
     totalRedeemed: 0,
     totalRedemptions: 0
@@ -36,6 +37,17 @@ export default function MobileUsersTab() {
     setTimeout(() => {
       setToastMessage(null);
     }, 2800);
+  };
+
+  const getPaperGrams = (record) => Number(
+    record?.paper_weight_grams ?? record?.paperWeightGrams ?? record?.paperGrams ?? 0
+  ) || 0;
+
+  const formatPaperWeight = (grams) => {
+    const safeGrams = Number(grams) || 0;
+    return safeGrams >= 1000
+      ? `${(safeGrams / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} kg`
+      : `${safeGrams.toLocaleString()} g`;
   };
 
   const fetchMobileUsers = async (isManual = false) => {
@@ -400,7 +412,7 @@ export default function MobileUsersTab() {
             <span className="text-xs font-semibold t-text-muted">items</span>
           </div>
           <div className="mt-2.5 text-xs t-text-muted truncate">
-            {(stats.totalBottles || 0).toLocaleString()} PET • {(stats.totalCups || 0).toLocaleString()} Cans • {(stats.totalTetra || 0) + (stats.totalPaper || 0)} Other
+            {(stats.totalBottles || 0).toLocaleString()} PET • {(stats.totalCups || 0).toLocaleString()} Cans • {formatPaperWeight(stats.totalPaperGrams || 0)} Paper
           </div>
         </div>
 
@@ -622,7 +634,7 @@ export default function MobileUsersTab() {
                           )}
                           {((user.paper || 0) > 0 || (user.paperGrams || 0) > 0) && (
                             <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 font-semibold border border-purple-500/30 text-[11px]">
-                              {user.paper || Math.round((user.paperGrams || 0) / 50)} Paper
+                              {formatPaperWeight(user.paperGrams || 0)} Paper
                             </span>
                           )}
                           {totalItems === 0 && (
@@ -711,9 +723,9 @@ export default function MobileUsersTab() {
                 </div>
               </div>
               <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30">
-                <div className="text-[10px] text-emerald-500 uppercase font-bold">Lifetime Items</div>
+                <div className="text-[10px] text-emerald-500 uppercase font-bold">Paper Recycled</div>
                 <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mono mt-0.5">
-                  {(selectedUser.bottles || 0) + (selectedUser.cups || 0) + (selectedUser.tetra || 0) + (selectedUser.paper || 0)}
+                  {formatPaperWeight(selectedUser.paperGrams || 0)}
                 </div>
               </div>
               <div className="p-3 rounded-2xl t-bg-sec border t-border">
@@ -766,7 +778,9 @@ export default function MobileUsersTab() {
                     <p className="mt-1">This user has not completed any machine deposits yet.</p>
                   </div>
                 ) : (
-                  userHistory.map((s, idx) => (
+                  userHistory.map((s, idx) => {
+                    const paperGrams = getPaperGrams(s);
+                    return (
                     <div key={s.session_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
                       <div>
                         <div className="font-bold t-text-primary flex items-center gap-2">
@@ -779,12 +793,19 @@ export default function MobileUsersTab() {
                           {s.created_at || s.recycledAt ? new Date(s.created_at || s.recycledAt).toLocaleString() : 'Recent'} • 
                           {' '}{s.plastic_count || s.bottles || 0} PET • {s.aluminium_count || s.cups || 0} Cans • {s.tetrapak_count || s.tetra_count || 0} Cartons
                         </div>
+                        {paperGrams > 0 && (
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-300">
+                            <span>🟦 Paper:</span>
+                            <span>{formatPaperWeight(paperGrams)}</span>
+                          </div>
+                        )}
                       </div>
                       <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30 mono">
                         +{s.points_earned || s.points || 0} Pts
                       </span>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             ) : (

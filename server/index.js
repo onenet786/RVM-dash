@@ -8703,6 +8703,7 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
       stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
       stats.totalGlass = usersList.reduce((acc, u) => acc + (u.glass || 0), 0);
       stats.totalPaper = usersList.reduce((acc, u) => acc + (u.paper || 0), 0);
+      stats.totalPaperGrams = usersList.reduce((acc, u) => acc + (u.paperGrams || 0), 0);
       stats.totalTetra = usersList.reduce((acc, u) => acc + (u.tetra || 0), 0);
     }
 
