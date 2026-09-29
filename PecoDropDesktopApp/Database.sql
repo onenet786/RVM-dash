@@ -21,8 +21,12 @@ CREATE TABLE dbo.PointSettings
     BottleSize VARCHAR(20),
     MaterialType VARCHAR(20),
     Points INT,
+    Unit VARCHAR(20) NOT NULL DEFAULT 'per_piece',
     IsActive BIT DEFAULT 1
 );
+
+IF COL_LENGTH('dbo.PointSettings', 'Unit') IS NULL
+    ALTER TABLE dbo.PointSettings ADD Unit VARCHAR(20) NOT NULL DEFAULT 'per_piece';
 
 IF OBJECT_ID('dbo.BottleTransactions', 'U') IS NULL
 CREATE TABLE dbo.BottleTransactions
@@ -66,17 +70,23 @@ CREATE TABLE dbo.WalletTransactions
 );
 
 IF NOT EXISTS (SELECT 1 FROM dbo.PointSettings)
-INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points)
+INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit)
 VALUES
-    ('SMALL', 'PLASTIC', 5),
-    ('MEDIUM', 'PLASTIC', 10),
-    ('LARGE', 'PLASTIC', 15),
-    ('SMALL', 'METAL', 5),
-    ('MEDIUM', 'METAL', 10),
-    ('LARGE', 'METAL', 15),
-    ('SMALL', 'CAN', 5), ('MEDIUM', 'CAN', 10), ('LARGE', 'CAN', 15),
-    ('SMALL', 'GLASS', 5), ('MEDIUM', 'GLASS', 10), ('LARGE', 'GLASS', 15),
-    ('SMALL', 'TETRA', 5), ('MEDIUM', 'TETRA', 10), ('LARGE', 'TETRA', 15);
+    ('SMALL', 'PLASTIC', 5, 'per_piece'),
+    ('MEDIUM', 'PLASTIC', 10, 'per_piece'),
+    ('LARGE', 'PLASTIC', 15, 'per_piece'),
+    ('SMALL', 'METAL', 5, 'per_piece'),
+    ('MEDIUM', 'METAL', 10, 'per_piece'),
+    ('LARGE', 'METAL', 15, 'per_piece'),
+    ('SMALL', 'CAN', 5, 'per_piece'), ('MEDIUM', 'CAN', 10, 'per_piece'), ('LARGE', 'CAN', 15, 'per_piece'),
+    ('SMALL', 'GLASS', 5, 'per_piece'), ('MEDIUM', 'GLASS', 10, 'per_piece'), ('LARGE', 'GLASS', 15, 'per_piece'),
+    ('SMALL', 'TETRA', 5, 'per_piece'), ('MEDIUM', 'TETRA', 10, 'per_piece'), ('LARGE', 'TETRA', 15, 'per_piece'),
+    ('WEIGHT', 'PAPER', 15, 'per_kg');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = 'PAPER' AND UPPER(BottleSize) = 'WEIGHT')
+    INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit, IsActive)
+    VALUES ('WEIGHT', 'PAPER', 15, 'per_kg', 1);
 GO
 
 IF OBJECT_ID('dbo.KioskDisplaySettings', 'U') IS NULL

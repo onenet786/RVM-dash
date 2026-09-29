@@ -379,7 +379,9 @@ public partial class AdminWindow : Window
         {
             pointsPerItem = 10;
         }
-        int totalPoints = pointsPerItem * itemCount;
+        int totalPoints = material.Contains("PAPER", StringComparison.OrdinalIgnoreCase)
+            ? PointRulesCache.CalculatePaperPoints(0, weightKg)
+            : pointsPerItem * itemCount;
 
         LogConsole($"--------------------------------------------------");
         LogConsole($"🚀 SIMULATING RECYCLING SESSION [{sessionId.ToString()[..8]}]...");

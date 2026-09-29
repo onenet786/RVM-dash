@@ -11,5 +11,6 @@
     <Compile Include="CompartmentChecks.cs" />
     <Compile Include="../CompartmentAvailability.cs" Link="CompartmentAvailability.cs" />
     <Compile Include="../CompartmentStatusPresenter.cs" Link="CompartmentStatusPresenter.cs" />
+    <Compile Include="../PaperRewardCalculator.cs" Link="PaperRewardCalculator.cs" />
   </ItemGroup>
 </Project>

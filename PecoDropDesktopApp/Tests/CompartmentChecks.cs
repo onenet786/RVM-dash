@@ -65,6 +65,13 @@ internal static class CompartmentChecks
         Check(card.IsEnabled && card.Background == Brushes.LightBlue && count.Opacity == 1 && label.Visibility == Visibility.Collapsed && count.Text == "7", "Recovered card restores colors and earned counts");
         state.ResetConnection();
         Check(!state.CanAccept("PLASTIC") && !state.CanAccept("CAN") && !state.CanAccept("PAPER"), "Connection loss cannot leave stale healthy cards active");
+
+        Check(PaperRewardCalculator.Calculate(0, 0.075, 1, "per_gram") == 75, "75 g at 1 point per gram awards 75 points");
+        Check(PaperRewardCalculator.Calculate(0, 0.150, 1, "per_gram") == 150, "150 g at 1 point per gram awards 150 points");
+        Check(PaperRewardCalculator.Calculate(0, 1.000, 1, "per_gram") == 1000, "1 kg at 1 point per gram awards 1000 points");
+        Check(PaperRewardCalculator.Calculate(0.075, 0.025, 1, "per_gram") == 25, "Cumulative paper rounding awards only the newly accepted grams");
+        Check(PaperRewardCalculator.Calculate(0, 2.000, 15, "per_kg") == 30, "Per-kilogram compatibility remains correct");
+        Check(PaperRewardCalculator.Calculate(0, 0.150, 7, "per_piece") == 7, "Per-piece compatibility remains correct");
         Console.WriteLine($"PASS: {assertions} compartment availability and UI checks");
     }
 }

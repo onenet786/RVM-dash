@@ -27,6 +27,20 @@ public static class PointRulesCache
     public static int ConfigVersion { get; set; } = 1;
     public static DateTime? LastSyncedAt { get; set; }
 
+    public static string NormalizePaperUnit(string? unit)
+        => PaperRewardCalculator.NormalizeUnit(unit);
+
+    public static void SetPaperRule(int points, string? unit)
+    {
+        if (points >= 0) PaperPerKg = points;
+        PaperUnit = NormalizePaperUnit(unit);
+    }
+
+    public static int CalculatePaperPoints(double previousWeightKg, double acceptedWeightKg)
+        => PaperRewardCalculator.Calculate(previousWeightKg, acceptedWeightKg, PaperPerKg, PaperUnit);
+
+    public static string PaperRateLabel => PaperRewardCalculator.FormatRateLabel(PaperPerKg, PaperUnit);
+
     public static void ApplyJsonConfig(string json)
     {
         try
@@ -50,7 +64,7 @@ public static class PointRulesCache
 
             if (TryGetString(root, "plasticUnit", "plastic_unit", out string pu)) PlasticUnit = pu;
             if (TryGetString(root, "aluminiumUnit", "aluminium_unit", out string au)) AluminiumUnit = au;
-            if (TryGetString(root, "paperUnit", "paper_unit", out string pau)) PaperUnit = pau;
+            if (TryGetString(root, "paperUnit", "paper_unit", out string pau)) PaperUnit = NormalizePaperUnit(pau);
             if (TryGetString(root, "glassUnit", "glass_unit", out string gu)) GlassUnit = gu;
 
             if (TryGetInt(root, "configVersion", "config_version", out int ver)) ConfigVersion = ver;
@@ -58,7 +72,7 @@ public static class PointRulesCache
             LastSyncedAt = DateTime.Now;
 
             // Sync to local SQL Server database if available
-            DatabaseManager.UpdateLocalPointSettings(PlasticSmall, PlasticMedium, PlasticLarge, CanSmall, CanMedium, CanLarge, GlassSmall, GlassMedium, GlassLarge);
+            DatabaseManager.UpdateLocalPointSettings(PlasticSmall, PlasticMedium, PlasticLarge, CanSmall, CanMedium, CanLarge, GlassSmall, GlassMedium, GlassLarge, PaperPerKg, PaperUnit);
         }
         catch
         {

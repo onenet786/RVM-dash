@@ -9460,6 +9460,24 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
             updatedAt: row.updated_at
           };
         }
+
+        // The variant matrix is the authoritative source for weight-based paper
+        // rewards. Overlay it so kiosk heartbeat refreshes cannot revert a
+        // PAPER/WEIGHT rule (for example, 1 point per gram) to a stale unit.
+        const paperRule = await pool.query(`
+          SELECT points, unit
+          FROM machine_variant_settings
+          WHERE (machine_id = $1 OR machine_id IN ('*', 'ALL'))
+            AND UPPER(material_type) = 'PAPER'
+            AND UPPER(bottle_size) = 'WEIGHT'
+            AND is_active = true
+          ORDER BY CASE WHEN machine_id = $1 THEN 0 ELSE 1 END, id DESC
+          LIMIT 1
+        `, [machineId]).catch(() => ({ rows: [] }));
+        if (paperRule.rows.length > 0) {
+          config.pointsPerPaperKg = Number(paperRule.rows[0].points) || 0;
+          config.paperUnit = paperRule.rows[0].unit || 'per_kg';
+        }
       }
     }
 

@@ -53,6 +53,7 @@ public static class DatabaseManager
             using var connection = new SqlConnection(ConnectionString);
             connection.Open();
             EnsurePointSettingsTable();
+            LoadLocalPaperPointRule();
             EnsureDisplaySettingsTable();
             EnsureKioskSettingsTable();
             message = "Database connected.";
@@ -203,6 +204,7 @@ public static class DatabaseManager
                         BottleSize NVARCHAR(50) NOT NULL,
                         MaterialType NVARCHAR(50) NOT NULL,
                         Points INT NOT NULL DEFAULT 10,
+                        Unit NVARCHAR(20) NOT NULL DEFAULT 'per_piece',
                         IsActive BIT NOT NULL DEFAULT 1
                     );
 
@@ -231,7 +233,14 @@ public static class DatabaseManager
 
                     IF COL_LENGTH('dbo.PointSettings', 'Points') IS NULL
                         ALTER TABLE dbo.PointSettings ADD Points INT NOT NULL DEFAULT 10;
+
+                    IF COL_LENGTH('dbo.PointSettings', 'Unit') IS NULL
+                        ALTER TABLE dbo.PointSettings ADD Unit NVARCHAR(20) NOT NULL CONSTRAINT DF_PointSettings_Unit DEFAULT 'per_piece';
                 END
+
+                IF NOT EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = 'PAPER' AND UPPER(BottleSize) = 'WEIGHT')
+                    INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit, IsActive)
+                    VALUES ('WEIGHT', 'PAPER', 15, 'per_kg', 1);
             ", connection);
             cmd.ExecuteNonQuery();
         }
@@ -250,7 +259,7 @@ public static class DatabaseManager
                     BottleSize,
                     Points AS PointsAwarded,
                     Points,
-                    'per_piece' AS Unit,
+                    Unit,
                     IsActive,
                     GETDATE() AS LastUpdated 
                 FROM dbo.PointSettings 
@@ -259,6 +268,34 @@ public static class DatabaseManager
         catch
         {
             return new DataTable();
+        }
+    }
+
+    public static bool LoadLocalPaperPointRule()
+    {
+        try
+        {
+            EnsurePointSettingsTable();
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            using var command = new SqlCommand(@"
+                SELECT TOP 1 Points, Unit
+                FROM dbo.PointSettings
+                WHERE IsActive = 1
+                  AND UPPER(MaterialType) = 'PAPER'
+                  AND UPPER(BottleSize) = 'WEIGHT'
+                ORDER BY PointSettingID DESC;", connection);
+            using var reader = command.ExecuteReader();
+            if (!reader.Read()) return false;
+
+            PointRulesCache.SetPaperRule(
+                Convert.ToInt32(reader["Points"]),
+                Convert.ToString(reader["Unit"]) ?? "per_kg");
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -355,6 +392,16 @@ public static class DatabaseManager
                     return 0;
                 }
 
+                string GetStringProp(string fallback, params string[] props)
+                {
+                    foreach (string p in props)
+                    {
+                        if (elem.TryGetProperty(p, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String)
+                            return v.GetString() ?? fallback;
+                    }
+                    return fallback;
+                }
+
                 rulesToUpsert.Add(("PLASTIC", "SMALL", GetProp("pointsPlasticSmall", "points_plastic_small") > 0 ? GetProp("pointsPlasticSmall", "points_plastic_small") : 5, "per_piece"));
                 rulesToUpsert.Add(("PLASTIC", "MEDIUM", GetProp("pointsPlasticMedium", "points_plastic_medium", "pointsPerPlasticBottle") > 0 ? GetProp("pointsPlasticMedium", "points_plastic_medium", "pointsPerPlasticBottle") : 10, "per_piece"));
                 rulesToUpsert.Add(("PLASTIC", "LARGE", GetProp("pointsPlasticLarge", "points_plastic_large") > 0 ? GetProp("pointsPlasticLarge", "points_plastic_large") : 15, "per_piece"));
@@ -364,8 +411,12 @@ public static class DatabaseManager
                 rulesToUpsert.Add(("CAN", "LARGE", GetProp("pointsCanLarge", "points_can_large") > 0 ? GetProp("pointsCanLarge", "points_can_large") : 20, "per_piece"));
 
                 rulesToUpsert.Add(("TETRA", "SMALL", GetProp("pointsTetraPakSmall", "points_tetrapak_small") > 0 ? GetProp("pointsTetraPakSmall", "points_tetrapak_small") : 5, "per_piece"));
-                rulesToUpsert.Add(("TETRA", "MEDIUM", GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") > 0 ? GetProp("pointsTetraPakMedium", "points_tetrapak_medium", "pointsPerPaperKg") : 10, "per_piece"));
+                rulesToUpsert.Add(("TETRA", "MEDIUM", GetProp("pointsTetraPakMedium", "points_tetrapak_medium") > 0 ? GetProp("pointsTetraPakMedium", "points_tetrapak_medium") : 10, "per_piece"));
                 rulesToUpsert.Add(("TETRA", "LARGE", GetProp("pointsTetraPakLarge", "points_tetrapak_large") > 0 ? GetProp("pointsTetraPakLarge", "points_tetrapak_large") : 15, "per_piece"));
+
+                int paperRate = GetProp("pointsPerPaperKg", "points_per_paper_kg");
+                rulesToUpsert.Add(("PAPER", "WEIGHT", paperRate > 0 ? paperRate : 15,
+                    PointRulesCache.NormalizePaperUnit(GetStringProp("per_kg", "paperUnit", "paper_unit"))));
 
                 rulesToUpsert.Add(("GLASS", "SMALL", GetProp("pointsGlassSmall", "points_glass_small") > 0 ? GetProp("pointsGlassSmall", "points_glass_small") : 10, "per_piece"));
                 rulesToUpsert.Add(("GLASS", "MEDIUM", GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") > 0 ? GetProp("pointsGlassMedium", "points_glass_medium", "pointsPerGlass") : 15, "per_piece"));
@@ -385,43 +436,54 @@ public static class DatabaseManager
                     IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz)
                     BEGIN
                         UPDATE dbo.PointSettings 
-                        SET Points = @Pts, IsActive = 1
+                        SET Points = @Pts, Unit = @Unit, IsActive = 1
                         WHERE UPPER(MaterialType) = @Mat AND UPPER(BottleSize) = @Sz;
                     END
                     -- 2. Alias Match for CAN / METAL / ALUMINIUM
                     ELSE IF (@Mat = 'CAN' OR @Mat = 'METAL' OR @Mat = 'ALUMINIUM') AND EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) IN ('CAN', 'METAL', 'ALUMINIUM') AND UPPER(BottleSize) = @Sz)
                     BEGIN
                         UPDATE dbo.PointSettings 
-                        SET Points = @Pts, IsActive = 1
+                        SET Points = @Pts, Unit = @Unit, IsActive = 1
                         WHERE UPPER(MaterialType) IN ('CAN', 'METAL', 'ALUMINIUM') AND UPPER(BottleSize) = @Sz;
                     END
                     -- 3. Alias Match for TETRA / TETRA PAK / PAPER
                     ELSE IF (@Mat LIKE '%TETRA%' OR @Mat LIKE '%CARTON%' OR @Mat LIKE '%PAPER%') AND EXISTS (SELECT 1 FROM dbo.PointSettings WHERE (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = @Sz)
                     BEGIN
                         UPDATE dbo.PointSettings 
-                        SET Points = @Pts, IsActive = 1
+                        SET Points = @Pts, Unit = @Unit, IsActive = 1
                         WHERE (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) = @Sz;
                     END
                     -- 4. Fuzzy Substring Match
                     ELSE IF EXISTS (SELECT 1 FROM dbo.PointSettings WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%'))
                     BEGIN
                         UPDATE dbo.PointSettings 
-                        SET Points = @Pts, IsActive = 1
+                        SET Points = @Pts, Unit = @Unit, IsActive = 1
                         WHERE (UPPER(MaterialType) LIKE '%' + @Mat + '%' OR @Mat LIKE '%' + UPPER(MaterialType) + '%') AND (UPPER(BottleSize) LIKE '%' + @Sz + '%' OR @Sz LIKE '%' + UPPER(BottleSize) + '%');
                     END
                     -- 5. Insert new rule if absent
                     ELSE
                     BEGIN
-                        INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, IsActive)
-                        VALUES (@Sz, @Mat, @Pts, 1);
+                        INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit, IsActive)
+                        VALUES (@Sz, @Mat, @Pts, @Unit, 1);
                     END
                 ", connection);
                 upsertCmd.Parameters.AddWithValue("@Mat", item.mat);
                 upsertCmd.Parameters.AddWithValue("@Sz", item.sz);
                 upsertCmd.Parameters.AddWithValue("@Pts", item.pts);
+                upsertCmd.Parameters.AddWithValue("@Unit", item.unit);
 
                 await upsertCmd.ExecuteNonQueryAsync();
                 updatedCount++;
+            }
+
+            foreach (var item in rulesToUpsert)
+            {
+                if (item.mat.Equals("PAPER", StringComparison.OrdinalIgnoreCase) &&
+                    item.sz.Equals("WEIGHT", StringComparison.OrdinalIgnoreCase))
+                {
+                    PointRulesCache.SetPaperRule(item.pts, item.unit);
+                    break;
+                }
             }
 
             logCallback?.Invoke($"[POINT SETTINGS SYNC 🟢] Successfully synced {updatedCount} dynamic point rules via '{successUrl}' into local database.");
@@ -994,25 +1056,28 @@ public static class DatabaseManager
     public static void UpdateLocalPointSettings(
         int plasticSmall, int plasticMedium, int plasticLarge,
         int canSmall, int canMedium, int canLarge,
-        int glassSmall, int glassMedium, int glassLarge)
+        int glassSmall, int glassMedium, int glassLarge,
+        int paperRate, string paperUnit)
     {
         try
         {
+            EnsurePointSettingsTable();
             using var connection = new SqlConnection(ConnectionString);
             connection.Open();
 
             string sql = @"
                 MERGE dbo.PointSettings AS target
                 USING (VALUES 
-                    ('SMALL', 'PLASTIC', @ps), ('MEDIUM', 'PLASTIC', @pm), ('LARGE', 'PLASTIC', @pl),
-                    ('SMALL', 'CAN', @cs), ('MEDIUM', 'CAN', @cm), ('LARGE', 'CAN', @cl),
-                    ('SMALL', 'GLASS', @gs), ('MEDIUM', 'GLASS', @gm), ('LARGE', 'GLASS', @gl)
-                ) AS source (BottleSize, MaterialType, Points)
+                    ('SMALL', 'PLASTIC', @ps, 'per_piece'), ('MEDIUM', 'PLASTIC', @pm, 'per_piece'), ('LARGE', 'PLASTIC', @pl, 'per_piece'),
+                    ('SMALL', 'CAN', @cs, 'per_piece'), ('MEDIUM', 'CAN', @cm, 'per_piece'), ('LARGE', 'CAN', @cl, 'per_piece'),
+                    ('SMALL', 'GLASS', @gs, 'per_piece'), ('MEDIUM', 'GLASS', @gm, 'per_piece'), ('LARGE', 'GLASS', @gl, 'per_piece'),
+                    ('WEIGHT', 'PAPER', @paper, @paperUnit)
+                ) AS source (BottleSize, MaterialType, Points, Unit)
                 ON target.BottleSize = source.BottleSize AND target.MaterialType = source.MaterialType
                 WHEN MATCHED THEN
-                    UPDATE SET Points = source.Points, IsActive = 1
+                    UPDATE SET Points = source.Points, Unit = source.Unit, IsActive = 1
                 WHEN NOT MATCHED THEN
-                    INSERT (BottleSize, MaterialType, Points, IsActive) VALUES (source.BottleSize, source.MaterialType, source.Points, 1);
+                    INSERT (BottleSize, MaterialType, Points, Unit, IsActive) VALUES (source.BottleSize, source.MaterialType, source.Points, source.Unit, 1);
             ";
 
             using var cmd = new SqlCommand(sql, connection);
@@ -1025,6 +1090,8 @@ public static class DatabaseManager
             cmd.Parameters.AddWithValue("@gs", glassSmall);
             cmd.Parameters.AddWithValue("@gm", glassMedium);
             cmd.Parameters.AddWithValue("@gl", glassLarge);
+            cmd.Parameters.AddWithValue("@paper", paperRate);
+            cmd.Parameters.AddWithValue("@paperUnit", PointRulesCache.NormalizePaperUnit(paperUnit));
 
             cmd.ExecuteNonQuery();
         }

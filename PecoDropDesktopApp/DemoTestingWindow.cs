@@ -749,7 +749,7 @@ public sealed class DemoTestingWindow : Window
         row.Children.Add(_paperGramsInput);
         row.Children.Add(new TextBlock
         {
-            Text = $" g   •   {PointRulesCache.PaperPerKg:0.##} points/kg   •   Enter net office-paper weight",
+            Text = $" g   •   {PointRulesCache.PaperRateLabel}   •   Enter net office-paper weight",
             FontSize = 10, FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush(Color.FromRgb(186, 230, 253)), VerticalAlignment = VerticalAlignment.Center
         });
@@ -778,10 +778,10 @@ public sealed class DemoTestingWindow : Window
         }
 
         double kg = grams / 1000.0;
-        int points = (int)Math.Round(kg * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
+        int points = PointRulesCache.CalculatePaperPoints(0, kg);
         _paperGramsInput.BorderBrush = new SolidColorBrush(Color.FromRgb(6, 182, 212));
         _paperScaleFeedback.Foreground = new SolidColorBrush(Color.FromRgb(103, 232, 249));
-        _paperScaleFeedback.Text = $"{kg:0.000} kg  →  {points} pts at {PointRulesCache.PaperPerKg:0.##} pts/kg";
+        _paperScaleFeedback.Text = $"{grams:0} g ({kg:0.000} kg)  →  {points} pts at {PointRulesCache.PaperRateLabel}";
         return true;
     }
 

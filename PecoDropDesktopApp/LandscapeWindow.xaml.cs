@@ -2200,9 +2200,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         if (result.Material.Contains("PAPER", StringComparison.OrdinalIgnoreCase) && result.WeightKg > 0)
         {
-            int before = (int)Math.Round(paperTotalWeightKg * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
-            int after = (int)Math.Round((paperTotalWeightKg + result.WeightKg) * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
-            return Math.Max(0, after - before);
+            return PointRulesCache.CalculatePaperPoints(paperTotalWeightKg, result.WeightKg);
         }
 
         // 1. Check live synced PointRulesCache first
