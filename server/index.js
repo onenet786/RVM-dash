@@ -1471,6 +1471,34 @@ function getAssignedMachinesList(req) {
   return getEffectiveMachineScope(req);
 }
 
+// Lightweight, tenant-scoped labels for the corporate portal header.
+app.get('/api/corporate/fleet-labels', optionalAuth, async (req, res) => {
+  try {
+    const machineIds = getEffectiveMachineScope(req);
+    if (!req.user || !['client_admin', 'corporate_sub_user'].includes(req.user.roleId)) {
+      return res.status(403).json({ success: false, error: 'Corporate portal access required.' });
+    }
+    if (!machineIds || machineIds.length === 0 || machineIds.includes('__RESTRICTED_NO_ACCESS__')) {
+      return res.json({ success: true, machines: [] });
+    }
+
+    const pool = getPgPool();
+    if (!pool) return res.json({ success: true, machines: [] });
+    const result = await pool.query(`
+      SELECT machine_id, COALESCE(NULLIF(TRIM(name), ''), machine_id) AS name
+      FROM machines
+      WHERE UPPER(machine_id) = ANY($1::text[])
+      ORDER BY name ASC;
+    `, [machineIds]);
+    return res.json({
+      success: true,
+      machines: result.rows.map(row => ({ id: row.machine_id, name: row.name }))
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // High level KPIs Overview (Resilient Optional Auth & Global Telemetry Fallback)
 app.get('/api/overview', optionalAuth, async (req, res) => {
   try {

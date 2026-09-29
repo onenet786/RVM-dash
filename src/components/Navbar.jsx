@@ -25,6 +25,7 @@ export default function Navbar({
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showClientMenu, setShowClientMenu] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  const [corporateFleetLabels, setCorporateFleetLabels] = useState([]);
 
   const clientMenuRef = useRef(null);
   const themeMenuRef = useRef(null);
@@ -82,6 +83,24 @@ export default function Navbar({
   const isClientAdmin = currentUser?.roleId === 'client_admin';
   const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
   const isCorporatePortal = isClientAdmin || isCorporateSubUser;
+
+  useEffect(() => {
+    if (!isCorporatePortal) {
+      setCorporateFleetLabels([]);
+      return;
+    }
+
+    let cancelled = false;
+    fetch('/api/corporate/fleet-labels')
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!cancelled) setCorporateFleetLabels(Array.isArray(data?.machines) ? data.machines : []);
+      })
+      .catch(() => {
+        if (!cancelled) setCorporateFleetLabels([]);
+      });
+    return () => { cancelled = true; };
+  }, [isCorporatePortal, currentUser?.orgId, currentUser?.assignedMachines?.join('|')]);
 
   const [clients, setClients] = useState([
     { 
@@ -198,9 +217,16 @@ export default function Navbar({
               <span className="text-[10px] uppercase text-emerald-700 dark:text-emerald-400 font-extrabold hidden md:inline">
                 {isCorporateSubUser ? 'Assigned Kiosks:' : 'Organization Fleet:'}
               </span>
-              <span className="text-xs font-black mono t-text-primary">
-                {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
-                  ? currentUser.assignedMachines.join(', ')
+              <span
+                className="text-xs font-black t-text-primary max-w-[360px] truncate"
+                title={corporateFleetLabels.length > 0
+                  ? corporateFleetLabels.map(machine => `${machine.name} (${machine.id})`).join(', ')
+                  : (currentUser?.assignedMachines || []).join(', ')}
+              >
+                {corporateFleetLabels.length > 0
+                  ? corporateFleetLabels.map(machine => machine.name).join(', ')
+                  : Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
+                    ? currentUser.assignedMachines.join(', ')
                   : 'All Assigned Fleet'}
               </span>
             </div>
