@@ -45,7 +45,7 @@ echo "Branch:  $CURRENT_BRANCH -> $TARGET_BRANCH"
 
 # Protect server-managed files. Generated dist changes are allowed because the
 # production build replaces them; every other local edit must be handled first.
-DIRTY_FILES="$(git status --porcelain -- . ':(exclude)dist' ':(exclude)uploads' ':(exclude)server/uploads' ':(exclude)backups' ':(exclude).env')"
+DIRTY_FILES="$(git status --porcelain -- . ':(exclude)dist' ':(exclude)uploads' ':(exclude)server/uploads' ':(exclude)server/point_settings_db.json' ':(exclude)backups' ':(exclude).env')"
 if [ -n "$DIRTY_FILES" ]; then
   echo "ERROR: Local host changes detected outside protected/generated paths:"
   echo "$DIRTY_FILES"

@@ -6,6 +6,7 @@ backups/
 *.backup
 uploads/advertisements/
 server/uploads/
+server/point_settings_db.json
 *.log
 *.zip
 *.tar.gz
