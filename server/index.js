@@ -363,6 +363,10 @@ async function closePgPool() {
 
 async function initProductionPostgresSchemas() {
   if (activeDbType !== 'postgres' || !activePgConfig) return;
+  if (String(process.env.SKIP_STARTUP_DB_INIT || '').toLowerCase() === 'true') {
+    console.log('[PostgreSQL Schemas] Startup initialization skipped by SKIP_STARTUP_DB_INIT=true.');
+    return;
+  }
   const pool = getPgPool();
   if (!pool) return;
 
