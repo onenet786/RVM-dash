@@ -231,8 +231,8 @@ export default function App() {
 
     const getUserAllowedModules = () => {
       if (isSuperAdmin) return ['*'];
-      if (isClientAdmin) return ['overview', 'sub_users', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
-      if (isCorporateSubUser) return ['overview', 'analytics', 'esg_impact', 'reporting_hub', 'machines'];
+      if (isClientAdmin) return ['overview', 'sub_users', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
+      if (isCorporateSubUser) return ['overview', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'machines'];
       if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
         return currentUser.modules;
       }

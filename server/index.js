@@ -7784,6 +7784,14 @@ async function handleMobileGetRecycle(req, res) {
     let redemptionsList = [];
     const pool = getPgPool();
     if (pool) {
+      const isCorporatePortal = ['client_admin', 'corporate_sub_user'].includes(req.user?.roleId);
+      const scopedMachines = isCorporatePortal
+        ? (Array.isArray(req.user?.assignedMachines) ? req.user.assignedMachines : [])
+          .map(machineId => String(machineId).trim().toUpperCase()).filter(Boolean)
+        : null;
+      if (isCorporatePortal && scopedMachines.length === 0) {
+        return res.json({ success: true, totalSessions: 0, totalRedemptions: 0, totalRedeemedPoints: 0, history: [], redemptions: [] });
+      }
       // 1. Gather all candidate identifiers
       const rawCandidates = [userId, mobile, username, phone, qUserId].filter(Boolean);
       const exactCandidates = new Set(rawCandidates.map(c => String(c).trim()));
@@ -7864,9 +7872,10 @@ async function handleMobileGetRecycle(req, res) {
           OR (user_id IS NOT NULL AND regexp_replace(user_id, '[^0-9]', '', 'g') = ANY($3::text[]))
         )
         AND user_id NOT IN ('anonymous', '', 'null')
+        AND ($4::text[] IS NULL OR UPPER(machine_id) = ANY($4::text[]))
         ORDER BY created_at DESC
         LIMIT 100;
-      `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds]).catch(err => {
+      `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds, scopedMachines]).catch(err => {
         console.warn('[GetRecycle Relational Query Warning]', err.message);
         return { rows: [] };
       });
@@ -7946,8 +7955,9 @@ async function handleMobileGetRecycle(req, res) {
             OR (data->>'userId' IS NOT NULL AND ltrim(regexp_replace(data->>'userId', '[^0-9]', '', 'g'), '0') = ANY($2::text[]))
             OR (data->>'phoneNumber' IS NOT NULL AND regexp_replace(data->>'phoneNumber', '[^0-9]', '', 'g') = ANY($3::text[]))
           )
+          AND ($4::text[] IS NULL OR UPPER(COALESCE(data->>'machineId', data->>'machine_id', '')) = ANY($4::text[]))
           ORDER BY synced_at DESC LIMIT 100;
-        `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds]).catch(() => ({ rows: [] }));
+        `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds, validClean.length > 0 ? validClean : validUserIds, scopedMachines]).catch(() => ({ rows: [] }));
 
         if (jsonRes.rows.length > 0) {
           jsonRes.rows.forEach(r => {
@@ -8006,8 +8016,12 @@ async function handleMobileGetRecycle(req, res) {
         }
       } catch (e) {}
 
-      // 5. Query citizen redemptions exclusively from PostgreSQL
+      // 5. Query citizen redemptions exclusively from PostgreSQL. A corporate
+      // portal can see them only for a recycler with activity in its fleet.
       try {
+        if (isCorporatePortal && history.length === 0) {
+          redemptionsList = [];
+        } else {
         const redRes = await pool.query(`
           SELECT 
             redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
@@ -8036,6 +8050,7 @@ async function handleMobileGetRecycle(req, res) {
           created_at: r.created_at,
           redeemedAt: r.created_at
         }));
+        }
       } catch (e) {}
     }
 
@@ -8060,8 +8075,8 @@ async function handleMobileGetRecycle(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
-app.get('/api/getrecycle/:userId', handleMobileGetRecycle);
-app.get('/getrecycle/:userId', handleMobileGetRecycle);
+app.get('/api/getrecycle/:userId', optionalAuth, handleMobileGetRecycle);
+app.get('/getrecycle/:userId', optionalAuth, handleMobileGetRecycle);
 
 // High-Speed In-Memory Cache for Mobile Leaderboard (30-second TTL)
 let cachedLeaderboardPayload = null;
@@ -8517,6 +8532,11 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
 
     const pool = getPgPool();
     if (pool) {
+      const isCorporatePortal = ['client_admin', 'corporate_sub_user'].includes(req.user?.roleId);
+      const scopedMachines = isCorporatePortal
+        ? (Array.isArray(req.user?.assignedMachines) ? req.user.assignedMachines : [])
+          .map(machineId => String(machineId).trim().toUpperCase()).filter(Boolean)
+        : null;
       // 1. Fetch all citizens from PostgreSQL users table
       const uRes = await pool.query(`
         SELECT 
@@ -8588,8 +8608,9 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
           LIMIT 1
         ) pr ON TRUE
         WHERE rs.user_id IS NOT NULL AND rs.user_id NOT IN ('anonymous', '', 'null')
+          AND ($1::text[] IS NULL OR UPPER(rs.machine_id) = ANY($1::text[]))
         GROUP BY rs.user_id;
-      `).catch(() => ({ rows: [] }));
+      `, [scopedMachines]).catch(() => ({ rows: [] }));
 
       // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions to avoid duplicate counts
       const jsonSessions = await pool.query(`
@@ -8607,8 +8628,9 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         WHERE id NOT IN (SELECT session_id FROM recycling_sessions)
           AND (data->>'phoneNumber' IS NOT NULL OR data->>'userId' IS NOT NULL OR data->>'user_id' IS NOT NULL OR data->>'userName' IS NOT NULL)
           AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') NOT IN ('anonymous', '', 'null')
+          AND ($1::text[] IS NULL OR UPPER(COALESCE(data->>'machineId', data->>'machine_id', '')) = ANY($1::text[]))
         GROUP BY user_key;
-      `).catch(() => ({ rows: [] }));
+      `, [scopedMachines]).catch(() => ({ rows: [] }));
 
       // Map sessions to normalized phone/id keys (handling leading zeros: 03214424625 vs 3214424625)
       const userSessionMap = {};
@@ -8752,6 +8774,13 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
           createdAt: u.created_at
         };
       });
+
+      if (isCorporatePortal) {
+        const orgId = String(req.user?.orgId || '').toUpperCase();
+        usersList = usersList.filter(user =>
+          user.sessions > 0 || (orgId && String(user.orgId || '').toUpperCase() === orgId)
+        );
+      }
 
       stats.totalUsers = usersList.length;
       stats.onlineNow = usersList.filter(u => u.isOnline).length;

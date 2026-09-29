@@ -42,10 +42,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
     if (isClientAdmin) {
-      return ['overview', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'machines', 'advertisements'];
+      return ['overview', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines', 'advertisements'];
     }
     if (isCorporateSubUser) {
-      return ['overview', 'reporting_hub', 'esg_impact', 'analytics', 'machines'];
+      return ['overview', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines'];
     }
     if (isSuperAdmin) return ['*'];
     if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
@@ -66,7 +66,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       if (moduleId.startsWith('col_')) return false;
     }
     if (isCorporateSubUser) {
-      if (['enterprise_clients', 'sub_users', 'security', 'db_switcher', 'db_backup', 'mobile_users', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(moduleId)) return false;
+      if (['enterprise_clients', 'sub_users', 'security', 'db_switcher', 'db_backup', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(moduleId)) return false;
       if (moduleId.startsWith('col_')) return false;
     }
     if (isSuperAdmin || isMasterDev) return true;
@@ -99,9 +99,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       badge: 'Public & Mobile',
       icon: Users,
       items: [
-        ...(!isClientAdmin && !isCorporateSubUser ? [
-          { id: 'mobile_users', orderNo: 4, label: 'Recycler Community', icon: Users }
-        ] : []),
+        { id: 'mobile_users', orderNo: 4, label: isClientAdmin || isCorporateSubUser ? 'Recycler Activity' : 'Recycler Community', icon: Users },
         { id: 'analytics', orderNo: 5, label: 'Rewards & Leaderboards', icon: Trophy }
       ]
     },
