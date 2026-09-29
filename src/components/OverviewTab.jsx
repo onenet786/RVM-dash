@@ -269,6 +269,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       : `${grams.toLocaleString()} g`;
     return { sessions, weight };
   };
+  const formatKgAndGrams = (kilograms) => {
+    const totalGrams = Math.max(0, Math.round((Number(kilograms) || 0) * 1000));
+    return `${Math.floor(totalGrams / 1000).toLocaleString()} kg, ${(totalGrams % 1000).toLocaleString()} g`;
+  };
 
   // Daily Trend Stacked Chart Data (Live from /api/analytics/trends)
   const dailyTrendData = useMemo(() => {
@@ -915,6 +919,9 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
               
               <p className="text-2xl font-extrabold t-text-primary mt-3 mono">
                 {currentScope.paperKg.toFixed(2)} <span className="text-xs font-normal t-text-muted">kg collected</span>
+                <span className="block text-[11px] font-semibold text-purple-700 dark:text-purple-400 mt-1">
+                  ({formatKgAndGrams(currentScope.paperKg)})
+                </span>
               </p>
 
               <div className="grid grid-cols-3 gap-2 mt-4 text-center">
