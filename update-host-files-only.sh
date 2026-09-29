@@ -53,6 +53,20 @@ if [ -n "$DIRTY_FILES" ]; then
   exit 1
 fi
 
+# dist is a tracked build artifact in this repository. A production Vite build
+# changes dist/index.html and hashed assets, which would otherwise make the next
+# fast-forward pull fail even though dist is intentionally disposable. Restore
+# tracked dist files to HEAD before pulling; npm run build recreates the current
+# production bundle below. This does not touch source, uploads, .env, or data.
+if ! git diff --quiet -- dist 2>/dev/null || ! git diff --cached --quiet -- dist 2>/dev/null; then
+  echo "Resetting tracked frontend build artifacts before update..."
+  git restore --staged --worktree -- dist
+fi
+if [ -n "$(git ls-files --others --exclude-standard -- dist)" ]; then
+  echo "Removing untracked frontend build artifacts before update..."
+  git clean -fd -- dist
+fi
+
 git fetch origin --prune
 
 if [ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]; then
