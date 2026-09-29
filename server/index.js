@@ -7039,7 +7039,7 @@ async function handleMobileLogin(req, res) {
         try {
           const jsonStats = await pool.query(`
             SELECT 
-              COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS total_bottles,
+              COALESCE(SUM(COALESCE((data->>'plasticCount')::int, (data->>'plastic_count')::int, (data->>'bottles')::int, 0)), 0) AS total_bottles,
               COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS total_cups,
               COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, 0)), 0) AS total_earned_points,
               COUNT(id) AS session_count,
@@ -7104,7 +7104,7 @@ async function handleMobileLogin(req, res) {
               return {
                 session_id: r.id || d._id,
                 machine_id: d.machineId || d.machine_id || 'RVM-01',
-                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
+                plastic_count: parseInt(d.plasticCount ?? d.plastic_count ?? d.bottles ?? 0),
                 aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
                 points_earned: parseInt(d.points || d.pointsEarned || 0),
                 session_status: 'completed',
@@ -7576,7 +7576,7 @@ async function handleMobileGetPoints(req, res) {
         try {
           const jsonStats = await pool.query(`
             SELECT 
-              COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS total_bottles,
+              COALESCE(SUM(COALESCE((data->>'plasticCount')::int, (data->>'plastic_count')::int, (data->>'bottles')::int, 0)), 0) AS total_bottles,
               COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, 0)), 0) AS total_cups,
               COALESCE(SUM(COALESCE((data->>'points')::int, (data->>'pointsEarned')::int, 0)), 0) AS total_earned_points,
               COUNT(id) AS session_count,
@@ -7641,7 +7641,7 @@ async function handleMobileGetPoints(req, res) {
               return {
                 session_id: r.id || d._id,
                 machine_id: d.machineId || d.machine_id || 'RVM-01',
-                plastic_count: parseInt(d.bottles || d.plasticCount || 0),
+                plastic_count: parseInt(d.plasticCount ?? d.plastic_count ?? d.bottles ?? 0),
                 aluminium_count: parseInt(d.cups || d.aluminiumCount || 0),
                 points_earned: parseInt(d.points || d.pointsEarned || 0),
                 session_status: 'completed',
@@ -7853,7 +7853,7 @@ async function handleMobileGetRecycle(req, res) {
             seenSessionIds.add(sid);
 
             const d = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
-            const b = parseInt(d.bottles || d.plasticCount || d.plastic_count || 0);
+            const b = parseInt(d.plasticCount ?? d.plastic_count ?? d.bottles ?? 0);
             const c = parseInt(d.cups || d.aluminiumCount || d.aluminium_count || d.cans || 0);
             const g = parseInt(d.glassCount || d.glass_count || d.glass || 0);
             let p = parseInt(d.paperCount || d.paper_count || d.paperCardboardCount || d.paper_cardboard_count || 0);
@@ -8419,7 +8419,7 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
       const jsonSessions = await pool.query(`
         SELECT 
           COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') AS user_key,
-          COALESCE(SUM(COALESCE((data->>'bottles')::int, (data->>'plasticCount')::int, 0)), 0) AS bottles,
+          COALESCE(SUM(COALESCE((data->>'plasticCount')::int, (data->>'plastic_count')::int, (data->>'bottles')::int, 0)), 0) AS bottles,
           COALESCE(SUM(COALESCE((data->>'cups')::int, (data->>'aluminiumCount')::int, (data->>'cans')::int, 0)), 0) AS cups,
           COALESCE(SUM(COALESCE((data->>'glassCount')::int, (data->>'glass')::int, 0)), 0) AS glass,
           COALESCE(SUM(COALESCE((data->>'paperCount')::int, (data->>'paperCardboardCount')::int, (data->>'paper')::int, 0)), 0) AS paper,
@@ -10750,7 +10750,10 @@ app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
     if (targetHandshake.user && targetHandshake.user.phone) invalidateMobileUserCaches(targetHandshake.user.phone);
 
     const pointsClaimed = targetHandshake.completedSession?.pointsEarned ?? targetHandshake.livePoints ?? 0;
-    const itemsCount = targetHandshake.completedSession?.totalBottles ?? targetHandshake.liveItems ?? 0;
+    const itemsCount = targetHandshake.completedSession?.totalItems
+      ?? targetHandshake.liveItems
+      ?? targetHandshake.completedSession?.totalBottles
+      ?? 0;
 
     res.json({
       success: true,
@@ -10782,6 +10785,7 @@ app.post('/api/session/create-claim', async (req, res) => {
       localSessionId,
       points = 0,
       totalBottles = 0,
+      totalItems,
       plasticCount = 0,
       aluminiumCount = 0,
       paperCardboardCount = 0,
@@ -10797,7 +10801,12 @@ app.post('/api/session/create-claim', async (req, res) => {
     } = req.body;
 
     const cleanPoints = Math.min(Math.max(0, parseInt(points) || 0), 5000);
-    const cleanBottles = Math.min(Math.max(0, parseInt(totalBottles) || 0), 500);
+    const explicitMaterialTotal = Number(plasticCount || 0) + Number(aluminiumCount || 0)
+      + Number(paperCardboardCount || 0) + Number(glassCount || 0);
+    const cleanTotalItems = Math.min(Math.max(0, parseInt(totalItems ?? explicitMaterialTotal) || 0), 500);
+    const cleanBottles = Math.min(Math.max(0,
+      explicitMaterialTotal > 0 ? parseInt(plasticCount) || 0 : parseInt(totalBottles) || 0
+    ), 500);
 
     const sessionId = localSessionId 
       ? `${machineId}_${localSessionId}` 
@@ -10813,6 +10822,7 @@ app.post('/api/session/create-claim', async (req, res) => {
       localSessionId,
       points: cleanPoints,
       totalBottles: cleanBottles,
+      totalItems: cleanTotalItems,
       plasticCount: Number(plasticCount) || 0,
       aluminiumCount: Number(aluminiumCount) || 0,
       paperCardboardCount: Number(paperCardboardCount) || 0,
@@ -10847,7 +10857,8 @@ app.post('/api/session/create-claim', async (req, res) => {
       qrUrl,
       expiresInSeconds: 90,
       points: sessionData.points,
-      totalBottles: sessionData.totalBottles
+      totalBottles: sessionData.totalBottles,
+      totalItems: sessionData.totalItems
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -10878,6 +10889,7 @@ app.get('/api/session/claim-status', async (req, res) => {
       status: session.status,
       points: session.points,
       totalBottles: session.totalBottles,
+      totalItems: session.totalItems,
       claimedBy: session.claimedBy,
       claimedUser: session.claimedUser,
       expiresInSeconds: Math.max(0, Math.round((session.expiresAt - Date.now()) / 1000))
@@ -11008,6 +11020,16 @@ app.post('/api/session/claim-points', async (req, res) => {
         userId: userIdentifier,
         points: pointsEarned,
         bottles: session.totalBottles,
+        totalBottles: session.totalBottles,
+        totalItems: session.totalItems,
+        plasticCount: session.plasticCount,
+        plastic_count: session.plasticCount,
+        aluminiumCount: session.aluminiumCount,
+        aluminium_count: session.aluminiumCount,
+        paperCardboardCount: session.paperCardboardCount,
+        paper_cardboard_count: session.paperCardboardCount,
+        glassCount: session.glassCount,
+        glass_count: session.glassCount,
         recycledAt: new Date().toISOString(),
         session_status: 'completed'
       });

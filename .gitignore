@@ -5,6 +5,7 @@ node_modules
 backups/
 *.backup
 uploads/advertisements/
+server/uploads/
 *.log
 *.zip
 *.tar.gz
