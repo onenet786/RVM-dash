@@ -2265,6 +2265,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         string currentSessionId = sessionId.ToString();
         int currentTotalItems = totalItems;
         int currentTotalPoints = totalPoints;
+        double currentPaperWeightKg = paperTotalWeightKg;
 
         int pSmall = plasticSmallCount;
         int pMed = plasticMediumCount;
@@ -2374,15 +2375,17 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     paperCount, // paperCount
                     0, // glassCount
                     currentTotalPoints,
-                    0.0,
-                    "MEDIUM",
-                    "PLASTIC",
+                    currentPaperWeightKg,
+                    paperCount > 0 ? "WEIGHT" : "MEDIUM",
+                    paperCount > 0 ? "PAPER" : "PLASTIC",
                     pSmall,
                     pMed,
                     pLg,
                     cSmall,
                     cMed,
-                    cLg
+                    cLg,
+                    (int)Math.Round(currentPaperWeightKg * 1000.0),
+                    0
                 );
 
                 if (syncRes.IsSuccess)

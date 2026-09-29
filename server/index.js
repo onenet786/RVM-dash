@@ -7871,6 +7871,33 @@ async function handleMobileGetRecycle(req, res) {
         return { rows: [] };
       });
 
+      // Older PecoDrop final-sync payloads could overwrite a valid paper weight
+      // with zero while retaining the awarded points. Recover display-only grams
+      // from the authoritative per-gram rule for those otherwise empty sessions.
+      const paperRuleRes = await pool.query(`
+        SELECT DISTINCT ON (machine_id) machine_id, points, unit
+        FROM machine_variant_settings
+        WHERE UPPER(material_type) = 'PAPER'
+          AND UPPER(bottle_size) = 'WEIGHT'
+          AND is_active = TRUE
+        ORDER BY machine_id, id DESC;
+      `).catch(() => ({ rows: [] }));
+      const paperRules = new Map((paperRuleRes.rows || []).map(rule => [
+        String(rule.machine_id || '').toUpperCase(),
+        { points: Number(rule.points || 0), unit: String(rule.unit || '').toLowerCase() }
+      ]));
+      const recoverPaperGrams = (machineId, recordedGrams, points, bottles, cans, glass, tetraGrams) => {
+        const grams = Number(recordedGrams || 0);
+        if (grams > 0) return Math.round(grams);
+        const normalizedMachine = String(machineId || '').toUpperCase();
+        if (!normalizedMachine.includes('PECO') || Number(points || 0) <= 0
+          || Number(bottles || 0) > 0 || Number(cans || 0) > 0
+          || Number(glass || 0) > 0 || Number(tetraGrams || 0) > 0) return 0;
+        const rule = paperRules.get(normalizedMachine) || paperRules.get('*') || paperRules.get('ALL');
+        if (!rule || !['per_gram', 'per_g', 'gram', 'grams'].includes(rule.unit) || rule.points <= 0) return 0;
+        return Math.max(0, Math.round(Number(points) / rule.points));
+      };
+
       const seenSessionIds = new Set();
       history = (sRes.rows || []).map(s => {
         seenSessionIds.add(s.session_id);
@@ -7878,12 +7905,12 @@ async function handleMobileGetRecycle(req, res) {
         const bottles = parseInt(s.plastic_count || 0);
         const cans = parseInt(s.aluminium_count || 0);
         const glass = parseInt(s.glass_count || 0);
-        const paperGrams = parseInt(s.paper_weight_grams || 0);
+        const tetraGrams = parseInt(s.tetrapak_weight_grams || 0);
+        const paperGrams = recoverPaperGrams(s.machine_id, s.paper_weight_grams, pts, bottles, cans, glass, tetraGrams);
         let paper = parseInt(s.paper_cardboard_count || 0);
         if (paper === 0 && paperGrams > 0) paper = Math.max(1, Math.round(paperGrams / 50));
         if (paper === 0 && s.item_variant && s.item_variant.toLowerCase().includes('paper')) paper = 1;
 
-        const tetraGrams = parseInt(s.tetrapak_weight_grams || 0);
         let tetra = tetraGrams > 0 ? Math.max(1, Math.round(tetraGrams / 25)) : 0;
         if (tetra === 0 && s.item_variant && s.item_variant.toLowerCase().includes('tetra')) tetra = 1;
 
@@ -7933,9 +7960,7 @@ async function handleMobileGetRecycle(req, res) {
             const c = parseInt(d.cups || d.aluminiumCount || d.aluminium_count || d.cans || 0);
             const g = parseInt(d.glassCount || d.glass_count || d.glass || 0);
             let p = parseInt(d.paperCount || d.paper_count || d.paperCardboardCount || d.paper_cardboard_count || 0);
-            const pWeight = parseInt(d.paperWeightGrams || d.paper_weight_grams || 0);
-            if (p === 0 && pWeight > 0) p = Math.max(1, Math.round(pWeight / 50));
-            if (p === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('paper')) p = 1;
+            const rawPaperWeight = parseInt(d.paperWeightGrams || d.paper_weight_grams || 0);
 
             const tWeight = parseInt(d.tetrapakWeightGrams || d.tetrapak_weight_grams || 0);
             let tetra = parseInt(d.tetraCount || d.tetra_count || d.tetrapakCount || 0);
@@ -7946,6 +7971,17 @@ async function handleMobileGetRecycle(req, res) {
             if (pts <= 0 && (b > 0 || c > 0 || p > 0 || tetra > 0 || g > 0)) {
               pts = (b * 5) + (c * 10) + (tetra * 10) + (p * 15) + (g * 10);
             }
+            const pWeight = recoverPaperGrams(
+              d.machineId || d.machine_id,
+              rawPaperWeight,
+              pts,
+              b,
+              c,
+              g,
+              tWeight
+            );
+            if (p === 0 && pWeight > 0) p = Math.max(1, Math.round(pWeight / 50));
+            if (p === 0 && d.itemVariant && d.itemVariant.toLowerCase().includes('paper')) p = 1;
 
             history.push({
               session_id: sid || d._id,
@@ -8519,18 +8555,40 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
       // 2. Fetch session statistics from relational table: recycling_sessions
       const relSessions = await pool.query(`
         SELECT 
-          user_id, 
-          COALESCE(SUM(plastic_count), 0) AS bottles,
-          COALESCE(SUM(aluminium_count), 0) AS cups,
-          COALESCE(SUM(glass_count), 0) AS glass,
-          COALESCE(SUM(paper_cardboard_count), 0) AS paper,
-          COALESCE(SUM(paper_weight_grams), 0) AS paper_grams,
-          COALESCE(SUM(tetrapak_weight_grams), 0) AS tetra_grams,
-          COALESCE(SUM(points_earned), 0) AS points,
-          COUNT(session_id) AS sessions
-        FROM recycling_sessions
-        WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
-        GROUP BY user_id;
+          rs.user_id,
+          COALESCE(SUM(rs.plastic_count), 0) AS bottles,
+          COALESCE(SUM(rs.aluminium_count), 0) AS cups,
+          COALESCE(SUM(rs.glass_count), 0) AS glass,
+          COALESCE(SUM(rs.paper_cardboard_count), 0) AS paper,
+          COALESCE(SUM(CASE
+            WHEN COALESCE(rs.paper_weight_grams, 0) > 0 THEN rs.paper_weight_grams
+            WHEN UPPER(COALESCE(rs.machine_id, '')) LIKE '%PECO%'
+              AND COALESCE(rs.points_earned, 0) > 0
+              AND COALESCE(rs.plastic_count, 0) = 0
+              AND COALESCE(rs.aluminium_count, 0) = 0
+              AND COALESCE(rs.glass_count, 0) = 0
+              AND COALESCE(rs.tetrapak_weight_grams, 0) = 0
+              AND LOWER(COALESCE(pr.unit, '')) IN ('per_gram', 'per_g', 'gram', 'grams')
+              AND COALESCE(pr.points, 0) > 0
+            THEN ROUND(rs.points_earned::numeric / pr.points)::int
+            ELSE 0
+          END), 0) AS paper_grams,
+          COALESCE(SUM(rs.tetrapak_weight_grams), 0) AS tetra_grams,
+          COALESCE(SUM(rs.points_earned), 0) AS points,
+          COUNT(rs.session_id) AS sessions
+        FROM recycling_sessions rs
+        LEFT JOIN LATERAL (
+          SELECT mvs.points, mvs.unit
+          FROM machine_variant_settings mvs
+          WHERE UPPER(mvs.material_type) = 'PAPER'
+            AND UPPER(mvs.bottle_size) = 'WEIGHT'
+            AND mvs.is_active = TRUE
+            AND (UPPER(mvs.machine_id) = UPPER(rs.machine_id) OR UPPER(mvs.machine_id) IN ('*', 'ALL'))
+          ORDER BY CASE WHEN UPPER(mvs.machine_id) = UPPER(rs.machine_id) THEN 0 ELSE 1 END, mvs.id DESC
+          LIMIT 1
+        ) pr ON TRUE
+        WHERE rs.user_id IS NOT NULL AND rs.user_id NOT IN ('anonymous', '', 'null')
+        GROUP BY rs.user_id;
       `).catch(() => ({ rows: [] }));
 
       // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions to avoid duplicate counts
@@ -9053,7 +9111,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
       can_small_count: canSmallCount || (bSize === 'SMALL' ? aluminiumCount : 0),
       can_medium_count: canMediumCount || (bSize === 'MEDIUM' ? aluminiumCount : 0),
       can_large_count: canLargeCount || (bSize === 'LARGE' ? aluminiumCount : 0),
-      paper_weight_grams: paperWeightGrams || (paperCardboardCount > 0 ? Math.round(weightKg * 1000) : 0),
+      paper_weight_grams: effectivePaperGrams,
       tetrapak_weight_grams: tetrapakWeightGrams || 0,
       itemVariant: variant,
       item_variant: variant,
@@ -9095,7 +9153,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
         const cMedium = canMediumCount || (bSize === 'MEDIUM' ? aluminiumCount : 0);
         const cLarge = canLargeCount || (bSize === 'LARGE' ? aluminiumCount : 0);
 
-        const paperGrams = paperWeightGrams || (paperCardboardCount > 0 ? Math.round(weightKg * 1000) : 0);
+        const paperGrams = effectivePaperGrams;
         const tetrapakGrams = tetrapakWeightGrams || 0;
 
         // 2. Insert or Update recycling_sessions table        // Check if session was already inserted/credited by dynamic QR claim (/api/session/claim-points)
@@ -9128,14 +9186,14 @@ app.post('/api/machine/sync-session', async (req, res) => {
             can_small_count = EXCLUDED.can_small_count,
             can_medium_count = EXCLUDED.can_medium_count,
             can_large_count = EXCLUDED.can_large_count,
-            paper_weight_grams = EXCLUDED.paper_weight_grams,
+            paper_weight_grams = CASE WHEN EXCLUDED.paper_weight_grams > 0 THEN EXCLUDED.paper_weight_grams ELSE recycling_sessions.paper_weight_grams END,
             tetrapak_weight_grams = EXCLUDED.tetrapak_weight_grams,
             glass_small_count = EXCLUDED.glass_small_count,
             glass_medium_count = EXCLUDED.glass_medium_count,
             glass_large_count = EXCLUDED.glass_large_count,
             item_variant = EXCLUDED.item_variant,
             bottle_size = EXCLUDED.bottle_size,
-            total_weight_kg = EXCLUDED.total_weight_kg,
+            total_weight_kg = CASE WHEN EXCLUDED.total_weight_kg > 0 THEN EXCLUDED.total_weight_kg ELSE recycling_sessions.total_weight_kg END,
             co2_avoided_kg = EXCLUDED.co2_avoided_kg,
             points_earned = EXCLUDED.points_earned,
             session_status = 'completed';
