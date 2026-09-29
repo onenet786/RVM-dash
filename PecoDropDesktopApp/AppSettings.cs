@@ -7,7 +7,7 @@ namespace PecoDropDesktopApp;
 public sealed class AppSettings
 {
     public string ConnectionString { get; init; } = @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;";
-    public string MachineId { get; init; } = "RVM-001";
+    public string MachineId { get; init; } = "PECO-UNCONFIGURED";
     public string CentralApiUrl { get; init; } = "https://isprvm.binishaqsoft.com";
     public string ArduinoPort { get; init; } = "COM16";
     public int ArduinoBaud { get; init; } = 115200;
@@ -26,11 +26,19 @@ public sealed class AppSettings
     public static AppSettings Load()
     {
         var values = LoadRawConfig();
+        string connectionString = Get(values, "ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;");
+        string fileMachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "PECO-UNCONFIGURED");
+        string? databaseMachineId = DatabaseManager.GetConfiguredMachineId(connectionString);
+        string machineId = databaseMachineId ?? fileMachineId;
+        if (databaseMachineId is null && !machineId.Equals("PECO-UNCONFIGURED", StringComparison.OrdinalIgnoreCase))
+        {
+            try { DatabaseManager.SaveConfiguredMachineId(machineId, connectionString); } catch { }
+        }
 
         return new AppSettings
         {
-            ConnectionString = Get(values, "ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;"),
-            MachineId = GetFirst(values, ["MachineId", "MachineName", "RVMName", "RVM_Name", "RVM Name", "Machine_Id", "Name"], "RVM-001"),
+            ConnectionString = connectionString,
+            MachineId = machineId,
             CentralApiUrl = NormalizeUrl(Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com")),
             Location = GetFirst(values, ["Location", "MachineLocation", "Address", "RVM_Location", "Branch"], "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan"),
             Latitude = GetDoubleOrNull(values, "Latitude") ?? 31.5826,

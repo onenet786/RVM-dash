@@ -79,7 +79,7 @@ public sealed class WalletPhoneWindow : Window
     public WalletPhoneWindow(
         int itemCount,
         int points,
-        string machineId = "RVM-001",
+        string machineId = "PECO-UNCONFIGURED",
         string localSessionId = "",
         int plasticCount = 0,
         int canCount = 0,
@@ -87,7 +87,7 @@ public sealed class WalletPhoneWindow : Window
     {
         _itemCount = itemCount;
         _points = points;
-        _machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId;
+        _machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId;
         _localSessionId = localSessionId ?? string.Empty;
         _plasticCount = plasticCount;
         _canCount = canCount;

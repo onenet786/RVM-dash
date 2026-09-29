@@ -94,7 +94,7 @@ public static class CentralSyncService
     {
         try
         {
-            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId };
+            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId };
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -144,7 +144,7 @@ public static class CentralSyncService
     {
         try
         {
-            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId };
+            var payload = new { machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId };
             string json = System.Text.Json.JsonSerializer.Serialize(payload);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
             await _httpClient.PostAsync($"{CentralApiUrl.TrimEnd('/')}/api/session/kiosk-handshake/reset", content);
@@ -169,7 +169,7 @@ public static class CentralSyncService
         {
             var payload = new
             {
-                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 localSessionId = localSessionId,
                 points = points,
                 totalItems = totalItems,
@@ -266,7 +266,7 @@ public static class CentralSyncService
 
             var payload = new
             {
-                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 localSessionId = localSessionId,
                 userId = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
                 mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
@@ -374,7 +374,7 @@ public static class CentralSyncService
         {
             var payload = new
             {
-                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 phoneNumber = phoneNumber,
                 rating = rating,
                 feedback = feedbackText,
@@ -411,7 +411,7 @@ public static class CentralSyncService
         {
             var payload = new
             {
-                machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
+                machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 binFillPercentage = binFillPercentage,
                 status = status,
                 localIp = HeartbeatService.GetLocalIpAddress(),
@@ -436,7 +436,7 @@ public static class CentralSyncService
     /// <summary>
     /// Verifies User QR Code Scanned at RVM Machine Hardware Scanner.
     /// </summary>
-    public static async Task<string?> VerifyUserQrCodeAsync(string qrCodeToken, string machineId = "RVM-001")
+    public static async Task<string?> VerifyUserQrCodeAsync(string qrCodeToken, string machineId = "PECO-UNCONFIGURED")
     {
         try
         {
@@ -694,11 +694,15 @@ public static class CentralSyncService
     /// <summary>
     /// Syncs the latest top leaderboard users, names, profile images, and birthdays from Central Master API into the local kiosk database.
     /// </summary>
-    public static async Task SyncLeaderboardFromCentralAsync(Action<string>? logCallback = null)
+    public static async Task SyncLeaderboardFromCentralAsync(string machineId, Action<string>? logCallback = null)
     {
         try
         {
-            string url = $"{CentralApiUrl.TrimEnd('/')}/api/usernames";
+            if (string.IsNullOrWhiteSpace(machineId))
+                throw new InvalidOperationException("PecoDrop MachineId is required for organization leaderboard sync.");
+
+            DatabaseManager.ClearEnterpriseLeaderboardCache();
+            string url = $"{CentralApiUrl.TrimEnd('/')}/api/usernames?machineId={Uri.EscapeDataString(machineId.Trim())}";
             string json = await _httpClient.GetStringAsync(url);
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("users", out var usersArr))

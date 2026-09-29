@@ -5,6 +5,15 @@ GO
 USE RVMDB;
 GO
 
+IF OBJECT_ID('dbo.KioskSettings', 'U') IS NULL
+CREATE TABLE dbo.KioskSettings
+(
+    SettingKey NVARCHAR(100) NOT NULL PRIMARY KEY,
+    SettingValue NVARCHAR(500) NOT NULL,
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
 IF OBJECT_ID('dbo.PointSettings', 'U') IS NULL
 CREATE TABLE dbo.PointSettings
 (
@@ -26,13 +35,16 @@ CREATE TABLE dbo.BottleTransactions
     PointsAwarded INT,
     MobileNumber VARCHAR(20) NULL,
     IsAccepted BIT,
-    MachineName VARCHAR(50) DEFAULT 'ONS-RVM-1000'
+    MachineName VARCHAR(50) NOT NULL,
+    WeightKg DECIMAL(12,3) NOT NULL DEFAULT 0
 );
 
 IF COL_LENGTH('dbo.BottleTransactions', 'SessionID') IS NULL
     ALTER TABLE dbo.BottleTransactions ADD SessionID UNIQUEIDENTIFIER NULL;
 IF COL_LENGTH('dbo.BottleTransactions', 'MobileNumber') IS NULL
     ALTER TABLE dbo.BottleTransactions ADD MobileNumber VARCHAR(20) NULL;
+IF COL_LENGTH('dbo.BottleTransactions', 'WeightKg') IS NULL
+    ALTER TABLE dbo.BottleTransactions ADD WeightKg DECIMAL(12,3) NOT NULL DEFAULT 0;
 
 IF OBJECT_ID('dbo.WalletAccounts', 'U') IS NULL
 CREATE TABLE dbo.WalletAccounts

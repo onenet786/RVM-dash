@@ -77,8 +77,10 @@ public partial class AdminWindow : Window
         try
         {
             var raw = AppSettings.LoadRawConfig();
+            string connectionString = raw.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;");
             CfgConnectionString.Text = raw.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;");
-            CfgMachineId.Text = raw.GetValueOrDefault("MachineId", "RVM-RWP");
+            CfgMachineId.Text = DatabaseManager.GetConfiguredMachineId(connectionString)
+                ?? raw.GetValueOrDefault("MachineId", "PECO-UNCONFIGURED");
             CfgCentralApiUrl.Text = raw.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com");
             CfgLocation.Text = raw.GetValueOrDefault("Location", "Islamabad Campus");
             CfgLatitude.Text = raw.GetValueOrDefault("Latitude", "");
@@ -129,7 +131,7 @@ public partial class AdminWindow : Window
     private void ReloadConfig_Click(object sender, RoutedEventArgs e)
     {
         LoadConfigForm();
-        RvmMessageDialog.ShowInfo("Reload Config", "Configuration reloaded from config.txt.", this);
+        RvmMessageDialog.ShowInfo("Reload Config", "Machine identity reloaded from local SQL Server; connection and hardware settings reloaded from config.txt.", this);
     }
 
     private void SaveConfig_Click(object sender, RoutedEventArgs e)
@@ -155,6 +157,8 @@ public partial class AdminWindow : Window
             };
 
             AppSettings.SaveConfigToFile(dict);
+            DatabaseManager.SaveConfiguredMachineId(dict["MachineId"], dict["ConnectionString"]);
+            DatabaseManager.RepairLegacyMachineNames(dict["MachineId"]);
             CentralSyncService.CentralApiUrl = dict["CentralApiUrl"];
 
             double? lat = double.TryParse(CfgLatitude.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dLat) ? dLat : null;
@@ -163,8 +167,8 @@ public partial class AdminWindow : Window
             // Restart background heartbeat with updated config including location
             HeartbeatService.Start(dict["MachineId"], dict["CentralApiUrl"], dict["Location"], lat, lon);
 
-            RvmMessageDialog.ShowSuccess("Save Config", "System & Hardware Configuration successfully saved to config.txt!", this);
-            LogConsole("[System Config] Saved updated config.txt settings successfully.");
+            RvmMessageDialog.ShowSuccess("Save Config", "Machine identity saved to local SQL Server. Restart PecoDrop to apply it to all services.", this);
+            LogConsole($"[System Config] SQL MachineId saved: {dict["MachineId"]}. Restart required.");
         }
         catch (Exception ex)
         {
@@ -385,7 +389,7 @@ public partial class AdminWindow : Window
         LogConsole($"💾 1. LOCAL SQL SERVER TRANSACTION:");
         try
         {
-            DatabaseManager.SaveTransaction(sessionId, size, material, totalPoints, true);
+            DatabaseManager.SaveTransaction(sessionId, size, material, totalPoints, true, machineId, weightKg);
             LogConsole($"   -> Local Server: SQL Server 2012 (RVMDB)");
             LogConsole($"   -> Table 'RVMDB.dbo.Transactions': Record Inserted 🟢 (Session ID: {sessionId})");
 

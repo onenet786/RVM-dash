@@ -54,6 +54,7 @@ public static class DatabaseManager
             connection.Open();
             EnsurePointSettingsTable();
             EnsureDisplaySettingsTable();
+            EnsureKioskSettingsTable();
             message = "Database connected.";
             return true;
         }
@@ -62,6 +63,56 @@ public static class DatabaseManager
             message = ex.Message;
             return false;
         }
+    }
+
+    public static void EnsureKioskSettingsTable()
+    {
+        using var connection = new SqlConnection(ConnectionString);
+        connection.Open();
+        EnsureKioskSettingsTable(connection);
+    }
+
+    private static void EnsureKioskSettingsTable(SqlConnection connection)
+    {
+        using var command = new SqlCommand(@"
+            IF OBJECT_ID('dbo.KioskSettings', 'U') IS NULL
+                CREATE TABLE dbo.KioskSettings (
+                    SettingKey NVARCHAR(100) NOT NULL PRIMARY KEY,
+                    SettingValue NVARCHAR(500) NOT NULL,
+                    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());", connection);
+        command.ExecuteNonQuery();
+    }
+
+    public static string? GetConfiguredMachineId(string? connectionString = null)
+    {
+        try
+        {
+            using var connection = new SqlConnection(string.IsNullOrWhiteSpace(connectionString) ? ConnectionString : connectionString);
+            connection.Open();
+            EnsureKioskSettingsTable(connection);
+            using var command = new SqlCommand(
+                "SELECT SettingValue FROM dbo.KioskSettings WHERE SettingKey = 'MachineId';", connection);
+            string? value = command.ExecuteScalar()?.ToString()?.Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+        catch { return null; }
+    }
+
+    public static void SaveConfiguredMachineId(string machineId, string? connectionString = null)
+    {
+        if (string.IsNullOrWhiteSpace(machineId))
+            throw new ArgumentException("Machine ID is required.", nameof(machineId));
+        using var connection = new SqlConnection(string.IsNullOrWhiteSpace(connectionString) ? ConnectionString : connectionString);
+        connection.Open();
+        EnsureKioskSettingsTable(connection);
+        using var command = new SqlCommand(@"
+            MERGE dbo.KioskSettings AS target
+            USING (SELECT CAST('MachineId' AS NVARCHAR(100)) AS SettingKey) AS source
+            ON target.SettingKey = source.SettingKey
+            WHEN MATCHED THEN UPDATE SET SettingValue = @MachineId, UpdatedAt = SYSUTCDATETIME()
+            WHEN NOT MATCHED THEN INSERT (SettingKey, SettingValue) VALUES ('MachineId', @MachineId);", connection);
+        command.Parameters.Add(new SqlParameter("@MachineId", SqlDbType.NVarChar, 100) { Value = machineId.Trim() });
+        command.ExecuteNonQuery();
     }
 
     public static void EnsureDisplaySettingsTable()
@@ -187,7 +238,7 @@ public static class DatabaseManager
         catch { }
     }
 
-    public static DataTable GetLocalPointSettings(string machineName = "RVM-001")
+    public static DataTable GetLocalPointSettings(string machineName = "PECO-UNCONFIGURED")
     {
         EnsurePointSettingsTable();
         try
@@ -211,7 +262,7 @@ public static class DatabaseManager
         }
     }
 
-    public static async System.Threading.Tasks.Task<bool> SyncPointSettingsFromCentralAsync(string machineId = "RVM-001", Action<string>? logCallback = null)
+    public static async System.Threading.Tasks.Task<bool> SyncPointSettingsFromCentralAsync(string machineId = "PECO-UNCONFIGURED", Action<string>? logCallback = null)
     {
         try
         {
@@ -464,15 +515,24 @@ public static class DatabaseManager
         string materialType,
         int pointsAwarded,
         bool isAccepted,
-        string machineName = "RVM-001")
+        string machineName,
+        double weightKg = 0)
     {
+        if (string.IsNullOrWhiteSpace(machineName))
+            throw new ArgumentException("A configured PecoDrop MachineId is required.", nameof(machineName));
+
         using var connection = new SqlConnection(ConnectionString);
+        connection.Open();
+        using (var schema = new SqlCommand(
+            "IF COL_LENGTH('dbo.BottleTransactions', 'WeightKg') IS NULL ALTER TABLE dbo.BottleTransactions ADD WeightKg DECIMAL(12,3) NOT NULL CONSTRAINT DF_BottleTransactions_WeightKg DEFAULT 0;",
+            connection))
+            schema.ExecuteNonQuery();
         using var command = new SqlCommand(
             """
             INSERT INTO dbo.BottleTransactions
-                (SessionID, BottleSize, MaterialType, PointsAwarded, IsAccepted, MachineName)
+                (SessionID, BottleSize, MaterialType, PointsAwarded, IsAccepted, MachineName, WeightKg)
             VALUES
-                (@SessionID, @BottleSize, @MaterialType, @PointsAwarded, @IsAccepted, @MachineName);
+                (@SessionID, @BottleSize, @MaterialType, @PointsAwarded, @IsAccepted, @MachineName, @WeightKg);
             """, connection);
 
         command.Parameters.Add(new SqlParameter("@SessionID", SqlDbType.UniqueIdentifier) { Value = sessionId });
@@ -481,8 +541,8 @@ public static class DatabaseManager
         command.Parameters.Add(new SqlParameter("@PointsAwarded", SqlDbType.Int) { Value = pointsAwarded });
         command.Parameters.Add(new SqlParameter("@IsAccepted", SqlDbType.Bit) { Value = isAccepted });
         command.Parameters.Add(new SqlParameter("@MachineName", SqlDbType.VarChar, 50) { Value = machineName });
+        command.Parameters.Add(new SqlParameter("@WeightKg", SqlDbType.Decimal) { Precision = 12, Scale = 3, Value = Math.Max(0, weightKg) });
 
-        connection.Open();
         command.ExecuteNonQuery();
     }
 
@@ -586,7 +646,7 @@ public static class DatabaseManager
                 VALUES (@MachineID, @PhoneNumber, @Rating, @Feedback, @SessionID, GETDATE());
                 """, connection);
 
-            insertCommand.Parameters.Add(new SqlParameter("@MachineID", SqlDbType.NVarChar, 50) { Value = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId });
+            insertCommand.Parameters.Add(new SqlParameter("@MachineID", SqlDbType.NVarChar, 50) { Value = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId });
             insertCommand.Parameters.Add(new SqlParameter("@PhoneNumber", SqlDbType.NVarChar, 20) { Value = phoneNumber });
             insertCommand.Parameters.Add(new SqlParameter("@Rating", SqlDbType.Int) { Value = rating });
             insertCommand.Parameters.Add(new SqlParameter("@Feedback", SqlDbType.NVarChar, 100) { Value = feedbackText });
@@ -606,7 +666,7 @@ public static class DatabaseManager
     public static DataTable GetTransactions() =>
         Get("SELECT TOP 100 TransactionID, TransactionDate, BottleSize, MaterialType, PointsAwarded, MobileNumber, IsAccepted, MachineName FROM dbo.BottleTransactions ORDER BY TransactionID DESC");
 
-    public static DataTable GetLocalItemCountsByVariant(string machineName = "RVM-001")
+    public static DataTable GetLocalItemCountsByVariant(string machineName = "PECO-UNCONFIGURED")
     {
         try
         {
@@ -645,7 +705,7 @@ public static class DatabaseManager
         }
     }
 
-    public static (int TotalItems, int TotalPoints) GetLocalTotals(string machineName = "RVM-001")
+    public static (int TotalItems, int TotalPoints) GetLocalTotals(string machineName = "PECO-UNCONFIGURED")
     {
         try
         {
@@ -683,24 +743,15 @@ public static class DatabaseManager
                 IF COL_LENGTH('dbo.WalletAccounts', 'DOB') IS NULL
                     ALTER TABLE dbo.WalletAccounts ADD DOB NVARCHAR(50) NULL;
 
-                SELECT TOP 5
-                    ROW_NUMBER() OVER (ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC) AS Rank,
-                    COALESCE(wallet.FullName, wallet.UserName,
-                        CASE
-                            WHEN LEN(wallet.PhoneNumber) > 7
-                                THEN LEFT(wallet.PhoneNumber, 3) + REPLICATE('*', LEN(wallet.PhoneNumber) - 6) + RIGHT(wallet.PhoneNumber, 3)
-                            ELSE wallet.PhoneNumber
-                        END
-                    ) AS DisplayName,
-                    COALESCE(wallet.PhoneNumber, '') AS PhoneNumber,
-                    COALESCE(wallet.ProfileImage, 'male') AS ProfileImage,
-                    CASE 
-                        WHEN wallet.DOB IS NOT NULL AND SUBSTRING(wallet.DOB, 6, 5) = FORMAT(GETDATE(), 'MM-dd') THEN 1 
-                        ELSE 0 
-                    END AS IsBirthday,
-                    wallet.PointsBalance
-                FROM dbo.WalletAccounts AS wallet
-                ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC;
+                IF OBJECT_ID('dbo.EnterpriseLeaderboardCache', 'U') IS NULL
+                    CREATE TABLE dbo.EnterpriseLeaderboardCache (
+                        Rank INT NOT NULL, DisplayName NVARCHAR(100) NOT NULL,
+                        PhoneNumber NVARCHAR(100) NOT NULL, ProfileImage NVARCHAR(500) NULL,
+                        IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
+                        SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
+
+                SELECT TOP 5 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
+                FROM dbo.EnterpriseLeaderboardCache ORDER BY Rank;
                 """);
         }
         catch { }
@@ -796,6 +847,19 @@ public static class DatabaseManager
         return dt;
     }
 
+    public static void RepairLegacyMachineNames(string configuredMachineId)
+    {
+        if (string.IsNullOrWhiteSpace(configuredMachineId) || configuredMachineId.Equals("PECO-UNCONFIGURED", StringComparison.OrdinalIgnoreCase))
+            return;
+        using var connection = new SqlConnection(ConnectionString);
+        using var command = new SqlCommand(
+            "UPDATE dbo.BottleTransactions SET MachineName = @MachineId WHERE MachineName IS NULL OR LTRIM(RTRIM(MachineName)) = '' OR UPPER(MachineName) = 'RVM-001';",
+            connection);
+        command.Parameters.Add(new SqlParameter("@MachineId", SqlDbType.VarChar, 50) { Value = configuredMachineId.Trim() });
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
     public static (string DisplayName, int PointsAwarded, string Material, string TimeAgo) GetLastRecyclerInfo()
     {
         try
@@ -851,17 +915,17 @@ public static class DatabaseManager
             connection.Open();
 
             using var schemaCmd = new SqlCommand(@"
-                IF COL_LENGTH('dbo.WalletAccounts', 'FullName') IS NULL
-                    ALTER TABLE dbo.WalletAccounts ADD FullName NVARCHAR(100) NULL;
-                IF COL_LENGTH('dbo.WalletAccounts', 'UserName') IS NULL
-                    ALTER TABLE dbo.WalletAccounts ADD UserName NVARCHAR(50) NULL;
-                IF COL_LENGTH('dbo.WalletAccounts', 'ProfileImage') IS NULL
-                    ALTER TABLE dbo.WalletAccounts ADD ProfileImage NVARCHAR(100) NULL;
-                IF COL_LENGTH('dbo.WalletAccounts', 'DOB') IS NULL
-                    ALTER TABLE dbo.WalletAccounts ADD DOB NVARCHAR(50) NULL;
+                IF OBJECT_ID('dbo.EnterpriseLeaderboardCache', 'U') IS NULL
+                    CREATE TABLE dbo.EnterpriseLeaderboardCache (
+                        Rank INT NOT NULL, DisplayName NVARCHAR(100) NOT NULL,
+                        PhoneNumber NVARCHAR(100) NOT NULL, ProfileImage NVARCHAR(500) NULL,
+                        IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
+                        SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
+                DELETE FROM dbo.EnterpriseLeaderboardCache;
             ", connection);
             schemaCmd.ExecuteNonQuery();
 
+            int rank = 1;
             foreach (var u in usersArr.EnumerateArray())
             {
                 string userName = u.TryGetProperty("userName", out var un) ? un.GetString() ?? "" : "";
@@ -873,25 +937,37 @@ public static class DatabaseManager
                 if (string.IsNullOrWhiteSpace(userName)) continue;
 
                 using var cmd = new SqlCommand(@"
-                    IF EXISTS (SELECT 1 FROM dbo.WalletAccounts WHERE PhoneNumber = @u OR UserName = @u)
-                    BEGIN
-                        UPDATE dbo.WalletAccounts
-                        SET FullName = @fn, UserName = @u, ProfileImage = @img, DOB = @dob, PointsBalance = @pts, LastUpdated = GETDATE()
-                        WHERE PhoneNumber = @u OR UserName = @u;
-                    END
-                    ELSE
-                    BEGIN
-                        INSERT INTO dbo.WalletAccounts (PhoneNumber, FullName, UserName, ProfileImage, DOB, PointsBalance, LastUpdated)
-                        VALUES (@u, @fn, @u, @img, @dob, @pts, GETDATE());
-                    END
+                    INSERT INTO dbo.EnterpriseLeaderboardCache
+                        (Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance)
+                    VALUES (@rank, @fn, @u, @img, @birthday, @pts);
                 ", connection);
                 cmd.Parameters.AddWithValue("@u", userName);
                 cmd.Parameters.AddWithValue("@fn", fullName);
                 cmd.Parameters.AddWithValue("@img", profileImage);
-                cmd.Parameters.AddWithValue("@dob", dob);
                 cmd.Parameters.AddWithValue("@pts", points);
+                cmd.Parameters.AddWithValue("@rank", rank++);
+                cmd.Parameters.AddWithValue("@birthday", !string.IsNullOrWhiteSpace(dob) && DateTime.TryParse(dob, out var birthDate) && birthDate.Month == DateTime.Today.Month && birthDate.Day == DateTime.Today.Day);
                 cmd.ExecuteNonQuery();
             }
+        }
+        catch { }
+    }
+
+    public static void ClearEnterpriseLeaderboardCache()
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            using var command = new SqlCommand(@"
+                IF OBJECT_ID('dbo.EnterpriseLeaderboardCache', 'U') IS NULL
+                    CREATE TABLE dbo.EnterpriseLeaderboardCache (
+                        Rank INT NOT NULL, DisplayName NVARCHAR(100) NOT NULL,
+                        PhoneNumber NVARCHAR(100) NOT NULL, ProfileImage NVARCHAR(500) NULL,
+                        IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
+                        SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
+                ELSE DELETE FROM dbo.EnterpriseLeaderboardCache;", connection);
+            command.ExecuteNonQuery();
         }
         catch { }
     }
@@ -1052,6 +1128,8 @@ public static class DatabaseManager
             using var colCmd = new SqlCommand(@"
                 IF COL_LENGTH('dbo.BottleTransactions', 'IsSynced') IS NULL
                     ALTER TABLE dbo.BottleTransactions ADD IsSynced BIT NOT NULL DEFAULT 0;
+                IF COL_LENGTH('dbo.BottleTransactions', 'WeightKg') IS NULL
+                    ALTER TABLE dbo.BottleTransactions ADD WeightKg DECIMAL(12,3) NOT NULL CONSTRAINT DF_BottleTransactions_WeightKg DEFAULT 0;
 
                 -- Assign unique SessionID to any legacy records where SessionID is NULL
                 UPDATE dbo.BottleTransactions SET SessionID = NEWID() WHERE SessionID IS NULL;
@@ -1090,6 +1168,7 @@ public static class DatabaseManager
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS TetraPakSmall,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS TetraPakLarge,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%TETRA%' OR UPPER(MaterialType) LIKE '%CARTON%' OR UPPER(MaterialType) LIKE '%PAPER%') AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS TetraPakMedium,
+                    SUM(CASE WHEN UPPER(MaterialType) LIKE '%PAPER%' THEN WeightKg ELSE 0 END) AS PaperWeightKg,
                     SUM(PointsAwarded) AS TotalPoints,
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
@@ -1100,7 +1179,7 @@ public static class DatabaseManager
             using var cmd = new SqlCommand(sql, connection);
             using var reader = await cmd.ExecuteReaderAsync();
 
-            var sessionList = new System.Collections.Generic.List<(string sessId, string phone, int ps, int pm, int pl, int cs, int cm, int cl, int tps, int tpm, int tpl, int pts)>();
+            var sessionList = new System.Collections.Generic.List<(string sessId, string phone, int ps, int pm, int pl, int cs, int cm, int cl, int tps, int tpm, int tpl, double paperKg, int pts)>();
 
             while (await reader.ReadAsync())
             {
@@ -1116,6 +1195,7 @@ public static class DatabaseManager
                     Convert.ToInt32(reader["TetraPakSmall"]),
                     Convert.ToInt32(reader["TetraPakMedium"]),
                     Convert.ToInt32(reader["TetraPakLarge"]),
+                    Convert.ToDouble(reader["PaperWeightKg"]),
                     Convert.ToInt32(reader["TotalPoints"])
                 ));
             }
@@ -1140,12 +1220,12 @@ public static class DatabaseManager
                     paperCount,
                     0, // glass
                     item.pts,
-                    0.0,
+                    item.paperKg,
                     "MEDIUM",
                     "PLASTIC",
                     item.ps, item.pm, item.pl,
                     item.cs, item.cm, item.cl,
-                    item.tps, item.tpm
+                    (int)Math.Round(item.paperKg * 1000.0), 0
                 );
 
                 if (res.IsSuccess)

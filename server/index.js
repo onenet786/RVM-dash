@@ -7958,14 +7958,54 @@ let cachedLeaderboardExpiresAt = 0;
 // 5. Mobile Usernames / Leaderboard (Exclusively from PostgreSQL with TTL Caching)
 async function handleMobileUsernames(req, res) {
   try {
+    const requestedMachineId = String(req.query.machineId || '').trim();
     const now = Date.now();
-    if (cachedLeaderboardPayload && now < cachedLeaderboardExpiresAt) {
+    if (!requestedMachineId && cachedLeaderboardPayload && now < cachedLeaderboardExpiresAt) {
       return res.json(cachedLeaderboardPayload);
     }
 
     let usersList = [];
     const pool = getPgPool();
     if (pool) {
+      if (requestedMachineId) {
+        const orgRes = await pool.query(`
+          SELECT COALESCE(NULLIF(kob.org_id, ''), NULLIF(m.client_id, '')) AS org_id
+          FROM machines m
+          LEFT JOIN kiosk_org_bindings kob ON UPPER(kob.machine_id) = UPPER(m.machine_id)
+          WHERE UPPER(m.machine_id) = UPPER($1)
+          LIMIT 1;
+        `, [requestedMachineId]);
+        const orgId = String(orgRes.rows[0]?.org_id || '').trim();
+        if (!orgId || orgId.toUpperCase() === 'ISP_MASTER') {
+          return res.json({ success: true, organizationId: null, users: [] });
+        }
+
+        const uRes = await pool.query(`
+          SELECT u.username AS "userName",
+                 GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints",
+                 u.user_id, u.full_name, u.profile_image, u.dob
+          FROM users u
+          LEFT JOIN (
+            SELECT rs.user_id, SUM(rs.points_earned) AS session_pts
+            FROM recycling_sessions rs
+            LEFT JOIN machines sm ON UPPER(sm.machine_id) = UPPER(rs.machine_id)
+            LEFT JOIN kiosk_org_bindings skb ON UPPER(skb.machine_id) = UPPER(rs.machine_id)
+            WHERE COALESCE(NULLIF(skb.org_id, ''), NULLIF(sm.client_id, '')) = $1
+            GROUP BY rs.user_id
+          ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
+          WHERE u.org_id = $1 AND COALESCE(u.user_type, 'ENTERPRISE') <> 'CITIZEN'
+          ORDER BY "totalPoints" DESC, u.created_at ASC
+          LIMIT 100;
+        `, [orgId]);
+        usersList = uRes.rows.map(r => ({
+          userName: r.userName || r.user_id || r.full_name || 'Employee',
+          fullName: r.full_name || r.userName || r.user_id || 'Employee',
+          profileImage: r.profile_image || '', dob: r.dob || '',
+          isBirthday: checkIsBirthday(r.dob), totalPoints: Number(r.totalPoints || 0)
+        }));
+        return res.json({ success: true, organizationId: orgId, users: usersList });
+      }
+
       const uRes = await pool.query(`
         SELECT 
           u.username AS "userName", 
@@ -7999,8 +8039,10 @@ async function handleMobileUsernames(req, res) {
       users: usersList
     };
 
-    cachedLeaderboardPayload = payload;
-    cachedLeaderboardExpiresAt = now + (30 * 1000); // 30s cache
+    if (!requestedMachineId) {
+      cachedLeaderboardPayload = payload;
+      cachedLeaderboardExpiresAt = now + (30 * 1000); // 30s cache
+    }
 
     res.json(payload);
   } catch (err) {

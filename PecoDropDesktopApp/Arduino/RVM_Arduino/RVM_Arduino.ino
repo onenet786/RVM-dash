@@ -33,7 +33,11 @@ const unsigned long BIN_CLEAR_MS = 2000UL;
 const unsigned long BIN_POWERUP_CLEAR_STABLE_MS = 750UL;
 const unsigned long BIN_POWERUP_SETTLE_TIMEOUT_MS = 2500UL;
 const unsigned long HOST_LEASE_TIMEOUT_MS = 5000UL;
-const unsigned long MQ6_DEBOUNCE_MS = 1000UL;
+// MQ6 heater stabilization and filtering. The alarm must remain continuously
+// active before it is reported, preventing boot and electrical transients.
+const unsigned long MQ6_WARMUP_MS = 180000UL;
+const unsigned long MQ6_ALARM_CONFIRM_MS = 5000UL;
+const unsigned long MQ6_CLEAR_CONFIRM_MS = 3000UL;
 const byte METAL_DETECTED_STATE = LOW;
 const byte IRIS_CLOSED_ANGLE = 178;
 const byte IRIS_OPEN_ANGLE = 10;
@@ -164,6 +168,7 @@ bool calibrating = false;
 bool calibrationCancelled = false;
 Compartment* activeCompartment = NULL;
 bool activeCycleAborted = false;
+bool mq6Ready = false;
 bool mq6Alarm = false;
 bool mq6Candidate = false;
 unsigned long mq6CandidateSince = 0;
@@ -319,14 +324,30 @@ void pollSensors() {
   pollBin(plastic, PLASTIC_BIN_PIN);
   pollBin(metal, METAL_BIN_PIN);
   pollBin(paper, PAPER_BIN_PIN);
+
+  // MQ6 readings are unreliable until its heater has stabilized. During that
+  // period report CLEAR, then require a sustained signal before notifying.
+  if (!mq6Ready) {
+    mq6Alarm = false;
+    mq6Candidate = false;
+    mq6CandidateSince = millis();
+    if (millis() < MQ6_WARMUP_MS) return;
+    mq6Ready = true;
+    mq6Candidate = digitalRead(MQ6_DIGITAL_PIN) == MQ6_ALARM_STATE;
+    mq6CandidateSince = millis();
+    hardwareStatusDirty = true;
+    return;
+  }
+
   bool alarm = digitalRead(MQ6_DIGITAL_PIN) == MQ6_ALARM_STATE;
   if (alarm != mq6Candidate) {
     mq6Candidate = alarm;
     mq6CandidateSince = millis();
   }
-  if (alarm != mq6Alarm && millis() - mq6CandidateSince >= MQ6_DEBOUNCE_MS) {
+  unsigned long confirmMs = alarm ? MQ6_ALARM_CONFIRM_MS : MQ6_CLEAR_CONFIRM_MS;
+  if (alarm != mq6Alarm && millis() - mq6CandidateSince >= confirmMs) {
     mq6Alarm = alarm;
-    // Warning only: MQ6 never stops the machine or disables a compartment.
+    // Warning-only: intake remains available while the desktop alerts staff.
     hardwareStatusDirty = true;
   }
 }
@@ -1121,7 +1142,7 @@ void calibrateAll() {
     unsigned long settleStart = millis();
     unsigned long allClearSince = 0;
     while (millis() - settleStart < BIN_POWERUP_SETTLE_TIMEOUT_MS) {
-      // Only poll bin sensors — do not servicePurge or MQ6 here
+      // Only poll bin sensors — do not service purge here.
       pollBin(plastic, PLASTIC_BIN_PIN);
       pollBin(metal, METAL_BIN_PIN);
       pollBin(paper, PAPER_BIN_PIN);

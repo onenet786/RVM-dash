@@ -1032,6 +1032,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private bool RefreshDatabaseConnection()
     {
         databaseAvailable = DatabaseManager.TryOpen(out string message);
+        if (databaseAvailable) DatabaseManager.RepairLegacyMachineNames(settings.MachineId);
 
         if (databaseAvailable)
         {
@@ -1106,7 +1107,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 _ = DatabaseManager.SyncAllLocalSessionsToCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = DatabaseManager.SyncPointSettingsFromCentralAsync(settings.MachineId, msg => LogTelemetry(msg));
                 _ = CentralSyncService.SyncAdvertisementsFromCentralAsync(settings.MachineId, settings.AdvertisementVideoFolder, msg => LogTelemetry(msg));
-                _ = CentralSyncService.SyncLeaderboardFromCentralAsync(msg => {
+                _ = CentralSyncService.SyncLeaderboardFromCentralAsync(settings.MachineId, msg => {
                     LogTelemetry(msg);
                     Dispatcher.Invoke(RefreshLeaderboard);
                 });
@@ -2076,11 +2077,12 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                     curPaper,
                     0, // glass
                     curPoints,
-                    result.WeightKg,
+                    paperTotalWeightKg,
                     result.Size,
                     result.Material,
                     pSmall, pMed, pLg,
-                    cSmall, cMed, cLg
+                    cSmall, cMed, cLg,
+                    (int)Math.Round(paperTotalWeightKg * 1000.0), 0
                 );
 
                 if (syncRes.IsSuccess)
@@ -2388,7 +2390,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         try
         {
             DatabaseManager.SaveTransaction(
-                sessionId, result.Size, result.Material, points, accepted);
+                sessionId, result.Size, result.Material, points, accepted,
+                settings.MachineId, result.WeightKg);
         }
         catch
         {

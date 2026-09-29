@@ -17,7 +17,7 @@ public enum NetworkStatus
 public static class HeartbeatService
 {
     private static Timer? _timer;
-    private static string _machineId = "RVM-001";
+    private static string _machineId = "PECO-UNCONFIGURED";
     private static string _serverUrl = "https://isprvm.binishaqsoft.com";
     private static string _location = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
     private static double? _latitude = 31.5826;
@@ -30,7 +30,7 @@ public static class HeartbeatService
 
     public static void Start(string machineId, string serverUrl, string? location = null, double? latitude = null, double? longitude = null)
     {
-        _machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId.Trim();
+        _machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId.Trim();
         _serverUrl = string.IsNullOrWhiteSpace(serverUrl) ? "https://isprvm.binishaqsoft.com" : serverUrl.Trim();
         if (!string.IsNullOrWhiteSpace(location)) _location = location.Trim();
         if (latitude != null) _latitude = latitude;
