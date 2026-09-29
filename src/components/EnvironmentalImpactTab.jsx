@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Leaf, Trees, Car, Recycle, Award, RefreshCw, Info, CheckCircle2, 
   Scale, ShieldCheck, Flame, ArrowUpRight, Database, Printer, FileCheck,
@@ -12,6 +12,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState('pdf'); // 'pdf' | 'csv'
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const impactRequestId = useRef(0);
 
   // Custom editable offset factors state (stored in localStorage for persistence)
   const [customFactors, setCustomFactors] = useState(() => {
@@ -84,23 +85,30 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
   };
 
   const fetchImpact = async () => {
+    const requestId = ++impactRequestId.current;
     try {
       setRefreshing(true);
       const res = await fetch(`/api/analytics/environmental-impact${getMachinesQuery()}`);
       if (res.ok) {
         const data = await res.json();
-        setImpactData(data);
+        if (requestId === impactRequestId.current) setImpactData(data);
+      } else if (requestId === impactRequestId.current) {
+        setImpactData(null);
       }
     } catch (err) {
       console.error('Fetch impact error:', err);
       showToast('Error syncing environmental audit data', 'error');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === impactRequestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
+    setImpactData(null);
+    setLoading(true);
     fetchImpact();
   }, [selectedClientId, stationFilter]);
 
@@ -168,7 +176,7 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
     return (displayTotalCo2eAvoidedKg / displayTotalWeightProcessedKg).toFixed(2);
   }, [displayTotalCo2eAvoidedKg, displayTotalWeightProcessedKg]);
 
-  const displayCompostYieldKg = impactData?.compostYieldKg || 152.5;
+  const displayCompostYieldKg = impactData?.compostYieldKg ?? 0;
 
   // Generate and download audited CSV ledger
   const downloadCsv = () => {

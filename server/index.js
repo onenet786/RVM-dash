@@ -3558,6 +3558,7 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
     let totalCups = 0;
     let totalPaperGrams = 0;
     let totalTetraGrams = 0;
+    let totalOrganicGrams = 0;
     let totalWeightKg = 0;
     let count = 0;
 
@@ -3566,6 +3567,48 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
       if (sessions.length === 0) {
         sessions = await fetchCollectionDocs('recyclingsessions');
       }
+
+      // Resolve the exact fleet permitted by authentication, navbar client,
+      // and station type before calculating any tenant ESG figures.
+      const pool = getPgPool();
+      let allowedMachineIds = getEffectiveMachineScope(req);
+      const requestedClientId = String(req.query.clientId || '').trim().toUpperCase();
+      const userRole = String(req.user?.roleId || '').toLowerCase();
+      const isSuper = ['super_admin', 'superadmin'].includes(userRole)
+        || String(req.user?.username || '').toLowerCase() === 'onenet';
+      // A tenant account can never override its token organization via query
+      // parameters. Only super admins may select another client explicitly.
+      const authenticatedOrgId = !isSuper && req.user?.orgId
+        ? String(req.user.orgId).toUpperCase()
+        : '';
+      const effectiveClientId = authenticatedOrgId
+        || (requestedClientId && requestedClientId !== 'ALL' ? requestedClientId : '');
+      const requestedStation = String(req.query.stationFilter || '').trim().toUpperCase();
+
+      if (pool && (effectiveClientId || (requestedStation && requestedStation !== 'ALL'))) {
+        const machineRes = await pool.query('SELECT machine_id, client_id, machine_type FROM machines');
+        const contextualIds = machineRes.rows
+          .filter(m => !effectiveClientId || String(m.client_id || '').toUpperCase() === effectiveClientId)
+          .filter(m => !requestedStation || requestedStation === 'ALL' || String(m.machine_type || '').toUpperCase() === requestedStation)
+          .map(m => String(m.machine_id || '').toUpperCase())
+          .filter(Boolean);
+
+        if (allowedMachineIds && allowedMachineIds.length > 0 && !allowedMachineIds.includes('*')) {
+          const contextualSet = new Set(contextualIds);
+          allowedMachineIds = allowedMachineIds.filter(id => contextualSet.has(String(id).toUpperCase()));
+        } else {
+          allowedMachineIds = contextualIds;
+        }
+      }
+
+      if (allowedMachineIds && !allowedMachineIds.includes('*')) {
+        const allowedSet = new Set(allowedMachineIds.map(id => String(id).toUpperCase()));
+        sessions = sessions.filter(s => {
+          const machineId = s.machineId || s.machine_id || s.kioskId || s.kiosk_id || '';
+          return allowedSet.has(String(machineId).toUpperCase());
+        });
+      }
+
       count = sessions.length;
       sessions.forEach(s => {
         const plastic = parseInt(s.plasticCount || s.plastic_count || s.bottles || s.totalBottles || 0) +
@@ -3578,13 +3621,18 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
                           parseInt(s.canMediumCount || s.can_medium_count || 0) +
                           parseInt(s.canLargeCount || s.can_large_count || 0);
 
-        const paperGrams = parseInt(s.paper_weight_grams || s.paperWeightGrams || 0);
-        const tetraGrams = parseInt(s.tetrapak_weight_grams || s.tetrapakWeightGrams || 0);
+        const paperGrams = parseFloat(s.paper_weight_grams || s.paperWeightGrams || 0)
+          + (parseFloat(s.paper_weight_kg || s.paperWeightKg || 0) * 1000);
+        const tetraGrams = parseFloat(s.tetrapak_weight_grams || s.tetrapakWeightGrams || 0)
+          + (parseFloat(s.tetrapak_weight_kg || s.tetrapakWeightKg || 0) * 1000);
+        const organicGrams = parseFloat(s.organic_weight_grams || s.organicWeightGrams || 0)
+          + (parseFloat(s.organic_weight_kg || s.organicWeightKg || 0) * 1000);
 
         totalBottles += plastic;
         totalCups += aluminium;
         totalPaperGrams += paperGrams;
         totalTetraGrams += tetraGrams;
+        totalOrganicGrams += organicGrams;
         totalWeightKg += parseFloat(s.weight || s.totalWeight || (plastic * 0.025 + aluminium * 0.015 + paperGrams / 1000 + tetraGrams / 1000) || 0);
       });
     } else {
@@ -3609,17 +3657,13 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
       count = stats.count;
     }
 
-    // Baseline Audited Ledger + Live Delta from Sessions
-    const deltaPlasticKg = (totalBottles * 0.025);
-    const deltaAluKg = (totalCups * 0.015);
-    const deltaTetraKg = (totalTetraGrams > 0 ? totalTetraGrams / 1000 : 0);
-    const deltaPaperKg = (totalPaperGrams > 0 ? totalPaperGrams / 1000 : 0);
-
-    const plasticWeight = parseFloat((3797.5 + deltaPlasticKg).toFixed(1));
-    const tetraWeight = parseFloat((228.8 + deltaTetraKg).toFixed(1));
-    const paperWeight = parseFloat((152.5 + deltaPaperKg).toFixed(1));
-    const aluminiumWeight = parseFloat((16.2 + deltaAluKg).toFixed(1));
-    const organicWeight = 381.4;
+    // Tenant ledger is calculated only from scoped live sessions. Never add a
+    // global/demo baseline to an organization's report.
+    const plasticWeight = parseFloat((totalBottles * 0.025).toFixed(3));
+    const aluminiumWeight = parseFloat((totalCups * 0.015).toFixed(3));
+    const tetraWeight = parseFloat((totalTetraGrams / 1000).toFixed(3));
+    const paperWeight = parseFloat((totalPaperGrams / 1000).toFixed(3));
+    const organicWeight = parseFloat((totalOrganicGrams / 1000).toFixed(3));
 
     const breakdown = [
       {
@@ -3694,15 +3738,18 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
       }
     ];
 
-    const totalWeightProcessedKg = parseFloat((plasticWeight + tetraWeight + paperWeight + aluminiumWeight + organicWeight).toFixed(1));
-    const totalCo2eAvoidedKg = parseFloat(breakdown.reduce((sum, item) => sum + item.co2eSavedKg, 0).toFixed(1));
+    const scopedBreakdown = breakdown.filter(item => item.weightKg > 0);
+    const totalWeightProcessedKg = parseFloat((plasticWeight + tetraWeight + paperWeight + aluminiumWeight + organicWeight).toFixed(3));
+    const totalCo2eAvoidedKg = parseFloat(scopedBreakdown.reduce((sum, item) => sum + item.co2eSavedKg, 0).toFixed(3));
     const totalCo2eAvoidedTonnes = parseFloat((totalCo2eAvoidedKg / 1000).toFixed(2));
 
     // Audited Equivalency Divisors (ISO / EPA Section 7.2)
     const treesPlantedEquivalent = Math.round(totalCo2eAvoidedKg / 21.77);
     const passengerCarMilesAvoided = Math.round(totalCo2eAvoidedKg / 0.40);
     const compostYieldKg = parseFloat((organicWeight * 0.40).toFixed(1));
-    const weightedFactor = parseFloat((totalCo2eAvoidedKg / totalWeightProcessedKg).toFixed(2));
+    const weightedFactor = totalWeightProcessedKg > 0
+      ? parseFloat((totalCo2eAvoidedKg / totalWeightProcessedKg).toFixed(2))
+      : 0;
 
     res.json({
       auditStatus: 'Third-Party Audited Impact Ledger (ISO 14064 & GHG Protocol Aligned)',
@@ -3718,7 +3765,7 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
       compostYieldBasis: 'Disjoint Estimated Batch Mode (40% yield from Organic/Tea input weight)',
       weightedFactor,
       weightMeasurementType: 'Measured',
-      breakdown,
+      breakdown: scopedBreakdown,
       factors: MATERIAL_FACTORS
     });
 
