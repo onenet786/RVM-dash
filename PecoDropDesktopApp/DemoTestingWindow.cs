@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -14,8 +15,8 @@ namespace PecoDropDesktopApp;
 /// Dedicated Hardware Simulator & Demo Testing Window.
 /// Enables full end-to-end kiosk testing without physical Arduino or sensors:
 /// 1. Press '0' to start session.
-/// 2. Select Container Type (Bottle / Can / UBC).
-/// 3. Select Size (Small / Medium / Large).
+/// 2. Select Material (Plastic Bottle / Metal Can / Office Paper).
+/// 3. Select container size, or enter paper weight in grams.
 /// 4. Click Accept (plays celebration video & increments points) or Reject.
 /// 5. Press Enter to launch mobile phone input -> 5-star rating -> thank you screen -> reset.
 /// </summary>
@@ -25,7 +26,7 @@ public sealed class DemoTestingWindow : Window
     private readonly IKioskSimulatorTarget _target;
 
     // Selections
-    private string _selectedMaterial = "PLASTIC"; // PLASTIC, CAN, UBC
+    private string _selectedMaterial = "PLASTIC"; // PLASTIC, CAN, PAPER
     private string _selectedSize = "MEDIUM";      // SMALL, MEDIUM, LARGE
 
     // Visual Controls - Status Card
@@ -44,12 +45,19 @@ public sealed class DemoTestingWindow : Window
     // Visual Controls - Step 2: Material Cards
     private readonly Border _cardBottle = new();
     private readonly Border _cardCan = new();
-    private readonly Border _cardUbc = new();
+    private readonly Border _cardPaper = new();
 
     // Visual Controls - Step 3: Size Pills
     private readonly Border _pillSmall = new();
     private readonly Border _pillMedium = new();
     private readonly Border _pillLarge = new();
+    private readonly Grid _measurementHost = new();
+    private readonly UniformGrid _sizeGrid = new() { Columns = 3, Margin = new Thickness(0, 2, 0, 6) };
+    private readonly Border _paperScalePanel = new();
+    private readonly TextBox _paperGramsInput = new();
+    private readonly TextBlock _paperScaleFeedback = new();
+    private TextBlock? _measurementTitle;
+    private TextBlock? _measurementHint;
 
     // Activity Log
     private readonly ObservableCollection<string> _logItems = [];
@@ -143,7 +151,7 @@ public sealed class DemoTestingWindow : Window
         };
         var subText = new TextBlock
         {
-            Text = "No Hardware Required • Test 0 (Start) ➔ Deposit (Bottle/Can/UBC) ➔ Enter (Wallet & Rating)",
+            Text = "No Hardware Required • Test 0 (Start) ➔ Deposit (Plastic/Can/Paper) ➔ Enter (Wallet & Rating)",
             FontSize = 10,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)) // Slate #94A3B8
         };
@@ -287,36 +295,40 @@ public sealed class DemoTestingWindow : Window
         controlsStack.Children.Add(_btnStartStop);
 
         // ---------------------------------------------------------
-        // STEP 2: SELECT CONTAINER TYPE (Bottle / Can / UBC)
+        // STEP 2: SELECT PHYSICAL PECODROP APERTURE
         // ---------------------------------------------------------
-        controlsStack.Children.Add(CreateSectionHeader("STEP 2: SELECT CONTAINER TYPE", "Classify: [ B / 1 ] Bottle • [ C / 2 ] Can • [ U / 3 ] UBC"));
+        controlsStack.Children.Add(CreateSectionHeader("STEP 2: SELECT MATERIAL", "Aperture: [ B / 1 ] Plastic • [ C / 2 ] Can • [ P / U / 3 ] Paper"));
 
         var materialGrid = new UniformGrid { Columns = 3, Margin = new Thickness(0, 2, 0, 6) };
 
-        SetupMaterialCard(_cardBottle, "PLASTIC", "🧴 BOTTLE", "Plastic Bottle (PET / HDPE)", "DancingPlastic.mp4", "[ B ] / [ 1 ]");
-        SetupMaterialCard(_cardCan, "CAN", "🥫 CAN", "Metal Can (Aluminium / Tin)", "DancingCan.mp4", "[ C ] / [ 2 ]");
-        SetupMaterialCard(_cardUbc, "UBC", "🧃 UBC", "Tetra Pak (Beverage Carton)", "DancingTetra.mp4", "[ U ] / [ 3 ]");
+        SetupMaterialCard(_cardBottle, "PLASTIC", "⭕ PLASTIC", "Circle aperture • PET / HDPE bottle", "DancingPlastic.mp4", "[ B ] / [ 1 ]");
+        SetupMaterialCard(_cardCan, "CAN", "△ METAL CAN", "Triangle aperture • Beverage can", "DancingCan.mp4", "[ C ] / [ 2 ]");
+        SetupMaterialCard(_cardPaper, "PAPER", "□ OFFICE PAPER", "Square aperture • Weighed paper", "Digital scale input", "[ P/U ] / [ 3 ]");
 
         materialGrid.Children.Add(_cardBottle);
         materialGrid.Children.Add(_cardCan);
-        materialGrid.Children.Add(_cardUbc);
+        materialGrid.Children.Add(_cardPaper);
         controlsStack.Children.Add(materialGrid);
 
         // ---------------------------------------------------------
         // STEP 3: SELECT CONTAINER SIZE (Small / Medium / Large)
         // ---------------------------------------------------------
-        controlsStack.Children.Add(CreateSectionHeader("STEP 3: SELECT CONTAINER SIZE", "Measure: [ S ] Small • [ M ] Medium • [ L ] Large"));
-
-        var sizeGrid = new UniformGrid { Columns = 3, Margin = new Thickness(0, 2, 0, 6) };
+        var measurementHeader = CreateSectionHeader("STEP 3: SELECT CONTAINER SIZE", "Measure: [ S ] Small • [ M ] Medium • [ L ] Large");
+        _measurementTitle = (TextBlock)measurementHeader.Children[0];
+        _measurementHint = (TextBlock)measurementHeader.Children[1];
+        controlsStack.Children.Add(measurementHeader);
 
         SetupSizePill(_pillSmall, "SMALL", "Small", "250ml - 350ml", "+10 Pts", "[ S ]");
         SetupSizePill(_pillMedium, "MEDIUM", "Medium", "500ml - 750ml", "+20 Pts", "[ M ]");
         SetupSizePill(_pillLarge, "LARGE", "Large", "1.0L - 2.0L", "+30 Pts", "[ L ]");
 
-        sizeGrid.Children.Add(_pillSmall);
-        sizeGrid.Children.Add(_pillMedium);
-        sizeGrid.Children.Add(_pillLarge);
-        controlsStack.Children.Add(sizeGrid);
+        _sizeGrid.Children.Add(_pillSmall);
+        _sizeGrid.Children.Add(_pillMedium);
+        _sizeGrid.Children.Add(_pillLarge);
+        _measurementHost.Children.Add(_sizeGrid);
+        BuildPaperScalePanel();
+        _measurementHost.Children.Add(_paperScalePanel);
+        controlsStack.Children.Add(_measurementHost);
 
         // ---------------------------------------------------------
         // STEP 4: SIMULATE DROP ACTION (Accept & Play Video OR Reject)
@@ -441,7 +453,7 @@ public sealed class DemoTestingWindow : Window
         };
         var txtCheat = new TextBlock
         {
-            Text = "⌨️ Hotkeys: [0] Start · [B/C/U] Material · [S/M/L] Size · [A/Space] Accept · [R] Reject · [Enter] Finish & Wallet",
+            Text = "⌨ Hotkeys: [0] Start · [B/C/P] Material ([U/3] Paper alias) · [S/M/L] Size · [A/Space] Accept · [R] Reject · [Enter] Finish",
             FontSize = 9.5,
             FontWeight = FontWeights.SemiBold,
             Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
@@ -584,7 +596,13 @@ public sealed class DemoTestingWindow : Window
             Text = title,
             FontWeight = FontWeights.Black,
             FontSize = 12.5,
-            Foreground = Brushes.White,
+            Foreground = new SolidColorBrush(materialKey switch
+            {
+                "PLASTIC" => Color.FromRgb(244, 114, 182), // circle / neon magenta
+                "CAN" => Color.FromRgb(52, 211, 153),     // triangle / emerald
+                "PAPER" => Color.FromRgb(103, 232, 249),  // square / cyan
+                _ => Colors.White
+            }),
             VerticalAlignment = VerticalAlignment.Center
         };
         var hk = new TextBlock
@@ -691,11 +709,92 @@ public sealed class DemoTestingWindow : Window
         };
     }
 
+    private void BuildPaperScalePanel()
+    {
+        _paperScalePanel.Background = new SolidColorBrush(Color.FromRgb(8, 35, 55));
+        _paperScalePanel.BorderBrush = new SolidColorBrush(Color.FromRgb(34, 211, 238));
+        _paperScalePanel.BorderThickness = new Thickness(2);
+        _paperScalePanel.CornerRadius = new CornerRadius(8);
+        _paperScalePanel.Padding = new Thickness(12, 6, 12, 6);
+        _paperScalePanel.Margin = new Thickness(4, 2, 4, 6);
+        _paperScalePanel.Visibility = Visibility.Collapsed;
+
+        var panel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Stretch };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+        row.Children.Add(new TextBlock
+        {
+            Text = "▣ DIGITAL PAPER SCALE   ", FontWeight = FontWeights.Black, FontSize = 11,
+            Foreground = new SolidColorBrush(Color.FromRgb(103, 232, 249)), VerticalAlignment = VerticalAlignment.Center
+        });
+        _paperGramsInput.Width = 105;
+        _paperGramsInput.Height = 30;
+        _paperGramsInput.Text = "500";
+        _paperGramsInput.MaxLength = 7;
+        _paperGramsInput.FontSize = 16;
+        _paperGramsInput.FontWeight = FontWeights.Bold;
+        _paperGramsInput.TextAlignment = TextAlignment.Right;
+        _paperGramsInput.VerticalContentAlignment = VerticalAlignment.Center;
+        _paperGramsInput.Background = new SolidColorBrush(Color.FromRgb(3, 15, 27));
+        _paperGramsInput.Foreground = new SolidColorBrush(Color.FromRgb(165, 243, 252));
+        _paperGramsInput.BorderBrush = new SolidColorBrush(Color.FromRgb(6, 182, 212));
+        _paperGramsInput.PreviewTextInput += (_, e) => e.Handled = !char.IsDigit(e.Text, 0);
+        _paperGramsInput.TextChanged += (_, _) => UpdatePaperScaleFeedback();
+        DataObject.AddPastingHandler(_paperGramsInput, (_, e) =>
+        {
+            if (e.DataObject.GetDataPresent(DataFormats.Text) &&
+                e.DataObject.GetData(DataFormats.Text) is string text &&
+                double.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out double _parsedValue)) return;
+            e.CancelCommand();
+        });
+        row.Children.Add(_paperGramsInput);
+        row.Children.Add(new TextBlock
+        {
+            Text = $" g   •   {PointRulesCache.PaperPerKg:0.##} points/kg   •   Enter net office-paper weight",
+            FontSize = 10, FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(186, 230, 253)), VerticalAlignment = VerticalAlignment.Center
+        });
+        panel.Children.Add(row);
+        _paperScaleFeedback.HorizontalAlignment = HorizontalAlignment.Center;
+        _paperScaleFeedback.Margin = new Thickness(0, 3, 0, 0);
+        _paperScaleFeedback.FontSize = 10;
+        _paperScaleFeedback.FontWeight = FontWeights.Bold;
+        panel.Children.Add(_paperScaleFeedback);
+        _paperScalePanel.Child = panel;
+        UpdatePaperScaleFeedback();
+    }
+
+    private bool UpdatePaperScaleFeedback()
+    {
+        bool valid = double.TryParse(_paperGramsInput.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out double grams)
+                     && grams >= 1 && grams <= 100000;
+        if (!valid)
+        {
+            _paperGramsInput.BorderBrush = new SolidColorBrush(Color.FromRgb(248, 113, 113));
+            _paperScaleFeedback.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+            _paperScaleFeedback.Text = string.IsNullOrWhiteSpace(_paperGramsInput.Text)
+                ? "Enter paper weight: 1–100000 g"
+                : "Weight out of range — use 1–100000 whole grams";
+            return false;
+        }
+
+        double kg = grams / 1000.0;
+        int points = (int)Math.Round(kg * PointRulesCache.PaperPerKg, MidpointRounding.AwayFromZero);
+        _paperGramsInput.BorderBrush = new SolidColorBrush(Color.FromRgb(6, 182, 212));
+        _paperScaleFeedback.Foreground = new SolidColorBrush(Color.FromRgb(103, 232, 249));
+        _paperScaleFeedback.Text = $"{kg:0.000} kg  →  {points} pts at {PointRulesCache.PaperPerKg:0.##} pts/kg";
+        return true;
+    }
+
     private void RefreshMaterialCardsVisual()
     {
-        ApplyCardStyle(_cardBottle, _selectedMaterial == "PLASTIC", Color.FromRgb(14, 165, 233));
-        ApplyCardStyle(_cardCan, _selectedMaterial == "CAN", Color.FromRgb(234, 88, 12));
-        ApplyCardStyle(_cardUbc, _selectedMaterial == "UBC", Color.FromRgb(168, 85, 247));
+        ApplyCardStyle(_cardBottle, _selectedMaterial == "PLASTIC", Color.FromRgb(236, 72, 153));
+        ApplyCardStyle(_cardCan, _selectedMaterial == "CAN", Color.FromRgb(16, 185, 129));
+        ApplyCardStyle(_cardPaper, _selectedMaterial == "PAPER", Color.FromRgb(34, 211, 238));
+        bool paper = _selectedMaterial == "PAPER";
+        _sizeGrid.Visibility = paper ? Visibility.Collapsed : Visibility.Visible;
+        _paperScalePanel.Visibility = paper ? Visibility.Visible : Visibility.Collapsed;
+        if (_measurementTitle != null) _measurementTitle.Text = paper ? "STEP 3: ENTER PAPER WEIGHT" : "STEP 3: SELECT CONTAINER SIZE";
+        if (_measurementHint != null) _measurementHint.Text = paper ? "Scale: grams • points awarded by configured per-kg rate" : "Measure: [ S ] Small • [ M ] Medium • [ L ] Large";
     }
 
     private void RefreshSizePillsVisual()
@@ -753,18 +852,42 @@ public sealed class DemoTestingWindow : Window
         }
 
         string mat = _selectedMaterial;
-        string sz = _selectedSize;
+        string sz = mat == "PAPER" ? "WEIGHT" : _selectedSize;
+        double weightKg = 0;
+        if (mat == "PAPER")
+        {
+            if (!UpdatePaperScaleFeedback() || !double.TryParse(_paperGramsInput.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out double grams))
+            {
+                Log("[VALIDATION] Enter a paper weight from 1 to 100000 grams.");
+                _paperGramsInput.Focus();
+                _paperGramsInput.SelectAll();
+                return;
+            }
+            weightKg = grams / 1000.0;
+        }
 
         if (accept)
         {
-            string vidName = mat == "PLASTIC" ? "DancingPlastic.mp4" : (mat == "CAN" ? "DancingCan.mp4" : "DancingTetra.mp4");
-            Log($"[DROP ACCEPT] Simulating deposit: {sz} {mat} -> Celebration Video ({vidName}) playing!");
-            _target.SimulateItemDeposit(mat, sz, accept: true);
+            string presentation = mat == "PAPER" ? $"{weightKg * 1000:0} g PAPER -> production paper flow" : $"{sz} {mat} -> acceptance video";
+            if (_target.SimulateItemDeposit(mat, sz, accept: true, weightKg))
+            {
+                Log($"[DROP ACCEPT] Recorded: {presentation}");
+            }
+            else
+            {
+                Log($"[DROP FAILED] Kiosk did not record {presentation}. Check session state and simulator target.");
+            }
         }
         else
         {
-            Log($"[DROP REJECT] Simulating sensor reject for {sz} {mat}. Rejection alert displayed.");
-            _target.SimulateItemDeposit(mat, sz, accept: false);
+            if (_target.SimulateItemDeposit(mat, sz, accept: false, weightKg))
+            {
+                Log($"[DROP REJECT] Recorded sensor rejection for {sz} {mat}.");
+            }
+            else
+            {
+                Log($"[DROP FAILED] Kiosk did not record rejection for {sz} {mat}.");
+            }
         }
 
         UpdateDisplayState();
@@ -807,8 +930,8 @@ public sealed class DemoTestingWindow : Window
 
                 _btnStartStop.Background = new SolidColorBrush(Color.FromRgb(185, 28, 28));
                 _btnStartStop.BorderBrush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
-                _txtStartStopLabel.Text = "⏹ [ S ] STOP / RESET SESSION";
-                _txtStartStopSub.Text = "  (Click or press S)";
+                _txtStartStopLabel.Text = "⏹ [ Ctrl+S ] STOP / RESET SESSION";
+                _txtStartStopSub.Text = "  (Click or press Ctrl+S)";
             }
             else
             {
@@ -831,6 +954,28 @@ public sealed class DemoTestingWindow : Window
 
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // Zero remains the global Start command while idle, including when the
+        // paper scale owns keyboard focus. Once running, zero behaves as a
+        // normal digit so operators can type weights such as 500 g.
+        if (_paperGramsInput.IsKeyboardFocusWithin && !_target.IsMachineStarted &&
+            (e.Key == Key.D0 || e.Key == Key.NumPad0))
+        {
+            _target.StartMachine(forceSimulator: true);
+            Log("[KEYPAD] '0' pressed -> Session Started (paper scale remained active).");
+            UpdateDisplayState();
+            e.Handled = true;
+            return;
+        }
+
+        // Let the calibrated scale input receive digits and editing keys without
+        // triggering the kiosk-wide numeric material aliases.
+        if (_paperGramsInput.IsKeyboardFocusWithin &&
+            (e.Key is >= Key.D0 and <= Key.D9 || e.Key is >= Key.NumPad0 and <= Key.NumPad9 ||
+             e.Key == Key.Back || e.Key == Key.Delete || e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Tab))
+        {
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.D0:
@@ -862,12 +1007,15 @@ public sealed class DemoTestingWindow : Window
                 e.Handled = true;
                 break;
 
-            case Key.U:
+            case Key.P:
+            case Key.U: // Backwards-compatible alias for older operator muscle memory.
             case Key.D3:
             case Key.NumPad3:
-                _selectedMaterial = "UBC";
+                _selectedMaterial = "PAPER";
                 RefreshMaterialCardsVisual();
-                Log("[KEY] 'U' / '3' -> Selected UBC (Tetra Pak)");
+                _paperGramsInput.Focus();
+                _paperGramsInput.SelectAll();
+                Log("[KEY] 'P' / 'U' / '3' -> Selected Office Paper (weight entry)");
                 e.Handled = true;
                 break;
 
@@ -879,6 +1027,7 @@ public sealed class DemoTestingWindow : Window
                 }
                 else
                 {
+                    if (_selectedMaterial == "PAPER") break;
                     _selectedSize = "SMALL";
                     RefreshSizePillsVisual();
                     Log("[KEY] 'S' -> Selected Small size");
@@ -887,6 +1036,7 @@ public sealed class DemoTestingWindow : Window
                 break;
 
             case Key.M:
+                if (_selectedMaterial == "PAPER") break;
                 _selectedSize = "MEDIUM";
                 RefreshSizePillsVisual();
                 Log("[KEY] 'M' -> Selected Medium size");
@@ -894,6 +1044,7 @@ public sealed class DemoTestingWindow : Window
                 break;
 
             case Key.L:
+                if (_selectedMaterial == "PAPER") break;
                 _selectedSize = "LARGE";
                 RefreshSizePillsVisual();
                 Log("[KEY] 'L' -> Selected Large size");

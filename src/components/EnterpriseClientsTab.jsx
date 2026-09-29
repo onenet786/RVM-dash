@@ -1584,7 +1584,8 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                     {allNetworkMachines.map((m) => {
                       const mId = m.machineId || m.machine_id;
                       const isSelected = selectedMachineIds.includes(mId);
-                      const isPeco = String(mId).toUpperCase().includes('PECO');
+                      const rawType = String(m.machineType || m.machine_type || '').toUpperCase();
+                      const isPeco = rawType === 'PECODROP' || rawType === 'PECO_DROP';
                       return (
                         <div
                           key={mId}

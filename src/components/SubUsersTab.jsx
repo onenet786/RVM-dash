@@ -74,13 +74,9 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
       }
       if (mRes.ok) {
         const mData = await mRes.json();
-        // If corporate client, filter only to machines assigned to them
-        let clientMachines = mData;
-        if (isCorporateClient && Array.isArray(currentUser?.assignedMachines) && !currentUser.assignedMachines.includes('*')) {
-          const allowed = currentUser.assignedMachines.map(m => String(m).toUpperCase());
-          clientMachines = mData.filter(m => allowed.includes(String(m.machineId).toUpperCase()));
-        }
-        setAvailableMachines(clientMachines);
+        // Server authorization resolves the current binding from PostgreSQL.
+        // Avoid re-filtering with a stale browser login snapshot.
+        setAvailableMachines(mData);
       }
       if (cRes.ok) {
         const cData = await cRes.json();
@@ -608,7 +604,11 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
                             <span className="text-xs text-amber-600 dark:text-amber-400 italic">No machines assigned</span>
                           ) : (
                             assigned.map((mId) => {
-                              const isPeco = mId.toUpperCase().includes('PECO');
+                              const machine = availableMachines.find(
+                                item => String(item.machineId).toUpperCase() === String(mId).toUpperCase()
+                              );
+                              const rawType = String(machine?.machineType || machine?.machine_type || '').toUpperCase();
+                              const isPeco = rawType === 'PECODROP' || rawType === 'PECO_DROP';
                               return (
                                 <span
                                   key={mId}
@@ -814,7 +814,8 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-56 overflow-y-auto p-1">
                     {availableMachines.map((machine) => {
                       const isSelected = form.assignedMachines.includes(machine.machineId.toUpperCase());
-                      const isPeco = machine.machineType === 'PECODROP' || machine.machineId.includes('PECO');
+                      const rawType = String(machine.machineType || machine.machine_type || '').toUpperCase();
+                      const isPeco = rawType === 'PECODROP' || rawType === 'PECO_DROP';
 
                       return (
                         <div

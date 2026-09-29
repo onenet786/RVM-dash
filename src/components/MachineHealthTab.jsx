@@ -273,9 +273,18 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     const raw = String(m?.machineType || m?.machine_type || '').toLowerCase();
     const id = String(m?.machineId || '').toLowerCase();
     const name = String(m?.name || '').toLowerCase();
-    if (raw === 'pecodrop' || id.includes('peco') || name.includes('peco')) return 'pecodrop';
-    if (raw === 'rvm_old' || id.includes('old') || name.includes('old')) return 'rvm_old';
+    if (raw === 'pecodrop' || raw === 'peco_drop') return 'pecodrop';
+    if (raw === 'rvm_old' || raw === 'legacy') return 'rvm_old';
+    if (raw === 'rvm_new') return 'rvm_new';
+    if (id.includes('peco') || name.includes('peco')) return 'pecodrop';
+    if (id.includes('old') || name.includes('old')) return 'rvm_old';
     return 'rvm_new';
+  };
+
+  const getClientLabel = (m) => {
+    const raw = String(m?.clientName || m?.client_name || '').trim();
+    const clean = raw.replace(/^(Client:\s*)+/i, '').trim();
+    return clean || 'ISP Environmental Master';
   };
 
   const openEditModal = (m) => {
@@ -768,7 +777,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                           : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                       }`}>
                         {isOnline && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                        {isOnline ? 'Online' : 'Standby'}
+                        {isOnline ? 'Online' : 'Offline'}
                       </span>
                       {hasAlerts && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-300">
@@ -781,7 +790,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                   {/* Client Tag */}
                   <div className="mb-3.5">
                     <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border t-border inline-block max-w-full truncate">
-                      Client: {m.clientName || 'ISP Environmental Master'}
+                      Client: {getClientLabel(m)}
                     </span>
                   </div>
 

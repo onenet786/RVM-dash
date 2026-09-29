@@ -99,10 +99,13 @@ if ([string]::IsNullOrWhiteSpace($ExePath)) {
     }
 
     $possiblePaths = @(
-        (Join-Path $scriptDir "bin\Debug\net8.0-windows\PecoDropDesktopApp.exe"),
         (Join-Path $scriptDir "bin\Release\net8.0-windows\PecoDropDesktopApp.exe"),
+        (Join-Path $scriptDir "bin\Debug\net8.0-windows\PecoDropDesktopApp.exe"),
+        (Join-Path $scriptDir "PecoDropDesktopApp\bin\Release\net8.0-windows\PecoDropDesktopApp.exe"),
         (Join-Path $scriptDir "PecoDropDesktopApp\bin\Debug\net8.0-windows\PecoDropDesktopApp.exe"),
+        (Join-Path (Get-Location) "PecoDropDesktopApp\bin\Release\net8.0-windows\PecoDropDesktopApp.exe"),
         (Join-Path (Get-Location) "PecoDropDesktopApp\bin\Debug\net8.0-windows\PecoDropDesktopApp.exe"),
+        (Join-Path (Get-Location) "bin\Release\net8.0-windows\PecoDropDesktopApp.exe"),
         (Join-Path (Get-Location) "bin\Debug\net8.0-windows\PecoDropDesktopApp.exe")
     )
     foreach ($p in $possiblePaths) {
@@ -115,8 +118,8 @@ if ([string]::IsNullOrWhiteSpace($ExePath)) {
 
 if (-not (Test-Path $ExePath)) {
     Write-Host "[ERROR] Could not find PecoDropDesktopApp.exe! Building now..." -ForegroundColor Yellow
-    dotnet build (Join-Path $PSScriptRoot "PecoDropDesktopApp.csproj") -c Debug
-    $ExePath = Join-Path $PSScriptRoot "bin\Debug\net8.0-windows\PecoDropDesktopApp.exe"
+    dotnet build (Join-Path $PSScriptRoot "PecoDropDesktopApp.csproj") -c Release
+    $ExePath = Join-Path $PSScriptRoot "bin\Release\net8.0-windows\PecoDropDesktopApp.exe"
     if (-not (Test-Path $ExePath)) {
         Write-Host "[FATAL] Build failed or executable missing at: $ExePath" -ForegroundColor Red
         exit 1

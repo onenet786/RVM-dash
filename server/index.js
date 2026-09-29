@@ -133,7 +133,24 @@ function verifyTokenWithAnySecret(token) {
   return null;
 }
 
-function authenticateToken(req, res, next) {
+async function refreshCorporateMachineScope(user) {
+  if (!user || user.roleId !== 'client_admin' || !user.orgId) return user;
+  const pool = getPgPool();
+  if (!pool) return user;
+
+  try {
+    const result = await pool.query(
+      'SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1 ORDER BY machine_id',
+      [user.orgId]
+    );
+    user.assignedMachines = result.rows.map(row => String(row.machine_id).trim().toUpperCase());
+  } catch (error) {
+    console.error('[Auth Scope Refresh] Unable to refresh corporate fleet:', error.message);
+  }
+  return user;
+}
+
+async function authenticateToken(req, res, next) {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({ error: 'Authentication required. Missing authorization token.' });
@@ -141,7 +158,7 @@ function authenticateToken(req, res, next) {
 
   const decoded = verifyTokenWithAnySecret(token);
   if (decoded) {
-    req.user = decoded;
+    req.user = await refreshCorporateMachineScope(decoded);
     return next();
   }
 
@@ -150,12 +167,12 @@ function authenticateToken(req, res, next) {
 
 // Optional Authentication Middleware: If a token exists, validates & sets req.user.
 // If absent or expired, allows public read-only fallback instead of hard 401 error.
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
   const token = extractToken(req);
   if (token) {
     const decoded = verifyTokenWithAnySecret(token);
     if (decoded) {
-      req.user = decoded;
+      req.user = await refreshCorporateMachineScope(decoded);
     }
   }
   return next();
@@ -2582,15 +2599,21 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
             const upperLoc = String(r.location || '').toUpperCase();
             const rawMachineType = String(r.machine_type || '').trim().toUpperCase();
             const mType = rawMachineType === 'PECODROP' || rawMachineType === 'PECO_DROP'
-              || upperId.includes('PECO') || upperName.includes('PECO')
               ? 'PECODROP'
               : rawMachineType === 'RVM_OLD' || rawMachineType === 'LEGACY'
-                || upperId.includes('OLD') || upperName.includes('OLD')
                 ? 'RVM_OLD'
-                : 'RVM_NEW';
+                : rawMachineType === 'RVM_NEW'
+                  ? 'RVM_NEW'
+                  : upperId.includes('PECO') || upperName.includes('PECO')
+                    ? 'PECODROP'
+                    : upperId.includes('OLD') || upperName.includes('OLD')
+                      ? 'RVM_OLD'
+                      : 'RVM_NEW';
 
             let cId = r.client_id || 'ISP_MASTER';
-            let cName = r.client_name || 'ISP Environmental Master (All Sites)';
+            let cName = String(r.client_name || 'ISP Environmental Master (All Sites)')
+              .replace(/^(Client:\s*)+/i, '')
+              .trim();
             if (!r.client_id || r.client_id === 'ALL' || r.client_id === 'ISP_MASTER') {
               if (upperId.includes('UCP') || upperName.includes('UCP') || upperLoc.includes('UCP') || upperId === 'RVM:01') {
                 cId = 'ORG_UCP';
@@ -3009,9 +3032,8 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
     let onlineCount = 0;
     scopedMachines.forEach(m => {
       const pingTime = m.last_ping_at ? new Date(m.last_ping_at).getTime() : 0;
-      const isRecentPing = pingTime > 0 && (now - pingTime <= 180000);
-      const isOnlineStatus = String(m.status || '').toUpperCase() === 'ONLINE' || String(m.status || '').toUpperCase() === 'ACTIVE';
-      if (isRecentPing || isOnlineStatus) onlineCount++;
+      const isRecentPing = pingTime > 0 && (now - pingTime <= 60 * 1000);
+      if (isRecentPing) onlineCount++;
     });
     const offlineCount = Math.max(0, scopedMachines.length - onlineCount);
 
@@ -3248,14 +3270,15 @@ app.post('/api/machines', async (req, res) => {
           const oRes = await poolCheck.query('SELECT name FROM organizations WHERE org_id = $1', [cId]);
           if (oRes.rows.length > 0) {
             const orgTitle = oRes.rows[0].name;
-            cName = orgTitle.startsWith('Client:') ? orgTitle : `Client: ${orgTitle}`;
+            cName = orgTitle.replace(/^(Client:\s*)+/i, '').trim();
           }
         } catch (e) {}
       }
       if (!cName) {
-        cName = cId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites)' : `Client: ${cId}`;
+        cName = cId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites)' : cId;
       }
     }
+    cName = String(cName || '').replace(/^(Client:\s*)+/i, '').trim();
 
     const pool = getPgPool();
 
@@ -5955,7 +5978,7 @@ app.put('/api/enterprise/organizations/:orgId/personalization', optionalAuth, as
 });
 
 // Assign RVMs & PecoDrops to an Organization
-app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, requireAdmin, async (req, res) => {
   try {
     const { orgId } = req.params;
     const { machineIds } = req.body;
@@ -5970,49 +5993,102 @@ app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, a
     if (orgRes.rows.length === 0) {
       return res.status(404).json({ success: false, error: `Organization "${orgId}" not found.` });
     }
-    const orgName = orgRes.rows[0].name;
+    const orgName = String(orgRes.rows[0].name || '').replace(/^(Client:\s*)+/i, '').trim();
+    const normalizedMachineIds = Array.from(new Set(
+      machineIds.map(id => String(id).trim().toUpperCase()).filter(Boolean)
+    ));
 
-    // 1. Remove old bindings for this org
-    await pool.query('DELETE FROM kiosk_org_bindings WHERE org_id = $1', [orgId]);
-
-    // 2. Insert new bindings
-    for (const mId of machineIds) {
-      const cleanId = String(mId).trim().toUpperCase();
-      if (!cleanId) continue;
-      await pool.query(`
-        INSERT INTO kiosk_org_bindings (machine_id, org_id, location_note)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (machine_id) DO UPDATE SET org_id = EXCLUDED.org_id, location_note = EXCLUDED.location_note;
-      `, [cleanId, orgId, `Assigned to ${orgName}`]);
-
-      // Update machine table
-      await pool.query(`
-        UPDATE machines
-        SET client_id = $1, client_name = $2
-        WHERE UPPER(machine_id) = $3;
-      `, [orgId, orgName, cleanId]);
+    if (normalizedMachineIds.length > 0) {
+      const existing = await pool.query(
+        'SELECT UPPER(machine_id) AS machine_id FROM machines WHERE UPPER(machine_id) = ANY($1::text[])',
+        [normalizedMachineIds]
+      );
+      const existingIds = new Set(existing.rows.map(row => row.machine_id));
+      const missingIds = normalizedMachineIds.filter(id => !existingIds.has(id));
+      if (missingIds.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Unknown machine IDs: ${missingIds.join(', ')}`
+        });
+      }
     }
 
-    // 3. Update organizations.assigned_machines array
-    await pool.query(`
-      UPDATE organizations
-      SET assigned_machines = $1
-      WHERE org_id = $2;
-    `, [machineIds, orgId]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Return machines removed from this organization to the ISP master fleet.
+      const previous = await client.query(
+        'SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1',
+        [orgId]
+      );
+      const displacedOwners = normalizedMachineIds.length > 0
+        ? await client.query(
+            'SELECT DISTINCT org_id FROM kiosk_org_bindings WHERE UPPER(machine_id) = ANY($1::text[]) AND org_id <> $2',
+            [normalizedMachineIds, orgId]
+          )
+        : { rows: [] };
+      const removedIds = previous.rows
+        .map(row => String(row.machine_id).trim().toUpperCase())
+        .filter(id => !normalizedMachineIds.includes(id));
+      if (removedIds.length > 0) {
+        await client.query(`
+          UPDATE machines
+          SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)'
+          WHERE UPPER(machine_id) = ANY($1::text[])
+        `, [removedIds]);
+      }
+
+      await client.query('DELETE FROM kiosk_org_bindings WHERE org_id = $1', [orgId]);
+
+      for (const cleanId of normalizedMachineIds) {
+        await client.query(`
+          INSERT INTO kiosk_org_bindings (machine_id, org_id, location_note)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (machine_id) DO UPDATE SET org_id = EXCLUDED.org_id, location_note = EXCLUDED.location_note
+        `, [cleanId, orgId, `Assigned to ${orgName}`]);
+        await client.query(`
+          UPDATE machines
+          SET client_id = $1, client_name = $2
+          WHERE UPPER(machine_id) = $3
+        `, [orgId, orgName, cleanId]);
+      }
+
+      const affectedOrgIds = Array.from(new Set([
+        orgId,
+        ...displacedOwners.rows.map(row => row.org_id)
+      ]));
+      for (const affectedOrgId of affectedOrgIds) {
+        await client.query(`
+          UPDATE organizations
+          SET assigned_machines = ARRAY(
+            SELECT machine_id FROM kiosk_org_bindings
+            WHERE org_id = $1 ORDER BY machine_id
+          )
+          WHERE org_id = $1
+        `, [affectedOrgId]);
+      }
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     // 4. Update any existing Corporate Client accounts for this org
     const allUsers = await fetchCollectionDocs('adminaccounts');
     const clientAdmins = allUsers.filter(u => (u.orgId === orgId || u.org_id === orgId) && u.roleId === 'client_admin');
     for (const ca of clientAdmins) {
       await updateDocInEngine('adminaccounts', 'username', ca.username, {
-        assignedMachines: machineIds
+        assignedMachines: normalizedMachineIds
       });
     }
 
     res.json({
       success: true,
-      message: `Assigned ${machineIds.length} machines to "${orgName}".`,
-      assignedMachines: machineIds
+      message: `Assigned ${normalizedMachineIds.length} machines to "${orgName}".`,
+      assignedMachines: normalizedMachineIds
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

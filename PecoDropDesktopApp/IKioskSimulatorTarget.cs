@@ -39,7 +39,8 @@ public interface IKioskSimulatorTarget
     void StopMachine();
 
     /// <summary>Simulates item detection, acceptance/rejection, counter update, and video playback.</summary>
-    void SimulateItemDeposit(string material, string size, bool accept);
+    /// <returns>True only when the simulated outcome was recorded by the kiosk.</returns>
+    bool SimulateItemDeposit(string material, string size, bool accept, double weightKg = 0);
 
     /// <summary>Triggers the wallet flow (pressing 'Enter') -> mobile number -> rating -> completion.</summary>
     void CompleteSessionToWallet();

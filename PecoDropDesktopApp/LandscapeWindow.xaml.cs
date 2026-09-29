@@ -1638,16 +1638,35 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         SimulatorStateChanged?.Invoke();
     }
 
-    public void SimulateItemDeposit(string material, string size, bool accept)
+    public bool SimulateItemDeposit(string material, string size, bool accept, double weightKg = 0)
     {
         if (!machineStarted)
         {
             StartMachine(forceSimulator: true);
         }
 
+        if (!machineStarted)
+        {
+            LogTelemetry("[DEMO FAILED] Session could not be started");
+            return false;
+        }
+
         string matUpper = (material ?? "PLASTIC").Trim().ToUpperInvariant();
         string sizeUpper = (size ?? "MEDIUM").Trim().ToUpperInvariant();
-        if (!compartmentAvailability.CanAccept(matUpper)) return;
+        // Live bin/door telemetry protects production intake. Demo Mode is an
+        // authoritative hardware substitute and must remain testable when the
+        // Arduino is disconnected, uncalibrated, full, or faulted.
+        if (!IsDemoMode && !compartmentAvailability.CanAccept(matUpper))
+        {
+            LogTelemetry($"[DEMO FAILED] {matUpper} compartment is unavailable");
+            return false;
+        }
+
+        if (accept && matUpper == "PAPER" && (!double.IsFinite(weightKg) || weightKg <= 0))
+        {
+            LogTelemetry("[DEMO FAILED] Paper requires a positive measured weight");
+            return false;
+        }
 
         if (!accept)
         {
@@ -1659,15 +1678,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             BottleInfoText.Text = $"Item rejected ({sizeUpper} {matUpper}) - please remove from gate";
 
             LogTelemetry($"[DEMO REJECT] Size={sizeUpper} Material={matUpper}");
-            SaveTransaction(new BottleResult { Material = matUpper, Size = sizeUpper }, 0, false);
+            SaveTransaction(new BottleResult { Material = matUpper, Size = sizeUpper, WeightKg = 0 }, 0, false);
             SimulatorStateChanged?.Invoke();
-            return;
+            return true;
         }
 
         var result = new BottleResult
         {
             Material = matUpper,
             Size = sizeUpper,
+            WeightKg = matUpper == "PAPER" ? Math.Max(0, weightKg) : 0,
             DurationMs = 350
         };
 
@@ -1680,7 +1700,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         StatusText.Text = "Accepted";
         StatusText.Foreground = Brushes.LimeGreen;
         string itemDescription = result.Material.ToLowerInvariant();
-        BottleInfoText.Text = $"{result.Size} {itemDescription} - {points} points";
+        BottleInfoText.Text = result.Material == "PAPER"
+            ? $"Paper: {result.WeightKg * 1000.0:0} g ({result.WeightKg:0.000} kg) – {points} points"
+            : $"{result.Size} {itemDescription} - {points} points";
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
@@ -1717,11 +1739,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     curPaper,
                     0,
                     curPoints,
-                    0.0,
+                    paperTotalWeightKg,
                     result.Size,
                     result.Material,
                     pSmall, pMed, pLg,
-                    cSmall, cMed, cLg
+                    cSmall, cMed, cLg,
+                    (int)Math.Round(paperTotalWeightKg * 1000.0, MidpointRounding.AwayFromZero)
                 );
 
                 if (syncRes.IsSuccess)
@@ -1733,6 +1756,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         });
 
         SimulatorStateChanged?.Invoke();
+        return true;
     }
 
     private void Serial_DataReceived(string message)

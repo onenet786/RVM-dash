@@ -75,7 +75,7 @@ export default function AdvertisementsTab() {
     id: m.machineId || m.machine_id || m.id,
     name: m.name || `Machine ${m.machineId || m.id}`,
     location: m.location || 'Islamabad Campus',
-    type: (m.machineType === 'PECODROP' || (m.machineId && m.machineId.toUpperCase().startsWith('PECO'))) ? 'peco' : 'rvm'
+    type: ['PECODROP', 'PECO_DROP'].includes(String(m.machineType || m.machine_type || '').toUpperCase()) ? 'peco' : 'rvm'
   })) : [
     { id: 'PECO-01', name: 'Corporate Kiosk PECO-01', location: 'Engro Campus', type: 'peco' },
     { id: 'PECO-02', name: 'Corporate Kiosk PECO-02', location: 'Corporate HQ', type: 'peco' },
@@ -331,7 +331,7 @@ export default function AdvertisementsTab() {
           return {
             id: mId,
             label: match ? `${match.id} (${match.location})` : mId,
-            type: match?.type || (mId.startsWith('PECO') ? 'peco' : 'rvm')
+            type: match?.type || 'rvm'
           };
         });
         const hasPeco = destinations.some(d => d.type === 'peco');
