@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Net.Http;
@@ -253,7 +254,14 @@ public static class CentralSyncService
         try
         {
             int totalItems = plasticCount + aluminiumCount + paperCardboardCount + glassCount;
-            if (totalItems <= 0) totalItems = 1;
+            var materialParts = new List<string>();
+            if (plasticCount > 0) materialParts.Add($"{plasticCount}x {bottleSize} PLASTIC");
+            if (aluminiumCount > 0) materialParts.Add($"{aluminiumCount}x CAN (Metal)");
+            if (paperCardboardCount > 0) materialParts.Add($"{paperCardboardCount}x PAPER");
+            if (glassCount > 0) materialParts.Add($"{glassCount}x GLASS");
+            string materialSummary = materialParts.Count > 0
+                ? string.Join(" + ", materialParts)
+                : "EMPTY SESSION";
 
             var payload = new
             {
@@ -266,7 +274,7 @@ public static class CentralSyncService
                 paperCardboardCount = paperCardboardCount,
                 glassCount = glassCount,
                 bottleSize = bottleSize,
-                itemVariant = $"{totalItems}x {bottleSize} {material}",
+                itemVariant = materialSummary,
                 plasticSmallCount = plasticSmallCount,
                 plasticMediumCount = plasticMediumCount,
                 plasticLargeCount = plasticLargeCount,
@@ -275,8 +283,9 @@ public static class CentralSyncService
                 canLargeCount = canLargeCount,
                 paperWeightGrams = paperWeightGrams,
                 tetrapakWeightGrams = tetrapakWeightGrams,
-                totalBottles = totalItems,
-                bottles = totalItems,
+                totalItems = totalItems,
+                totalBottles = plasticCount,
+                bottles = plasticCount,
                 pointsEarned = pointsEarned > 0 ? pointsEarned : 30,
                 points = pointsEarned > 0 ? pointsEarned : 30,
                 weightKg = weightKg,

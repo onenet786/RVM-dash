@@ -1552,7 +1552,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         totalCups += cCount;
         totalPoints += pCount;
 
-        const pCnt = parseInt(s.plasticCount || s.plastic_count || (s.bottleSize ? 1 : 0));
+        const pCnt = parseInt(s.plasticCount ?? s.plastic_count ?? 0);
         const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
         const gCnt = parseInt(s.glassCount || s.glass_count || 0);
         const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
@@ -1617,7 +1617,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         const mType = String(mInfo.machine_type || '').toUpperCase();
         const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
         const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
-        const pCnt = parseInt(s.plasticCount || s.plastic_count || (s.bottleSize ? 1 : 0));
+        const pCnt = parseInt(s.plasticCount ?? s.plastic_count ?? 0);
         const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
         const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
         const tetraG = parseInt(s.tetrapak_weight_grams || 0);
@@ -1811,7 +1811,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       totalCups += cCount;
       totalPoints += pCount;
 
-      const pCnt = parseInt(s.plasticCount || s.plastic_count || 0);
+      const pCnt = parseInt(s.plasticCount ?? s.plastic_count ?? 0);
       const aCnt = parseInt(s.aluminiumCount || s.aluminium_count || 0);
       const gCnt = parseInt(s.glassCount || s.glass_count || 0);
       const paperG = parseInt(s.paper_weight_grams || (s.paperCardboardCount > 0 ? Math.round((s.totalWeightKg || 0.1) * 1000) : 0));
@@ -2269,7 +2269,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
             pointsRedeemed: redeemed
           };
         }
-        const pCount = parseInt(s.plasticCount || s.plastic_count || s.bottles || 0);
+        const pCount = parseInt(s.plasticCount ?? s.plastic_count ?? s.bottles ?? 0);
         const aCount = parseInt(s.aluminiumCount || s.aluminium_count || s.cups || 0);
         const tCount = parseInt(s.paperCardboardCount || s.paper_cardboard_count || (s.tetrapak_weight_grams ? 1 : 0));
         const pts = parseInt(s.points || s.totalPoints || s.pointsEarned || 0);
@@ -2786,7 +2786,8 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         const mType = String(grouped[mId].machineType || '').toUpperCase();
         if (s.raw) {
           const r = s.raw;
-          const p = (r.plasticSmall || 0) + (r.plasticMedium || 0) + (r.plasticLarge || 0) + (r.plasticCount || 0) + (r.bottleCount || 0) + (r.bottles || 0);
+          const explicitPlastic = r.plasticCount ?? r.bottleCount ?? r.bottles ?? 0;
+          const p = (r.plasticSmall || 0) + (r.plasticMedium || 0) + (r.plasticLarge || 0) + explicitPlastic;
           const c = (r.canSmall || 0) + (r.canMedium || 0) + (r.canLarge || 0) + (r.canCount || 0) + (r.cans || 0);
           const g = (r.glassSmall || 0) + (r.glassMedium || 0) + (r.glassLarge || 0) + (r.glassCount || 0) + (r.glass || 0);
           const pa = (r.paperWeightKg ? 1 : 0) || (r.paperCount || 0);
@@ -3615,7 +3616,7 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
 
       count = sessions.length;
       sessions.forEach(s => {
-        const plastic = parseInt(s.plasticCount || s.plastic_count || s.bottles || s.totalBottles || 0) +
+        const plastic = parseInt(s.plasticCount ?? s.plastic_count ?? s.bottles ?? s.totalBottles ?? 0) +
                         parseInt(s.plasticSmallCount || s.plastic_small_count || 0) +
                         parseInt(s.plasticMediumCount || s.plastic_medium_count || 0) +
                         parseInt(s.plasticLargeCount || s.plastic_large_count || 0);
@@ -4076,7 +4077,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           const sessionId = doc._id ? doc._id.toString() : (doc.session_id || doc.id);
           const machineId = (doc.machineId || doc.machine_id || 'UNKNOWN').trim();
           const userId = (doc.phoneNumber || doc.userId || doc.user_id || 'anonymous').trim();
-          const plasticCount = parseInt(doc.plastic_count || doc.plasticCount || doc.bottles || 0);
+          const plasticCount = parseInt(doc.plastic_count ?? doc.plasticCount ?? doc.bottles ?? 0);
           const aluminiumCount = parseInt(doc.aluminium_count || doc.aluminiumCount || doc.cups || 0);
           const paperCount = parseInt(doc.paper_cardboard_count || doc.paperCardboardCount || 0);
           const glassCount = parseInt(doc.glass_count || doc.glassCount || 0);
@@ -4182,7 +4183,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         const sId = row.id;
         const mId = (sData.machineId || sData.machine_id || 'UNKNOWN').trim();
         const uId = (sData.phoneNumber || sData.userId || sData.user_id || 'anonymous').trim();
-        const pCount = parseInt(sData.plastic_count || sData.plasticCount || sData.bottles || 0);
+        const pCount = parseInt(sData.plastic_count ?? sData.plasticCount ?? sData.bottles ?? 0);
         const aCount = parseInt(sData.aluminium_count || sData.aluminiumCount || sData.cups || 0);
         const paperCount = parseInt(sData.paper_cardboard_count || sData.paperCardboardCount || 0);
         const glassCount = parseInt(sData.glass_count || sData.glassCount || 0);
@@ -4444,8 +4445,9 @@ async function fetchCollectionDocs(colName) {
             userId: r.user_id,
             user_id: r.user_id,
             mobile_number: r.user_id,
-            bottles: totItems,
-            totalBottles: totItems,
+            bottles: pCount,
+            totalBottles: pCount,
+            totalItems: totItems,
             plasticCount: pCount,
             plastic_count: pCount,
             plastic_small_count: parseInt(r.plastic_small_count || 0),
@@ -8869,8 +8871,14 @@ app.post('/api/machine/sync-session', async (req, res) => {
     }
 
     const sessionId = localSessionId ? `${machineId}_${localSessionId}` : `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-    let totalBottles = req.body.totalBottles || req.body.bottles || ((plasticCount || 0) + (aluminiumCount || 0) + (paperCardboardCount || 0) + (glassCount || 0));
-    if (totalBottles === 0 && weightKg > 0) totalBottles = 1;
+    const explicitMaterialTotal = Number(plasticCount || 0) + Number(aluminiumCount || 0)
+      + Number(paperCardboardCount || 0) + Number(glassCount || 0);
+    const totalItems = Number(req.body.totalItems ?? explicitMaterialTotal) || 0;
+    // "bottles" means PET only. Legacy payloads may use bottles only when no
+    // material-specific counts are present; never convert cans/paper into PET.
+    const totalBottles = explicitMaterialTotal > 0
+      ? Number(plasticCount || 0)
+      : Number(req.body.totalBottles || req.body.bottles || 0);
     const co2AvoidedKg = parseFloat(((plasticCount * 0.05) + (aluminiumCount * 0.09) + (glassCount * 0.03)).toFixed(3));
     let pointsEarned = req.body.pointsEarned || req.body.points || ((plasticCount * 10) + (aluminiumCount * 20) + (paperCardboardCount * 15) + (glassCount * 10));
     if (pointsEarned === 0) pointsEarned = 30;
@@ -8901,6 +8909,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
       mobile_number: cleanUserId,
       bottles: totalBottles,
       totalBottles: totalBottles,
+      totalItems,
       cups: 0,
       totalCups: 0,
       points: pointsEarned,
@@ -9056,6 +9065,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
       sessionId: sessionId || localSessionId,
       pointsEarned: Number(pointsEarned) || 0,
       totalBottles: Number(totalBottles) || 0,
+      totalItems: Number(totalItems) || 0,
       userPhone: String(cleanUserId || '').trim(),
       completedAt: Date.now()
     };
@@ -9066,7 +9076,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
         h.completedSession = completedInfo;
         h.lastCompletedSession = completedInfo;
         h.livePoints = pointsEarned;
-        h.liveItems = totalBottles;
+        h.liveItems = totalItems;
       }
     }
 
