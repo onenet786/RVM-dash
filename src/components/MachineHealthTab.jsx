@@ -735,16 +735,16 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                 <div>
                   
                   {/* Card Header Status */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black t-text-primary text-base mono">{m.machineId}</h3>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${typeBadgeStyle}`}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 mb-3 min-w-0">
+                    <div className="min-w-0 overflow-hidden">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="font-black t-text-primary text-base mono truncate min-w-0">{m.machineId}</h3>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${typeBadgeStyle}`}>
                           {typeLabel}
                         </span>
                         <button 
                           onClick={() => openEditModal(m)}
-                          className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                          className="text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shrink-0"
                           title="Edit Machine Configuration"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -770,7 +770,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1 shrink-0">
+                    <div className="flex flex-col items-end gap-1 shrink-0 max-w-full">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                         isOnline 
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30' 
