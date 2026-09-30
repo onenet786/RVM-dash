@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RVM & PecoDrop Windows Kiosk Implementation Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #17211d; font-size: 10pt; line-height: 1.42; margin: 0; }
+  h1 { color: #075d45; font-size: 25pt; line-height: 1.1; margin: 0 0 8px; }
+  h2 { color: #075d45; font-size: 16pt; border-bottom: 2px solid #b9dfd1; padding-bottom: 4px; margin: 22px 0 9px; break-after: avoid; }
+  h3 { color: #164c3e; font-size: 11.5pt; margin: 15px 0 5px; break-after: avoid; }
+  p { margin: 5px 0 8px; }
+  ul, ol { margin: 5px 0 9px 21px; padding: 0; }
+  li { margin: 2px 0; }
+  code, pre { font-family: Consolas, monospace; }
+  code { color: #074e3b; background: #eef7f3; padding: 1px 3px; border-radius: 3px; }
+  pre { background: #12241e; color: #e7fff5; padding: 9px 11px; border-radius: 5px; white-space: pre-wrap; font-size: 8.4pt; break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9pt; }
+  th { background: #0d6b50; color: white; text-align: left; }
+  th, td { border: 1px solid #bad1c8; padding: 6px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4faf7; }
+  .cover { min-height: 250mm; display: flex; flex-direction: column; justify-content: center; page-break-after: always; }
+  .subtitle { font-size: 14pt; color: #42645a; max-width: 150mm; }
+  .meta { margin-top: 28px; padding: 12px 15px; border-left: 5px solid #10a378; background: #eff9f5; }
+  .notice { border: 1px solid #d5b55e; background: #fff8df; padding: 9px 11px; margin: 10px 0; break-inside: avoid; }
+  .safe { border: 1px solid #67b89d; background: #effaf6; padding: 9px 11px; margin: 10px 0; break-inside: avoid; }
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li::before { content: "☐ "; color: #087054; font-weight: bold; }
+  .page-break { page-break-before: always; }
+  .small { color: #52645e; font-size: 8.5pt; }
+  a { color: #075d45; text-decoration: none; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <h1>Windows Kiosk Implementation Guide</h1>
+  <p class="subtitle">Production hardening and deployment runbook for the public RVM and enterprise PecoDrop applications</p>
+  <div class="meta">
+    <strong>Recommended platform:</strong> Windows 11 IoT Enterprise LTSC 2024<br>
+    <strong>Applications:</strong> RVMDesktopApp and PecoDropDesktopApp<br>
+    <strong>Workspace:</strong> D:\GIT-HUB\RVM-dash<br>
+    <strong>Prepared:</strong> 30 September 2026
+  </div>
+  <p class="small" style="margin-top:32px">Internal deployment reference. Test every policy on a pilot kiosk before fleet rollout.</p>
+</section>
+
+<h2>1. Executive recommendation</h2>
+<p>Keep the existing WPF applications on Windows. For new fixed-purpose machines use a genuine, licensed Windows 11 IoT Enterprise LTSC 2024 image. Do not use modified “lite Windows” distributions such as Tiny11 or Ghost Spectre; they can remove media, .NET, driver, servicing, or security components required by the kiosks.</p>
+<div class="safe"><strong>Implementation order:</strong> production build → persistent logging → controlled startup → watchdog → recovery testing → keyboard lockdown → Shell Launcher → Unified Write Filter.</div>
+
+<h2>2. Keep the products separated</h2>
+<table>
+  <tr><th>Application</th><th>Purpose and hardware identity</th><th>Deployment identity</th></tr>
+  <tr><td><strong>RVMDesktopApp</strong></td><td>General-public system: plastic, cans, UBC and rejects; rewards, coupons and public leaderboards.</td><td>Separate machine ID, configuration, serial port, ads, logs, credentials and data directories.</td></tr>
+  <tr><td><strong>PecoDropDesktopApp</strong></td><td>Enterprise dual-display system with QR scanner/keypad; ⭕ plastic, 🔺 cans/metal, 🟦 weighed paper; corporate workflow and ESG reporting.</td><td>Separate machine ID, organization binding, display layout, configuration, serial port, ads, logs and credentials.</td></tr>
+</table>
+
+<h2>3. Hardware and firmware baseline</h2>
+<ul>
+  <li>Modern Intel Core i3/i5, N100/N305, or equivalent.</li>
+  <li>8 GB RAM minimum; 16 GB preferred for dual-display PecoDrop.</li>
+  <li>256 GB reputable SSD, with at least 20% free space.</li>
+  <li>TPM 2.0, wired Ethernet, industrial powered USB hub and short shielded USB cables.</li>
+  <li>UPS, adequate cooling and BIOS temperature monitoring.</li>
+</ul>
+<h3>BIOS settings</h3>
+<ul class="checklist">
+  <li>Restore after AC loss = Power On.</li>
+  <li>Wake on LAN enabled when remote management requires it.</li>
+  <li>Fast Boot disabled if it interferes with USB discovery.</li>
+  <li>External USB boot disabled after deployment.</li>
+  <li>BIOS administrator password securely recorded.</li>
+</ul>
+
+<h2>4. Windows accounts</h2>
+<table>
+  <tr><th>Account</th><th>Rights</th><th>Use</th></tr>
+  <tr><td>KioskUser</td><td>Standard user</td><td>Automatic sign-in and kiosk application only.</td></tr>
+  <tr><td>KioskAdmin</td><td>Administrator</td><td>Technician maintenance; never used for routine kiosk operation.</td></tr>
+</table>
+<p>Never place administrator passwords, database passwords or API secrets in launcher scripts. Use unique managed credentials and protect recovery information centrally.</p>
+
+<h2>5. Produce fixed Release packages</h2>
+<p>Build on a development or CI machine. Never install source code or compile Debug builds on a production kiosk.</p>
+<pre>dotnet publish .\RVMDesktopApp\RVMDesktopApp.csproj `
+  -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=false -o .\deploy\RVM
+
+dotnet publish .\PecoDropDesktopApp\PecoDropDesktopApp.csproj `
+  -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=false -o .\deploy\PecoDrop</pre>
+<p>Install immutable application files under:</p>
+<pre>C:\Program Files\ISP\RVM\
+C:\Program Files\ISP\PecoDrop\</pre>
+<p>Place mutable data under:</p>
+<pre>C:\ProgramData\ISP\RVM\
+C:\ProgramData\ISP\PecoDrop\</pre>
+
+<h2>6. Production launcher requirements</h2>
+<p>The repository’s current launch scripts are useful for development, but a production launcher must:</p>
+<ol>
+  <li>Use one fixed executable and working directory.</li>
+  <li>Never search development folders or build missing executables.</li>
+  <li>Validate configuration, assets and available disk space.</li>
+  <li>Record startup, process ID, version, display information and failure codes.</li>
+  <li>Wait for readiness and confirm the required window count.</li>
+  <li>Exit with a defined status code so the watchdog can recover safely.</li>
+</ol>
+<div class="notice"><strong>Current issue to remove:</strong> the RVM launcher can build a Debug executable when no binary is found. Production machines must fail safely instead of compiling or selecting another build.</div>
+
+<h2>7. Persistent logging</h2>
+<p>Create rolling logs in each application’s own <code>ProgramData</code> directory. Retain about 30 days and enforce a total size limit.</p>
+<ul>
+  <li>Application version, machine ID, boot/start/stop time and shutdown reason.</li>
+  <li>Arduino discovery, port changes, reconnect attempts and calibration.</li>
+  <li>API/database connectivity and offline queue count.</li>
+  <li>Display enumeration, placement and video failures.</li>
+  <li>Unhandled exceptions, watchdog decisions and crash dumps.</li>
+</ul>
+<p>Never log passwords, tokens, wallet credentials or unnecessary personal information.</p>
+
+<h2>8. Independent watchdog</h2>
+<p>Use an independent signed watchdog plus a Scheduled Task in the interactive KioskUser session. A Windows service should monitor state, but it should not directly display the WPF UI from the service session.</p>
+<pre>Watchdog service → health decision
+Scheduled task   → interactive launcher
+Launcher         → RVMDesktopApp or PecoDropDesktopApp</pre>
+<p>Check every 15–30 seconds for process state, application heartbeat, responsiveness, memory, disk space and hardware connectivity. For PecoDrop also confirm both display windows.</p>
+<h3>Recovery sequence</h3>
+<ol>
+  <li>Recheck after a short delay to avoid false alarms.</li>
+  <li>Request graceful shutdown.</li>
+  <li>If unresponsive, terminate only the kiosk process.</li>
+  <li>Restart the application.</li>
+  <li>After repeated failures, report a crash loop and reboot only at a configured threshold.</li>
+</ol>
+<p>Use a limit such as five restarts in ten minutes. PecoDrop’s Arduino host lease must close all mechanisms safely when application communication stops.</p>
+
+<h2>9. Startup and Shell Launcher</h2>
+<p>During initial deployment, use Task Scheduler:</p>
+<ul>
+  <li>Trigger at KioskUser logon with a 15–30 second delay.</li>
+  <li>Run only in the interactive user session.</li>
+  <li>Restart on failure every minute, with a bounded retry count.</li>
+  <li>Use a fixed working directory and production launcher.</li>
+</ul>
+<p>After field testing, Windows IoT Shell Launcher can replace <code>Explorer.exe</code>. Before enabling it, document and test the technician recovery path and the method to restore Explorer.</p>
+
+<h2>10. Controlled Windows updates</h2>
+<ul class="checklist">
+  <li>Keep security and quality updates enabled.</li>
+  <li>Set active hours to cover the full operating day.</li>
+  <li>Schedule installation/restart during a maintenance window.</li>
+  <li>Suppress public update and restart notifications.</li>
+  <li>Update one pilot kiosk first; deploy to the fleet after 3–7 stable days.</li>
+  <li>Do not install untested GPU, USB or display drivers fleet-wide.</li>
+</ul>
+
+<h2>11. Power, notifications and performance</h2>
+<ul class="checklist">
+  <li>Sleep, hibernation, display timeout and screen saver disabled.</li>
+  <li>Notifications, consumer suggestions and Game Bar disabled for KioskUser.</li>
+  <li>Microsoft Defender and Windows Firewall remain enabled.</li>
+  <li>OEM trial antivirus and unnecessary startup utilities removed.</li>
+  <li>UPS shutdown and recovery tested by physically removing mains power.</li>
+</ul>
+
+<h2>12. USB and Arduino stability</h2>
+<ul>
+  <li>Disable USB selective suspend and USB hub power-down.</li>
+  <li>Identify Arduino hardware by VID/PID/serial where possible, not only by a fixed COM number.</li>
+  <li>Use bounded reconnect attempts with increasing delay.</li>
+  <li>Never let an admin window open a competing serial connection.</li>
+  <li>Log arrival, disappearance and reassignment of the port.</li>
+</ul>
+<h3>PecoDrop safe reconnect order</h3>
+<pre>USB detected → serial connection → HOST:ALIVE → HOST:START
+→ calibration request/retry → CALIBRATION:OK
+→ verified compartment state → intake permitted</pre>
+<p>Never treat startup METAL/PAPER full-bin readings as authoritative before calibration completes.</p>
+
+<h2>13. Display configuration</h2>
+<h3>Public RVM</h3>
+<p>Fix the native resolution, scale, orientation, primary monitor and touchscreen mapping. Test the adaptive UI on 1080p and taller kiosk screens; avoid fixed heights that clip the live-session breakdown or leaderboard.</p>
+<h3>Enterprise PecoDrop</h3>
+<p>Test both dual-landscape arrangements:</p>
+<ul>
+  <li><code>0012</code>: hardware kiosk left, video signage right.</li>
+  <li><code>0021</code>: video signage left, hardware kiosk right.</li>
+</ul>
+<p>Test boot with one display missing, HDMI hot-plug, monitor replacement, GPU restart and Windows restart. The machine-scoped SQL display setting remains authoritative; <code>config.txt</code> is the offline fallback.</p>
+
+<h2>14. Lockdown features</h2>
+<p>After stability testing, apply Windows IoT features in stages:</p>
+<ul>
+  <li><strong>Keyboard Filter:</strong> block public escape shortcuts such as Alt+F4, Alt+Tab, Windows+R and Ctrl+Shift+Esc.</li>
+  <li><strong>Shell Launcher:</strong> replace the normal Explorer shell.</li>
+  <li><strong>Custom Logon and unbranded boot:</strong> remove public Windows UI during startup.</li>
+  <li><strong>Unified Write Filter (UWF):</strong> protect the system volume only after persistent-data planning.</li>
+</ul>
+<div class="notice"><strong>Recovery warning:</strong> never block technician access until a tested maintenance escape and rollback procedure exists.</div>
+
+<h2>15. Unified Write Filter design</h2>
+<p>Prefer a protected system/application volume and a persistent data volume:</p>
+<pre>C: Windows and application binaries — UWF protected
+D: Logs, database, offline queue, settings and downloads — persistent</pre>
+<p>Complete activation, drivers and initial updates before enabling UWF. Monitor overlay consumption. Ensure logs, mutable configuration, local database, offline transactions, advertisements, display preference and crash dumps persist across reboot.</p>
+
+<h2>16. Security</h2>
+<ul class="checklist">
+  <li>BitLocker enabled and recovery keys centrally protected.</li>
+  <li>Firewall denies unnecessary inbound traffic.</li>
+  <li>Application packages signed and checksums recorded.</li>
+  <li>Unique machine/API identity per kiosk.</li>
+  <li>Production secrets not stored as plaintext in <code>config.txt</code>.</li>
+  <li>USB storage restricted without blocking Arduino and scanner devices.</li>
+  <li>Remote maintenance available only through a controlled VPN or management system.</li>
+  <li>Kiosks communicate through the HTTPS API wherever possible rather than direct database exposure.</li>
+</ul>
+
+<h2>17. Health monitoring</h2>
+<p>Send application version, uptime, connectivity, calibration state, offline queue count, free disk, memory, display count and last restart reason to the Web Dashboard.</p>
+<p>Raise alerts for:</p>
+<ul>
+  <li>No heartbeat for five minutes.</li>
+  <li>Repeated application restart or memory growth.</li>
+  <li>Arduino disconnection or incomplete calibration.</li>
+  <li>Disk below 15% free space or SSD health warning.</li>
+  <li>Increasing offline queue.</li>
+  <li>PecoDrop operating with fewer than two displays.</li>
+  <li>Windows awaiting restart beyond the approved maintenance interval.</li>
+</ul>
+
+<h2>18. Pilot and rollout checklist</h2>
+<ol>
+  <li>Prepare and update one reference PC.</li>
+  <li>Install drivers and the fixed Release package.</li>
+  <li>Create KioskUser and KioskAdmin.</li>
+  <li>Configure displays, touchscreen, scanner and Arduino.</li>
+  <li>Enable persistent logging, startup task and watchdog.</li>
+  <li>Test power loss, network loss, API/database outage and recovery.</li>
+  <li>Test USB unplug/replug and COM reassignment.</li>
+  <li>Test application crash and crash-loop handling.</li>
+  <li>Test Windows updates and driver rollback.</li>
+  <li>Enable Keyboard Filter, then Shell Launcher.</li>
+  <li>Enable UWF only after all earlier tests pass.</li>
+  <li>Run continuously for 7–14 days and review logs.</li>
+  <li>Pilot the public RVM first; then perform a longer dual-display PecoDrop pilot.</li>
+</ol>
+
+<h2>19. Recommended repository deliverables</h2>
+<pre>deployment/
+  rvm/
+    Install-RVMKiosk.ps1
+    Uninstall-RVMKiosk.ps1
+    Start-RVMKiosk.ps1
+    HealthCheck-RVM.ps1
+  pecodrop/
+    Install-PecoDropKiosk.ps1
+    Uninstall-PecoDropKiosk.ps1
+    Start-PecoDropKiosk.ps1
+    HealthCheck-PecoDrop.ps1
+  common/
+    Configure-WindowsKiosk.ps1
+    Configure-Power.ps1
+    Configure-Updates.ps1
+    Configure-Logging.ps1
+    Rollback-KioskMode.ps1
+  docs/
+    RVM-Deployment.md
+    PecoDrop-Deployment.md
+    Technician-Recovery.md</pre>
+
+<h2>20. Official references</h2>
+<ul>
+  <li><a href="https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/whats-new/windows-11-iot-enterprise-ltsc-2024">Windows 11 IoT Enterprise LTSC 2024 lifecycle</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/customize/shell-launcher">Shell Launcher overview</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/windows/iot/iot-enterprise/commercialization/iot-ent-device-lockdown-features">Windows IoT device-lockdown features</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/windows/configuration/assigned-access/recommendations">Microsoft kiosk and Assigned Access recommendations</a></li>
+</ul>
+<p class="small">End of guide — RVM and PecoDrop configuration, data and hardware ownership must remain separate at every deployment stage.</p>
+</body>
+</html>

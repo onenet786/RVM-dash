@@ -79,7 +79,7 @@ public partial class App : Application
             double workW = SystemParameters.WorkArea.Width;
             double workH = SystemParameters.WorkArea.Height;
 
-            // 65% for Main Kiosk (Details 50% Left + Leaderboard 50% Right), 35% for Ad Player
+            // 65% for Main Kiosk (instruction/session 50% + leaderboard 50%), 35% for Ad Player.
             double kioskW = Math.Round(workW * 0.65);
             double adW = workW - kioskW;
 

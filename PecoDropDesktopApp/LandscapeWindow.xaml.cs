@@ -443,8 +443,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 digit1PressCount = 0;
                 if (SendAdminHardwareCommand(servoCommand))
                 {
-                    ShowLayoutToast($"SERVO TEST: {servoCode}");
-                    LogTelemetry($"[HOTKEY {servoCode}] {servoCommand}");
+                    string servoAction = servoCommand.Replace("SERVO:", "", StringComparison.Ordinal)
+                        .Replace(':', ' ');
+                    ShowLayoutToast($"SERVO TEST: {servoAction}");
+                    LogTelemetry($"[HOTKEY] {servoCommand}");
                 }
                 e.Handled = true;
                 return;
@@ -493,9 +495,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demo001Timer = null;
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                LogTelemetry("[HOTKEY 0012] Display layout switch: Hardware Screen (LEFT) | Video Signage (RIGHT)");
+                LogTelemetry("[HOTKEY] Display layout switch: Hardware Screen (LEFT) | Video Signage (RIGHT)");
                 ScreenHelper.ApplyLayout(ScreenLayoutOrder.HardwareLeftVideoRight, this);
-                ShowLayoutToast("Layout: Hardware Screen [LEFT] | Video Signage [RIGHT] (0012)");
+                ShowLayoutToast("Layout: Hardware Screen [LEFT] | Video Signage [RIGHT]");
                 e.Handled = true;
                 return;
             }
@@ -506,9 +508,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demo001Timer = null;
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                LogTelemetry("[HOTKEY 0021] Display layout switch: Video Signage (LEFT) | Hardware Screen (RIGHT)");
+                LogTelemetry("[HOTKEY] Display layout switch: Video Signage (LEFT) | Hardware Screen (RIGHT)");
                 ScreenHelper.ApplyLayout(ScreenLayoutOrder.VideoLeftHardwareRight, this);
-                ShowLayoutToast("Layout: Video Signage [LEFT] | Hardware Screen [RIGHT] (0021)");
+                ShowLayoutToast("Layout: Video Signage [LEFT] | Hardware Screen [RIGHT]");
                 e.Handled = true;
                 return;
             }
@@ -540,7 +542,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demo001Timer = null;
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                LogTelemetry("[HOTKEY] Demo testing simulator opened via secret code 1122");
+                LogTelemetry("[HOTKEY] Demo testing simulator opened");
                 IsDemoMode = true;
                 StartMachine(forceSimulator: true);
                 DemoTestingWindow.OpenOrBringToFront(this);
@@ -553,7 +555,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
                 digit8PressCount = 0;
-                LogTelemetry("[HOTKEY] System restart dialogue triggered via secret code 1218");
+                LogTelemetry("[HOTKEY] System restart dialogue triggered");
                 e.Handled = true;
                 SystemPowerDialog.PromptAndRestart(this);
                 return;
@@ -564,7 +566,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
                 digit8PressCount = 0;
-                LogTelemetry("[HOTKEY] System shutdown dialogue triggered via secret code 1219");
+                LogTelemetry("[HOTKEY] System shutdown dialogue triggered");
                 e.Handled = true;
                 SystemPowerDialog.PromptAndShutdown(this);
                 return;
@@ -589,7 +591,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 digit1PressCount = 0;
                 lastDigit1PressTime = DateTime.MinValue;
-                LogTelemetry("[HOTKEY] Admin panel login opened via hotkey 111");
+                LogTelemetry("[HOTKEY] Admin panel login opened");
                 OpenAdmin();
                 e.Handled = true;
                 return;
@@ -618,7 +620,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 digit8PressCount = 0;
                 lastDigit8PressTime = DateTime.MinValue;
-                LogTelemetry("[HOTKEY] Telemetry toggled via hotkey 888");
+                LogTelemetry("[HOTKEY] Telemetry toggled");
                 ToggleTelemetry();
                 e.Handled = true;
                 return;
@@ -750,29 +752,29 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     public void TriggerStart()
     {
-        LogTelemetry("[HOTKEY 66] START machine triggered via hotkey");
-        ShowLayoutToast("MACHINE: START (66)");
+        LogTelemetry("[HOTKEY] START machine triggered");
+        ShowLayoutToast("MACHINE: STARTING");
         StartMachine();
     }
 
     public void TriggerStop()
     {
-        LogTelemetry("[HOTKEY 77] STOP machine triggered via hotkey");
-        ShowLayoutToast("MACHINE: STOP (77)");
+        LogTelemetry("[HOTKEY] STOP machine triggered");
+        ShowLayoutToast("MACHINE: STOPPING");
         StopMachine();
     }
 
     public void TriggerReset()
     {
-        LogTelemetry("[HOTKEY 88] RESET machine triggered via hotkey");
-        ShowLayoutToast("MACHINE: RESET (88)");
+        LogTelemetry("[HOTKEY] RESET machine triggered");
+        ShowLayoutToast("MACHINE: RESETTING");
         ResetHardwareButton_Click(this, new RoutedEventArgs());
     }
 
     public void TriggerCalibrate()
     {
-        LogTelemetry("[HOTKEY 99] CALIBRATE machine triggered via hotkey");
-        ShowLayoutToast("MACHINE: CALIBRATING (99)");
+        LogTelemetry("[HOTKEY] CALIBRATE machine triggered");
+        ShowLayoutToast("MACHINE: CALIBRATING");
         CalibrateHardwareButton_Click(this, new RoutedEventArgs());
     }
 

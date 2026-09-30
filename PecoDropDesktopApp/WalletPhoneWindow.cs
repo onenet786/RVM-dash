@@ -131,9 +131,102 @@ public sealed class WalletPhoneWindow : Window
         };
         Loaded += async (_, _) =>
         {
-            _phoneTextBox.Focus();
+            RestoreKioskInputFocus();
             await StartQrSessionAsync();
+            RestoreKioskInputFocus();
         };
+        Activated += (_, _) => RestoreKioskInputFocus();
+    }
+
+    public void RestoreKioskInputFocus()
+    {
+        if (!IsVisible) return;
+
+        Activate();
+        if (_currentStep == WindowStep.PhoneInput)
+        {
+            _phoneTextBox.Focus();
+            Keyboard.Focus(_phoneTextBox);
+            _phoneTextBox.CaretIndex = _phoneTextBox.Text.Length;
+        }
+        else
+        {
+            Focus();
+        }
+    }
+
+    public bool TryHandleKioskNumpadKey(Key key)
+    {
+        RestoreKioskInputFocus();
+
+        if (_currentStep != WindowStep.PhoneInput) return false;
+
+        int digit = GetNumpadDigit(key);
+        if (digit >= 0)
+        {
+            InsertPhoneDigit((char)('0' + digit));
+            return true;
+        }
+
+        if (key == Key.Back)
+        {
+            if (_phoneTextBox.SelectionLength > 0)
+            {
+                int start = _phoneTextBox.SelectionStart;
+                _phoneTextBox.Text = _phoneTextBox.Text.Remove(start, _phoneTextBox.SelectionLength);
+                _phoneTextBox.CaretIndex = start;
+            }
+            else if (_phoneTextBox.CaretIndex > 0)
+            {
+                int removeAt = _phoneTextBox.CaretIndex - 1;
+                _phoneTextBox.Text = _phoneTextBox.Text.Remove(removeAt, 1);
+                _phoneTextBox.CaretIndex = removeAt;
+            }
+            return true;
+        }
+
+        if (key == Key.Enter || key == Key.Return)
+        {
+            SubmitPhone();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int GetNumpadDigit(Key key)
+    {
+        if (key >= Key.NumPad0 && key <= Key.NumPad9)
+        {
+            return key - Key.NumPad0;
+        }
+
+        if (Keyboard.IsKeyToggled(Key.NumLock)) return -1;
+
+        return key switch
+        {
+            Key.Insert => 0,
+            Key.End => 1,
+            Key.Down => 2,
+            Key.PageDown => 3,
+            Key.Left => 4,
+            Key.Clear => 5,
+            Key.Right => 6,
+            Key.Home => 7,
+            Key.Up => 8,
+            Key.PageUp => 9,
+            _ => -1
+        };
+    }
+
+    private void InsertPhoneDigit(char digit)
+    {
+        int selectionLength = _phoneTextBox.SelectionLength;
+        if (_phoneTextBox.Text.Length - selectionLength >= _phoneTextBox.MaxLength) return;
+
+        int start = _phoneTextBox.SelectionStart;
+        _phoneTextBox.Text = _phoneTextBox.Text.Remove(start, selectionLength).Insert(start, digit.ToString());
+        _phoneTextBox.CaretIndex = start + 1;
     }
 
     private void BuildHeader()
@@ -796,6 +889,12 @@ public sealed class WalletPhoneWindow : Window
 
     private void WalletPhoneWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (_currentStep == WindowStep.PhoneInput && TryHandleKioskNumpadKey(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
         {
             if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))

@@ -176,6 +176,15 @@ public partial class SecondaryAdWindow : Window
             if (Application.Current == null) return;
             Application.Current.Dispatcher.Invoke(() =>
             {
+                var walletWindow = Application.Current.Windows
+                    .OfType<WalletPhoneWindow>()
+                    .FirstOrDefault(window => window.IsVisible);
+                if (walletWindow != null)
+                {
+                    walletWindow.RestoreKioskInputFocus();
+                    return;
+                }
+
                 var hwWindow = Application.Current.MainWindow;
                 if (hwWindow != null && hwWindow.IsLoaded)
                 {
@@ -204,6 +213,20 @@ public partial class SecondaryAdWindow : Window
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        var walletWindow = Application.Current?.Windows
+            .OfType<WalletPhoneWindow>()
+            .FirstOrDefault(window => window.IsVisible);
+        if (walletWindow != null)
+        {
+            bool handledByWallet = walletWindow.TryHandleKioskNumpadKey(e.Key);
+            walletWindow.RestoreKioskInputFocus();
+            if (handledByWallet)
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
@@ -247,7 +270,7 @@ public partial class SecondaryAdWindow : Window
             {
                 _demoSecretSequence = "";
                 e.Handled = true;
-                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerStart();
+                (Application.Current?.MainWindow as IKioskSimulatorTarget)?.TriggerStart();
                 ReturnFocusToHardwareScreen();
                 return;
             }
@@ -256,7 +279,7 @@ public partial class SecondaryAdWindow : Window
             {
                 _demoSecretSequence = "";
                 e.Handled = true;
-                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerStop();
+                (Application.Current?.MainWindow as IKioskSimulatorTarget)?.TriggerStop();
                 ReturnFocusToHardwareScreen();
                 return;
             }
@@ -265,7 +288,7 @@ public partial class SecondaryAdWindow : Window
             {
                 _demoSecretSequence = "";
                 e.Handled = true;
-                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerReset();
+                (Application.Current?.MainWindow as IKioskSimulatorTarget)?.TriggerReset();
                 ReturnFocusToHardwareScreen();
                 return;
             }
@@ -274,7 +297,7 @@ public partial class SecondaryAdWindow : Window
             {
                 _demoSecretSequence = "";
                 e.Handled = true;
-                (Application.Current.MainWindow as IKioskSimulatorTarget)?.TriggerCalibrate();
+                (Application.Current?.MainWindow as IKioskSimulatorTarget)?.TriggerCalibrate();
                 ReturnFocusToHardwareScreen();
                 return;
             }
@@ -316,7 +339,7 @@ public partial class SecondaryAdWindow : Window
 
         if (e.Key == Key.Enter)
         {
-            (Application.Current.MainWindow as IKioskSimulatorTarget)?.CompleteSessionToWallet();
+            (Application.Current?.MainWindow as IKioskSimulatorTarget)?.CompleteSessionToWallet();
             ReturnFocusToHardwareScreen();
             e.Handled = true;
             return;
