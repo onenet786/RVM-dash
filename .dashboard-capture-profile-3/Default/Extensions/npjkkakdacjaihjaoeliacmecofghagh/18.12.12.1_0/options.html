@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/foundation.css" />
+    <link rel="stylesheet" href="/css/options.css?v=17.5.31.1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" type="text/css">
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/storage.js"></script>
+    <script src="/js/background_proxy.js"></script>
+    <script src="/js/options.js?v=2020-04-16"></script>
+    <script src="/js/mymodal.js"></script>
+    <title>IE Tab Options</title>
+</head>    
+<body class="options-page">
+    <div id="header">
+        <a class="logo" href="http://www.ietab.net" target="_blank">
+            <img src="/images/weblogo_withtext.png">
+        </a>    
+        <div class="header-text">
+            Options & Settings
+        </div>
+    </div>
+    
+    <headertext value="Options and Settings"></headertext>
+
+
+<div id="container" class="large-12 row options-page standard-page">
+
+<!-- RATINGS PITCH -->
+    <div platform="native">
+        <div id="rate-ietab" class="options-block" style="display:none;width:420px;text-align:center;">
+            <h4 class="content-block-header">Can you help IE Tab?</h4>
+            <div class="content-block-body">
+                If you like IE Tab we'd really appreciate it if you'd rate it 5 stars.<br/><br/>
+                <a href="https://chrome.google.com/webstore/detail/ie-tab/hehijbfgiekmjfkfjpbkbammjbdenadd/reviews" target="_blank">
+                    <img src="images/star.png" border="0" />
+                    <img src="images/star.png" border="0" />
+                    <img src="images/star.png" border="0" />
+                    <img src="images/star.png" border="0" />
+                    <img src="images/star.png" border="0" /><br/>
+                    <span id="rate-text">Rate IE Tab now!</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <br/>
+
+    <div id="license-info">
+        <div id="license-info-internal">
+            <div id="licensee-name">
+                <div id="licensee-info" style="display:none">
+                    <span>
+                        Licensee:  <b><span id="licensee"></span></b>
+                    </span>
+                    <span id="not-licensed" style="display:none">
+                        Licensee:  <b><span id="licensee">Not licensed</span></b><span id="learn-more"> (<a href="/pricing">learn more</a>)</span>
+                    </span>
+
+                    <br/>
+                    <span id="license-expiration" style="display:none">
+                        Expires: <span id="license-date">January 24, 2024</span>
+                    </span>
+                    <div id="check-license-again" style="display:none">
+                        <a href="https://www.ietab.net/regkey" target="_blank" style="color:blue;text-decoration:underline">Re-check</a>
+                    </div>
+                </div>
+            </div>
+            IE Tab version: <span id="ie-tab-version">Unknown</span><br/>
+            <span id="helper-version" platform="native"></span><br/>
+        </div>
+    </div>
+
+    <!--BEGIN_CONSUMER_ONLY-->
+    <div id="debug-options" class="options-block" style="display:none">
+        <h3 class="options-block-header">Debug Info</h3>
+        <div class="options-block-body">
+            <center>
+                <div>
+                    <a id="dump-button" class="button radius small">Create Helper process dump</a>
+                </div>
+                <div id="dump-output">
+                </div>
+                <div>
+                    <a id="enable-crash-dumps-button" download="ietab.crashdumps.reg" href="https://www.ietab.net/bin/ietab.crashdumps.reg" class="button radius small">Enable Crash Dumps</a>
+                </div>
+                <div>
+                    <a id="dump-windows" class="button radius small">Create window dump</a>
+                </div>
+                <div>
+                    <a id="toggle-hosted-mode" class="button radius small">Toggle hosted mode</a>
+                </div>
+                <div ext-version="13.4.8.1">
+                    <a id="clear-local" class="button radius small">Clear local settings</a>
+                </div>
+                <div ext-version="13.4.8.1">
+                    <a id="reset-ietab" class="button radius small">Emulate fresh install</a>
+                </div>
+                <div ext-version="17.1.1.1">
+                    <a id="only-web-request" class="button radius small">Don't use DNR</a>
+                </div>
+                <a id="export-button" class="button radius small">Export settings...</a>
+                <a id="import-button" class="button radius small">Import settings...</a>
+                <input style="display:none" id="import-file" type="file" />
+                        </center>
+        </div>
+    </div>
+    <!--END_CONSUMER_ONLY-->
+
+    <div style="clear:both;height:0px;margin:0px;padding:0px;"></div>
+
+    <div class="options-block">
+        <h3 class="options-block-header">Options</h3>
+
+        <div class="options-block-body">
+            <h5>General</h5>
+
+            <div id="local-network-row" class="general-options-row" ext-version="11.6.1.1" platform="hosted">
+                <input id="local-network" type="checkbox" name="local-network" />
+                <label for="local-network">Resolve all URLs through local network</label>
+            </div>
+            <div id="single-session-row" class="general-options-row" ext-version="10.6.19">
+                <input id="single-session" licensed-only="true" version="" type="checkbox" name="single-session" />
+                <label for="single-session" title="Group Policy: Same">Enable session sharing between tabs</label>
+            </div>
+            <div id="favicon-row" class="general-options-row" ext-version="9.7">
+                <input id="favicon" licensed-only="true" version="" type="checkbox" name="favicon" />
+                <label for="favicon" title="Group Policy: Same">Replace IE Tab icon with current site icon</label>
+            </div>
+            <div id="enable-direct-invoke-row" class="general-options-row" ext-version="9.6.7">
+                <input id="enable-direct-invoke" licensed-only="true" type="checkbox" name="enable-direct-invoke" />
+                <label for="enable-direct-invoke" title="Group Policy: Enable DirectInvoke for Sharepoint">Sharepoint: Enable direct editing of documents</label>
+
+            </div>
+
+            <h5>Auto URL</h5>
+            <div id="enable-auto-urls-row" class="general-options-row">
+                <input id="enable-auto-urls" name="enable-auto-urls" type="checkbox">
+                <label for="enable-auto-urls" title="Group Policy: Same">Enable Auto URLs</label>
+            </div>
+            <div id="only-auto-urls-row" class="general-options-row">
+                <input id="only-auto-urls" licensed-only="true" type="checkbox" name="only-auto-urls" />
+                <label for="only-auto-urls" title="Group Policy: Restrict IE Tab to only opening Auto URLs">Only open Auto URLs in IE Tab</label>
+            </div>
+            <div id="never-open-exceptions-row" class="general-options-row" ext-version="8.10">
+                <input id="never-open-exceptions" licensed-only="true" type="checkbox" name="never-open-exceptions" />
+                <label for="never-open-exceptions" title="Group Policy: Same">Never open Auto URL Exceptions in IE Tab</label>
+            </div>
+
+            <h5>Popups & Tabs</h5>
+            <div id="enable-chrome-popups-row" class="general-options-row" platform="native">
+                <input id="enable-chrome-popups" name="popup-with-chrome" type="checkbox">
+                <label for="enable-chrome-popups" title="Group Policy: Same">Open pop-up windows with <span class="thebrowser"></span></label>
+            </div>
+            <div id="ie-dialogs-row" class="general-options-row"  ext-version="10.7.29" platform="native">
+                <input id="ie-dialogs" name="ie-dialogs" type="checkbox">
+                <label for="ie-dialogs" title="Group Policy: Same">Open pop-up dialog windows with IE</label>
+            </div>
+            <div id="enable-use-full-window-popups-row" class="general-options-row">
+                <input id="enable-use-full-window-popups" name="enable-use-full-window-popups" type="checkbox">
+                <label for="enable-use-full-window-popups" title="Group Policy: Use full-window pop-ups">Use a full window when displaying pop-ups</label>
+            </div>
+            <div id="open-popups-in-tab-row" class="general-options-row">
+                <input id="open-popups-in-tab" type="checkbox" name="open-popups-in-tab" licensed-only="true" />
+                <label for="open-popups-in-tab" title="Group Policy: Same">Always open pop-ups in a new tab</label>
+            </div>
+            <div id="open-in-new-tab-row" class="general-options-row" ext-version="10.1.12" platform="native">
+                <input id="open-in-new-tab" type="checkbox" name="open-in-new-tab" licensed-only="true" />
+                <label for="open-in-new-tab" title="Group Policy: Enable the 'Open in New Tab' context menu item">Enable "Open in New Tab"</label>
+            </div>
+
+            <h5>Display</h5>
+            <div id="hide-addr-bar-row" class="general-options-row">
+                <input id="hide-addr-bar" licensed-only="true" type="checkbox" name="hide-addr-bar" />
+                <label for="hide-addr-bar" title="Group Policy: Same">Hide the IE Tab address bar</label>
+            </div>
+            <div id="show-status-text-row" class="general-options-row">
+                <input id="show-status-text" licensed-only="true" type="checkbox" name="show-status-text" />
+                <label for="show-status-text" title="Group Policy: Same">Show status text for progress and links</label>
+            </div>
+
+            <div id="spellcheck-row" class="general-options-row" ext-version="8.10" win-version="8">
+                <input id="spellcheck" licensed-only="true" version="" type="checkbox" name="spellcheck" />
+                <label for="spellcheck" title="Group Policy: Same">Enable spell-check in text boxes</label>
+            </div>
+
+            <div id="show-context-menu-row" class="general-options-row" ext-version="11.4.5.1">
+                <input id="show-context-menu" type="checkbox" name="show-context-menu" />
+                <label for="show-context-menu" title="Group Policy: Same">Enable the IE Tab right-click menu</label>
+            </div>
+
+            <h5>Advanced</h5>
+            <div id="cookie-sync-row" class="general-options-row" ext-version="9.4.7">
+                <input id="cookie-sync" licensed-only="true" version="" type="checkbox" name="cookie-sync" />
+                <label for="cookie-sync" title="Group Policy: Enable cookie sync">Forward <span class="thebrowser"></span> cookies to IE Tab</label>
+            </div>
+            <div id="beforeunload-row" class="general-options-row" ext-version="9.8" platform="native">
+                <input id="beforeunload" licensed-only="false" version="" type="checkbox" name="beforeunload" />
+                <label for="beforeunload" title="Group Policy: Same">Enable beforeunload checking</label>
+            </div>
+            <div id="scripturl-mitigation-row" class="general-options-row" ext-version="8.10" platform="native">
+                <input id="scripturl-mitigation" licensed-only="true" version="" type="checkbox" name="scripturl-mitigation" />
+                <label for="scripturl-mitigation" title="Group Policy: Same">Enable script url mitigation</label>
+            </div>
+
+            <div id="enable-dep-row" class="general-options-row" ext-version="7.5">
+                <input id="enable-dep" type="checkbox" name="enable-dep" />
+                <label for="enable-dep" title="Group Policy: Same">Enable DEP Policy</label>
+            </div>
+            <div id="enable-atl-dep-row" class="general-options-row" ext-version="7.5">
+                <input id="enable-atl-dep" type="checkbox" name="enable-atl-dep" />
+                <label for="enable-atl-dep" title="Group Policy: Same">Enable ATL DEP Workaround</label>
+            </div>
+
+            <div id="api-features">
+                <input id="clear-apilist-button" type="button" style="display:none" class="button small radius"  value="Clear API allow lists" locattr="value" />
+            </div>
+            <div id="ietab-header-row" class="general-options-row" ext-version="9.10.21">
+                <input id="ietab-header" type="checkbox" licensed-only="true" name="ietab-header" />
+                <label for="ietab-header" title="Group Policy: Enable the IE Tab request header">Add IE Tab request header ("X-IETab: 1")</label>
+            </div>
+            <div id="threaded-popups-row" class="general-options-row" ext-version="12.7.30">
+                <input id="threaded-popups" type="checkbox" name="threaded-popups" />
+                <label for="threaded-popups" title="Group Policy: Same">Enable threaded popup windows</label>
+            </div>
+            <div id="new-pointer-mode-row" class="general-options-row" ext-version="12.11.11">
+                <input id="new-pointer-mode" type="checkbox" name="new-pointer-mode" />
+                <label for="new-pointer-mode" title="Group Policy: New pointer mode">Enable new pointer mode</label>
+            </div>
+            <div id="optimize-direct-invoke-row" class="general-options-row" ext-version="13.1.1">
+                <input id="optimize-direct-invoke" type="checkbox" name="optimize-direct-invoke" />
+                <label for="optimize-direct-invoke" title="Group Policy: Same">Optimize DirectInvoke downloads</label>
+            </div>
+            <div id="intercept-redirects-row" class="general-options-row" ext-version="13.4.8">
+                <input id="intercept-redirects" type="checkbox" name="intercept-redirects" />
+                <label for="intercept-redirects" title="Group Policy: Same">Check redirects for URL exceptions</label>
+            </div>
+        </div>
+    </div>
+
+    <br style="clear:both" />
+
+    <a name="autourls"></a>
+    <div id="autourl-block" class="options-block">
+        <h3 class="options-block-header" title="Group Policy: Configure the list of Auto URL filters">Auto URLs</h3>
+        <div class="options-block-body">
+            <div id="more-permissions" style="display:none;text-align:center;color:red;margin-top:-10px;margin-bottom:15px;">
+                Action Recommended<br/>
+                IE Tab cannot currently detect all downloads<br/>
+                <a href="https://www.ietab.net/grant-more-permissions" target="_blank">Learn more...</a>
+            </div>
+
+            <ul>
+                <li>Wildcard example: http://www.microsoft.com/*</li>
+                <li>Regular expression example (prefix with 'r/'): r/file://.*</li>
+                <li ext-version="9.10.21">Per-URL compatibility mode (<a href="https://www.ietab.net/ie-tab-documentation#per-url-compat-mode" target="_blank">read more</a>)</li>
+            </ul>
+            <div class="general-options-row">
+                <div>
+                    <input class="address-text" id="address-text" ignore="true" type="text" spellcheck="false" />
+                    <a id="add-button" class="button radius small">Add</a>
+                </div>
+                <div>
+                    <select id="address-list" style="min-height:100px" class="address-list" size="" multiple="multiple"></select>
+                </div>
+                <div>
+                    <a id="remove-button" class="button radius small">Remove</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br style="clear:both"/>
+
+    <div id="autourl-exceptions-block" class="options-block">
+        <h3 class="options-block-header" title="Group Policy: Configure the list of Auto URL exceptions">Auto URL Exceptions</h3>
+        <div class="options-block-body">
+            <ul>
+                <li>Matching URLs will not be loaded</li>
+            </ul>
+            <div class="general-options-row">
+                <div>
+                    <input class="x-address-text" id="x-address-text" ignore="true" type="text" spellcheck="false" />
+                    <a id="x-add-button" class="button radius small">Add</a>
+                </div>
+                <div>
+                    <select id="exclusion-list" style="min-height:100px" class="address-list" size="" multiple="multiple"></select>
+                </div>
+                <div>
+                    <a id="x-remove-button" class="button radius small">Remove</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <br style="clear:both"/>
+
+    <a name="compat-mode"></a>
+    <div id="compatibility-mode" class="options-block">
+        <h3 class="options-block-header" title="Group Policy: Set the IE compatibility mode">IE Compatibility Mode</h3>
+        <div class="options-block-body">
+            <div>
+                This feature enables you to emulate different versions of IE.  On Windows the default emulation mode is IE 7. In general you should use the "Forced" option.<br>
+                <div id="ie-team-blog">
+                    <a href="http://msdn.microsoft.com/en-us/library/ie/ee330730(v=vs.85).aspx#browser_emulation" target="_blank">
+                        Read more about these options at the IE Team Blog
+                    </a>
+                </div>
+            </div>
+            <div id="compat-inputs">
+                <input id="mode-ie-7s" name="compat-mode" type="radio" /><label for="mode-ie-7s">IE 7 Standards Mode</label>
+                <input id="mode-ie-8s" name="compat-mode" type="radio" /><label for="mode-ie-8s">IE 8 Standards Mode</label>
+                <input id="mode-ie-8f" name="compat-mode" type="radio" /><label for="mode-ie-8f">IE 8 Forced Standards Mode</label>
+                <input id="mode-ie-9s" name="compat-mode" type="radio" /><label for="mode-ie-9s">IE 9 Standards Mode</label>
+                <input id="mode-ie-9f" name="compat-mode" type="radio" /><label for="mode-ie-9f">IE 9 Forced Standards Mode</label>
+                <input id="mode-ie-10s" name="compat-mode" type="radio" /><label for="mode-ie-10s">IE 10 Standards Mode</label>
+                <input id="mode-ie-10f" name="compat-mode" type="radio" /><label for="mode-ie-10f">IE 10 Forced Standards Mode</label>
+                <input id="mode-ie-11s" name="compat-mode" type="radio" /><label for="mode-ie-11s">IE 11 Standards Mode</label>
+                <input id="mode-ie-11f" name="compat-mode" type="radio" /><label for="mode-ie-11f">IE 11 Forced Standards Mode</label>
+            </div>
+        </div>
+        <br/>
+    </div>
+    <br style="clear:both"/>
+
+    
+    <br/>
+
+
+    <div id="license-dialog" style="display: none;">
+        <h3>Licensed Feature</h3>
+        <p>This feature is only available to users with an IE Tab license.</p>
+        <p>If you have already purchased a license for IE Tab you can enter that license information here:  <a  href="http://www.ietab.net/regkey">Enter License Key</a>.</p>
+        <p>You can learn more about IE Tab
+           and purchase a license from our web site:  <a href="http://www.ietab.net/" target="_blank">IE Tab web site</a>
+        </p>
+        <p>Or go directly to our pricing page:  <a href="http://www.ietab.net/pricing" target="_blank">IE Tab pricing</a></p>
+        <p id="support-note">Need help?  Reach us at support@ietab.net</p>
+    </div>
+</div>
+
+</body>
+</html>

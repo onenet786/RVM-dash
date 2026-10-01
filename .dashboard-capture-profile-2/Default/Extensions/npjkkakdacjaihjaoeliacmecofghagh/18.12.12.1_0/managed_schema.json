@@ -1,0 +1,139 @@
+{
+    "type": "object",
+    
+    "properties": {
+        "LicenseeName": {
+            "title": "The licensee name",
+            "descriptoin": "The name of the licensee.  This is NOT the same as the email associated with the license",
+            "type": "string"
+        },
+        "LicenseKey": {
+            "title": "The license key",
+            "description": "The license key",
+            "type": "string"
+
+        },
+        "ShowIntroPage": {
+            "title": "Show the intro page",
+            "description": "Show an introductory page for new installs",
+            "type": "boolean"
+        },
+        "HideAddressBar": {
+            "title": "Hide the IE Tab address bar",
+            "description": "Hide the IE Tab address bar",
+            "type": "boolean"
+        },
+        "CookieSync": {
+            "title": "Forward Chrome cookies",
+            "description": "If you enable this setting, cookies for the current URL will be passed from Chrome to IE Tab when IE Tab is first opened",
+            "type": "boolean"
+        },
+        "SessionShare": {
+            "title": "Enable session sharing between tabs",
+            "description": "If you enable this setting, session cookies will be persisted by the extension and shared between tabs.  All session cookies will be stored in memory until Chrome and/or the extension are restarted.  And changes to session cookies in one tab will be sent to other tabs",
+            "type": "boolean"
+
+        },
+        "Favicon": {
+            "title": "Replace IE Tab icon with current site icon",
+            "description": "If you enable this setting, IE Tab will use the icon of the currently loaded site as the tab's icon",
+            "type": "boolean"
+        },
+        "BeforeUnload": {
+            "title": "Enable beforeunload checking",
+            "description": "If you enable this setting, IE Tab will check the current page for beforeunload or onbeforeunload event handlers before unloading the page",
+            "type": "boolean"
+        },
+        "OpenPopupsWithChrome": {
+            "title": "Open pop-up windows with Chrome",
+            "description": "If you enable this setting, then pop-up windows will be opened in a Chrome window with IE Tab running inside it",
+            "type": "boolean"
+        },
+        "IEDialogs": {
+            "title": "Open pop-up dialog windows with IE",
+            "description": "If you enable this setting, then pop-up dialog windows will be shown with IE instead of IE Tab.  This is sometimes desirable for maximum compatibility but it may result in a loss of session / authentication information when a dialog window is opened.  This affects pages displayed with showModalDialog or showModelessDialog",
+            "type": "boolean"
+        },
+        "UseFullWindowPopups": {
+            "title": "Use full-window pop-ups",
+            "description": "If you enable this setting, then a full-size Chrome window (with address bar) will always be used when IE Tab opens pop-up windows.  Note: This option will have no effect if 'Always open pop-ups in a new tab' is enabled",
+            "type": "boolean"
+        },
+        "OpenPopupsInTab": {
+            "title": "Always open pop-ups in a new tab",
+            "description": "If you enable this setting, then all pop-ups that are opened from a page shown in IE Tab will be opened in a new tab instead of a pop-up window.  Note:  This has no effect if the 'Open pop-ups with Chrome' option is not checked.  In that case, all pop-ups are opened in a separate IE window",
+            "type": "boolean"
+        },
+        "AllowApiPrompt": {
+            "title": "Enable API prompts",
+            "description": "If you enable this setting, a web page can prompt the user for access to the IE Tab API.  The IE Tab API allows a web site to query version information about IE Tab and open specific web sites with IE Tab",
+            "type": "boolean"
+        },
+        "OnlyOpenAutoURLs": {
+            "title": "Restrict IE Tab to only opening Auto URLs",
+            "description": "If you enable this setting, then IE Tab can only be used with URLs that are Auto URLs.  If a link is clicked while in IE Tab and that URL is not an Auto URL, then the URL will be opened in Chrome instead of IE Tab",
+            "type": "boolean"
+        },
+        "NeverOpenExceptions": {
+            "title": "Never open Auto URL Exceptions",
+            "description": "If you enable this setting, then IE Tab will never open a URL that matches an Auto URL Exception filter.  If a link is clicked while in IE Tab and that URL turns out to be an Auto URL Exception, then the URL will be opened in Chrome instead of IE Tab",
+            "type": "boolean"
+        },
+        "ShowStatusText": {
+            "title": "Show status text for progress and links",
+            "description": "If you enable this setting, then IE Tab will show a small status window at the bottom of the window.  This status window will show the actual URL for links when the mouse is hovered over the URL.  It will also show download status indicators",
+            "type": "boolean"
+        },
+        "ScriptUrlMitigation": {
+            "title": "Enable script url mitigation",
+            "description": "If you enable this setting, then IE Tab will enable script url mitigation.  You can read more about this feature here: https://msdn.microsoft.com/en-us/library/dd565656(v=vs.85).aspx.  And here: https://msdn.microsoft.com/en-us/library/ee330735(v=vs.85).aspx",
+            "type": "boolean"
+        },
+        "SpellCheck": {
+            "title": "Enable spell-check in text boxes",
+            "description": "If you enable this setting, then IE Tab will will enable spell checking in text boxes in Windows 8 or greater.  This feature is not available in earlier versions of Windows",
+            "type": "boolean"
+        },
+        "IETabHeader": {
+            "title": "Enable the IE Tab request header",
+            "description": "If you enable this setting, then IE Tab will will include a custom header with all HTTP(s) requests.  The header will look like this:  'X-IETab: 1'.  You might want to enable this if you need your proxy or firewall to allow IE Tab requests while blocking IE requests",
+            "type": "boolean"
+        },
+        "ThreadedPopups": {
+            "title": "Enable threaded popup windows",
+            "description": "If you enable this setting, then IE Tab will use multi-threaded popup windows.  This may fix some issues where the comaptibility mode / view is not correct in popup windows or the script is encountering a permission denied error when popup windows are closed",
+            "type": "boolean"
+        },
+        "OpenInNewTab": {
+            "title": "Enable the 'Open in New Tab' context menu item",
+            "description": "If you enable this setting, then the right-click context menu in an IE Tab window will include the 'Open in New Tab' option enabled",
+            "type": "boolean"
+        },
+        "ShowContextMenu": {
+            "title": "Enable the IE Tab right-click options in Chrome",
+            "description": "If you enable this setting, then when you are on a page opened in Chrome the right-click context menu will include options to open the page in IE Tab",
+            "type": "boolean"
+        },
+        "AutoURLs": {
+            "title": "The list of Auto URLs",
+            "description": "Allows you to specify a list of URL filters that will force URLs to be opened by IE Tab automatically",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "AutoURLExceptions": {
+            "title": "The list of Auto URL exceptions",
+            "description": "Auto URL exceptions provide a simple way to specify exceptions to the set of Auto URL filters",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "IECompatibilityMode": {
+            "title": "The IE compatibility mode",
+            "description": "Select the compatibility mode that IE Tab uses.  By default, IE Tab will run in IE7 standards compatibility mode.  Values can be IEnS or IEnF where n=7,8,9,10, or 11.  For example IE10S sets IE 10 Standaards mode",
+            "type": "string"
+        }
+    }
+}

@@ -1,0 +1,103 @@
+<html>
+<head>
+    <link rel="stylesheet" href="css/iecontainer.css" type="text/css" />
+    <link rel="stylesheet" href="css/addressbar.css" type="text/css" />
+    <link rel="stylesheet" href="css/hostedstartpage.css" type="text/css" />
+    <link rel="stylesheet" href="css/font-awesome/font-awesome.min.css" type="text/css" />
+</head>
+
+<body style="margin:0px;padding:0px;overflow:hidden">
+<div id="no-address-bar-anchor" style="display:none"></div>
+<div id="address-bar">
+        <div class="vcenter">
+            <img id="ab-logo" src="images/chromeba.png" />
+            <span id="address-text">Address:</span>
+            <div id="compat-mode" style="display:none">
+                <a id="current-compat-mode" href="javascript:void(0)">
+                    <span id="compat-mode-str">
+
+                    </span><span class="down-arrow"></span>
+                </a>
+                <div id="compat-selector">
+                    <a id="IE7S" href="javascript:void(0)">IE 7</a>
+                    <a id="IE8F" href="javascript:void(0)">IE 8</a>
+                    <a id="IE9F" href="javascript:void(0)">IE 9</a>
+                    <a id="IE10F" href="javascript:void(0)">IE 10</a>
+                    <a id="IE11F" href="javascript:void(0)">IE 11</a>
+                </div>
+            </div>
+
+            <input id="address-box" type="text" spellcheck="false" />
+            <a id="go-btn-anchor" href="#"><img id="go-btn" src="images/go.png" /></a>
+
+            <a id="feedback" href="http://www.ietab.net/support?from=feedback" target="_blank">Feedback</a>
+            <a id="settings" href="http://www.ietab.net/options" target="ietaboptions" >
+                <img id="tipIETabOptions" src="images/settings16.png" title="Change Auto URLs or other IE Tab settings"/>
+            </a>
+            <a id="btn-docs" href="http://www.ietab.net/ie-tab-documentation" target="ietabdocs" style="target-new:tab">
+                <img id="tipDocs" src="images/help.png" title="Learn more about IE Tab" />
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="hosted-start-page" style="display:block">
+
+    <div id="url-arrow" class="arrow_box">
+        <div>Enter your URL here</div>
+    </div>
+    <div id="header">
+        <img src="images/chromeie128.png"></img>
+        <h2>IE Tab Start Page</h2>
+    </div>
+
+    <div id="content">
+        <table id="general-info">
+            <tr><td>IE Tab Version:</td><td id="ietab-version" style="font-weight:bold"></td></tr>
+            <tr><td>IE Compatibility Mode:</td><td style="font-weight:bold">Internet Explorer <span id="ie-version">11</span></td></tr>
+            <tr id="license-info">
+                <td>Licensee:</td>
+                <td id="licensee">
+                    <span style="font-weight:bold">Not Licensed</span><a href="http://www.ietab.net/pricing" target="_blank">&nbsp;&nbsp;<span style="font-size:smaller">(learn more)</span></a>
+                </td>
+            </tr>
+        </table>
+
+        <div class="start-block">
+            <h2><i class="fa fa-book" aria-hidden="true"></i>Documentation</h2>
+            <div class="start-block-content">
+                <a href="http://www.ietab.net/ie-tab-documentation" target="_blank">Getting Started with IE Tab</a><br/>
+                <a href="http://www.ietab.net/support?from=startpage" target="_blank">Feedback / Support</a><br/>
+                <a href="http://www.ietab.net/ie-tab-documentation#auto-urls" target="_blank">Complete Documentation</a><br/>
+            </div>
+        </div>
+
+        <div class="start-block">
+            <h2><i class="fa fa-cog" aria-hidden="true"></i>Settings</h2>
+            <div class="start-block-content">
+                <a href="http://www.ietab.net/options#autourls" target="_blank">Set URLs to auto-open in IE Tab</a><br/>
+                <a href="http://www.ietab.net/options#page-top" target="_blank">All settings</a><br/>
+            </div>
+        </div>
+<!--
+        <div id="start-page-block" class="start-block">
+            <h2><i class="fa fa-play" aria-hidden="true"></i>Customize the Start Page</h2>
+            <div class="start-block-content">
+                <input id="start-ietab" name="start-option" type="radio"></input><label for="start-ietab">Use the IE Tab start page</label><br/>
+                <input id="start-blank" name="start-option" type="radio"></input><label for="start-blank">Use a blank page (about:blank</label>)<br/>
+                <input id="start-url" name="start-option" type="radio"></input><label for="start-url">Open this URL: <input type="text"></input></label><br/>
+            </div>
+        </div>
+-->
+    </div>
+</div>  <!-- hosted-start-page -->
+
+<script src="js/jquery.min.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/storage.js"></script>
+<script src="/js/background_proxy.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/edgestart.js"></script>
+
+</body>
+</html>

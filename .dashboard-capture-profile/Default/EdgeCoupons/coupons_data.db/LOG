@@ -1,0 +1,5 @@
+2026/10/01-21:45:58.930 319c Creating DB D:\GIT-HUB\RVM-dash\.dashboard-capture-profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/10/01-21:45:58.946 319c Reusing MANIFEST D:\GIT-HUB\RVM-dash\.dashboard-capture-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/10/01-21:46:03.566 1d64 Level-0 table #5: started
+2026/10/01-21:46:03.572 1d64 Level-0 table #5: 683284 bytes OK
+2026/10/01-21:46:03.575 1d64 Delete type=0 #3

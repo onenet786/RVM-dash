@@ -1,0 +1,5130 @@
+[
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/ads/anuncio.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71695
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "-publicidade.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71696
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".br/afiliados/",
+      "isUrlFilterCaseSensitive": false,
+      "excludedDomains": [
+        "shopping.bancointer.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71697
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".br/banner.aspx?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71698
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".br/imagensdb/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71699
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".br/swf/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71700
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".clickafiliados.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71701
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".com/adssrv/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71702
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".com/afiliados/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71703
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".cv/images/pubs/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71704
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".cv/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71705
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": ".publicidade.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71706
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "//adware.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71707
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/adshotbrasil1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71708
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/adsligados.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71709
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/banner300x80.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71710
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/bannerctgineses.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71711
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/bannerwoo.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71712
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/bannerwoopos4.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71713
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/dixioforyoursite/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71714
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/ficheiros/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71715
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/find.gl/js.php?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71716
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/iframe-banners.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71717
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/igbarra.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71718
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/imagem/urchin.gif?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71719
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/img_banner/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71720
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/imgcontador.php?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71721
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/linkspatgoogle.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71722
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/mrec.aspx?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71723
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/mrec.html?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71724
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/planetup_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71725
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publi.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71726
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publi/banner_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71727
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publicidade-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71728
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publicidade_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71729
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publicidadevertical.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71730
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/publitab.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71731
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/recursos/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71732
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/suse468x60-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71733
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/wpublicidad/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71734
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/zoinke.pt.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71735
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/zonasadserver/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71736
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "_fullbanner_balanca_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71737
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "_publicidade.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71738
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "_publicidade_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71739
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||aggestose.com",
+      "resourceTypes": [
+        "script"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71740
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bloco.top",
+      "resourceTypes": [
+        "script",
+        "image"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71741
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cdnstatic.cyber.bet",
+      "resourceTypes": [
+        "script"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71742
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gorillabrightenarms.com",
+      "resourceTypes": [
+        "script"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71743
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||seedtag.com^",
+      "domainType": "thirdParty",
+      "excludedDomains": [
+        "seedtag.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71744
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||solution.coupons^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71745
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adjs.media^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71746
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adsmaster.dev^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71747
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||admasters.media^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71748
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cazamba.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71749
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||denakop.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71750
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||grumft.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71751
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||igaming-service.io^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71752
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||joinads.me^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71753
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||juicebarads.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71754
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||premiumads.com.br^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71755
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sendwebpush.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71756
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||simpleads.com.br^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71757
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tradermilionarios.co^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71758
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||chewsrompedhemp.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71759
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||closkeyrespond.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71760
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||clxrggmghevqfu.com",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71761
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ddnmbydtnfebyd.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71762
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||delightspiritedtroop.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71763
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||deliriousglowing.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71764
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dellswhinyrank.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71765
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||disappearanceinspiredscan.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71766
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||disturbancecoldlilac.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71767
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dnemkhkbsdbl.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71768
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dntchnyghet.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71769
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dollsdeclare.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71770
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dragonspontaneous.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71771
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||drawnperink.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71772
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||duehaxeui.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71773
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||edthoutfre.fun^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71774
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||edxlewni.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71775
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eelfadechi.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71776
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ereenerall.fun^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71777
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eshncdkjp.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71778
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||exemix.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71779
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||fathuntsgall.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71780
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||feyxyguwy.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71781
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||filestatic.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71782
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||finkyepbows.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71783
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||foundchoked.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71784
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||glazegha.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71785
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||glenprejudice.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71786
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hledoziequt.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71787
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||htgcfmtsjyrmt.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71788
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||humidmentioned.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71789
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ihogaetw.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71790
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ilohfbiph.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71791
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ivfihumeajjmbc.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71792
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jcqwzssqks.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71793
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jfxkxoicr.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71794
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||juunrlcmmwwolvk.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71795
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kaurouby.net^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71796
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kesepsowy.pro^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71797
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lataurir.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71798
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||loftsbaacad.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71799
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lspzhtvstux.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71800
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mellivoracode.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71801
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mimilcnf.pro^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71802
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||misguidedstork.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71803
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||molypsigry.pro^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71804
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mypopads.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71805
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||napsiguk.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71806
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nickeeha.net^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71807
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nzbnjdukgaco.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71808
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ogmghzpyq.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71809
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||olouphoo.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71810
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||oubvpkedplvdpkv.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71811
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pdxgfnnoan.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71812
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||penjazzvice.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71813
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pestilenttidefilth.org^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71814
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||peuzubuqo.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71815
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||phouvemp.net^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71816
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pkldqklnhvulsp.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71817
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ptcqjliwwkldm.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71818
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pulpsbarndomed.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71819
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||purebushesprop.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71820
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||qbcpicrtdje.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71821
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||qhenklhhykopwmm.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71822
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||qjcdnpv.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71823
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||qusgthaetm.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71824
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||realmpallduns.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71825
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||redoutcomecomfort.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71826
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||relaissynced.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71827
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ricettafitness.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71828
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||riminghoggoofy.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71829
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rnakkaybh.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71830
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rnnabjrfeh.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71831
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rosqb6vb1cqp.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71832
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rpphgyjeljx.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71833
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rriuqknbv.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71834
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ruthcraveastray.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71835
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||samplerpouch.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71836
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sdxqusoze.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71837
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||selfswayjay.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71838
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||serfle.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71839
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||skillpropulsion.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71840
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||skoiy.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71841
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||soonen.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71842
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sophomoreclassicoriginally.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71843
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spider.ad^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71844
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sporedfryhum.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71845
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sqhneencmysrk.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71846
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||statementssupervisorthorough.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71847
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||steamjaws.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71848
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||suomaimrphie.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71849
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||suptaibo.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71850
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tfzznclztl.com",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71851
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||thapsooz.net^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71852
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||thatsouh.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71853
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||toldmeroc.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71854
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||trysprierratty.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71855
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ttgmjfgldgv9ed10.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71856
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tunviralbionic.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71857
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||uctzcsooizikt.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71858
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ulducpovyxxlhjv.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71859
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||upsghpnqjoo.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71860
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vcrlaitlihy.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71861
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vid95vl24x.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71862
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vjkjjhbi.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71863
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vobquhydgvyqf.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71864
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vseenmtdmcqssv.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71865
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||waspaortascene.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71866
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wbhjnjljvsxyvm.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71867
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wvekalpmn.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71868
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xbanakivehkq.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71869
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xclofrfa.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71870
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xcsypkknp.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71871
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xo28pclotovi.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71872
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xyctmmogcv.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71873
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||yapdqykkttuqdl.top^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71874
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||yepteaswont.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71875
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||yysvzaodorhv.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71876
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zabanit.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71877
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zebuaridromps.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71878
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zzghcckpzlhob.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71879
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||anunciad.com.br^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71880
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||busktraffic.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71881
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||clickadsxxx.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71882
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eutesalvo.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71883
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||geralinks.com.br^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71884
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||grupoxxx.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71885
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kyotraffic.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71886
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||linkgp.com.br^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71887
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||maxfullad.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71888
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||project1service.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71889
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||webpsts.com^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71890
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xpowergel.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71891
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.lomadee.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71892
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.lomadee.fun^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71893
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dino.com.br/widget/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71894
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||formulanegocioonline.digital/marca-trafego/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71895
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||go.hotmart.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71896
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||iili.io^",
+      "domains": [
+        "politicosdosuldabahia.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71897
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||imgur.com^",
+      "domains": [
+        "politicosdosuldabahia.com.br",
+        "zonadoguaxinim.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71898
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ljii.github.io^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71899
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||postimg.cc^",
+      "domains": [
+        "barbacenamais.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71900
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||publyads.jstag.space^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71901
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pubs.xl.pt^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71902
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||supercasa.pt/mrec",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71903
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||t.co^domain=souapenasumsitenormal.com",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71904
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||upee.online/adsupee.js",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71905
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||x2n.com.br/media/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71906
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||d3div1mtym39ic.cloudfront.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71907
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cdnaqw.com/script^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71908
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||d18t35yyry2k49.cloudfront.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71909
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||d20903hof2l33q.cloudfront.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71910
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||d3p8w7to4066sy.cloudfront.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71911
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dw55pg05c2rl5.cloudfront.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71912
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ecmascript6.com/*/index*.php^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71913
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||externo.x-power-gel.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71914
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mangayaoi.net/banner/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71915
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sexshopboys.com/idevaffiliate/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71916
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||umtudo.com/pop/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71917
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xis-videos.blogspot.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71918
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xtubehentai.com/pophqe/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71919
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||advertising.sexlog.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71920
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||avantajadas.com.br/bnr/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71921
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||camcaps.io/v2/a/na/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71922
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||camcaps.io/v3/a/pop/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71923
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cameracaseira.com/bnrs/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71924
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaiyaoi.net/nhentaipop/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71925
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||porno-cdn.com/preroll.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71926
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||testedefudelidade.com/bnr_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71927
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||97news.com.br/hd-imagens/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71928
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||acheisudoeste.com.br/hd-imagens/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71929
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.clicrbs.com.br^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71930
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adrenaline.com.br/uploads/personalizacao/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71931
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adv.r7.com^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71932
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||advfn.com/sales/br_advfn/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71933
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||agorasudoeste.com.br/hd-imagens/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71934
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||aniclube.app/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71935
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||animeslog.com/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71936
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||animesonlinebr.net/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71937
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||animesonlinep.com/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71938
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ansa.com.br/fiat/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71939
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ansa.com.br/tim/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71940
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ansabrasil.com.br^*/banner/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71941
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||brumadonamira.com.br/hd-imagens/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71942
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||brumadourgente.com.br/hd-imagens/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71943
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||correiodolago.com.br/site/up/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71944
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||correiodolago.com.br/site/up/popup/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71945
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||geekpopnews.com.br/mkt/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71946
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||geralinks.com.br^*/ads/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71947
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornalrazao.com/storage/images/ads/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71948
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||naointendo.com.br/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71949
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ojogo.pt/common/mrec_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71950
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pobre.wtf/wp-banners.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71951
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||portaldoholanda.com.br^*/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71952
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||portalmorada.com.br/assets/uploads/ads_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71953
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||redegn.com.br/images/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71954
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||s.mangalivre.net^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71955
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sapo.pt/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71956
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||soanimes.net/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71957
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||superhentai.online/noping/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71958
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tvhotnews.com.br/img/patrocinadores/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71959
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vibemundialfm.com.br/wp-content/uploads/*/anuncio-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71960
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xad.dnoticias.pt^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71961
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zcp.zwame.pt^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71962
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zerozero.pt/images/takeover/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71963
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zwame.pt/comparador/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71964
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[0-9a-z]{8,}\\.com\\/.*",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty",
+      "domains": [
+        "3thepiratefilmes.in",
+        "allappinc.store",
+        "aniflv.net",
+        "animescx.com.br",
+        "animesup.biz",
+        "animexnovel.com",
+        "anitube.biz",
+        "betteranime.net",
+        "cinevisionv5.app",
+        "doramogo.com",
+        "dramafansubs.net",
+        "dramaken.com",
+        "file4go.net",
+        "filmeflix.app",
+        "filmehdonline.site",
+        "gemadoff.com.br",
+        "listadeanimes.com",
+        "megafilmeshd50.com",
+        "myfilmestorrent.net",
+        "netcine.to",
+        "pifansubs.org",
+        "sfapi.xyz",
+        "suatela.net",
+        "tdmsubs.com",
+        "thepiratefilmeshd.in",
+        "tyflex.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71965
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "regexFilter": "^https?:\\/\\/[0-9a-z]{8,}\\.xyz\\/.*",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty",
+      "domains": [
+        "animesup.cx",
+        "appmj.xyz",
+        "digitaltorrentdownload.com.br",
+        "gofilmes.me",
+        "superfilmes.cx",
+        "torrentdosfilmes.to",
+        "warezcdn.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71966
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/files/publicity/",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "diarioaveiro.pt",
+        "diariocoimbra.pt"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71967
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/myshowroom/view.php^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "webcamtests.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71968
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/wp-content/uploads/*-haribo",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "gkpb.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71969
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||3djuegos.com/*/skins/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71970
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||acientistaagricola.pt/wp-content/uploads/*/*banner",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71971
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||acientistaagricola.pt/wp-content/uploads/*/areaagricola-1.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71972
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adlyra.com",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71973
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||agoravale.com.br/gcwav/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71974
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||angonoticias.com/site/assets/uploads/media_pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71975
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||animesvision.biz/v1/assets/images/330xnxcurso_funko_lancamento.png.pagespeed.ic.xow7uenhrf.webp",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71976
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||animesvision.biz/v1/assets/images/xdragon-future.jpg.pagespeed.ic.xupy0hazcm.webp",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71977
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||api.cazamba.com^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "switch-brasil.com",
+        "tribogamer.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71978
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||aquiacontece.com.br/_banner/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71979
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||atelevisao.com/wp-content/themes/*_100x50.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71980
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||atenislisboa.pt/wp-content/uploads/*/bannerfonteviva.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71981
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||baboo.com.br/mkt/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71982
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||chishare.org",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71983
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||clicrdc.com.br/*/modal-window",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71984
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||conjugacao-de-verbos.com/img/mosalingua/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71985
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||conjur.com.br/parceiros/iframe",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71986
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||criativaonline.com.br/wp-content/uploads/pum/pum-site-scripts.js^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71987
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||cxense.com/cx.cce.js^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "agazeta.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71988
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dnoticias.pt/www-assets.dnoticias.pt/frontoffice/pub/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71989
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ecoregional.com.br/wp-content/plugins/icegram/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71990
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ecoregional.com.br/wp-content/uploads/*/bannersiteeco-sicredi-novo.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71991
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ecoregional.com.br/wp-content/uploads/*/jardim-pq-*.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71992
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||expressomt.com.br/public/banners",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71993
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||filmesonlinehdgratis.com.br/_imagens/1xbet-link.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71994
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||flashscore.*/res/data/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71995
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||folhademaputo.co.mz/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71996
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||fstatic.com/static/telecineplay/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "filmow.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71997
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||futeboltotal.org/df8843d04f.php",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71998
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||globalnoticias.com.br/arquivos/banners/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71999
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hojemais.com.br/images/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72000
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||i1.wp.com/www.cenariomt.com.br/wp-content/uploads/*/provincia-at.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72001
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||imageshack.com/v2/xq90/^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "futeboltotal.org"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72002
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||imgur.com/*.gif^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "lelivros.love"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72003
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||iol.pt/iolnegocios/iol-frame/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72004
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornaldeangola.ao/fotos/frontend_1/banner^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72005
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornalnopintcha.gw/wp-content/uploads/*/fagoral.png^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72006
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornalnopintcha.gw/wp-content/uploads/*/orange-money-jornal-o-democrata-*.jpg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72007
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornalnoticias.co.mz/images/dstv*.gif^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72008
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornaltransparencia.st/banner_top.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72009
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornaltropical.st/lenft.jpg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72010
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||jornaltropical.st/rosema_*.gif^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72011
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||legendas.ga/random.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72012
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||loucosporgeek.com.br/wp-content/uploads/*/loucos.gif^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "subanimes.biz"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72013
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lucasgarcia.com.br^",
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72014
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||media.discordapp.net/attachments/*/banner-gid-edu.gif^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "subanimes.biz"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72015
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||metropoles.com/cupom/rtg/iframe/pill^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72016
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||migalhas.com.br/imgsrc/www.migalhas.com.br*s=publicidade",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72017
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||minhaconexao.com.br/_mini/static/images/mp-banner-300x250.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72018
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||minhaconexao.com.br/alternative/",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72019
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mmorpgbr.com.br/wp-content/uploads/2021/05/banner-skin_",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72020
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||narutoonline.com.br/banner.jpg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72021
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||net-empregos.com/images/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72022
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||netcine.biz/popp2.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72023
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||netcine.biz/pusha.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72024
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nossanoite.com.br/assets/img/bannerpublic/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72025
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nossanoite.com.br/assets/img/bannertopo/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72026
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||notebookcheck.info/fileadmin/sonstiges/amaz_",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72027
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||noticiasdecoimbra.pt/*/modal/*/modal.min*^",
+      "resourceTypes": [
+        "script",
+        "stylesheet"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72028
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||noticiasdecoimbra.pt/wp-content/uploads/*.gif?x",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72029
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||novinhabucetuda.com/sw.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72030
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||novojornal.co.ao/common/pub/banner^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72031
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||observatoriodatv.uol.com.br/assets/banners/",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72032
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||odemocratagb.com/wp-content/uploads/*-banner-",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72033
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||odemocratagb.com/wp-content/uploads/*/30b09956-c93c-4043-b09b-e13a87b07e80.jpeg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72034
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||odemocratagb.com/wp-content/uploads/*/mtn.jpg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72035
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||olhardireto.com.br/imgsite/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72036
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||olhardireto.com.br/imgsite/popups/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72037
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||online.animesdigital.com.br/ad_blackfriday.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72038
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||opais.co.ao/wp-content/banners^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72039
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||opais.co.ao/wp-content/uploads/*-600x850.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72040
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||opais.co.ao/wp-content/uploads/*/publicidade-*.jpg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72041
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||opais.co.ao/wp-content/uploads/*325x280px.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72042
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||opais.co.ao/wp-content/uploads/*_1251x210.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72043
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||otempo.com.br/image/contentid/*/banner-hotel.jpeg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72044
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||otpokemon.com/local/banner/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72045
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||outbrain.com^",
+      "domains": [
+        "abril.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72046
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||paranaportal.uol.com.br/wp-content/*/tenuta",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72047
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||playembeds.com/*/devtools-detector.js",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72048
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pplware.sapo.pt/parceiros/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72049
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||record.pt/i/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72050
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||reportermt.nyc3.digitaloceanspaces.com/*/original",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72051
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||reportermt.nyc3.digitaloceanspaces.com/storage/webdisco/*/outros/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72052
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rostos.pt/imagens/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72053
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||santiagomagazine.cv/content/img/banner_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72054
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||shrtfly.com/referral/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72055
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||static.expressodasilhas.cv/media/pub^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72056
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||stream2watch.is/crons/pop_code.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72057
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||streamix.tv/st300x600.gif^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72058
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tenhomaisdiscosqueamigos.com/wp-content/uploads/*-bg.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72059
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||terraempresas.com.br/backup/promo/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72060
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||third-party.animekisa.tv/grabinfo.php^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72061
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tugaflix.me/bettilt.php?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72062
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||uploaddeimagens.com.br/images/*/full/button-*.png^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "querofilmeshd.co"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72063
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||verfilmes.biz",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72064
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vivaolinux.com.br/imagens/banners/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72065
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wikimetal.com.br/wp-content/uploads/*/left_right-side.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72066
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||wixstatic.com/media/*/jiu%20jitsu.webp^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "ouroverdefm.com.br"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72067
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||wook.pt/accounts/default1/banners/",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "obichinhodosaber.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72068
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||wp.com/*/wp-content/*banner",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "donghuanosekai.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72069
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wp.com/donghuanosekai.com/wp-content/uploads/*/unknown-1.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72070
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xat.com/content/web/*/apps/ad/ad.html^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72071
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xl.pt/i/pub.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72072
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||yayanimes.net/wp-content/uploads/fanart.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72073
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||buceta.blog/pop.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72074
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||buceteiro.com/wp-content/plugins/popup?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72075
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||classificadosxbr.com/images/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72076
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cnnamador.com/pop/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72077
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||contosadultos.club/pop.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72078
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gparena.net/uploads/banners/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72079
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaifoda.com/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72080
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaihome.net/hentaihomepop.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72081
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaistube.com/cdn/videojs-preroll.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72082
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaitokyo.net/hentaitokyomobilepop.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72083
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hentaiyaoi.net/pop6/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72084
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||horahentai.net/open.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72085
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hqdesexo.com/anuncio?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72086
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hqerotico.com/url-open.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72087
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hqporno.net^*/hqpornopop2.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72088
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||plx.boafoda.com^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72089
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||plx.mrvideosdesexo.xxx^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72090
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pontogay.com/frontend/theme/assets/js/publi/openq-xxxyaoi.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72091
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||porno18.blog.br/back.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72092
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pornohd.blog.br/300x",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72093
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pornopremium.com.br/downloads/js/popads.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72094
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sexprime.xxx/pub/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72095
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||superhq.net/pop/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72096
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||travestisvip.com.br/bnr/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72097
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xtubehentai.com/fh/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72098
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xvideos5.com.br/preroll/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72099
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xvideosbr.blog/pop.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72100
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xvideosnovinhas.com/wp-content/plugins/ane-preroll-xvideosnovinhas/preroll.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72101
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xvideospornor.com/300x",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72102
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty",
+      "domains": [
+        "curto.win"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72103
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/url-open.js",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "hentaiputa.com",
+        "terceiroz.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72104
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bserver.gp-guia.net^",
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72105
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||contoerotico.com/adscod/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72106
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gp-pt.net/forum/banners/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72107
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hqporno.net/wp-content/cache/min/1/pw/",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72108
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||parlorscenes.com^",
+      "resourceTypes": [
+        "script"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72109
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pornhits.com/magic^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72110
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pornobrasileiro.tv/*/filmes-porno_banner",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72111
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pornolandia.xxx/static/ref/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72112
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sexoquente.blog/lucky-cloud-66dc/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72113
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||statics.letfap.com/assets/love/index.php",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72114
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vainovinha.net/js/colmeia",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72115
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||i0.wp.com/portalextremoz.com.br/wp-content/uploads/2021/11/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72116
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||portalextremoz.com.br/wp-content/uploads/2021/11/",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 72117
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||amazon-adsystem.com/aax2/apstag.js",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "abola.pt"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72118
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||custojusto.pt/user/myads/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "firstParty"
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72119
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||fatimalife.com.br/api/v1/ad/",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "firstParty"
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72120
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/gampad/adx?",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "magazineluiza.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72121
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/pagead/managed/js/gpt/*/pubads_impl.js?",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "jn.pt"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72122
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/tag/js/gpt.js",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "drogasil.com.br",
+        "jn.pt"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72123
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||imasdk.googleapis.com/js/sdkloader/ima3.js",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "jogos360.com.br",
+        "r7.com",
+        "terra.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72124
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "jn.pt"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72125
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||pubads.g.doubleclick.net/gampad/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "rainha.com.br",
+        "topper.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72126
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||tpc.googlesyndication.com/simgad/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "rainha.com.br",
+        "topper.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72127
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||com/banners/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "eglobalcentralpt.com"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72128
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/gampad/ads",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "magazineluiza.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72129
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/gpt/pubads_impl_",
+      "resourceTypes": [
+        "script",
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "magazineluiza.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72130
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||g.doubleclick.net/tag/js/gpt.js",
+      "resourceTypes": [
+        "script",
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "magazineluiza.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72131
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||staticz.com.br/advertisement/",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "meliuz.com.br"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 72132
+  },
+  {
+    "priority": 2001,
+    "condition": {
+      "urlFilter": "||tpc.googlesyndication.com^",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ],
+      "domains": [
+        "magazineluiza.com.br"
+      ]
+    },
+    "action": {
+      "type": "allowAllRequests"
+    },
+    "id": 72133
+  }
+]

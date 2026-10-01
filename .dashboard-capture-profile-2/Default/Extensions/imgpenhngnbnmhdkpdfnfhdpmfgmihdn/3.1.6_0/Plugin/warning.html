@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Warning</title>
+<style>
+*{ margin:0; padding:0; }
+body { line-height:1.4; font-weight: 400; background-color: #fff; color: #fff; font:14px arial; outline:0; vertical-align:baseline; }
+del { text-decoration:line-through; }
+table { border-collapse:collapse; border-spacing:0; }
+ul,ul li { list-style-type:none; }
+img{ border: none;}
+.clearfix:after,.wrapper:after {clear:both;display:block;height:0;font-size:0;content:".";visibility:hidden;}
+.clearfix{zoom:1;}
+a{color:#fff;font-size: 12px; text-decoration: underline;}
+.container { width: 100%; height:100%;position:absolute; background-color: #d63b26; color: #fff;}
+.header { height: 40px; line-height: 40px; background-color: #181a1c; font-size: 13px; font-style: italic; color: #cdcece;}
+.header span { display: inline-block; margin-right: 8px; margin-left: 25px; line-height: 10px; vertical-align: middle;}
+.asc-box { width: 590px; margin: 0px auto; margin-top: 140px;}
+.asc-box .err-left-img { float: left; width: 84px;}
+.asc-box .asc-box-right { float: right; width: 506px;}
+.asc-box .asc-box-right h1 { font-size: 30px; font-weight: normal;}
+.asc-box .asc-box-right h2 { margin-bottom:20px; font-weight: normal; font-size: 24px;}
+.asc-box .asc-box-right .more-details { height: 75px; margin-top: 15px; }
+.asc-box .asc-box-right .more-details .derails { height: 18px; display: inline-block;}
+.asc-box .asc-box-right .more-details .derails .more {float:left;}
+.asc-box .asc-box-right .more-details .derails:hover span { display: block;}
+.asc-box .asc-box-right .more-details .derails span { float: left; position: relative; display: none ; margin-top: 5px; margin-left: 12px; padding-left: 16px; padding-top: 5px; min-width: 140px; height: 50px; background-color: #fff; box-shadow: 0.572px 2.945px 3px 0px rgb( 160, 32, 15 );}
+.asc-box .asc-box-right .more-details .derails span:after {position: absolute; top: 0px; left: -6px; content: ""; width: 7px; height: 12px; background: url(img/square.png);}
+.asc-box .asc-box-right .more-details .derails span a{ display: block; background: url(img/list.png) no-repeat 0px 7px; text-indent: 15px; line-height: 22px;color:#d63b26;}
+
+.asc-box .asc-box-right .more-details .derails_nohover { height: 18px; display: inline-block;}
+.asc-box .asc-box-right .more-details .derails_nohover span { float: left; position: relative; display: none ; margin-top: 5px; margin-left: 12px; padding-left: 16px; padding-top: 5px; min-width: 140px; height: 50px; background-color: #fff; box-shadow: 0.572px 2.945px 3px 0px rgb( 160, 32, 15 );}
+.asc-box .asc-box-right .more-details .derails_nohover span:after {position: absolute; top: 0px; left: -6px; content: ""; width: 7px; height: 12px; background: url(img/square.png);}
+.asc-box .asc-box-right .more-details .derails_nohover span a{ display: block; background: url(img/list.png) no-repeat 0px 7px; text-indent: 15px; line-height: 22px;color:#d63b26;}
+
+.asc-box .asc-box-right dl dt { float: left;}
+.asc-box .asc-box-right dl dt >a { margin-right: 15px;}
+.asc-box .asc-box-right dl dt p { margin-top: 12px; color: #ecb3ae;}
+.asc-box .asc-box-right dl dt p a { color: #ecb3ae;}
+.asc-box .asc-box-right dl dd { float: right;}
+.asc-box .asc-box-right dl dd .leavebtn { display: block; height: 40px; line-height: 40px; padding: 0px 50px; background: #c22f1e; border: solid #fff 1px; text-decoration: none; font-size: 14px;}
+.asc-box .asc-box-right dl dd .leavebtn:hover { background-color: #dc3e2d;}
+
+
+
+</style>
+</head>
+<body>
+<div class="container">
+	<div class="header">
+		<span><img src="img/iobit_logo.png" alt=""></span> 
+	</div>
+	<div class="asc-box clearfix">
+		<div class="err-left-img">
+			<img src="img/icon_warning_white.png" alt="">
+		</div>
+		<div class="asc-box-right">
+			<h2 id="title" >This website has been reported as unsafe</h2>			
+			<p id="recommend">We recommend that you do not continue visiting this website <p id="sourceURL" style="width:90%;word-wrap: break-word; word-break: normal;"></p> </p>
+			<div class="more-details">
+				<div class="derails">
+					<a href="#" class="more" id="detail">More Details</a> 
+					<span>
+						<a id="antiphish" href='https://www.iobit.com/goto.php?id=antiph' rel='nofollow' target='_blank'>Anti-phishing</a>
+						<a id="stopbadware" href="https://www.iobit.com/goto.php?id=adware" rel='nofollow' target='_blank' >Adware</a>
+					</span>
+				</div>
+			</div>
+			<dl>
+				<dt>
+					<!-- <a id="report" href="javascript:SendMail();" onClick="window.open('mailto:feedback@iobit.com?subject=Report Risk Webpage&Body=Webpage:test%0d%0aVersion:V10%0d%0aComment:')">Report false alarm</a> -->
+					<a id="report" href="#" >Report false alarm</a>
+					<a id="continueAway" href="javascript:SetContinueAway();">Continue anyway </a>
+					<p id="Site_Advisory" >Advisory provided by <a href="#" onClick="window.open('https://www.iobit.com/goto.php?id=google');">Google</a> & IObit</p>
+				</dt>
+				<dd>
+					<a id="goBack"  href="javascript:GoBack();" onclick="" class="leavebtn">Cancel</a>
+				</dd>
+			</dl>
+		</div>
+	</div>
+</div>
+<script type="text/javascript" src="warning.js"></script>
+</body>
+</html>

@@ -236,7 +236,9 @@ let activePgConfig = {
 };
 
 let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
-let currentDbName = process.env.MONGODB_DBNAME || 'ONS-RVM';
+let currentDbName = activeDbType === 'postgres'
+  ? (activePgConfig.database || 'rvmpg')
+  : (process.env.MONGODB_DBNAME || 'ONS-RVM');
 
 
 
@@ -858,9 +860,11 @@ async function initProductionPostgresSchemas() {
       SET machine_type = 'RVM_OLD' 
       WHERE UPPER(machine_id) LIKE '%OLD%' OR UPPER(name) LIKE '%OLD%';
 
-      UPDATE machines 
-      SET machine_type = 'RVM_NEW' 
-      WHERE machine_type IS NULL OR (UPPER(machine_id) NOT LIKE '%PECO%' AND UPPER(name) NOT LIKE '%PECO%' AND UPPER(machine_id) NOT LIKE '%OLD%' AND UPPER(name) NOT LIKE '%OLD%');
+      -- Only classify genuinely untyped machines. Never overwrite an explicit
+      -- RVM_OLD classification created by the manual MongoDB legacy import.
+      UPDATE machines
+      SET machine_type = 'RVM_NEW'
+      WHERE machine_type IS NULL OR TRIM(machine_type) = '';
 
       -- B. Assign enterprise client organizations based on site location and identifier
       UPDATE machines 
@@ -3173,7 +3177,7 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
         badge: 'Master Nationwide', 
         address: 'Nationwide Public Network',
         domain: 'isprvm.binishaqsoft.com',
-        machineCount: 12
+        machineCount: 0
       }
     ];
 
@@ -3208,12 +3212,15 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
         logoUrl: r.logo_url,
         badge,
         address,
-        machineCount: machineCount || 1
+        machineCount: Number.isFinite(machineCount) ? machineCount : 0
       };
     };
 
     if (pool) {
       try {
+        const fleetCountRes = await pool.query('SELECT COUNT(*)::int AS machine_count FROM machines');
+        dynamicClients[0].machineCount = parseInt(fleetCountRes.rows[0]?.machine_count || 0);
+
         const orgRes = await pool.query(`
           SELECT o.org_id, o.name, o.domain, o.logo_url,
                  COUNT(m.machine_id) as machine_count,
@@ -3882,8 +3889,11 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
 // Create Full Database Backup Snapshot (Protected by Admin Auth)
 app.get('/api/db/backup', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    const backupDatabaseName = activeDbType === 'postgres'
+      ? (activePgConfig?.database || 'rvmpg')
+      : currentDbName;
     const backupData = {
-      database: currentDbName,
+      database: backupDatabaseName,
       databaseType: activeDbType,
       serverHost: activeDbType === 'postgres' ? `${activePgConfig?.host || '127.0.0.1'}:${activePgConfig?.port || 5432}` : getSanitizedHost(currentUri),
       exportedAt: new Date().toISOString(),
@@ -3922,7 +3932,8 @@ app.get('/api/db/backup', authenticateToken, requireAdmin, async (req, res) => {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${currentDbName}_${activeDbType}_backup_${timestamp}.json`;
+    const safeDatabaseName = String(backupDatabaseName).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${safeDatabaseName}_${activeDbType}_backup_${timestamp}.json`;
     const filePath = path.join(BACKUPS_DIR, filename);
 
     const jsonStr = JSON.stringify(backupData, null, 2);
@@ -3934,10 +3945,10 @@ app.get('/api/db/backup', authenticateToken, requireAdmin, async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully generated ${activeDbType.toUpperCase()} database snapshot backup for "${currentDbName}" (${totalDocsCount} documents across ${collectionsStats.length} ${activeDbType === 'postgres' ? 'tables' : 'collections'} on ${backupData.serverHost}).`,
+      message: `Successfully generated ${activeDbType.toUpperCase()} database snapshot backup for "${backupDatabaseName}" (${totalDocsCount} documents across ${collectionsStats.length} ${activeDbType === 'postgres' ? 'tables' : 'collections'} on ${backupData.serverHost}).`,
       filename,
       timestamp: backupData.exportedAt,
-      database: currentDbName,
+      database: backupDatabaseName,
       databaseType: activeDbType,
       serverHost: backupData.serverHost,
       sizeBytes: Buffer.byteLength(jsonStr),
@@ -4049,14 +4060,16 @@ function safeParseDate(val, fallbackDate = new Date()) {
 }
 
 // Sync Data FROM Active MongoDB TO PostgreSQL Database
-app.post('/api/admin/sync-postgres', async (req, res) => {
+app.post('/api/admin/sync-postgres', optionalAuth, requireAdmin, async (req, res) => {
   const { host, port, user, password, database, connectionString, mongoSourcePreset = 'rvmapp' } = req.body || {};
   const pgConfig = connectionString ? { connectionString } : {
-    host: host || process.env.PG_HOST || '127.0.0.1',
-    port: parseInt(port || process.env.PG_PORT || '5432'),
-    user: user || process.env.PG_USER || 'postgres',
-    password: (password && String(password).trim().length > 0) ? password : (process.env.PG_PASSWORD || ''),
-    database: database || process.env.PG_DATABASE || 'rvmpg',
+    host: host || activePgConfig.host || process.env.PG_HOST || '127.0.0.1',
+    port: parseInt(port || activePgConfig.port || process.env.PG_PORT || '5432'),
+    user: user || activePgConfig.user || process.env.PG_USER || 'postgres',
+    password: (password && String(password).trim().length > 0)
+      ? password
+      : (activePgConfig.password || process.env.PG_PASSWORD || ''),
+    database: database || activePgConfig.database || process.env.PG_DATABASE || 'rvmpg',
     ssl: req.body?.ssl ? { rejectUnauthorized: false } : false
   };
 
@@ -4087,6 +4100,9 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         name VARCHAR(100) NOT NULL,
         location VARCHAR(200),
         status VARCHAR(20) DEFAULT 'active',
+        machine_type VARCHAR(30) DEFAULT 'RVM_NEW',
+        client_id VARCHAR(50) DEFAULT 'ISP_MASTER',
+        client_name VARCHAR(150) DEFAULT 'ISP Environmental Master (All Sites)',
         bin_fill_percentage INT DEFAULT 0,
         total_bottles_recycled BIGINT DEFAULT 0,
         total_weight_kg NUMERIC(10,3) DEFAULT 0.000,
@@ -4094,6 +4110,10 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         local_ip VARCHAR(100),
         last_ping_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(30) DEFAULT 'RVM_NEW';
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(150) DEFAULT 'ISP Environmental Master (All Sites)';
 
       CREATE TABLE IF NOT EXISTS users (
         user_id VARCHAR(255) PRIMARY KEY,
@@ -4173,6 +4193,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
       // 2. Relational Mapping: recyclingsessions -> recycling_sessions
       if (colName === 'recyclingsessions') {
         let relSessionsAdded = 0;
+        let legacyMachinesAdded = 0;
         for (const doc of docs) {
           const sessionId = doc._id ? doc._id.toString() : (doc.session_id || doc.id);
           const machineId = (doc.machineId || doc.machine_id || 'UNKNOWN').trim();
@@ -4189,11 +4210,12 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           const createdAt = safeParseDate(doc.recycledAt || doc.created_at || doc.timestamp, new Date());
 
           // Ensure foreign key machine exists
-          await client.query(`
-            INSERT INTO machines (machine_id, name, status)
-            VALUES ($1, $1, 'active')
+          const machineInsert = await client.query(`
+            INSERT INTO machines (machine_id, name, status, machine_type, client_id, client_name)
+            VALUES ($1, $1, 'active', 'RVM_OLD', 'ISP_MASTER', 'ISP Environmental Master (All Sites)')
             ON CONFLICT (machine_id) DO NOTHING;
           `, [machineId]);
+          if (machineInsert.rowCount > 0) legacyMachinesAdded++;
 
           // Insert session ONLY IF NOT EXISTING (DO NOT OVERWRITE)
           const rIns = await client.query(`
@@ -4215,6 +4237,7 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
           if (rIns.rowCount > 0) relSessionsAdded++;
         }
         syncedTables.push({ name: 'recycling_sessions (Relational)', tableName: 'recycling_sessions', count: relSessionsAdded });
+        syncedTables.push({ name: 'legacy_machines (Relational)', tableName: 'machines', count: legacyMachinesAdded });
       }
 
       // 3. Relational Mapping: userprofile -> users
@@ -4264,8 +4287,14 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
     try {
       // Auto-register machines
       await client.query(`
-        INSERT INTO machines (machine_id, name, status)
-        SELECT DISTINCT COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'), 'active'
+        INSERT INTO machines (machine_id, name, status, machine_type, client_id, client_name)
+        SELECT DISTINCT
+          COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'),
+          COALESCE(data->>'machineId', data->>'machine_id', 'UNKNOWN'),
+          'active',
+          'RVM_OLD',
+          'ISP_MASTER',
+          'ISP Environmental Master (All Sites)'
         FROM recyclingsessions
         WHERE COALESCE(data->>'machineId', data->>'machine_id') IS NOT NULL
         ON CONFLICT (machine_id) DO NOTHING;
@@ -4295,7 +4324,9 @@ app.post('/api/admin/sync-postgres', async (req, res) => {
         const sCreated = safeParseDate(sData.recycledAt || sData.created_at || sData.timestamp, new Date());
 
         await client.query(`
-          INSERT INTO machines (machine_id, name, status) VALUES ($1, $1, 'active') ON CONFLICT (machine_id) DO NOTHING;
+          INSERT INTO machines (machine_id, name, status, machine_type, client_id, client_name)
+          VALUES ($1, $1, 'active', 'RVM_OLD', 'ISP_MASTER', 'ISP Environmental Master (All Sites)')
+          ON CONFLICT (machine_id) DO NOTHING;
         `, [mId]);
 
         await client.query(`

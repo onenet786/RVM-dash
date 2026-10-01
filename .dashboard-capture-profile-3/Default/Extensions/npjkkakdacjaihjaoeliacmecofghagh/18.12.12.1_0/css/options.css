@@ -1,0 +1,202 @@
+
+/* ==============================
+          OPTIONS PAGE
+** ============================== */
+
+html, body {
+    font-size: 100%;
+}
+
+h2, h3, h4, h5 {
+    font-family: 'Open Sans', sans-serif !important;
+    font-weight: normal;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    line-height: 1.4; }
+
+  h1 {
+    font-size: 2.75rem; }
+
+  h2 {
+    font-size: 2.3125rem; }
+
+  h3 {
+    font-size: 1.6875rem; }
+
+  h4 {
+    font-size: 1.4375rem; }
+
+  h5 {
+    font-size: 1.125rem; }
+
+  h6 {
+    font-size: 1rem; }
+
+#license-dialog a {
+    color:#0078a0;
+}
+
+.options-page {
+    margin:0px;
+    font-family:arial;
+}
+
+.options-page #header {
+    text-align: center;
+    color: white;
+    font-size: 40px;
+}
+
+.options-page .header-text {
+    display:inline-block;
+}
+
+.options-page .logo {
+    position:absolute;
+    left:30px;
+}
+.options-page #license-info {
+    font-family:arial;
+}
+
+.options-page #header {
+    background-image: url(/images/network.jpg);
+    padding:15px 20px 25px 15px;
+    margin-bottom:20px;
+}
+
+.options-page #license-info-internal {
+    background-color:#f3f3f3;
+    display:inline-block;
+    padding:14px;
+    padding-top:10px;
+    border-radius:8px;
+    border-style:solid;
+    border-width:1px;
+    border-color:#939393;
+}
+
+.options-page .options-block {
+    display: inline-block;
+    background-color: #f3f3f3;
+    border-style: solid;
+    border-width: 1px;
+    border-color: #939393;
+    border-radius: 10px;
+    padding: 0px 25px 15px 25px;
+    margin: 15px 30px 15px 30px;
+}
+
+.options-page .options-block h3 {
+    margin-top: 10px;
+    margin-bottom:25px;
+    text-align:center;
+}
+
+.options-page .options-block h5 {
+    margin: 20px 0px 15px 0px;
+}
+
+.options-page .options-block-body {
+    padding-left:15px;
+}
+
+.options-page .address-text, .options-page .x-address-text {
+    display:inline-block;
+    width:350px;
+}
+
+.options-page .address-list {
+    width:435px;
+}
+
+.options-page .options-block {
+    max-width:700px;
+}
+
+.options-page #compatibility-mode input {
+    margin-left:20px;
+}
+
+.options-page #ie-team-blog {
+    text-align:center;
+    margin:8px;
+}
+
+.options-page {
+    text-align:center;
+}
+
+.options-page .options-block {
+    text-align:left;
+}
+
+.options-page #compat-inputs label:after {
+    content: "\A";
+    white-space:pre;
+}
+
+.options-page #compat-inputs label, .options-page #compat-inputs input {
+    display:inline;
+}
+
+.options-page #compat-inputs {
+    margin-top:30px;
+}
+
+.options-page #license-dialog {
+    text-align:left;
+    background-color: #ffff66;
+    box-shadow: 7px 7px 5px #333;
+    border-style:solid;
+    position: fixed;
+    padding:15px 20px 0px 20px;
+    border-radius:10px;
+    opacity: 1;
+    z-index: 11000;
+    left: 50%;
+    width: 550px;
+    top: 200px;
+}
+
+.options-page #license-dialog h3 {
+    margin-bottom:20px;
+}
+
+.options-page #support-note {
+    font-size: small;
+    float:right;
+    margin-top:15px;
+}
+
+.options-page #licensee-name {
+    margin-bottom:10px;
+}
+
+#lean_overlay {
+    position: fixed;
+    z-index:100;
+    top: 0px;
+    left: 0px;
+    height:100%;
+    width:100%;
+    background: #000;
+    display: none;
+}
+
+
+#checking-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 123, 255, 1.0);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    font-size: 18px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    text-align: center;
+}

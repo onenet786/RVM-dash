@@ -1,0 +1,3 @@
+.visual .screen>img{max-height:420px;object-fit:contain;background:#eaf4ef}
+.visual .screen-crop{height:380px}
+.visual .screen-crop img{max-height:none}

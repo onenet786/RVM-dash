@@ -1,0 +1,153 @@
+[
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||affiliate.rakuten.co.jp^",
+      "resourceTypes": [
+        "script",
+        "image"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7426
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||blog.miyachan.cc/img/banner^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7427
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||c1.staticflickr.com",
+      "resourceTypes": [
+        "image"
+      ],
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7428
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||fc2.com^*side_amazon",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7429
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||mgstage.com/img/mgs/pc/affiliate_exp^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "clublucifer.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7430
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||rakuten.co.jp^",
+      "resourceTypes": [
+        "script",
+        "image"
+      ],
+      "domains": [
+        "46matome.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7431
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||s.yimg.jp/images/auct/salespromotion^*/buyee^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "auctions.yahoo.co.jp"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7432
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||tokyocatguardian.org^",
+      "domainType": "thirdParty",
+      "domains": [
+        "satoya-boshu.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7433
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||afi-b.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7434
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||rakuten.co.jp^",
+      "resourceTypes": [
+        "script",
+        "image"
+      ],
+      "domains": [
+        "46matome.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 7435
+  }
+]

@@ -1,0 +1,214 @@
+:root {
+    --seedr-primary-color: #4a90e2;
+    --seedr-error-color: #dc3545;
+    --seedr-success-color: #28a745;
+    --seedr-warning-color: #ffc107;
+    --seedr-border-color: #e0e0e0;
+    --seedr-text-color: #333333;
+    --seedr-background-color: #ffffff;
+    --seedr-box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    --seedr-border-radius: 4px;
+    --seedr-transition: all 0.3s ease;
+}
+
+/* Seedr-specific elements */
+.seedr-element {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    color: var(--seedr-text-color);
+    line-height: 1.4;
+    margin: 10px 0;
+}
+
+/* Seedr buttons */
+.seedr-button {
+    border-radius: var(--seedr-border-radius);
+    border: 1px solid var(--seedr-border-color);
+    padding: 8px 12px;
+    color: var(--seedr-text-color);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    display: inline-block;
+    margin: 10px 0;
+    background-color: var(--seedr-background-color);
+    transition: var(--seedr-transition);
+
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.seedr-button-success {
+    background-color: var(--seedr-success-color);
+    color: var(--seedr-background-color);
+    border-color: var(--seedr-success-color);
+}
+
+.seedr-button-warning {
+    background-color: var(--seedr-warning-color);
+    color: var(--seedr-text-color);
+    border-color: var(--seedr-warning-color);
+}
+
+.seedr-button:hover {
+    opacity: 0.9;
+}
+
+/* notifications styling */
+
+.seedr-notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.seedr-notification {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom: 15px;
+    max-width: 320px;
+    padding: 15px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.seedr-notification-success {
+    border-left: 4px solid #28a745;
+    background-color: #f0fff4;
+}
+
+.seedr-notification-warning {
+    border-left: 4px solid #ffc107;
+    background-color: #fffbeb;
+}
+
+.seedr-notification-error {
+    border-left: 4px solid #dc3545;
+    background-color: #fff5f5;
+}
+
+.seedr-notification-message {
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333333;
+}
+
+.seedr-notification-buttons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.seedr-notification button {
+    background-color: #4a90e2;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 8px;
+    padding: 6px 12px;
+    transition: background-color 0.2s ease;
+}
+
+.seedr-notification button:hover {
+    background-color: #3a7bc8;
+}
+
+.seedr-notification-close {
+    background-color: transparent !important;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 18px;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    transition: color 0.2s ease;
+}
+
+.seedr-notification-close:hover {
+    color: #333;
+}
+
+/* Reset styles */
+.seedr-reset {
+    all: initial;
+    box-sizing: border-box;
+
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#seedr-chrome-loading-div {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    z-index: 2147483647;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#seedr-chrome-loading-div .seedr-loader-content {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+#seedr-chrome-loading-div .seedr-logo {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+}
+
+#seedr-chrome-loading-div .seedr-loader-text {
+    flex-grow: 1;
+}
+
+#seedr-chrome-loading-div .seedr-loader-text h3 {
+    font-size: 16px;
+    color: #333333;
+    margin: 0 0 5px 0;
+    font-weight: 500;
+}
+
+#seedr-chrome-loading-div .seedr-loader-text p {
+    font-size: 12px;
+    color: #666666;
+    margin: 0;
+}
+
+#seedr-chrome-loading-div .seedr-progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+#seedr-chrome-loading-div .seedr-progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background-color: #8e44ad;
+    transition: width 0.3s ease;
+}
+
+#seedr-chrome-loading-div .seedr-cancel-button {
+    align-self: flex-end;
+    background-color: transparent;
+    border: none;
+    color: #8e44ad;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px;
+}

@@ -1,0 +1,49 @@
+{
+   "action": {
+      "default_icon": "images/chromeba.png",
+      "default_title": "__MSG_extBrowserActionTooltip__"
+   },
+   "background": {
+      "service_worker": "js/background.js"
+   },
+   "content_scripts": [ {
+      "js": [ "js/extapi_cs.js" ],
+      "matches": [ "*://*.ietab.net/*" ],
+      "run_at": "document_start"
+   }, {
+      "js": [ "js/ietabapi_cs.js" ],
+      "matches": [ "\u003Call_urls>" ],
+      "run_at": "document_start"
+   } ],
+   "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+   },
+   "default_locale": "en_US",
+   "description": "__MSG_extDescription__",
+   "externally_connectable": {
+      "ids": [ "*" ],
+      "matches": [ "*://*.ietab.net/*" ]
+   },
+   "host_permissions": [ "\u003Call_urls>" ],
+   "icons": {
+      "128": "images/chromeie128.png",
+      "16": "images/chromeie16.png",
+      "32": "images/chromeie32.png",
+      "48": "images/chromeie48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3fJXT3p2UCKciSvuowy0fXyzaLeP88QV98JWWgllC5PAfq7SYBpxYNaiLX+FYLASSrwIUSA5qNXblw/reUDHwuMyCUlY5KrkE1SGhSYnEEfN+r+LTUphQEMKZZCaUSq2xcvLd2M5SOTr/DHn6K3tMVBA7Kqm8prPlaLru+JVtGfv+RU9CaTJqRuq6SI8KnPHsb4aD8WaMYwjRH5OP7eyMTwjafLHdTIzjENIjSfzONp69Jr5FX61CADO2+7nnFZZ1gfvhBxPoBAG+uyIW2tMYtJ41E6tZqv9MK7zzvFUcjwIf3n0zg306HtbJQECRFxPVUMLSbKMg/lC6j8R38aOyQIDAQAB",
+   "manifest_version": 3,
+   "name": "IE Tab",
+   "options_page": "options.html",
+   "permissions": [ "tabs", "storage", "contextMenus", "webRequest", "webRequestBlocking", "nativeMessaging", "cookies", "alarms", "offscreen", "declarativeNetRequestWithHostAccess", "downloads" ],
+   "short_name": "IE Tab",
+   "storage": {
+      "managed_schema": "managed_schema.json"
+   },
+   "update_url": "https://edge.microsoft.com/extensionwebstorebase/v1/crx",
+   "version": "18.12.12.1",
+   "web_accessible_resources": [ {
+      "matches": [ "\u003Call_urls>" ],
+      "resources": [ "js/extapi_wp.js", "js/ietabapi_wp.js", "redir.htm", "options.html" ]
+   } ]
+}

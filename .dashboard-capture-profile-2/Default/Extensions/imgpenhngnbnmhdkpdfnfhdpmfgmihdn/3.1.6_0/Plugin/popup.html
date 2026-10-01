@@ -1,0 +1,325 @@
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>popbox</title>
+	<style>
+		html {
+			color: #000;
+			background: #fff
+		}
+
+		body,
+		div,
+		dl,
+		dt,
+		dd,
+		ul,
+		ol,
+		li,
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6,
+		pre,
+		code,
+		form,
+		fieldset,
+		legend,
+		input,
+		button,
+		textarea,
+		select,
+		p,
+		blockquote,
+		th,
+		td {
+			margin: 0;
+			padding: 0;
+		}
+
+		table {
+			border-collapse: collapse;
+			border-spacing: 0
+		}
+
+		fieldset,
+		img {
+			border: 0
+		}
+
+		address,
+		button,
+		caption,
+		cite,
+		code,
+		dfn,
+		em,
+		input,
+		optgroup,
+		option,
+		select,
+		strong,
+		textarea,
+		th,
+		var {
+			font: inherit
+		}
+
+		del,
+		ins {
+			text-decoration: none
+		}
+
+		li {
+			list-style: none
+		}
+
+		caption,
+		th {
+			text-align: left
+		}
+
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6 {
+			font-size: 100%;
+			font-weight: normal
+		}
+
+		q:before,
+		q:after {
+			content: ''
+		}
+
+		abbr,
+		acronym {
+			border: 0;
+			font-variant: normal
+		}
+
+		sup {
+			vertical-align: baseline
+		}
+
+		sub {
+			vertical-align: baseline
+		}
+
+		legend {
+			color: #000
+		}
+
+		a {
+			color: #0000ff;
+		}
+
+		/***********/
+		.SafeBg {
+			width: 340px;
+			height: 150px;
+			display: block;
+			background: url(img/window_safe.png) 0 0 no-repeat;
+		}
+
+		.RiskBg {
+			width: 340px;
+			height: 150px;
+			display: block;
+			background: url(img/window_safe.png) 0 0 no-repeat;
+		}
+
+		#popbox .mbody {
+			height: 115px;
+			position: relative;
+			font-family: arial;
+		}
+
+		#popbox .mbody dl {
+			width: 292px;
+			display: inline-block;
+			margin-top: 25px;
+			margin-right: 14px;
+			margin-left: 30px;
+		}
+
+		#popbox .mbody dl dt {
+			float: left;
+			width: 54px;
+			margin-right: 26px;
+		}
+
+		#popbox .mbody dl dd {
+			margin-left: 80px;
+		}
+
+		#popbox .SafeSpan {
+			color: #4cba71;
+			font-size: 20px;
+			margin-right: 10px;
+			margin-top: 5px;
+		}
+
+		#popbox .RiskSpan {
+			color: #e16352;
+			font-size: 20px;
+			margin-right: 10px;
+			margin-top: 5px;
+		}
+
+		;
+
+		#popbox .SafeDes {
+			float: left;
+			color: #009933;
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 12px;
+		}
+
+		;
+
+		#popbox .RiskDes {
+			float: left;
+			color: #d70101;
+			font-size: 16px;
+			font-weight: bold;
+			margin-top: 12px;
+		}
+
+
+		#popbox .mbody dl dd.message {
+			margin-bottom: 5px;
+			line-height: 24px;
+			height: 50px;
+			width: 200px;
+			overflow: hidden;
+		}
+
+		#popbox .head {
+			height: 35px;
+		}
+
+		.closebtn {
+			width: 18px;
+			height: 18px;
+			display: block;
+			cursor: pointer;
+			float: right;
+			margin-top: 6px;
+			margin-right: 0px;
+			background: url(img/popbox_btn_close.png) 0 0 no-repeat;
+		}
+
+		.boxbtn_ok {
+			width: 111px;
+			height: 32px;
+			display: block;
+			float: right;
+			margin-right: 88px;
+			margin-top: 8px;
+			background: url(./img/popbox_btn_ok.png);
+			line-height: 28px;
+			text-align: center;
+			color: #000;
+			text-decoration: none;
+		}
+
+		.bottom_info {
+			margin: 0px 14px;
+			color: #666;
+			font-size: 10px;
+			height: 26px;
+			line-height: 26px;
+			position: absolute;
+			bottom: 0;
+		}
+
+		.bottom_info li {
+			float: left;
+		}
+
+		.bottom_info li.detai_info {
+			text-align: center;
+			width: 90px;
+			text-decoration: underline;
+			cursor: pointer;
+			position: relative;
+		}
+
+		.bottom_info li.detai_info span {
+			width: 82px;
+			height: 64px;
+			padding-top: 5px;
+			display: none;
+			background: url(img/tip_details.png) 0 0 no-repeat;
+			position: absolute;
+			top: -55px;
+			right: 5px;
+		}
+
+		.bottom_info li.detai_info span a {
+			text-align: center;
+			line-height: 18px;
+		}
+
+		.bottom_info li.detai_info:hover span {
+			display: inline-block;
+		}
+	</style>
+
+</head>
+
+<body>
+	<div id="popbox" class="RiskBg">
+		<div class="head"><a href="#" id="btnClose" class="closebtn" onclick="window.close();"></a></div>
+		<div class="mbody">
+			<dl class="risk">
+				<dt><img id="safeImg" src="img/risk_logo.png " /></dt>
+				<dd class="message RiskSpan" id="dd_detail">
+					<!-- <span id="safeTitle" style="float: left; margin-left: -28px;margin-top: 3px;">Risk:</span> -->
+					<span id="safeDesc" style="float: left; margin-left: -32px;margin-top: 0px;" title="">This site is
+						unsafe</span>
+				</dd>
+			</dl>
+			<dl style="width:330px; display:inline-block;margin-top:0px;margin-right:0px; margin-left:0px;">
+				<dd>
+					<span id="badge"
+						style="color:#009933; font-size:16px; float:left; margin-top:12px; margin-left:0px"></span>
+					<span id="ads"
+						style="color:#009933; font-size:16px; float:left; margin-top:12px; margin-left: 5px; text-overflow : ellipsis"></span>
+				</dd>
+			</dl>
+			<ul class="bottom_info" id="detail_URL">
+				<li style="color:#808080; white-space:nowrap;" id="Site_Advisory" class="ellipsify">Advisory provided by
+					<a id="safebrowsing_faq" style="color:#808080; text-decoration:underline; cursor:pointer;"
+						onClick="window.open('https://www.iobit.com/goto.php?id=google')">Google</a> & IObit
+				</li>
+				<li class="detai_info">
+					<div class="ellipsify" id="detail"
+						style="color:#808080; text-align: right; float: right; margin-right: -5px; text-decoration:underline">
+						More details</div>
+					<span>
+						<a href="" id="antiphish"
+							onClick="window.open('https://www.iobit.com/goto.php?id=antiph')">Anti-phishing</a>
+						<br />
+						<a href="" id="stopbadware"
+							onClick="window.open('https://www.iobit.com/goto.php?id=adware')">Adware</a>
+					</span>
+				</li>
+			</ul>
+		</div>
+	</div>
+
+	<script src="popup.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,6921 @@
+[
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "/adserwer.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71212
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "=adv/getadvertisment|",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71213
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "^banery-reklamowe^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71214
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "^reklamy^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71215
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "^sidebar_reklama^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71216
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad-work.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71217
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.ipolska.pl/ad^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71218
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adsearch.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71219
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||adsnet.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71220
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||affiliates-solutions.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71221
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||banmax.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71222
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||converti.se^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71223
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||convertiser.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71224
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cozyrepeatedlycowardly.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71225
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hub.com.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71226
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||incontext.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71227
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||leadstar.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71228
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||media.stsaff.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71229
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||netsalesmedia.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71230
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pocketads.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71231
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||reklamawadowice24.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71232
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||renormaliseras.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71233
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rewords.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71234
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||shopeneo.network^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71235
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spacead.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71236
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tvtoss.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71237
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||waytogrow.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71238
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wpext.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71239
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.admitad.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71240
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.e-lider.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71241
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.eko-7.com.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71242
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||aff.bstatic.com/static/affiliate_base/js/booking_sp_widget",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71243
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||avanti.fashion/pub^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71244
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||businessclick.biz.pl/awrapper",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71245
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cdn.leadbit.com^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71246
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||comperialead.pl/getpulabanner.",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71247
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||contexthub.net^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71248
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ec.hub2.com.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71249
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||euphoniserent.xyz^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71250
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lnaff.pl/rkl_",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71251
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ofertaplay.info^*^androidbanerrespons^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71252
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||offersprovider.widget.onet.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71253
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||partnerzyapi.ceneo.pl/external/ap.js",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71254
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pp.funhub.pl^*?callback=wyswietlgra|",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71255
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ppwidget.skapiec.pl/widget^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71256
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||qwerty1.co.pl/www/sys/ajs1.php?",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71257
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||r.pless.nazwa.pl/public/banner^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71258
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||reklamy.hostings.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71259
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||smartclick.pl/*adquant",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71260
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||solutions4ad.com/partner^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71261
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||static.travelist.pl/web/js^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71262
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||system.mondeos.pl^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71263
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||thc-thc.com/reklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71264
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tja.pl^*^banerki",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71265
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tmefekt.pl/static/widget",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71266
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wydawca.lead.network/rkl_",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71267
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-290x150.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tygodnikpiski.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71268
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-ad-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tuhiszpania.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71269
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-baner-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "budownictwo.co",
+        "edebno.pl",
+        "firmy.meblarstwo.eu",
+        "ipulawy.pl",
+        "meblarskapolska.pl",
+        "meblosfera.pl",
+        "obiektysakralne.pl",
+        "ostrodanews.pl",
+        "panoramakutna.pl",
+        "sadownictwo.com.pl",
+        "slupca.pl",
+        "sochaczewianin.pl",
+        "stolarkabudowlana.eu",
+        "tkaninyobiciowe.eu",
+        "tygodnikpiski.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71270
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-baner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "blogprezesa.pl",
+        "crypto-trader.pl",
+        "ipulawy.pl",
+        "napoli24h.pl",
+        "przeclaw24.pl",
+        "wirtualnyzgierz.pl",
+        "wolanie.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71271
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-baner728.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "nieruchomosci-komercyjne.info",
+        "ogloszenia-nieruchomosci.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71272
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-baner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kk24.pl",
+        "my3miasto.pl",
+        "nolesnica.pl",
+        "nowagazeta.pl",
+        "regionfan.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71273
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banerek.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "nanarty.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71274
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-baners.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "terazkrosno.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71275
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banery-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "automotivesuppliers.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71276
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banery^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "przeclaw24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71277
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banner-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "erp-view.pl",
+        "forbot.pl",
+        "iknurow.pl",
+        "itvpiaseczno.pl",
+        "linia.com.pl",
+        "longevitas.pl",
+        "mlecznepodroze.pl",
+        "motocykle125.pl",
+        "olawa24.pl",
+        "pokonajlysienie.com",
+        "swiatczytnikow.pl",
+        "swiatoze.pl",
+        "techsetter.pl",
+        "tenisbydawid.pl",
+        "tkaninyobiciowe.eu",
+        "tucholanin.pl",
+        "uavo.com.pl",
+        "wirlandii.pl",
+        "ww-model.pl",
+        "zycieczestochowy.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71278
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "gieldaklasykow.pl",
+        "legitymizm.org",
+        "naszosie.pl",
+        "nowepomorze.pl",
+        "postawnaswoim.pl",
+        "pozyczkaportal.pl",
+        "przedsiebiorczepodlasie.pl",
+        "tvzg.pl",
+        "wwl24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71279
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banner1.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tu.swinoujscie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71280
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-banner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kaszuby24.pl",
+        "oirplodz.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71281
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-bannery-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bogaty.men",
+        "zarobmy.se"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71282
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-bener-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "meblosfera.pl",
+        "tapicerstwo.co",
+        "tkaninyobiciowe.eu"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71283
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-fb-baner-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "starosadeckie.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71284
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-reklama-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bithub.pl",
+        "chelmski.eu",
+        "e-hotelarz.pl",
+        "firmy.meblarstwo.eu",
+        "golub-cgd.pl",
+        "kurekmazurski.pl",
+        "kurier-kolski.pl",
+        "nasz-glos.com",
+        "ostrodanews.pl",
+        "przedsiebiorczepodlasie.pl",
+        "radomszczanska.pl",
+        "starosadeckie.info",
+        "tkaninyobiciowe.eu",
+        "tv-pelplin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71285
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-reklama.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "flarrow.pl",
+        "gazeta-mosina.pl",
+        "gazetatrybunalska.pl",
+        "jeleniagora998.pl",
+        "mojewronki.pl",
+        "ostrodanews.pl",
+        "pionki24.pl",
+        "popradio.pl",
+        "przysucha.informator-lokalny.pl",
+        "sochaczewianin.pl",
+        "tu.swinoujscie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71286
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-reklama_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "noworudzianin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71287
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-reklamy-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tu.swinoujscie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71288
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "-reklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kurekmazurski.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71289
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^1reklama^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "iturek.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71290
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^2021banery^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wysokomazowiecki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71291
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^2022baner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wysokomazowiecki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71292
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^300^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "betglob.pl",
+        "betgol.pl",
+        "emecze.pl",
+        "epilka.pl",
+        "estadios.pl",
+        "kuszotv.pl",
+        "mecze24.pl",
+        "meczelive.tv",
+        "meczenazywo.tv",
+        "meczlive.pl",
+        "oddslivesport.com",
+        "worldofbookmakers.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71293
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^468^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "worldofbookmakers.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71294
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^728^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "betgol.pl",
+        "emecze.pl",
+        "extragoals.com",
+        "mecze.com",
+        "oddslivesport.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71295
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^a-posters^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "minskmaz.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71296
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^aaareklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "zulawytv.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71297
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^ad^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "pieniny24.pl",
+        "sportowepodhale.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71298
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^admaster^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "suwalki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71299
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^adv^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "e-petrol.pl",
+        "naszglospoznanski.pl",
+        "zyciegrajewa.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71300
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^adv_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kcynia24.pl",
+        "koscian.net",
+        "naklo24.pl",
+        "powiat24.pl",
+        "sadki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71301
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^advert^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tarnow.net.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71302
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^advertisebuttons^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "smanager.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71303
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^adverts-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "zycie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71304
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^advs^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "telewizjastk.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71305
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^areklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "e-lokalne.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71306
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^artykul%20kierunek^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "otouczelnie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71307
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^ban^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kopaczka.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71308
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^ban_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "pogoda.nl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71309
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bananer^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "sportowebeskidy.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71310
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner%",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "podlasie24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71311
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "allebiznes.pl",
+        "centrumdruku3d.pl",
+        "cksport.pl",
+        "cowkrakowie.pl",
+        "cowwilanowie.pl",
+        "crypto-trader.pl",
+        "echokamienia.pl",
+        "firmy.meblarstwo.eu",
+        "genetyczne.pl",
+        "gloskoninski.pl",
+        "gorydlaciebie.pl",
+        "hi-fi.com.pl",
+        "iloveslubice.pl",
+        "infokatowice.pl",
+        "infokonin.pl",
+        "infomalopolska.pl",
+        "jazdaprawna.pl",
+        "kaszuby24.pl",
+        "kk24.pl",
+        "limanowianin.in",
+        "linia.com.pl",
+        "luzyce.info",
+        "magazynvip.pl",
+        "materialybudowlane.info.pl",
+        "mazopolska.pl",
+        "miastokobiet.pl",
+        "mysnet.pl",
+        "naszosie.pl",
+        "naszsrem.pl",
+        "niezaleznemediapodlasia.pl",
+        "obiektysakralne.pl",
+        "ostrodanews.pl",
+        "oswiecim112.pl",
+        "oto-samochody.pl",
+        "plotkibiznesowe.pl",
+        "polskacanada.com",
+        "portalkujawski.pl",
+        "portalwolow.pl",
+        "powrotroberta.pl",
+        "przeglad-sejnenski.pl",
+        "przewodnicywedkarscy.pl",
+        "radomsport.pl",
+        "regionalna.pl",
+        "rynekinwestycji.pl",
+        "sochaczewianin.pl",
+        "starosadeckie.info",
+        "szczecinek.com",
+        "tarnobrzeskie.eu",
+        "tv28.pl",
+        "tvbraniewo24.pl",
+        "twojaslupca.pl",
+        "tygodnik-rolniczy.pl",
+        "tygodnikkrag.pl",
+        "tygodnikpiski.pl",
+        "tylkotorun.pl",
+        "tyna.info.pl",
+        "whitemad.pl",
+        "wiadomosci.com",
+        "wiecbork112.pl",
+        "wirtualnelegionowo.pl",
+        "wirtualnemazowsze24.pl",
+        "wirtualnynowydwor.pl",
+        "wolanie.info",
+        "zw.pl",
+        "zwrotnikraka.pl",
+        "zyciezamoscia.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71312
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kazimierzdolny24.pl",
+        "magazynfakty.pl",
+        "ostrodanews.pl",
+        "przemyslkosmetyczny.pl",
+        "sokolka.tv"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71313
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner1200x200-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "starosadeckie.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71314
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner2.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "edebno.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71315
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bielsko.info",
+        "biif.pl",
+        "bukowinatatrzanska.pl",
+        "chojnice.com",
+        "enowiny.pl",
+        "info.stargard.pl",
+        "ipon.pl",
+        "lubliniec.info",
+        "megacennik.eu",
+        "mojreprap.pl",
+        "nowiny.rybnik.pl",
+        "pfm.pl",
+        "progressforpoland.com",
+        "progressforpoland.org",
+        "przyjaznawarszawa.pl",
+        "pszczyna.tv",
+        "sennik-mistyczny.pl",
+        "sportslaski.pl",
+        "tarnowskiegory24.info",
+        "tygodnik-krapkowicki.info",
+        "zw.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71316
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "7dni.pila.pl",
+        "archeton.pl",
+        "asystentbhp.pl",
+        "bloog.pl",
+        "chcemybycrodzicami.pl",
+        "chelsea24news.pl",
+        "chemiaibiznes.com.pl",
+        "chorzowianin.pl",
+        "cksport.pl",
+        "czestochowskie24.pl",
+        "dzierzgon-twojemiasto.pl",
+        "e-pingpong.pl",
+        "extra.info.pl",
+        "forumfajerwerki.pl",
+        "fresh-market.pl",
+        "futbolfejs.pl",
+        "gazetacz.com.pl",
+        "gazetagazeta.com",
+        "gazetka.be",
+        "gielda-koni.com.pl",
+        "glogow-info.pl",
+        "glosmordoru.pl",
+        "grapplerinfo.pl",
+        "info.stargard.pl",
+        "infofordon.pl",
+        "infokatowice.pl",
+        "jaw.pl",
+        "jazdaprawna.pl",
+        "kurier-kolski.pl",
+        "kurierostrowski.pl",
+        "kurierzamojski.pl",
+        "legitymizm.org",
+        "lexus-forum.pl",
+        "magazynregionalny.pl",
+        "materialybudowlane.info.pl",
+        "meteoprog.pl",
+        "miedzyzdroje.tv",
+        "mojeniemcy.de",
+        "nakolei.pl",
+        "nanarty.info",
+        "nowawrzesnia.pl",
+        "podgorze.pl",
+        "podlaskieagro.pl",
+        "polacywewloszech.com",
+        "poligonowewiesci.pl",
+        "portalkosmiczny.pl",
+        "przemyskie.info",
+        "przewodnicywedkarscy.pl",
+        "ptvr.pl",
+        "radiopiekary.pl",
+        "radioradom.pl",
+        "radomsport.pl",
+        "rdn.pl",
+        "regionalna.pl",
+        "sad24.pl",
+        "sporteuro.pl",
+        "sweetwedding.pl",
+        "swiatoze.pl",
+        "swidnik.pl",
+        "tc.ciechanow.pl",
+        "thinkapple.pl",
+        "tvostrow.pl",
+        "tw-24.pl",
+        "tygodnik-krapkowicki.info",
+        "tygodnik-rolniczy.pl",
+        "tygodnikmakowski.pl",
+        "tygodnikprzasnyski.com.pl",
+        "urodaizdrowie.pl",
+        "vwgolf.pl",
+        "wdrawskupomorskim.pl",
+        "wiadomosci.rii.pl",
+        "wiatriwoda.pl",
+        "widzewtomy.net",
+        "wieliczkacity.pl",
+        "wirtualnelegionowo.pl",
+        "wirtualnynowydwor.pl",
+        "zapytam.com",
+        "zkaszub.info",
+        "zpazurem.pl",
+        "zyciezamoscia.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71317
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banerkiiframe^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "zulawy.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71318
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banerkijpg^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "zulawy.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71319
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baners^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "konieimy.pl",
+        "nowaruda.info",
+        "podlasie24.pl",
+        "portalpszczelarski.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71320
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery/8^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "sportowememy.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71321
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery2018^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wysokomazowiecki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71322
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery2019^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wysokomazowiecki24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71323
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "24tp.pl",
+        "abc-dachy.pl",
+        "alexjones.pl",
+        "archeton.pl",
+        "asta24.pl",
+        "belchatow.bai.pl",
+        "bialogardzianin.pl",
+        "bielsko.biala.pl",
+        "brodnica.net",
+        "bukowinatatrzanska.pl",
+        "cieszyninfo.pl",
+        "co-slychac.pl",
+        "dachy.info.pl",
+        "deblin24.eu",
+        "doba.pl",
+        "domenergo.com",
+        "e-dobrydom.pl",
+        "e-konkursy.info",
+        "ebarlinek.pl",
+        "eglos.pl",
+        "elblag.net",
+        "emysliborz.pl",
+        "epszczyna.pl",
+        "fachowydekarz.pl",
+        "glowny-mechanik.pl",
+        "goryonline.com",
+        "haczyk.pl",
+        "haloursynow.pl",
+        "hotelinfo24.pl",
+        "igorzow.pl",
+        "igostyn.pl",
+        "ijarocin.pl",
+        "ikalisz.pl",
+        "ikamien.pl",
+        "ikrotoszyn.pl",
+        "iostrowwlkp.pl",
+        "ipleszew.pl",
+        "ipolska.info",
+        "ipyrzyce.pl",
+        "iswinoujscie.pl",
+        "jagiellonia.net",
+        "karpacz.net",
+        "kibice.net",
+        "kozienice24.pl",
+        "kuriergarwolinski.pl",
+        "kutno.net.pl",
+        "lipsko24.pl",
+        "lokalna24.pl",
+        "lubelszczyzna.info",
+        "maritime.com.pl",
+        "maslow.info.pl",
+        "mazury24.eu",
+        "mebleinfo.pl",
+        "miedzyrzec.info",
+        "moja-ostroleka.pl",
+        "mojaleczyca.pl",
+        "mragowo24.info",
+        "mymma.pl",
+        "nadmorze.pl",
+        "naszeopoczno.pl",
+        "nasztomaszow.pl",
+        "nowaruda.info",
+        "nowoczesnywarsztat.pl",
+        "opakowania.biz",
+        "ostrowmaz24.pl",
+        "paliwa.pl",
+        "piekarnie24.pl",
+        "pionki24.pl",
+        "pojezierze24.pl",
+        "polskicaravaning.pl",
+        "pomyslnadom.pl",
+        "portalwrc.pl",
+        "ppw.fishing",
+        "prudnicka.pl",
+        "przemyskie.info",
+        "pulskosmosu.pl",
+        "pultuszczak.pl",
+        "radomsport.pl",
+        "reszel.pl",
+        "romantycznyweekend.eu",
+        "rynekpapierniczy.pl",
+        "satkurier.pl",
+        "skionline.pl",
+        "sluzby-ur.pl",
+        "spawalnictwo.com.pl",
+        "sportgniezno.pl",
+        "staleo.pl",
+        "strzelecopolski.pl",
+        "swiatogloszen.net.pl",
+        "swiatopon.info",
+        "trentino.pl",
+        "twojeradio.fm",
+        "tworzymyhistorie.pl",
+        "tygodnikpodhalanski.pl",
+        "tygodnikprudnicki.pl",
+        "tygodniksiedlecki.com",
+        "typersi.pl",
+        "wcf.org.pl",
+        "wiadomoscihandlowe.pl",
+        "wloclawek.info.pl",
+        "wpr24.pl",
+        "zol.pl",
+        "zpazurem.pl",
+        "zrobotyzowany.pl",
+        "zwolen24.pl",
+        "zywiecsupernowa.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71324
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "instalacjebudowlane.pl",
+        "iszczecinek.pl",
+        "kuchenny.com.pl",
+        "maritime.com.pl",
+        "ogrodinfo.pl",
+        "portalplock.pl",
+        "sokolka.tv",
+        "tygodnik.pl",
+        "zegarkiipasja.pl",
+        "zyciesiedleckie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71325
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery_foto^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bielskirynek.pl",
+        "bydgoszcz24.pl",
+        "ciechocinek.biz",
+        "ddtorun.pl",
+        "ddwloclawek.pl",
+        "e-krajna.pl",
+        "ekutno.pl",
+        "expresskaszubski.pl",
+        "faktypilskie.pl",
+        "gle24.pl",
+        "gniewkowo.eu",
+        "gorlice24.pl",
+        "gostyn24.pl",
+        "gwe24.pl",
+        "itvszubin.pl",
+        "ki24.info",
+        "kolniak24.eu",
+        "koronowo.net.pl",
+        "mlodagdynia.pl",
+        "nizanskie.info",
+        "pulsciechanowa.pl",
+        "roztocze.net",
+        "rzeczkrotoszynska.pl",
+        "superchodziez.pl",
+        "swiecie24.pl",
+        "terazgabin.pl",
+        "terazlipno.pl",
+        "tusochaczew.pl",
+        "uniejow.net.pl",
+        "zyciesokolowa.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71326
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banerygx^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "forum.haszysz.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71327
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baneryjpg^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "pomorskifutbol.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71328
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banner-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "24firma.pl",
+        "420polska.pl",
+        "4pm.pl",
+        "all-inclusive.com.pl",
+        "biokurier.pl",
+        "bobrzanie.pl",
+        "businesswomanlife.pl",
+        "chinskiraport.pl",
+        "cksport.pl",
+        "czasnadmorze.pl",
+        "dzisiajwgliwicach.pl",
+        "gorydlaciebie.pl",
+        "juliarozumek.pl",
+        "ktoto.info",
+        "kurierzamojski.pl",
+        "meska-kuchnia.pl",
+        "morzaioceany.pl",
+        "nadarzyn.tv",
+        "nanarty.info",
+        "nowaruda.info",
+        "pielegniarki.info.pl",
+        "polacywewloszech.com",
+        "przewodnicywedkarscy.pl",
+        "psychatog.pl",
+        "racingforum.pl",
+        "swiatoze.pl",
+        "transg.pl",
+        "transportchorego.pl",
+        "wirlandii.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71329
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "archispace.pl",
+        "cksport.pl",
+        "diablo.phx.pl",
+        "porady.mobi",
+        "przeambitni.pl",
+        "transportchorego.pl",
+        "tripybiznesekipy.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71330
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banner3-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "przekultura.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71331
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "4lomza.pl",
+        "alipaczka.pl",
+        "autoklub.pl",
+        "calisia.pl",
+        "cashless.pl",
+        "centrumdruku3d.pl",
+        "chords.pl",
+        "enduhub.com",
+        "eurobuildcee.com",
+        "exspace.pl",
+        "extremehobby.eu",
+        "flashscore.pl",
+        "geoforum.pl",
+        "gospodarz.pl",
+        "konin24.info",
+        "miastociechocinek.com",
+        "moje-dzialdowo.pl",
+        "movie-box.pl",
+        "opinieouczelniach.pl",
+        "palukimogilno.pl",
+        "polonika.at",
+        "polskieradio.com",
+        "probasket.pl",
+        "strazacki.pl",
+        "tawernaskipperow.pl",
+        "tygodnik-krapkowicki.info",
+        "tygodnikzamojski.pl",
+        "zawodykonne.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71332
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "7dni.pila.pl",
+        "angielskieespresso.pl",
+        "biegowe.pl",
+        "chemiaibiznes.com.pl",
+        "conamokotowie.pl",
+        "coreblog.pl",
+        "e-play.pl",
+        "exspace.pl",
+        "fcinter.pl",
+        "firmy.meblarstwo.eu",
+        "forumfajerwerki.pl",
+        "kotdoskonaly.pl",
+        "kucharze.pl",
+        "kurier-bielski.cnm.pl",
+        "legitymizm.org",
+        "lexus-forum.pl",
+        "meblarskapolska.pl",
+        "meczenazywo.pl",
+        "my3miasto.pl",
+        "podlaskieagro.pl",
+        "polacywewloszech.com",
+        "portalmedialny.pl",
+        "prestizgliwice.pl",
+        "probasket.pl",
+        "rdn.pl",
+        "sadnowoczesny.pl",
+        "slupca.pl",
+        "super-warez.eu",
+        "sweetwedding.pl",
+        "truckitransport.pl",
+        "tu.swinoujscie.pl",
+        "tygodnikpiski.pl",
+        "urodaizdrowie.pl",
+        "wrc.net.pl",
+        "zielonanews.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71333
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bannerdb?",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "energoelektronika.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71334
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banners^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "4trucks.pl",
+        "agribiztvonline.com",
+        "alarmy.org",
+        "anonse-krosno.pl",
+        "augustowskireporter.pl",
+        "automotivesuppliers.pl",
+        "barlinek24.pl",
+        "beskidlive.pl",
+        "bieganie.pl",
+        "bitcoin-online.pl",
+        "bitcoin.pl",
+        "blacha.biz",
+        "brief.pl",
+        "budowa.org",
+        "budownictwo.org",
+        "bytomski.pl",
+        "casting4nick.pl",
+        "cech-lipno.pl",
+        "chlodnictwo.biz",
+        "chlodnictwoiklimatyzacja.pl",
+        "cjo.edu.pl",
+        "conadrogach.pl",
+        "czasostrzeszowski.pl",
+        "cztery-lapy.pl",
+        "damagier.pl",
+        "dami.walbrzych.pl",
+        "daminfo.pl",
+        "darkplanet.pl",
+        "ddwlkp.pl",
+        "deweloperzy.pl",
+        "dj24.pl",
+        "domnaobcasach.com",
+        "dzieciaki-testuja.pl",
+        "dziennikmazowiecki.pl",
+        "e-kg.pl",
+        "e-konkursy.info",
+        "e-morag.pl",
+        "e-sadownictwo.pl",
+        "e-szamotuly.pl",
+        "ebelchatow.pl",
+        "ebrodnica.pl",
+        "ecentrum.pl",
+        "edzieci.pl",
+        "elektryka.org",
+        "elka.pl",
+        "elpcmaniak.pl",
+        "em.kielce.pl",
+        "eoborniki.pl",
+        "erp-view.pl",
+        "estrzelce.pl",
+        "euslugi.pl",
+        "ezamosc.pl",
+        "fakty.nl",
+        "filme.pl",
+        "fit-online.pl",
+        "forumfajerwerki.pl",
+        "garsoniera.com.pl",
+        "gazeta.ie",
+        "gazetacz.com.pl",
+        "gazwoda.pl",
+        "gisplay.pl",
+        "glogow-info.pl",
+        "glogow.info.pl",
+        "glucholazyonline.com.pl",
+        "gostynin24.pl",
+        "gramwzielone.pl",
+        "haszysz.com",
+        "independenttrader.pl",
+        "infolinia.com",
+        "infoprzasnysz.com",
+        "informacjelokalne.pl",
+        "internet-komputery.blogspot.com",
+        "ironmangdynia.pl",
+        "jakzapamietac.pl",
+        "jastrzebieonline.pl",
+        "jedzenie.info.pl",
+        "jemywlodzi.pl",
+        "juniorowo.pl",
+        "katowicedzis.pl",
+        "kierowcyhgv.uk",
+        "killuminati.pl",
+        "klimatyzacja.biz",
+        "kominy.biz",
+        "konecki24.pl",
+        "konin24.info",
+        "koscianiak.pl",
+        "krasnik24.pl",
+        "kroplaarganu.com",
+        "krosnocity.pl",
+        "ksiegowosc.org",
+        "l24.lt",
+        "leonclub.pl",
+        "ligowiec.net",
+        "logistyka.net.pl",
+        "lowiczanin.info",
+        "lsi-lublin.pl",
+        "lubiehrubie.pl",
+        "luvpop.pl",
+        "magazyngitarzysta.pl",
+        "masarnieonline.pl",
+        "matematykazpasja.pl",
+        "materialybudowlane.info.pl",
+        "metale.org",
+        "mgsm.pl",
+        "miasto.koszalin.pl",
+        "miastokolobrzeg.pl",
+        "miastons.pl",
+        "miedziowe.pl",
+        "mleczarnieonline.pl",
+        "mleczarstwo.com",
+        "mojarodzina.org",
+        "moje-gniezno.pl",
+        "mojejaworzno.pl",
+        "moneyafterhours.blogspot.com",
+        "moszczenica.info",
+        "motofaktor.pl",
+        "motonews.pl",
+        "motoocena.pl",
+        "muzyczneradio.com.pl",
+        "nanarty.info",
+        "narzedziownia.org",
+        "naszaostroda.pl",
+        "naziemna.info",
+        "nczas.com",
+        "niedziela.nl",
+        "norwegofil.pl",
+        "notowania.net",
+        "nowawrzesnia.pl",
+        "nowemiasto.com.pl",
+        "nowepomorze.pl",
+        "nowypm.pl",
+        "nysa.fm",
+        "nysainfo.pl",
+        "obiektywne.pl",
+        "odkrywamyzakryte.com",
+        "odpylanie.info",
+        "ofg.pl",
+        "ogrodnikleszek.pl",
+        "ogrzewanie.info.pl",
+        "okiemmaleny.pl",
+        "opakowania.biz",
+        "opoczno.info",
+        "otososnowiec.pl",
+        "partyzantka.com.pl",
+        "pcmusic.pl",
+        "petronews.pl",
+        "piekarnieonline.pl",
+        "piotrkowski24.pl",
+        "pnt24.info",
+        "podlaskieagro.pl",
+        "pogoda.info",
+        "polskaligatenisa.pl",
+        "polskaniepodlegla.pl",
+        "polskatradycja.pl",
+        "poradniki24h.pl",
+        "portal-hale.pl",
+        "portalmorski.pl",
+        "powiatsuski24.pl",
+        "pozeramstrony.pl",
+        "ppr.pl",
+        "praca.net",
+        "programtv.info",
+        "przeclaw24.pl",
+        "przedsiebiorcarolny.pl",
+        "przeglad-ogrodniczy.pl",
+        "przegladkoninski.pl",
+        "przekrojfinansowy.pl",
+        "pzl24.info",
+        "qulturaslowa.pl",
+        "radioplus.com.pl",
+        "radioq.fm",
+        "radomiak.pl",
+        "ratownik-med.pl",
+        "receptynadom.pl",
+        "ringpolska.pl",
+        "ringpolska24.pl",
+        "rolnictwo.com.pl",
+        "rtw.org.pl",
+        "rzeszowairport.pl",
+        "sacro.com.pl",
+        "samoloty.pl",
+        "sanatoria.com.pl",
+        "siewie.tv",
+        "skarzyski.eu",
+        "skawina24.com",
+        "slaskiesiemianowice.pl",
+        "slowosportowe.pl",
+        "slubice24.pl",
+        "sokolka.tv",
+        "stalowka.eu",
+        "stolarstwo.org",
+        "stonerchef.pl",
+        "styropian.biz",
+        "sucha24.pl",
+        "swiat-kamienia.pl",
+        "tanie-loty.com.pl",
+        "targowek.info",
+        "team29er.pl",
+        "telix.pl",
+        "terazjaslo.pl",
+        "tsk24.pl",
+        "tustolica.pl",
+        "tv28.pl",
+        "tvmazovia.pl",
+        "tvostrow.pl",
+        "twojejaslo.pl",
+        "twojezaglebie.pl",
+        "tworzywa.org",
+        "tygodnikdzialdowski.pl",
+        "wadowiceonline.pl",
+        "warsztatpodrozy.com",
+        "waszaturystyka.pl",
+        "wentylacja.biz",
+        "wiadomoscirudzkie.pl",
+        "wirtualnygarwolin.pl",
+        "wojsko.com.pl",
+        "wojskonews.pl",
+        "wolna-polska.pl",
+        "wroclawskiejedzenie.pl",
+        "wschodnik.pl",
+        "zegarkiclub.pl",
+        "zegarkiipasja.pl",
+        "zory24.pl",
+        "zppa.org",
+        "zycie.me",
+        "zywiecinfo.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71335
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bannery^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "czytelniamedyczna.pl",
+        "e-grajewo.pl",
+        "em.kielce.pl",
+        "legionisci.com",
+        "najlepsze-porady.pl",
+        "nbi.com.pl",
+        "nocnygdansk.pl",
+        "obk.pl",
+        "ogrodinfo.pl",
+        "olsztyn24.com",
+        "pomorskifutbol.pl",
+        "supernowosci24.pl",
+        "transportchorego.pl",
+        "wagaciezka.com",
+        "walbrzych24.com",
+        "wiz.pl",
+        "wroclife.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71336
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bans^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "plastech.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71337
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^biframe^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "info.elblag.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71338
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bimg^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tustolica.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71339
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^bjpg^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "info.elblag.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71340
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^campaign^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "cire.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71341
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^campaigns^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "grodzisknews.pl",
+        "radomsko24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71342
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^cene0^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "baxu.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71343
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^dekoran-fototapety-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "ckinfo.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71344
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^edytom.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "legitymizm.org"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71345
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^grafika2^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tsk24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71346
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^homepage-banners^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "otomoto.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71347
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^img_bannery^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "piszanin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71348
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^ims^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "gorzow24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71349
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^inline__1_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "24jgora.pl",
+        "24wroclaw.pl",
+        "bbfan.pl",
+        "ciechanowinaczej.pl",
+        "e-kg.pl",
+        "egarwolin.pl",
+        "eprzasnysz.pl",
+        "gpr24.pl",
+        "ibemowo.pl",
+        "ibialoleka.pl",
+        "ibielany.pl",
+        "imokotow.pl",
+        "inowroclaw.info.pl",
+        "iochota.pl",
+        "iotwock.info",
+        "itargowek.pl",
+        "iursus.pl",
+        "iursynow.pl",
+        "iwawer.pl",
+        "iwilanow.pl",
+        "iwola.pl",
+        "izoliborz.pl",
+        "kurierpodlaski.pl",
+        "nowagazeta.pl",
+        "nwloclawek.pl",
+        "ototorun.pl",
+        "sejny.net",
+        "sucha24.pl",
+        "tudeblin.pl",
+        "tulegnica.pl",
+        "turyki.pl",
+        "twojradom.pl",
+        "wio.waw.pl",
+        "zambrow.org",
+        "zycie.pila.pl",
+        "zyciekalisza.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71350
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^inline_images/114^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "mylomza.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71351
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^inne^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bezrzecze24.pl",
+        "gminadobra24.pl",
+        "gumience24.pl",
+        "mierzyn24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71352
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^kampania_reklamowa^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "lubliniec.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71353
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^logo-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "legitymizm.org"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71354
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^motor-land^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "motocykle125.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71355
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^nowosc_images^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "angielski.slowka.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71356
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^partner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "podajdalej.info.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71357
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^partnerzy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "szkolasen.com",
+        "widzewtomy.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71358
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^pasek_reklam^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "proszkow.eu"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71359
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^polecamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "almanak.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71360
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^promo^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "minecraft-list.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71361
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^promocja-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "edebno.pl",
+        "motocykle125.pl",
+        "olawa24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71362
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rek2^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "barlinek24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71363
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rek^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "glogow-info.pl",
+        "inwestycje-rzeszow.pl",
+        "ivrozbiorpolski.pl",
+        "tuwodzislaw.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71364
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rek^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wiadomoscipw.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71365
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rekl^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "pgt.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71366
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklama-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bilgorajska.pl",
+        "fizjoterapeuty.pl",
+        "fleschmazowsza.com.pl",
+        "goniecpolski.nl",
+        "icelandnews.is",
+        "infofordon.pl",
+        "ipulawy.pl",
+        "miedzyzdrojskie.info",
+        "mojgdow.pl",
+        "naszwybir.pl",
+        "ok24.tv",
+        "warka24.pl",
+        "wodnyrelax.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71367
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklama-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "noworudzianin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71368
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklama-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "ptvr.pl",
+        "starosadeckie.info",
+        "transg.pl",
+        "tv-pelplin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71369
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklama0_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "24ikp.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71370
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklama_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "24ikp.pl",
+        "greencanoe.pl",
+        "jaslo4u.pl",
+        "kazimierzdolny24.pl",
+        "konstancin.com",
+        "legitymizm.org",
+        "miedzyzdrojskie.info",
+        "tarnowiak.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71371
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklamowe^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bolec.info"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71372
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklamy-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "ipulawy.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71373
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklamy_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "gazetka.be"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71374
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklamy_baner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wirtualnygarwolin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71375
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rekrek^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "moj-sen.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71376
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^rotator^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "gorzowianin.com",
+        "lubuskie24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71377
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^statystyk_box.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "bajery.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71378
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^therapy.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tvklodzka.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71379
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^vbanner^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "extraswiecie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71380
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^wordwwwpunkty.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "7dni.pila.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71381
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^xbaner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "kuriernauczycielski.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71382
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^xreklama-",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tu.swinoujscie.pl",
+        "tv-pelplin.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71383
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^zdjecia_reklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "radio.katowice.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71384
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_ban.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "radomsport.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71385
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_ban_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "glos.live"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71386
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_baner%",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "transg.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71387
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_baner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "112malopolska.pl",
+        "112wadowice.pl",
+        "gazetagazeta.com",
+        "mojapsychologia.pl",
+        "polonia.nl",
+        "ptvr.pl",
+        "radomsport.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71388
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_baner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "biegologia.pl",
+        "goal.pl",
+        "kuriersuwalski.pl",
+        "magazynfakty.pl",
+        "ostrodanews.pl",
+        "podlaskie24.pl",
+        "poscigi.pl",
+        "radiotczew.pl",
+        "sokolka.tv",
+        "wdrawskupomorskim.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71389
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_banerek.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "plytkiceramiczne.info.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71390
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_banerowy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "nowywyszkowiak.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71391
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_banery_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "stolarkabudowlana.eu"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71392
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_banner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "polacywewloszech.com",
+        "swiatmetali.eu"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71393
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_banner_",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "chemiaibiznes.com.pl",
+        "cire.pl",
+        "cksport.pl",
+        "dzisiajwgliwicach.pl",
+        "e-pingpong.pl",
+        "forumfajerwerki.pl",
+        "itwiz.pl",
+        "jagodnik.pl",
+        "juliarozumek.pl",
+        "katalogprzedsiebiorstw.pl",
+        "kb.pl",
+        "kuriergarwolinski.pl",
+        "nowy-sacz.info",
+        "pionki24.pl",
+        "polishexpress.co.uk",
+        "poradnikhandlowca.com.pl",
+        "przewodnicywedkarscy.pl",
+        "starosadeckie.info",
+        "stolarkabudowlana.eu",
+        "swarzedz24.pl",
+        "tygodnik-rolniczy.pl",
+        "wydawca.com.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71394
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_reklama.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "radomsport.pl",
+        "staraoliwa.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71395
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_reklama^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tarnowiak.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71396
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_reklamy2^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "epoznan.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71397
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "_reklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "wiadomoscisasiedzkie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71398
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||24opole.pl/dimg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71399
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||3.fwcdn.pl^*^welcomemain.",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "filmweb.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71400
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||4media.com^",
+      "domains": [
+        "lokalna24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71401
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.polskiprzemysl.com.pl^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71402
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ad.prv.pl^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71403
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||alicdn.com^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "telchina.pl",
+        "wlodawa.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71404
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||automotivesuppliers.pl^*^djmediatools^*-lewa-kolumna-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71405
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||autorak.com.pl^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domains": [
+        "nadwisla24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71406
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||b24tv.pl^*^wolmed_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71407
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||baby-shower.pl^*^babymama-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71408
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bejsment.com^*^300x100xbejsment-ad-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71409
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bejsment.com^*^dalekdiamonds300x100_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71410
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||biotechnologia.pl^*^ats^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71411
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||bitcoinwidget.pl^",
+      "domains": [
+        "jpktraders.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71412
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||blogomaniak.pl^*-ceneo-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71413
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||bluepartner.pl^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "infofordon.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71414
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bobrowniki.tv^*^praca-piekary.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71415
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||booking.com/flexiproduct.",
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71416
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||botland.com.pl^*^banery_",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71417
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bstok.pl^*^iparts.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71418
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||bstok.pl^*^masal-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71419
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||busiarze.com.pl^*^lacus-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71420
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||busiarze.com.pl^*^webp.net-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71421
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||cdn-lubimyczytac.pl/upload/wallpapers^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "lubimyczytac.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71422
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||cdn.gallery^*^files^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "szczecinek.com"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71423
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||cdn.sterta.pl^",
+      "domains": [
+        "rusz.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71424
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ceneo.pl^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "7dni.pila.pl",
+        "archigame.pl",
+        "exerim.pl",
+        "grojec24.net",
+        "komputery-pc.info",
+        "nowinylokalne.pl",
+        "pch24.info",
+        "pgo24.pl",
+        "pmi24.info",
+        "tromil.pl",
+        "warownie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71425
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ceny-zlomu.pl^*-223x134_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71426
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ceny-zlomu.pl^images^*_223x134.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71427
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||chemiaibiznes.com.pl/assets/upload/kamp^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71428
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cmas.pl^*^banners^animacja_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71429
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||codziennikmlawski.pl^*^szpulka_pasaz_okm-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71430
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||cyfrowaekonomia.pl^*quark3.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71431
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dentoforum.pl^*^baner1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71432
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||dicatatepantry.com^",
+      "domains": [
+        "anime-odcinki.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71433
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dobrewiadomosci.eu^*^opal_copy.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71434
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dopilar.pl^*^sky1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71435
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dx-team.org^*^pover.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71436
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dz-ow.pl^*^narty.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71437
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||dziennikpolski24.pl^*^ads?",
+      "resourceTypes": [
+        "xmlhttprequest"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "dziennikpolski24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71438
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||dzisiajwgliwicach.pl^*^sixsilver-jubiler",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71439
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-hotelarz.pl^*=300x80^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71440
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-hotelarz.pl^*=750x200^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71441
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||e-kolo.pl/css/popup.css^",
+      "resourceTypes": [
+        "stylesheet"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "e-kolo.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71442
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-petrol.pl^*^*tutankuj*.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71443
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-pingpong.pl^*^pileczkigewo-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71444
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-pingpong.pl^*^reklamapingpong.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71445
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||e-pingpong.pl^*reklama.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71446
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ebarlinek.pl^*^beznazwy-1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71447
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ebd.cda-hd.co/api/users^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71448
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ebookpoint.pl",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domains": [
+        "swiatczytnikow.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71449
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ebroker.pl^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "icyfrowypolsat.pl",
+        "mojeanonse.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71450
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ec.bankier.pl^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "icyfrowypolsat.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71451
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||echogorzowa.pl^*^2015/516^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71452
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||edipresse.hit.gemius.pl^",
+      "domains": [
+        "przyslijprzepis.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71453
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||egorzow.pl^*-pzu_gorzow_mieszka.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71454
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ekologia.guru^*^baner03.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71455
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ekologia.guru^*^seo.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71456
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||elubaczow.com^*^lprez.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71457
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||emisja.contentstream.pl^",
+      "domains": [
+        "sportowy24.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71458
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||emisja.contentstream.pl^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "innemedium.pl",
+        "jejportal.pl",
+        "superdania.pl",
+        "tojuzbylo.pl",
+        "tylkoastronomia.pl",
+        "tylkomedycyna.pl",
+        "tylkonauka.pl",
+        "tylkoprzyroda.pl",
+        "ulub.pl",
+        "zmianynaziemi.pl",
+        "zmianysolarne.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71459
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eostroleka.pl^*^cache-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71460
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||esanok.pl/dodatki^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71461
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||esensja.pl^*^madbooks_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71462
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||esensja.pl^*^skapiec-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71463
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||estadios24.pl/img/*.webp",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71464
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||estrzelce.pl^*^*maral.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71465
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eswinoujscie.pl^*-noclegi-baza-hotelowa-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71466
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eswinoujscie.pl^*^layered-popups^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71467
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eswinoujscie.pl^*^radiotaxiswinoujscie.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71468
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||eswinoujscie.pl^*^zdjecia-slubne-nad",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71469
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||evertiq.pl/bximg^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71470
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||fadstrack.com^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "make-cash.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71471
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||faunaflora.com.pl/euroanimal.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71472
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||fcinter.pl^*^iparts*.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71473
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||fiatklubpolska.pl^*-iparts.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71474
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||fireads.online^",
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71475
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||forum.haszysz.com/solarr^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71476
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||fwcdn.pl^*^ready^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "filmweb.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71477
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||g.cda.pl/mediafile/acyhqyrkzus.mp4",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71478
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||g.cda.pl/player.php?ads",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71479
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gazetasenior.pl^*_300x300_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71480
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||getsitecontrol.com^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "swiatmotocykli.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71481
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||getyourguide.com",
+      "domains": [
+        "tuhiszpania.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71482
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||glos-tn.krakow.pl/palottifm.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71483
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||glos.live^*^vitality_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71484
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||goldap.org.pl^*^fronton.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71485
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||goniec.net^*^topmortgagesqweb.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71486
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gorydlaciebie.pl^*^booking-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71487
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||gostynin.info^*^new_project_30.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71488
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||gpi5.glogow.pl/rek^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "glogow-info.pl",
+        "glogow.info.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71489
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||greencanoe.pl^*-802x118.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71490
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||greencanoe.pl^*^248x248px_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71491
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hiszpania-apartamenty.pl^*^hotele.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71492
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hiszpania-apartamenty.pl^*^samochody.jpg",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71493
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||hsmkorkus.com^*^logo_bento-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71494
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ibb.co^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domains": [
+        "lexus-forum.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71495
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ifrancja.fr^*^jobsora.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71496
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||info.stargard.pl^*^tlo_info.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71497
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||infobeskidy.eu^*^files/r*.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71498
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||instalki.pl^*^banners/vebo_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71499
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ipulawy.pl^*^panda-web.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71500
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||izachodniopomorskie.pl^*^tanie_foto_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71501
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kantorywalut.pl^*^ik_gif-1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71502
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kantorywalut.pl^*^ik_sdb.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71503
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kcynia.info^*^rolnik-serwis2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71504
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kmziz.pl^*^250x250c^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71505
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kmziz.pl^*^728x90c^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71506
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kobiety-kobietom.com^*^dobrykantor.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71507
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||komediowo.pl^*^ciekawe-miejsca-w-warszawie.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71508
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kopalniawiedzy.pl^*^skanermks.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71509
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||koscierzyna24.info^*^s3_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71510
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||kreacje.ebroker.pl^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "max-kasa.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71511
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kryniczanie.pl^*^ubezpieczenie-na-zycie-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71512
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kryptoholik.pl^*^nestt.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71513
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kryptoholik.pl^*^pum^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71514
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kryptoporadnik.pl^*^binance_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71515
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kryptowaluty.info.pl^*^ezgif.com-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71516
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||kurier-lokalny.com^*^matuz-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71517
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lechia.net^*^jooma-guru-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71518
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||leszczynscy.nazwa.pl^",
+      "resourceTypes": [
+        "image",
+        "xmlhttprequest"
+      ],
+      "domains": [
+        "zlotowskie.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71519
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lilia.doba.pl^",
+      "resourceTypes": [
+        "image"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71520
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lokalna24.pl^*^wasbruk_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71521
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lubartow24.pl/b^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71522
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lubawka.info/okna-drzwi-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71523
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||lwowecki.info^*^03/samson-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71524
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||majsterkowo.pl/wp-content/themes/majsterkowobox/assets/js/head.js?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71525
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||majsterkowo.pl/wp-content/themes/majsterkowobox/style.css?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71526
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||market.bia24.pl/"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71527
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||masztu.pl^*^udzialowiec.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71528
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||maszwolne.pl^*^pages^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71529
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mazopolska.pl^*-300x150.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71530
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mazopolska.pl^*^protech-baner",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71531
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mazury.info.pl^1logo^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71532
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mfiles.pl^*^comarch_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71533
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mgsm.pl/js/getskapiecads.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71534
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||miastokolobrzeg.pl^*^brico",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71535
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||miastons.pl^*^donking-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71536
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||mmarocks.pl^*^1342x178.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71537
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||motocykle125.pl^*^junak^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71538
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||naszekielce.com^*^inkubator_kielce.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71539
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||naszekielce.com^*_250x500.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71540
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||naszsrem.pl^*^psb_mrowka_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71541
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nevicom.pl/wyswietl_baner.",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71542
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nextclick.pl/widget/widget.advertisement",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71543
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||niebiescy.pl^*^chimimeca_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71544
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||niebiescy.pl^*^icservice_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71545
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||niebiescy.pl^*^iparts_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71546
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||niebiescy.pl^*^piroshop_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71547
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||niebiescy.pl^*^stefanik_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71548
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nowytydzien.pl^*^baner-330x200.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71549
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nowytydzien.pl^*^diagnostyka512_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71550
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||nowytydzien.pl^*^neoseo2-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71551
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ocdn.eu/files/mastt^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71552
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||odkryjpomorze.pl^*^loga_prawa_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71553
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ogloszeniadrobne.warszawa.pl^*^spedgear.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71554
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ogloszeniarolnicze.com.pl^**^mkw-nowa.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71555
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ok24.tv^*^06/lasvegan.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71556
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||onnetwork.tv^",
+      "domains": [
+        "donald.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71557
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ono24.info^*^sad^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71558
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||partner.rankomat.pl/tracking/media^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domainType": "thirdParty"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71559
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||partner.rankomat.pl^",
+      "domains": [
+        "skionline.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71560
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pfcc.eu^*^automaty.png",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71561
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pfcc.eu^*^choryzont.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71562
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pfcc.eu^*^goldrop.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71563
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pfcc.eu^*^mie11.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71564
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||plonsk24.pl^*^img_67^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71565
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||plonsk24.pl^*^img_72^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71566
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||poczta-online.com^*^globkurier.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71567
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||podhale24.pl/uploads/r^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71568
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||pogoda.nl^*^header3_1_black.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71569
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||poland.us^*^katalog^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71570
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||polonia-peterborough.uk^*^studio-fotograficzne-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71571
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||polskielupki.pl^*^*consulting.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71572
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||poludnie.com.pl^*_banery-www2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71573
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||poradnik-pacjenta.pl^*-rekl.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71574
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||portal.plocman.pl^*^300x600.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71575
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||portalmorski.pl^*^pmb^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71576
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||postimg.cc^",
+      "domains": [
+        "pogonsportnet.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71577
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||powiat-piaseczynski.info^*_300x200.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71578
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||powiat-piaseczynski.info^*_300x250px-1.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71579
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||prudnik24.pl^*^psb_mrowka.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71580
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||prudnik24.pl^*^wypozyczalnia_gastronomiczna.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71581
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ps3-hack.pl^*^buttons/virtualfuture.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71582
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||radioq.fm^*^jquery.gafancybox.",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71583
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||radiosudety24.pl^*^sad^",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71584
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||radiowrzesnia.pl^*^pum^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71585
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||redefine.hit.stat24.com^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "geekweek.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71586
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||redefine.hit.stat24.com^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domains": [
+        "polsatsport.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71587
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||redefineadpl.hit.gemius.pl^",
+      "domains": [
+        "polsatnews.pl",
+        "polsatsport.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71588
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rehabilitacyjne.pl^*_maxim.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71589
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rek.www.wp.pl^"
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71590
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||reklama-lowicz.pl^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "lowicz24.eu"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71591
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||reklamy.naszraciborz.pl^ad^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71592
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||rep.leaselink.pl/plugin^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "icomp.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71593
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rlu24.pl^marek2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71594
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||rodaknet.com/reklamujemy^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71595
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||s0urce.io^*^idletowerminer^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71596
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||sas-sap.com/",
+      "domains": [
+        "polonia.poznan.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71597
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||skipol.pl^*^watermark_azoty.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71598
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sokolka.tv^*^betonholding.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71599
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sokolka.tv^*^osir.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71600
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spliff.pl^*^domowauprawa_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71601
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spliff.pl^*^ecobison_logo_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71602
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spliff.pl^*^sensimilla_logo_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71603
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spottedskarzysko.pl^*^pup_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71604
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||spottedskarzysko.pl^*^szmaragd.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71605
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sprowadzanie-aut.pl^*^auta-z-usa-pl.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71606
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||stalowemiasto.pl/_a^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71607
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||stalowemiasto.pl/colada2^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71608
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starosadeckie.info^*^czyste-powietrze.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71609
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starosadeckie.info^*^myjnia.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71610
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starosadeckie.info^*rolbud-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71611
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starosadeckie.info^*rolbud.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71612
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starosadeckie.info^*szewczyk-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71613
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||starysacz.info^*^r3333333.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71614
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||static2.elektroda.pl^*^menubarads^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71615
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||sterta.pl^",
+      "domains": [
+        "linkologia.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71616
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||sterta.pl^",
+      "resourceTypes": [
+        "image"
+      ],
+      "domains": [
+        "olsztyn.com.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71617
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||stoczniowcy.pl^*^jds.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71618
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||supernowosci24.pl^*^decoeco2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71619
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||sychar.org^*^tolle-wide-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71620
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||syrena.nekla.eu^*-agraf-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71621
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||systempartnerski.pl^",
+      "resourceTypes": [
+        "sub_frame"
+      ],
+      "domains": [
+        "icyfrowypolsat.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71622
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||systemyplatnosci.com^*^fundacja_zoodoptuj.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71623
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||systemyplatnosci.com^*^hotpay_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71624
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||szczecinek.com^*^inline_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71625
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||szukam-ksiazki.pl/marbet_hurtownia.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71626
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||szukam-ksiazki.pl^*^havana.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71627
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tanuki.pl/imglink^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71628
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tarnowiak.pl^*^premium_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71629
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tarnowiak.pl^*_wizytowka^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71630
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tenis.net.pl^*^mtc.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71631
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tenis.net.pl^*^oszustwo300x200",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71632
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tkaninyobiciowe.eu^*^dik-hurtownia-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71633
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tkaninyobiciowe.eu^*^nastex.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71634
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||transg.pl^*^meblohaus_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71635
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||tromil.pl^*^09/parownice-multimatic.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71636
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||trzoda-chlewna.com.pl^*^mainbg_img.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71637
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||typersi.pl/pliki/fortuna^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71638
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||unitedtails.com^*^logo-rc.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71639
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vetopedia.pl^*^newbanvetid.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71640
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||vetopedia.pl^*^vetid.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71641
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||w203.pl/autoczescionline24_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71642
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||w203.pl/sklep-motoryzacyjny-iparts.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71643
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||wadmargincling.com^",
+      "domains": [
+        "anime-odcinki.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71644
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||weben1.com^",
+      "domains": [
+        "icyfrowypolsat.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71645
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wiadomosci.rii.pl^*^tlo_wiadomosci.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71646
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||widget.nokaut.pl^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "tromil.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71647
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wielkopolska.tv^*^osk_wawrzyniak-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71648
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wirtualnyelk.pl^*^artystyczny-dom-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71649
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wirtualnyelk.pl^*^bus-lotnisko-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71650
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wolbrom.pl^*^warta.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71651
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wronieckibazar.pl^*^izometwww.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71652
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||wszczecinie.pl/r/www/images^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71653
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||www.filmweb.pl/welcomescreenjs",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71654
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xlomza.pl^*^gina.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71655
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xlomza.pl^*^kukasz08_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71656
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||xlomza.pl^*^wizytowka_kaledarz.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71657
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||xtb.com^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "kantorywalut.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71658
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||zamioculcas2.org^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "budujesz.info",
+        "rynek-rolny.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71659
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zd24.pl^*^jesienna-zaduma-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71660
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||ziemialimanowska.pl^*.hutekprojekty.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71661
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||zniwiarz.topagrar.pl^",
+      "resourceTypes": [
+        "image",
+        "sub_frame"
+      ],
+      "domains": [
+        "elita-magazyn.pl",
+        "profitechnika.pl",
+        "sadnowoczesny.pl",
+        "topagrar.pl",
+        "tygodnik-rolniczy.pl",
+        "warzywaiowoce.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71662
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zyciezamoscia.pl^*^niewygodne2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71663
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "||zyciezamoscia.pl^*^niezalezna.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71664
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||appboxes.co/wp-content/uploads/nagam/",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "nagieamatorki.net"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71665
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||erot.pl^",
+      "resourceTypes": [
+        "script"
+      ],
+      "domains": [
+        "sexi.pl"
+      ]
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71666
+  },
+  {
+    "priority": 1000,
+    "condition": {
+      "urlFilter": "betonline.net.pl,mecze24.pl",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "block"
+    },
+    "id": 71667
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": ".adrotate.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "mh24.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71668
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/adsign.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "adsign.polsatmedia.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71669
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/extension/adverts/design/standard/javascript/adverts/quantcastt^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "antyradio.pl",
+        "chillizet.pl",
+        "meloradio.pl",
+        "planeta.pl",
+        "radiozet.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71670
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "/extension/adverts/design/standard/templates/esi^",
+      "resourceTypes": [
+        "script"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "antyradio.pl",
+        "chillizet.pl",
+        "meloradio.pl",
+        "planeta.pl",
+        "radiozet.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71671
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner-tp.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "tygodnikprudnicki.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71672
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^baner.",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "cech-lipno.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71673
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^banery/2^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "sportgniezno.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71674
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "^reklamy^",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "csbydgoszcz.pl",
+        "selgros24.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71675
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||api.samiswoi24.pl/advert?",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71676
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||egarwolin.pl^*^inline__1_576.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71677
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||gfx.wiadomosci.radiozet.pl/extension/adverts/design/standard/javascript/adverts/quantcast/quantcast.js",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71678
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||googleapis.com^*^ima3.js|",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "radiozet.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71679
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||gorzow24.pl^*^im_91.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71680
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||gostynin24.pl^*^banners/owsik^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71681
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||iochota.pl^*^inline__1_2083.",
+      "resourceTypes": [
+        "image"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "iochota.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71682
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ivrozbiorpolski.pl^*_donate_",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71683
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||kazimierzdolny24.pl^*^reklama_box.gif",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71684
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||legitymizm.org^*^gabis-",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71685
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||liveads.pl^",
+      "domains": [
+        "liveads.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71686
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||market.bia24.pl/r2|",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71687
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||maszwolne.pl^*^pages/mini^",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71688
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||myao.adocean.pl^*^ado.js|",
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "radiozet.pl"
+      ]
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71689
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||ppr.pl^*^banners^*ppr.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71690
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||radiozet.pl/extension/adverts/design/standard/templates/esi/adv/quantcastiframe.html",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71691
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||samoloty.pl^*^lgp2.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71692
+  },
+  {
+    "priority": 2000,
+    "condition": {
+      "urlFilter": "||team29er.pl^*^fr234a.",
+      "isUrlFilterCaseSensitive": false
+    },
+    "action": {
+      "type": "allow"
+    },
+    "id": 71693
+  },
+  {
+    "priority": 2001,
+    "condition": {
+      "urlFilter": "||walbrzych24.com/upload/upload/bannery_html/polityka/index.html|",
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame"
+      ],
+      "isUrlFilterCaseSensitive": false,
+      "domains": [
+        "walbrzych24.com"
+      ]
+    },
+    "action": {
+      "type": "allowAllRequests"
+    },
+    "id": 71694
+  }
+]
