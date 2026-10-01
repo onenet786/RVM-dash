@@ -801,7 +801,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span className="text-slate-600 dark:text-slate-400">3-Bin Capacity</span>
                         <span className="text-[10px] text-slate-400 font-mono">
-                          Scale: {m.scaleStatus || m.scale_status || 'Optimal'}
+                          Scale: {m.scaleStatus || m.scale_status || 'Ready'}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
@@ -820,7 +820,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                         <div className="p-1 rounded border border-purple-200 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-950/30">
                           <span className="text-purple-700 dark:text-purple-400 font-bold block">Paper</span>
                           <span className="font-bold text-purple-900 dark:text-purple-200">
-                            {m.paperBinFillKg ? parseFloat(m.paperBinFillKg) : (m.paper_bin_fill_kg ? parseFloat(m.paper_bin_fill_kg) : 0)} kg
+                            {typeof m.paperBinFillKg === 'number' ? m.paperBinFillKg.toFixed(1) : (m.paper_bin_fill_kg ? parseFloat(m.paper_bin_fill_kg).toFixed(1) : '0.0')} kg
                           </span>
                         </div>
                       </div>

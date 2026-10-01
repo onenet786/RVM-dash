@@ -448,8 +448,11 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE machines ALTER COLUMN pulse_count SET DEFAULT 0;
 
       UPDATE machines 
-      SET plastic_bin_fill = 0, metal_bin_fill = 0, paper_bin_fill_kg = 0.00, pulse_count = 0
-      WHERE (plastic_bin_fill = 45 AND metal_bin_fill = 30 AND paper_bin_fill_kg = 8.50);
+      SET plastic_bin_fill = 0, metal_bin_fill = 0, paper_bin_fill_kg = 0.00, bin_fill_percentage = 0, pulse_count = 0
+      WHERE (plastic_bin_fill = 45 AND metal_bin_fill = 30 AND paper_bin_fill_kg = 8.50)
+         OR (plastic_bin_fill = 58 AND metal_bin_fill = 42 AND paper_bin_fill_kg = 11.40)
+         OR (plastic_bin_fill = 65 AND metal_bin_fill = 50 AND paper_bin_fill_kg = 14.80)
+         OR (plastic_bin_fill = 85 AND pulse_count = 1420);
     `).catch(() => {});
 
     // Ensure organizations table has personalized dashboard and machine fields
@@ -908,9 +911,9 @@ async function initProductionPostgresSchemas() {
       -- C. Seed dedicated demo / baseline machines if not already present
       INSERT INTO machines (machine_id, name, location, status, machine_type, client_id, client_name, bin_fill_percentage, plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg, scale_status, tare_offset_grams, zero_drift_grams, inductive_status, ultrasonic_status, optical_status, dropgate_status, anti_cheat_trips, pulse_count, offline_backlog_count)
       VALUES 
-        ('PECO-01', 'PecoDrop Station (Indoor Hub 1)', 'Metro Mall RWP - Ground Floor', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 62, 58, 42, 11.40, 'Optimal', 0.00, 0.02, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
-        ('PECO-02', 'PecoDrop Station (Indoor Hub 2)', 'Metro Mall RWP - Food Court 3F', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 78, 65, 50, 14.80, 'Compensated', 0.15, 0.32, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
-        ('RVM-OLD-01', 'RVM Old Legacy Kiosk', 'ISP Metro Street Station - North', 'active', 'RVM_OLD', 'ISP_MASTER', 'ISP Environmental Master (All Sites)', 85, 85, 0, 0.00, 'N/A', 0.00, 0.00, 'N/A', 'N/A', 'N/A', 'N/A', 0, 1420, 0)
+        ('PECO-01', 'PecoDrop Station (Indoor Hub 1)', 'Metro Mall RWP - Ground Floor', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 0, 0, 0, 0.00, 'Ready', 0.00, 0.00, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
+        ('PECO-02', 'PecoDrop Station (Indoor Hub 2)', 'Metro Mall RWP - Food Court 3F', 'active', 'PECODROP', 'METRO_MALL', 'Client: Metro Mall RWP', 0, 0, 0, 0.00, 'Ready', 0.00, 0.00, 'NORMAL', 'NORMAL', 'N/A', 'N/A', 0, 0, 0),
+        ('RVM-OLD-01', 'RVM Old Legacy Kiosk', 'ISP Metro Street Station - North', 'active', 'RVM_OLD', 'ISP_MASTER', 'ISP Environmental Master (All Sites)', 0, 0, 0, 0.00, 'N/A', 0.00, 0.00, 'N/A', 'N/A', 'N/A', 'N/A', 0, 0, 0)
       ON CONFLICT (machine_id) DO UPDATE SET
         machine_type = EXCLUDED.machine_type,
         client_id = EXCLUDED.client_id,
@@ -2750,19 +2753,19 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               machineType: mType,
               clientId: cId,
               clientName: cName,
-              plasticBinFill: r.plastic_bin_fill ?? 45,
-              metalBinFill: r.metal_bin_fill ?? 30,
-              paperBinFillKg: parseFloat(r.paper_bin_fill_kg || 8.50),
-              scaleStatus: r.scale_status || 'Optimal',
-              tareOffsetGrams: parseFloat(r.tare_offset_grams || 0.00),
-              zeroDriftGrams: parseFloat(r.zero_drift_grams || 0.02),
+              plasticBinFill: r.plastic_bin_fill != null ? parseInt(r.plastic_bin_fill) : 0,
+              metalBinFill: r.metal_bin_fill != null ? parseInt(r.metal_bin_fill) : 0,
+              paperBinFillKg: r.paper_bin_fill_kg != null ? parseFloat(r.paper_bin_fill_kg) : 0.0,
+              scaleStatus: r.scale_status || 'Ready',
+              tareOffsetGrams: r.tare_offset_grams != null ? parseFloat(r.tare_offset_grams) : 0.00,
+              zeroDriftGrams: r.zero_drift_grams != null ? parseFloat(r.zero_drift_grams) : 0.00,
               inductiveStatus: r.inductive_status || 'NORMAL',
               ultrasonicStatus: r.ultrasonic_status || 'NORMAL',
               opticalStatus: r.optical_status || '60 FPS',
               dropgateStatus: r.dropgate_status || 'CLOSED',
-              antiCheatTrips: parseInt(r.anti_cheat_trips || 0),
-              pulseCount: parseInt(r.pulse_count || 1250),
-              offlineBacklogCount: parseInt(r.offline_backlog_count || 0),
+              antiCheatTrips: r.anti_cheat_trips != null ? parseInt(r.anti_cheat_trips) : 0,
+              pulseCount: r.pulse_count != null ? parseInt(r.pulse_count) : 0,
+              offlineBacklogCount: r.offline_backlog_count != null ? parseInt(r.offline_backlog_count) : 0,
               pointsPerPlasticBottle: r.points_per_plastic ?? 10,
               pointsPlasticSmall: r.points_plastic_small ?? 5,
               pointsPlasticMedium: r.points_plastic_medium ?? 10,
