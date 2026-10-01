@@ -4016,6 +4016,11 @@ const PROTECTED_POSTGRES_TABLES = new Set([
   'schema_migrations', 'migrations'
 ]);
 
+// One-way fallback digest for the separately authorized reset credential.
+// Production environment variables can override both the username and digest.
+const DEFAULT_DB_RESET_USERNAME = 'OneNetSol';
+const DEFAULT_DB_RESET_PASSWORD_SHA256 = '33842cec03125882a23f5bcd6312bf0963a036bec7dfffbb6ae330d254a1fe3e';
+
 function safeCredentialMatch(actual, expected) {
   const actualBuffer = Buffer.from(String(actual || ''), 'utf8');
   const expectedBuffer = Buffer.from(String(expected || ''), 'utf8');
@@ -4023,12 +4028,12 @@ function safeCredentialMatch(actual, expected) {
 }
 
 function validateDatabaseResetCredentials(username, password) {
-  const expectedUsername = process.env.DB_RESET_USERNAME || 'OneNetSol';
-  const configuredHash = String(process.env.DB_RESET_PASSWORD_SHA256 || '').trim().toLowerCase();
+  const expectedUsername = process.env.DB_RESET_USERNAME || DEFAULT_DB_RESET_USERNAME;
+  const environmentHash = String(process.env.DB_RESET_PASSWORD_SHA256 || '').trim().toLowerCase();
   const configuredPassword = process.env.DB_RESET_PASSWORD;
-  if (!configuredHash && !configuredPassword) return { configured: false, valid: false };
-  const passwordValid = configuredHash
-    ? safeCredentialMatch(crypto.createHash('sha256').update(String(password || ''), 'utf8').digest('hex'), configuredHash)
+  const expectedHash = environmentHash || (configuredPassword ? '' : DEFAULT_DB_RESET_PASSWORD_SHA256);
+  const passwordValid = expectedHash
+    ? safeCredentialMatch(crypto.createHash('sha256').update(String(password || ''), 'utf8').digest('hex'), expectedHash)
     : safeCredentialMatch(password, configuredPassword);
   return { configured: true, valid: safeCredentialMatch(username, expectedUsername) && passwordValid };
 }
@@ -4059,7 +4064,7 @@ app.get('/api/db/reset-options', authenticateToken, requireSuperAdmin, async (re
     res.json({
       database: 'rvmpg', tables: tableDetails,
       protectedTables: [...PROTECTED_POSTGRES_TABLES].sort(),
-      credentialsConfigured: Boolean(process.env.DB_RESET_PASSWORD_SHA256 || process.env.DB_RESET_PASSWORD)
+      credentialsConfigured: true
     });
   } catch (err) {
     console.error('[Database Reset Options Error]', err.message);
