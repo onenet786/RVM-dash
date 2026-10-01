@@ -425,9 +425,9 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(20) DEFAULT 'RVM_NEW';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';
-      ALTER TABLE machines ADD COLUMN IF NOT EXISTS plastic_bin_fill INT DEFAULT 45;
-      ALTER TABLE machines ADD COLUMN IF NOT EXISTS metal_bin_fill INT DEFAULT 30;
-      ALTER TABLE machines ADD COLUMN IF NOT EXISTS paper_bin_fill_kg NUMERIC(6,2) DEFAULT 8.50;
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS plastic_bin_fill INT DEFAULT 0;
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS metal_bin_fill INT DEFAULT 0;
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS paper_bin_fill_kg NUMERIC(6,2) DEFAULT 0.00;
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS scale_status VARCHAR(50) DEFAULT 'Optimal';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS tare_offset_grams NUMERIC(6,2) DEFAULT 0.00;
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS zero_drift_grams NUMERIC(6,2) DEFAULT 0.02;
@@ -436,9 +436,21 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS optical_status VARCHAR(20) DEFAULT '60 FPS';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS dropgate_status VARCHAR(20) DEFAULT 'CLOSED';
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS anti_cheat_trips INT DEFAULT 0;
-      ALTER TABLE machines ADD COLUMN IF NOT EXISTS pulse_count BIGINT DEFAULT 1250;
+      ALTER TABLE machines ADD COLUMN IF NOT EXISTS pulse_count BIGINT DEFAULT 0;
       ALTER TABLE machines ADD COLUMN IF NOT EXISTS offline_backlog_count INT DEFAULT 0;
     `);
+
+    // Reset un-updated legacy default mock telemetry values (45%, 30%, 8.50kg) to 0 for machines without live data
+    await pool.query(`
+      ALTER TABLE machines ALTER COLUMN plastic_bin_fill SET DEFAULT 0;
+      ALTER TABLE machines ALTER COLUMN metal_bin_fill SET DEFAULT 0;
+      ALTER TABLE machines ALTER COLUMN paper_bin_fill_kg SET DEFAULT 0.00;
+      ALTER TABLE machines ALTER COLUMN pulse_count SET DEFAULT 0;
+
+      UPDATE machines 
+      SET plastic_bin_fill = 0, metal_bin_fill = 0, paper_bin_fill_kg = 0.00, pulse_count = 0
+      WHERE (plastic_bin_fill = 45 AND metal_bin_fill = 30 AND paper_bin_fill_kg = 8.50);
+    `).catch(() => {});
 
     // Ensure organizations table has personalized dashboard and machine fields
     await pool.query(`

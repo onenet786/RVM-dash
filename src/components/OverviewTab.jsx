@@ -121,9 +121,9 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
   };
 
   const liveNetworkStatus = useMemo(() => {
-    const total = machineSummary?.totalActive ?? overview?.totalMachines ?? 7;
-    const online = machineSummary?.onlineCount ?? total;
-    const pct = total > 0 ? Math.round((online / total) * 100) : 100;
+    const total = machineSummary?.totalActive ?? overview?.totalMachines ?? 0;
+    const online = machineSummary?.onlineCount ?? 0;
+    const pct = total > 0 ? Math.round((online / total) * 100) : 0;
     const label = `${pct}% Network Online (${online} of ${total} ${total === 1 ? 'Kiosk' : 'Kiosks'} Active)`;
     return {
       total,

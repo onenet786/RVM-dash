@@ -800,20 +800,28 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border t-border mb-4 space-y-2">
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span className="text-slate-600 dark:text-slate-400">3-Bin Capacity</span>
-                        <span className="text-[10px] text-slate-400 font-mono">Load Scale: 99.8%</span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Scale: {m.scaleStatus || m.scale_status || 'Optimal'}
+                        </span>
                       </div>
                       <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
                         <div className="p-1 rounded border t-border bg-white dark:bg-slate-800/80">
                           <span className="text-slate-400 block">Plastic</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{m.plasticBinFill || 28}%</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {typeof m.plasticBinFill === 'number' ? m.plasticBinFill : (m.plastic_bin_fill ?? 0)}%
+                          </span>
                         </div>
                         <div className="p-1 rounded border t-border bg-white dark:bg-slate-800/80">
                           <span className="text-slate-400 block">Metal</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{m.metalBinFill || 15}%</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200">
+                            {typeof m.metalBinFill === 'number' ? m.metalBinFill : (m.metal_bin_fill ?? 0)}%
+                          </span>
                         </div>
                         <div className="p-1 rounded border border-purple-200 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-950/30">
                           <span className="text-purple-700 dark:text-purple-400 font-bold block">Paper</span>
-                          <span className="font-bold text-purple-900 dark:text-purple-200">{m.paperBinFillKg || '14.2'} kg</span>
+                          <span className="font-bold text-purple-900 dark:text-purple-200">
+                            {m.paperBinFillKg ? parseFloat(m.paperBinFillKg) : (m.paper_bin_fill_kg ? parseFloat(m.paper_bin_fill_kg) : 0)} kg
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -827,7 +835,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {m.totalPulseCount || 1420} Hardware Pulses recorded • 0 backlog
+                        {m.totalPulseCount || m.pulse_count || 0} Hardware Pulses recorded • 0 backlog
                       </div>
                     </div>
                   ) : (
@@ -838,7 +846,9 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                           <span>AI Optical System</span>
                         </span>
-                        <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 font-mono">99.6% Accuracy</span>
+                        <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 font-mono">
+                          {m.opticalStatus || m.optical_status || 'Operational'}
+                        </span>
                       </div>
                       <div className="text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
                         All 4 internal verification sensors operational
@@ -859,7 +869,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                         </button>
                       </div>
                       <div className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
-                        Chamber reached {m.plasticBinFill || 95}% physical capacity
+                        Chamber reached {m.plasticBinFill || 85}% physical capacity
                       </div>
                     </div>
                   )}
@@ -883,7 +893,9 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     {isPeco && (
                       <div className="flex justify-between text-slate-600 dark:text-slate-400">
                         <span>Paper Processed:</span>
-                        <span className="font-bold text-purple-700 dark:text-purple-300 mono">{m.paperCount || '14.2'} kg</span>
+                        <span className="font-bold text-purple-700 dark:text-purple-300 mono">
+                          {m.paperCount ? parseFloat(m.paperCount) : (m.paperBinFillKg ? parseFloat(m.paperBinFillKg) : 0)} kg
+                        </span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600 dark:text-slate-400 pt-0.5">
