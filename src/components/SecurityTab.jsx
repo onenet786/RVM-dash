@@ -1112,6 +1112,30 @@ export default function SecurityTab() {
             </div>
 
             <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
+              {/* Modal Inline Alert Notification */}
+              {message && (
+                <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 animate-fade-in ${
+                  message.type === 'success' 
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300'
+                }`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {message.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+                    )}
+                    <span className="text-xs font-semibold leading-snug">{message.text}</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setMessage(null)} 
+                    className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 t-text-muted shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-bold t-text-muted uppercase block mb-1">Full Name</label>
                 <input

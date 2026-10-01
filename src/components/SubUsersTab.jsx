@@ -207,7 +207,10 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
       return;
     }
     if (form.assignedMachines.length === 0) {
-      setMessage({ type: 'error', text: 'Please delegate at least one machine to this sub-user.' });
+      const msgText = availableMachines.length === 0
+        ? 'Your organization currently has 0 assigned machines. Please contact ISP Super Admin to assign machines to your fleet before registering sub-users.'
+        : 'Please delegate at least one machine to this sub-user.';
+      setMessage({ type: 'error', text: msgText });
       return;
     }
 
@@ -708,6 +711,30 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
             </div>
 
             <form onSubmit={handleSaveSubUser} className="space-y-6">
+              {/* Modal Inline Alert Notification */}
+              {message && (
+                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 animate-fade-in ${
+                  message.type === 'success' 
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300'
+                }`}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {message.type === 'success' ? (
+                      <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 shrink-0 text-rose-500" />
+                    )}
+                    <span className="text-xs sm:text-sm font-semibold leading-snug">{message.text}</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setMessage(null)} 
+                    className="p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 t-text-muted shrink-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               {/* Basic Info Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
