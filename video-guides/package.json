@@ -1,0 +1,9 @@
+{
+  "name": "isp-kiosk-video-guides",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline rendering assets for ISP RVM and PecoDrop user tutorial videos",
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}

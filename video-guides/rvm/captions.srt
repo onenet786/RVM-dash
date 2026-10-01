@@ -1,0 +1,34 @@
+1
+00:00:00,000 --> 00:00:07,000
+PUBLIC REVERSE VENDING MACHINE
+Manufactured by ISP Environmental Solutions Pvt. Ltd.
+
+2
+00:00:07,000 --> 00:00:14,000
+The welcome dashboard shows instructions, material counters, points, and rankings.
+Start by scanning the QR code or pressing operational key 0.
+
+3
+00:00:14,000 --> 00:00:21,000
+Wait for the insert prompt. Use one clean, empty container at a time.
+Accepted categories are plastic bottles, beverage cans, and UBC cartons.
+
+4
+00:00:21,000 --> 00:00:28,000
+Release the container and wait while the machine detects material and size.
+Do not hold the item or insert another container during scanning.
+
+5
+00:00:28,000 --> 00:00:35,000
+For an accepted item, check that the material count and reward points increase.
+Wait for the ready prompt before continuing.
+
+6
+00:00:35,000 --> 00:00:42,000
+For a rejected item, wait for all movement to stop and follow the screen.
+Never reach inside or force the gate.
+
+7
+00:00:42,000 --> 00:00:49,000
+Press Enter when finished. Scan the reward QR or enter the requested mobile number.
+Confirm the transaction and wait for the success message.

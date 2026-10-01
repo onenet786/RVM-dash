@@ -1,0 +1,34 @@
+1
+00:00:00,000 --> 00:00:07,000
+PECODROP ENTERPRISE RECYCLING KIOSK
+Manufactured by ISP Environmental Solutions Pvt. Ltd.
+
+2
+00:00:07,000 --> 00:00:14,000
+Two landscape displays guide employees and show the live corporate leaderboard.
+Scan the start QR or use the approved employee authentication method.
+
+3
+00:00:14,000 --> 00:00:21,000
+Wait until the session is ready and the required compartment shows AVAILABLE.
+Insert only one approved item when instructed.
+
+4
+00:00:21,000 --> 00:00:28,000
+PLASTIC: Use the magenta CIRCLE aperture for empty PET bottles.
+Release the bottle and wait for acceptance before inserting another item.
+
+5
+00:00:28,000 --> 00:00:35,000
+CANS / METAL: Use the emerald TRIANGLE aperture for empty beverage cans.
+Never insert aerosols, batteries, liquids, or sharp metal.
+
+6
+00:00:35,000 --> 00:00:42,000
+OFFICE PAPER: Use the cyan SQUARE aperture. Paper is measured by weight.
+Recycle only documents permitted by your organization's privacy policy.
+
+7
+00:00:42,000 --> 00:00:49,000
+If an item is rejected, wait for all movement to stop and follow the screen.
+Never reach inside or force an intake gate. Thank you for recycling!

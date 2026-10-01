@@ -1,0 +1,15 @@
+file '../source/rvm-machine.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_02_home_page.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_03_step_01.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_04_step_02.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_06_step_03_accepted.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_05_step_02_rejection.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_07_step_04_wallet.png'
+duration 7
+file '../../docs/rvm_desktop_app_docs/CaptureScreenshots/snapshots/screen_07_step_04_wallet.png'

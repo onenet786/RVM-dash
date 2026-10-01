@@ -1,0 +1,15 @@
+file '../source/pecodrop-machine.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_01_welcome.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_02_session_ready.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_03_plastic_accepted.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_04_can_accepted.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_05_paper_accepted.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_06_rejected.png'
+duration 7
+file '../../docs/pecodrop_desktop_app_docs/snapshots/pecodrop_06_rejected.png'
