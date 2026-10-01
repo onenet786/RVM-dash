@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client Site Technician Guide 2026</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm 17mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #17362d; font: 10pt/1.42 "Segoe UI", Arial, sans-serif; }
+  h1, h2, h3 { color: #075f48; margin: 0 0 7px; line-height: 1.18; }
+  h1 { font-size: 27pt; } h2 { font-size: 17pt; border-bottom: 2px solid #90d7b5; padding-bottom: 5px; }
+  h3 { font-size: 12pt; margin-top: 12px; }
+  p { margin: 5px 0 8px; } ul, ol { margin: 5px 0 10px 20px; padding: 0; } li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 13px; page-break-inside: avoid; }
+  th, td { border: 1px solid #a9cbbc; padding: 6px 7px; vertical-align: top; }
+  th { background: #dff3e8; color: #064c3a; text-align: left; }
+  tr:nth-child(even) td { background: #f7fbf9; }
+  code, .code { font-family: Consolas, monospace; font-weight: 700; color: #7b1e3d; }
+  .cover { min-height: 245mm; display: flex; flex-direction: column; justify-content: center; text-align: center; page-break-after: always; }
+  .cover img { width: 115px; margin: 0 auto 18px; }
+  .cover .sub { font-size: 16pt; color: #397062; margin: 8px 0; }
+  .cover .tag { display: inline-block; align-self: center; margin-top: 20px; padding: 8px 18px; border: 2px solid #14805f; border-radius: 999px; font-weight: 700; }
+  .meta { margin-top: 36px; color: #526b63; }
+  .section { page-break-before: always; }
+  .note, .warning, .success { padding: 9px 11px; margin: 9px 0 12px; border-left: 5px solid; page-break-inside: avoid; }
+  .note { background: #eef8f4; border-color: #158466; }
+  .warning { background: #fff1ec; border-color: #d54828; color: #68301f; }
+  .success { background: #eff9e8; border-color: #64a637; }
+  .machine { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .card { border: 1px solid #acd0c0; border-radius: 8px; padding: 10px; background: #f7fcf9; page-break-inside: avoid; }
+  .check td:first-child { width: 28px; text-align: center; font-size: 14pt; }
+  .small { font-size: 8.5pt; color: #536c64; }
+  .sign { height: 31px; }
+  .keep { page-break-inside: avoid; }
+  footer { margin-top: 20px; border-top: 1px solid #a8cdbd; padding-top: 6px; font-size: 8pt; color: #587168; text-align: center; }
+</style>
+</head>
+<body>
+  <section class="cover">
+    <img src="../../src/assets/isp_logo.png" alt="ISP logo">
+    <h1>Client Site Technician Guide</h1>
+    <div class="sub">Public RVM &amp; Enterprise PecoDrop</div>
+    <p>Daily inspection, approved controls, first-line recovery and escalation</p>
+    <div class="tag">CLIENT TECHNICAL PERSONNEL</div>
+    <div class="meta">
+      <strong>Manufactured by ISP Environmental Solutions Pvt. Ltd.</strong><br>
+      Edition 2026 • Controlled Service Document
+    </div>
+  </section>
+
+  <h2>1. Purpose and permitted work</h2>
+  <p>This guide is for trained client personnel responsible for opening checks, cleaning, bin servicing, basic recovery, approved demonstrations and reporting faults. It covers both ISP machine families without mixing their material paths or workflows.</p>
+  <div class="machine">
+    <div class="card"><h3>Public RVM</h3><p>Installed at malls, transit stations and public locations. Accepts <strong>plastic bottles, beverage cans and UBC/Tetra Pak cartons</strong>; rejected objects use the reject path. Sessions may provide wallet, mobile-load or coupon rewards.</p></div>
+    <div class="card"><h3>Enterprise PecoDrop</h3><p>Corporate dual-display kiosk with QR scanner and keypad. Its apertures are <strong>⭕ magenta plastic</strong>, <strong>🔺 green metal/cans</strong> and <strong>🟦 cyan weighed office paper</strong>.</p></div>
+  </div>
+  <div class="warning"><strong>Stop-work boundary:</strong> Do not open electrical panels, bypass interlocks, work near moving gates, change wiring/serial ports, upload firmware or use manufacturer servo-test codes. Isolate power and contact ISP when physical access to an actuator or energized compartment is required.</div>
+
+  <h3>Before touching the kiosk</h3>
+  <table class="check">
+    <tr><td>□</td><td>Floor is dry, machine is stable, vents and emergency access are clear.</td></tr>
+    <tr><td>□</td><td>No person, hand or object is inside an intake aperture or discharge path.</td></tr>
+    <tr><td>□</td><td>Bins are installed correctly and are not overfilled.</td></tr>
+    <tr><td>□</td><td>Displays, scanner/keypad, intake openings and visible cables are undamaged.</td></tr>
+    <tr><td>□</td><td>Record machine ID, location, date/time and the exact on-screen message before recovery.</td></tr>
+  </table>
+
+  <section class="section">
+    <h2>2. Approved operational codes</h2>
+    <p>Enter a numeric sequence on the physical keyboard/keypad as one uninterrupted buffer sequence. Do not add spaces. Use only when the screen is responsive and all intake paths are clear.</p>
+    <table>
+      <thead><tr><th>Code/key</th><th>Availability</th><th>Approved client purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="code">0</td><td>RVM &amp; PecoDrop</td><td>Wake/start the customer session from idle mode.</td></tr>
+        <tr><td class="code">Enter</td><td>RVM &amp; PecoDrop</td><td>Finish the active session and proceed to reward/summary where applicable.</td></tr>
+        <tr><td class="code">111</td><td>RVM &amp; PecoDrop</td><td>Open the authorized administrator login. Credentials are still required.</td></tr>
+        <tr><td class="code">888</td><td>RVM &amp; PecoDrop</td><td>Open the telemetry/diagnostic view for reading and ISP fault reporting.</td></tr>
+        <tr><td class="code">33</td><td>RVM &amp; PecoDrop</td><td>Request manual chamber clearing only after visually confirming that no hand or loose object is in the mechanism.</td></tr>
+        <tr><td class="code">1122</td><td>RVM &amp; PecoDrop</td><td>Enter Demo Mode and open the demo-testing simulator for authorized training.</td></tr>
+        <tr><td class="code">1218</td><td>RVM &amp; PecoDrop</td><td>Open the system restart confirmation dialog. Confirm only after ending any customer session.</td></tr>
+        <tr><td class="code">1219</td><td>RVM &amp; PecoDrop</td><td>Open the system shutdown confirmation dialog. Use for a planned power-down.</td></tr>
+      </tbody>
+    </table>
+    <div class="note"><strong>Keyboard-only shortcuts:</strong> <span class="code">S</span> stops a session and <span class="code">A</span> opens administrator login on both apps. On PecoDrop, <span class="code">F2</span> or <span class="code">D</span> opens demo testing. These are for an attached service keyboard and should not be exposed during normal public use.</div>
+    <div class="warning"><strong>Do not use Esc as routine shutdown.</strong> It can close the kiosk application after diagnostics are recorded. Use <span class="code">1218</span> for restart or <span class="code">1219</span> for controlled shutdown.</div>
+  </section>
+
+  <section class="section">
+    <h2>3. PecoDrop-only client controls</h2>
+    <p>These codes apply only to the enterprise PecoDrop dual-display system. Never enter them on a public RVM expecting the same action.</p>
+    <table>
+      <thead><tr><th>Code</th><th>Function</th><th>Safe use</th></tr></thead>
+      <tbody>
+        <tr><td class="code">66</td><td>Start machine operation</td><td>Use after the app is ready, calibration is complete and all three paths are clear.</td></tr>
+        <tr><td class="code">77</td><td>Stop machine operation</td><td>Use before permitted cleaning/bin service or when abnormal behavior is observed.</td></tr>
+        <tr><td class="code">88</td><td>Reset machine state</td><td>Use once after clearing the reported condition. Do not repeatedly reset a recurring fault.</td></tr>
+        <tr><td class="code">99</td><td>Request calibration</td><td>Keep apertures empty and bins correctly seated until calibration confirms completion.</td></tr>
+        <tr><td class="code">0012</td><td>Hardware kiosk left; video signage right</td><td>Restore this layout when the physical installation is wired in this orientation.</td></tr>
+        <tr><td class="code">0021</td><td>Video signage left; hardware kiosk right</td><td>Use for the opposite physical display orientation.</td></tr>
+      </tbody>
+    </table>
+    <div class="warning"><strong>Manufacturer-only controls:</strong> PecoDrop actuator/servo test codes <span class="code">601–612</span> are intentionally not provided in this client guide. They can move iris and drop gates independently of normal intake. Only ISP manufacturer technicians may use them under a controlled service procedure.</div>
+
+    <h3>PecoDrop calibration/start sequence</h3>
+    <ol>
+      <li>Confirm plastic, metal and paper apertures are empty; fit all bins correctly.</li>
+      <li>Start the PecoDrop application and allow the controller to reconnect.</li>
+      <li>If calibration is not automatically confirmed, enter <span class="code">99</span> once.</li>
+      <li>Wait for a successful calibration/ready indication. Do not insert test material while calibration is running.</li>
+      <li>Enter <span class="code">66</span>, then perform one supervised test for each enabled material path.</li>
+    </ol>
+  </section>
+
+  <section class="section">
+    <h2>4. Opening, cleaning and bin service</h2>
+    <h3>Daily opening procedure</h3>
+    <ol>
+      <li>Inspect the enclosure, floor, plugs, visible cables, intakes and bins.</li>
+      <li>Power on approved external equipment, then the kiosk computer/machine according to the site procedure.</li>
+      <li>Confirm the correct application opens full-screen and the correct machine identity appears.</li>
+      <li>For PecoDrop, verify both landscape displays and their assigned roles; correct them with <span class="code">0012</span> or <span class="code">0021</span> if necessary.</li>
+      <li>Check network status and open telemetry with <span class="code">888</span> if any connection indicator is abnormal.</li>
+      <li>Run one clean, valid sample per material path. Remove all samples from bins afterward if site policy requires it.</li>
+    </ol>
+    <h3>Cleaning and emptying</h3>
+    <ul>
+      <li>End the active session. On PecoDrop, use <span class="code">77</span> before permitted bin service.</li>
+      <li>Use a dry microfiber cloth on screens and scanner glass. Apply cleaner to the cloth, never directly to electronics.</li>
+      <li>Do not push tools through an aperture or force any gate. Do not spray water or solvent inside the machine.</li>
+      <li>Empty and refit bins without disturbing sensors, wiring or load-cell platforms. PecoDrop paper weighing surfaces must remain free of trapped material.</li>
+      <li>Close and latch all client-access doors; then restore operation and perform a supervised test.</li>
+    </ul>
+    <div class="note"><strong>Paper handling:</strong> PecoDrop office paper is measured by weight. Do not lean on, store tools on or manually press the paper platform; this can corrupt the zero/calibration reference.</div>
+  </section>
+
+  <section class="section">
+    <h2>5. First-line fault recovery</h2>
+    <table>
+      <thead><tr><th>Observed condition</th><th>Client action</th><th>Escalate when</th></tr></thead>
+      <tbody>
+        <tr><td>Screen idle or session will not begin</td><td>Press <span class="code">0</span>. Confirm app and network status. If frozen, record evidence and use <span class="code">1218</span>.</td><td>The app does not return after restart or repeatedly freezes.</td></tr>
+        <tr><td>Item remains in chamber</td><td>Stop new users, visually check the path, and use <span class="code">33</span> once only when the path is clear of people.</td><td>The item remains, gate sounds abnormal, or manual access would be required.</td></tr>
+        <tr><td>Bin full message</td><td>End the session, empty/reseat the correct bin, remove loose material around the permitted area, then test.</td><td>The warning remains with an empty correctly seated bin.</td></tr>
+        <tr><td>PecoDrop not ready after startup</td><td>Confirm all three paths are empty; enter <span class="code">99</span> once and wait for calibration.</td><td>Calibration fails, times out or reports the same full condition repeatedly.</td></tr>
+        <tr><td>Wrong PecoDrop display arrangement</td><td>Use <span class="code">0012</span> or <span class="code">0021</span> to match the physical left/right arrangement.</td><td>A display is missing, flickering or not detected.</td></tr>
+        <tr><td>Network/reward service unavailable</td><td>Open <span class="code">888</span>, record status, keep the kiosk out of paid/reward operation if confirmation cannot be issued.</td><td>Connectivity persists after the site network is confirmed operational.</td></tr>
+        <tr><td>Unusual noise, smoke, odor, heat or repeated movement</td><td>Stop use, keep people away and perform the site's approved electrical isolation.</td><td>Immediately—do not restart or test.</td></tr>
+      </tbody>
+    </table>
+    <h3>Controlled restart</h3>
+    <ol><li>End the user session and record the fault.</li><li>Confirm all intake paths are clear.</li><li>Enter <span class="code">1218</span> and select <strong>Yes</strong> in the confirmation dialog.</li><li>Allow the application and controller to recover without repeated key presses.</li><li>Verify ready state and complete a supervised material test.</li></ol>
+    <h3>Controlled shutdown</h3>
+    <ol><li>End the session, stop public access and complete bin/service records.</li><li>Enter <span class="code">1219</span> and select <strong>Yes</strong>.</li><li>Wait until Windows and the computer are fully off before switching approved external power.</li></ol>
+  </section>
+
+  <section class="section">
+    <h2>6. Demo and training use</h2>
+    <ol>
+      <li>Place the kiosk out of public service and ensure no real user session is active.</li>
+      <li>Enter <span class="code">1122</span>. Confirm the Demo Mode indicator/testing window appears.</li>
+      <li>Use only the simulator functions needed for the training scenario. Demo events are not proof of physical sensor or payout operation.</li>
+      <li>Close demo testing, restart the kiosk with <span class="code">1218</span> if required by site procedure, and verify normal mode before public use.</li>
+    </ol>
+    <div class="warning">Never leave Demo Mode available to customers. Do not use simulated acceptance to certify hardware repair.</div>
+
+    <h2>7. Information required for ISP support</h2>
+    <p>Send one complete fault package. Accurate evidence is faster and safer than repeated resets.</p>
+    <table class="check">
+      <tr><td>□</td><td>Machine ID, machine type (RVM or PecoDrop), client/site and exact location.</td></tr>
+      <tr><td>□</td><td>Date/time, operator name and whether a customer session/reward was active.</td></tr>
+      <tr><td>□</td><td>Exact screen message plus clear photos/video of the symptom; do not include customer personal data.</td></tr>
+      <tr><td>□</td><td>Telemetry/status shown through <span class="code">888</span> and current network condition.</td></tr>
+      <tr><td>□</td><td>Material/path involved and the last successful operation.</td></tr>
+      <tr><td>□</td><td>Actions already taken, in order, including codes used and restart outcome.</td></tr>
+      <tr><td>□</td><td>Any noise, odor, heat, liquid ingress, impact damage or power event.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <h2>8. Return-to-service authorization</h2>
+    <table class="check">
+      <tr><td>□</td><td>No exposed wiring, liquid, heat, odor, structural damage or unsafe movement.</td></tr>
+      <tr><td>□</td><td>All client-access doors/bins are correctly installed and secured.</td></tr>
+      <tr><td>□</td><td>Application is full-screen, machine identity is correct and telemetry is normal.</td></tr>
+      <tr><td>□</td><td>PecoDrop calibration is confirmed; both displays and all three material identities are correct.</td></tr>
+      <tr><td>□</td><td>Each enabled intake passes one supervised valid test and rejects an unsuitable test item correctly.</td></tr>
+      <tr><td>□</td><td>Session completes correctly and any reward flow is confirmed or intentionally disabled.</td></tr>
+      <tr><td>□</td><td>Fault and corrective action are entered in the site log.</td></tr>
+    </table>
+    <table>
+      <tr><th>Machine ID</th><td class="sign"></td><th>Site</th><td></td></tr>
+      <tr><th>Technician</th><td class="sign"></td><th>Date/time</th><td></td></tr>
+      <tr><th>Result</th><td colspan="3">□ Returned to service &nbsp;&nbsp; □ Isolated / ISP escalation raised</td></tr>
+      <tr><th>Signature</th><td colspan="3" class="sign"></td></tr>
+    </table>
+    <div class="success"><strong>Safe rule:</strong> If the cause is unknown or the fault returns after one controlled recovery, keep the machine out of service and escalate to ISP. Do not repeatedly reset, calibrate or restart it.</div>
+    <footer>ISP Environmental Solutions Pvt. Ltd. • Client Site Technician Guide • 2026</footer>
+  </section>
+</body>
+</html>
