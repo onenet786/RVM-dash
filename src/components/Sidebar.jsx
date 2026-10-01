@@ -312,17 +312,10 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                     )}
                   </div>
 
-                  {/* Right: Count Badge & Animated Chevron */}
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md mono ${
-                      isOpen 
-                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300' 
-                        : 't-bg-sec t-text-muted'
-                    }`}>
-                      {visibleItems.length}
-                    </span>
+                  {/* Right: Animated Chevron */}
+                  <div className="flex items-center shrink-0 ml-2">
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                      isOpen ? 'rotate-180 text-amber-600 dark:text-amber-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'
                     }`} />
                   </div>
                 </button>
@@ -367,21 +360,17 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 <Table className="w-3.5 h-3.5" />
                 Raw Database Tables
               </span>
-              <span className="text-emerald-800 dark:text-cyan-300 mono bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 font-bold text-[10px]">
-                {allowedPgTables.length} Tables
-              </span>
             </div>
 
             <nav className="space-y-1">
               {allowedPgTables.map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
-                const count = getCollectionCount(item.name);
                 return (
                   <button
                     key={item.id}
                     onClick={() => handleTabClick(item.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
+                    className={`w-full flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
                       isActive 
                         ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-300 border-l-2 border-emerald-600 shadow-xs' 
                         : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60'
@@ -391,13 +380,6 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                       <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-300' : 't-text-muted'}`} />
                       <span className="truncate mono text-left leading-snug">{item.label}</span>
                     </div>
-                    {count !== null && (
-                      <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md mono shrink-0 ml-1.5 ${
-                        isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
-                      }`}>
-                        {count}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -417,12 +399,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 <Layers className="w-3.5 h-3.5 text-[#0b5d3b] dark:text-emerald-400 shrink-0" />
                 <span className="text-left">MongoDB Collections</span>
               </span>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-emerald-800 dark:text-emerald-400 mono text-[10px] bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 font-bold">
-                  {allowedMongoCollections.length}
-                </span>
-                <ChevronDown className={`w-3 h-3 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
-              </div>
+              <ChevronDown className={`w-3.5 h-3.5 t-text-muted transition-transform duration-200 ${isMongoCollapsed ? '-rotate-90' : 'rotate-0'}`} />
             </button>
 
             {!isMongoCollapsed && (
@@ -430,12 +407,11 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                 {allowedMongoCollections.map(item => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
-                  const count = getCollectionCount(item.name);
                   return (
                     <button
                       key={item.id}
                       onClick={() => handleTabClick(item.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
+                      className={`w-full flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
                         isActive 
                           ? 'bg-emerald-600/15 text-emerald-800 dark:text-cyan-400 border-l-2 border-emerald-600 shadow-xs' 
                           : 't-text-secondary hover:t-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/60'
@@ -445,13 +421,6 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                         <Icon className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#0b5d3b] dark:text-cyan-400' : 't-text-muted'}`} />
                         <span className="truncate text-xs text-left leading-snug">{item.label}</span>
                       </div>
-                      {count !== null && (
-                        <span className={`px-1.5 py-0.2 text-[10px] font-bold rounded-md mono shrink-0 ml-1.5 ${
-                          isActive ? 'bg-[#0b5d3b] text-white' : 't-bg-sec t-text-muted'
-                        }`}>
-                          {count}
-                        </span>
-                      )}
                     </button>
                   );
                 })}

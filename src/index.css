@@ -61,6 +61,10 @@ html {
   --accent-color: #e5a919;
   --accent-light: rgba(229, 169, 25, 0.18);
   --accent-glow: rgba(229, 169, 25, 0.35);
+
+  /* High Contrast Universal Selection Tokens */
+  --selection-bg: #0b5d3b;
+  --selection-text: #ffffff;
 }
 
 /* ============================================================ */
@@ -80,6 +84,8 @@ html[data-theme="cyber-dark"], body[data-theme="cyber-dark"] {
   --accent-color: #10b981;
   --accent-light: rgba(16, 185, 129, 0.2);
   --accent-glow: rgba(16, 185, 129, 0.4);
+  --selection-bg: #10b981;
+  --selection-text: #020617;
   color-scheme: dark;
 }
 
@@ -100,6 +106,8 @@ html[data-theme="ocean-dark"], body[data-theme="ocean-dark"] {
   --accent-color: #38bdf8;
   --accent-light: rgba(56, 189, 248, 0.25);
   --accent-glow: rgba(56, 189, 248, 0.45);
+  --selection-bg: #0284c7;
+  --selection-text: #ffffff;
   color-scheme: dark;
 }
 
@@ -120,6 +128,8 @@ html[data-theme="neon-violet"], body[data-theme="neon-violet"] {
   --accent-color: #f0abfc;
   --accent-light: rgba(240, 171, 252, 0.25);
   --accent-glow: rgba(224, 135, 255, 0.5);
+  --selection-bg: #c084fc;
+  --selection-text: #1e0836;
   color-scheme: dark;
 }
 
@@ -140,6 +150,8 @@ html[data-theme="sleek-light"], body[data-theme="sleek-light"] {
   --accent-color: #059669;
   --accent-light: rgba(5, 150, 105, 0.15);
   --accent-glow: rgba(5, 150, 105, 0.25);
+  --selection-bg: #059669;
+  --selection-text: #ffffff;
   color-scheme: light;
 }
 
@@ -167,6 +179,8 @@ html[data-theme="isp-eco"], body[data-theme="isp-eco"] {
   --accent-color: #e5a919;
   --accent-light: rgba(229, 169, 25, 0.18);
   --accent-glow: rgba(229, 169, 25, 0.35);
+  --selection-bg: #0b5d3b;
+  --selection-text: #ffffff;
   color-scheme: light;
 }
 
@@ -194,7 +208,39 @@ html[data-theme="isp-portal"], body[data-theme="isp-portal"] {
   --accent-color: #f59e0b;
   --accent-light: rgba(245, 158, 11, 0.15);
   --accent-glow: rgba(245, 158, 11, 0.3);
+  --selection-bg: #063323;
+  --selection-text: #ffffff;
   color-scheme: light;
+}
+
+/* ============================================================ */
+/* UNIVERSAL HIGH-CONTRAST TEXT SELECTION STYLING               */
+/* Fixes text unreadability/bleaching when selecting elements   */
+/* ============================================================ */
+::selection {
+  background-color: var(--selection-bg, #0b5d3b) !important;
+  color: var(--selection-text, #ffffff) !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--selection-text, #ffffff) !important;
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg, #0b5d3b) !important;
+  color: var(--selection-text, #ffffff) !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--selection-text, #ffffff) !important;
+}
+
+/* Enforce selection contrast across all HTML element types, input controls & custom badge spans */
+*, *::before, *::after,
+input::selection, textarea::selection, select::selection,
+p::selection, span::selection, div::selection,
+h1::selection, h2::selection, h3::selection, h4::selection, h5::selection, h6::selection,
+td::selection, th::selection, a::selection, button::selection, label::selection, b::selection, strong::selection {
+  background-color: var(--selection-bg, #0b5d3b) !important;
+  color: var(--selection-text, #ffffff) !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--selection-text, #ffffff) !important;
 }
 
 body {
