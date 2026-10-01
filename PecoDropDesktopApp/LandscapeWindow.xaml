@@ -733,7 +733,7 @@
         <!-- ============================================================== -->
         <Grid x:Name="BottomGrid" Grid.ColumnSpan="2" Visibility="Collapsed">
             <Border x:Name="AdPanel">
-                <MediaElement x:Name="AdvertisementPlayer" LoadedBehavior="Manual" MediaEnded="AdvertisementPlayer_MediaEnded"/>
+                <MediaElement x:Name="AdvertisementPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" IsMuted="True" Volume="0" MediaEnded="AdvertisementPlayer_MediaEnded"/>
             </Border>
         </Grid>
 

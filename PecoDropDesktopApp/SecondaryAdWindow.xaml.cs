@@ -69,6 +69,12 @@ public partial class SecondaryAdWindow : Window
         PlayCurrentVideo();
     }
 
+    public void ReloadPlaylist()
+    {
+        LoadPlaylist();
+        PlayCurrentVideo();
+    }
+
     public void LoadPlaylist()
     {
         playlist.Clear();

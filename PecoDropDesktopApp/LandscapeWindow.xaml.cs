@@ -116,8 +116,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private readonly ObservableCollection<string> telemetryLog = [];
     private readonly List<string> adPlaylist = [];
     private int adPlaylistIndex;
-    private string? currentPlayingAdPath;
-
+    private string? currentPlayingAdPath = string.Empty;
     // -------------------------------------------------------------
     // DYNAMIC TOUCHLESS QR KIOSK START HANDSHAKE
     // -------------------------------------------------------------
@@ -891,15 +890,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void AdvertisementPlayer_MediaEnded(object sender, RoutedEventArgs e)
     {
-        if (adPlaylist.Count > 1)
-        {
-            PlayNextAd();
-        }
-        else
-        {
-            AdvertisementPlayer.Position = TimeSpan.Zero;
-            AdvertisementPlayer.Play();
-        }
+        // No-op in LandscapeWindow; SecondaryAdWindow handles commercial signage loop
     }
 
     private void StartInstructionVideo()
@@ -975,19 +966,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void StartAdvertisement()
     {
-        adPlaylist.Clear();
-        adPlaylist.AddRange(FindVideoFiles(settings.AdvertisementVideoFolder));
-        if (adPlaylist.Count == 0)
+        // On PecoDrop dual-display architecture, commercial ads are played strictly on SecondaryAdWindow.
+        // Ensure LandscapeWindow's AdvertisementPlayer remains silent and stopped.
+        try
         {
+            AdvertisementPlayer.Stop();
+            AdvertisementPlayer.IsMuted = true;
+            AdvertisementPlayer.Volume = 0;
             AdvertisementPlayer.Visibility = Visibility.Collapsed;
-            LogTelemetry($"[AD] No videos found in: {settings.AdvertisementVideoFolder}");
         }
-        else
-        {
-            adPlaylistIndex = 0;
-            PlayAdVideo(adPlaylist[0]);
-            LogTelemetry($"[AD] Loaded {adPlaylist.Count} video(s) from {settings.AdvertisementVideoFolder}");
-        }
+        catch { }
 
         // Pull remote advertisement video updates from Central Dashboard in background
         _ = Task.Run(async () =>
@@ -999,73 +987,36 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 {
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        adPlaylist.Clear();
-                        adPlaylist.AddRange(FindVideoFiles(settings.AdvertisementVideoFolder));
-                        if (adPlaylist.Count > 0 && AdvertisementPlayer.Source == null)
-                        {
-                            adPlaylistIndex = 0;
-                            PlayAdVideo(adPlaylist[0]);
-                        }
+                        App.SecondaryDisplayWindow?.ReloadPlaylist();
                     });
                 }
             }
-            catch {}
+            catch { }
         });
     }
 
     private void PlayAdVideo(string path)
     {
+        // On PecoDrop dual-display architecture, commercial ads are played strictly on SecondaryAdWindow.
         try
         {
-            currentPlayingAdPath = Path.GetFullPath(path);
-            AdvertisementPlayer.Visibility = Visibility.Visible;
-            AdvertisementPlayer.Source = new Uri(currentPlayingAdPath);
-            AdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
-            AdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
-            AdvertisementPlayer.Stretch = Stretch.Fill;
-            AdvertisementPlayer.Play();
+            AdvertisementPlayer.Stop();
+            AdvertisementPlayer.IsMuted = true;
+            AdvertisementPlayer.Volume = 0;
+            AdvertisementPlayer.Visibility = Visibility.Collapsed;
         }
-        catch (Exception ex)
-        {
-            LogTelemetry($"[AD Error] Could not play ad video: {ex.Message}");
-            PlayNextAd();
-        }
+        catch { }
     }
 
     private void PlayNextAd()
     {
-        if (adPlaylist.Count == 0)
-        {
-            return;
-        }
-
-        adPlaylistIndex = (adPlaylistIndex + 1) % adPlaylist.Count;
-        PlayAdVideo(adPlaylist[adPlaylistIndex]);
-        LogTelemetry($"[AD] Now playing: {Path.GetFileName(adPlaylist[adPlaylistIndex])}");
+        // No-op in LandscapeWindow; SecondaryAdWindow handles commercial signage loop
     }
 
     public void ReloadAdvertisementPlaylist(IEnumerable<string>? customList = null)
     {
-        adPlaylist.Clear();
-        if (customList != null)
-        {
-            adPlaylist.AddRange(customList);
-        }
-        else
-        {
-            adPlaylist.AddRange(FindVideoFiles(settings.AdvertisementVideoFolder));
-        }
-
-        if (adPlaylist.Count == 0)
-        {
-            AdvertisementPlayer.Visibility = Visibility.Collapsed;
-            LogTelemetry($"[AD] No videos in playlist.");
-            return;
-        }
-
-        adPlaylistIndex = 0;
-        PlayAdVideo(adPlaylist[0]);
-        LogTelemetry($"[AD] Playlist reloaded with {adPlaylist.Count} video(s).");
+        App.SecondaryDisplayWindow?.ReloadPlaylist();
+        LogTelemetry("[AD] Signage playlist reload forwarded to secondary display window.");
     }
 
     public void ReloadInstructionVideo()

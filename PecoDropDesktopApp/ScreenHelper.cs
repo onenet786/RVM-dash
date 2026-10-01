@@ -138,11 +138,24 @@ public static class ScreenHelper
                     ScreenInfo adScreen = order == ScreenLayoutOrder.HardwareLeftVideoRight ? rightScreen : leftScreen;
 
                     // Ensure SecondaryAdWindow exists and is visible
-                    if (adWindow == null || !adWindow.IsLoaded)
+                    if (adWindow == null)
+                    {
+                        adWindow = Application.Current.Windows.OfType<SecondaryAdWindow>().FirstOrDefault();
+                    }
+
+                    if (adWindow == null)
                     {
                         adWindow = new SecondaryAdWindow();
                         App.SecondaryDisplayWindow = adWindow;
                         adWindow.Show();
+                    }
+                    else
+                    {
+                        App.SecondaryDisplayWindow = adWindow;
+                        if (!adWindow.IsVisible)
+                        {
+                            adWindow.Show();
+                        }
                     }
 
                     if (mainWindow != null)
@@ -163,11 +176,24 @@ public static class ScreenHelper
                     double hwW = Math.Round(workW * 0.60);
                     double adW = workW - hwW;
 
-                    if (adWindow == null || !adWindow.IsLoaded)
+                    if (adWindow == null)
+                    {
+                        adWindow = Application.Current.Windows.OfType<SecondaryAdWindow>().FirstOrDefault();
+                    }
+
+                    if (adWindow == null)
                     {
                         adWindow = new SecondaryAdWindow();
                         App.SecondaryDisplayWindow = adWindow;
                         adWindow.Show();
+                    }
+                    else
+                    {
+                        App.SecondaryDisplayWindow = adWindow;
+                        if (!adWindow.IsVisible)
+                        {
+                            adWindow.Show();
+                        }
                     }
 
                     if (order == ScreenLayoutOrder.HardwareLeftVideoRight)

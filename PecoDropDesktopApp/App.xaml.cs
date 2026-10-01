@@ -165,6 +165,19 @@ public partial class App : Application
     {
         try
         {
+            if (SecondaryDisplayWindow != null && SecondaryDisplayWindow.IsVisible)
+            {
+                return;
+            }
+
+            var existing = Application.Current?.Windows.OfType<SecondaryAdWindow>().FirstOrDefault();
+            if (existing != null)
+            {
+                SecondaryDisplayWindow = existing;
+                if (!existing.IsVisible) existing.Show();
+                return;
+            }
+
             var screens = ScreenHelper.GetScreens();
             if (screens.Count > 1)
             {
