@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   HardDrive, Download, Upload, RefreshCw, CheckCircle2, 
-  AlertTriangle, FileText, Database, ShieldAlert, Clock, ArrowDownToLine, RotateCcw, Lock
+  AlertTriangle, FileText, Database, ShieldAlert, Clock, ArrowDownToLine, RotateCcw, Lock, Trash2
 } from 'lucide-react';
 
 export default function DbBackupTab({ onRefreshHealth }) {
@@ -13,17 +13,23 @@ export default function DbBackupTab({ onRefreshHealth }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [confirmRestore, setConfirmRestore] = useState(null);
   const [healthInfo, setHealthInfo] = useState(null);
+  const [resetOptions, setResetOptions] = useState(null);
+  const [resetDialog, setResetDialog] = useState(null);
+  const [resetForm, setResetForm] = useState({ username: '', password: '', confirmation: '' });
+  const [resetting, setResetting] = useState(false);
 
   const fetchBackups = async () => {
     try {
       setLoading(true);
-      const [bRes, hRes] = await Promise.all([
+      const [bRes, hRes, resetRes] = await Promise.all([
         fetch('/api/db/backups'),
-        fetch('/api/health')
+        fetch('/api/health'),
+        fetch('/api/db/reset-options')
       ]);
 
       if (bRes.ok) setBackups(await bRes.json());
       if (hRes.ok) setHealthInfo(await hRes.json());
+      if (resetRes.ok) setResetOptions(await resetRes.json());
     } catch (err) {
       console.error(err);
     } finally {
@@ -38,6 +44,37 @@ export default function DbBackupTab({ onRefreshHealth }) {
   const activeDb = healthInfo?.database || 'ONS-RVM';
   const activeHost = healthInfo?.serverHost || 'cluster0.ktted0m.mongodb.net';
   const isProtectedDb = activeDb.toLowerCase() === 'rvmapp';
+
+  const openResetDialog = (scope, table = null) => {
+    setResetForm({ username: '', password: '', confirmation: '' });
+    setResetDialog({ scope, table });
+  };
+
+  const requiredResetPhrase = resetDialog?.scope === 'all'
+    ? 'CLEAR ALL OPERATIONAL DATA'
+    : `TRUNCATE ${resetDialog?.table || ''}`;
+
+  const handleResetData = async () => {
+    try {
+      setResetting(true);
+      setMessage(null);
+      const res = await fetch('/api/db/reset-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...resetDialog, ...resetForm })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Database reset failed');
+      setMessage({ type: 'success', text: `Operational data cleared from ${json.clearedTables.length} table(s). Protected accounts, roles, fleet and configuration were preserved.` });
+      setResetDialog(null);
+      setResetForm({ username: '', password: '', confirmation: '' });
+      fetchBackups();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Helper to trigger browser file download to local PC
   const triggerClientDownload = (data, filename) => {
@@ -266,6 +303,53 @@ export default function DbBackupTab({ onRefreshHealth }) {
         </div>
       )}
 
+      {healthInfo?.databaseType === 'postgres' && activeDb.toLowerCase() === 'rvmpg' && resetOptions && (
+        <div className="glass-panel p-6 rounded-3xl space-y-4 border border-rose-500/30">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold t-text-primary flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-400" /> Clear PostgreSQL Operational Data
+              </h3>
+              <p className="text-xs t-text-secondary mt-1 max-w-3xl leading-relaxed">
+                Clears transaction and activity records only. Users, administrator accounts, roles, permissions,
+                machines, organizations, departments, kiosk bindings, advertisements and system configuration are protected.
+              </p>
+            </div>
+            <button
+              onClick={() => openResetDialog('all')}
+              disabled={!resetOptions.credentialsConfigured || resetOptions.tables.length === 0}
+              className="shrink-0 px-4 py-2.5 bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear All Operational Data
+            </button>
+          </div>
+
+          {!resetOptions.credentialsConfigured && (
+            <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              Reset is locked until the protected server credential is configured.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {resetOptions.tables.map(item => (
+              <div key={item.name} className="t-bg-sec border t-border rounded-xl p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="mono text-xs font-bold t-text-primary truncate" title={item.name}>{item.name}</p>
+                  <p className="text-[11px] t-text-muted">{item.rowCount.toLocaleString()} rows</p>
+                </div>
+                <button
+                  onClick={() => openResetDialog('table', item.name)}
+                  disabled={!resetOptions.credentialsConfigured}
+                  className="shrink-0 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg disabled:opacity-50"
+                >
+                  Truncate
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Restoration Upload Box */}
       <div className={`glass-panel p-6 rounded-3xl space-y-4 ${isProtectedDb ? 'opacity-75' : ''}`}>
         <h3 className="text-base font-bold t-text-primary flex items-center justify-between">
@@ -314,6 +398,62 @@ export default function DbBackupTab({ onRefreshHealth }) {
           )}
         </div>
       </div>
+
+      {resetDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="max-w-lg w-full t-bg-surface border border-rose-500/40 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/30">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold t-text-primary">Confirm irreversible data reset</h3>
+                <p className="text-xs t-text-secondary">
+                  {resetDialog.scope === 'all' ? 'All approved operational tables' : resetDialog.table} in rvmpg will be emptied.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">
+              Protected identity, access-control, machine, tenant and configuration tables will remain unchanged.
+            </div>
+
+            <div className="space-y-3">
+              <input
+                type="text" autoComplete="username" placeholder="Authorization username"
+                value={resetForm.username}
+                onChange={e => setResetForm(form => ({ ...form, username: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl t-bg-sec t-text-primary border t-border text-sm"
+              />
+              <input
+                type="password" autoComplete="current-password" placeholder="Authorization password"
+                value={resetForm.password}
+                onChange={e => setResetForm(form => ({ ...form, password: e.target.value }))}
+                className="w-full px-3 py-2.5 rounded-xl t-bg-sec t-text-primary border t-border text-sm"
+              />
+              <div>
+                <label className="block text-xs t-text-secondary mb-1">Type <span className="mono font-bold text-rose-400">{requiredResetPhrase}</span></label>
+                <input
+                  type="text" autoComplete="off" value={resetForm.confirmation}
+                  onChange={e => setResetForm(form => ({ ...form, confirmation: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl t-bg-sec t-text-primary border t-border text-sm mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => setResetDialog(null)} disabled={resetting} className="px-4 py-2 t-bg-sec t-text-secondary text-xs font-bold rounded-xl border t-border">Cancel</button>
+              <button
+                onClick={handleResetData}
+                disabled={resetting || !resetForm.username || !resetForm.password || resetForm.confirmation !== requiredResetPhrase}
+                className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resetting ? 'Clearing safely...' : 'Permanently clear data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {confirmRestore && !isProtectedDb && (

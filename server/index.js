@@ -103,6 +103,14 @@ const otpLimiter = rateLimit({
   legacyHeaders: false
 });
 
+const databaseResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many database reset authorization attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Security Hardening: Central Token Extraction & Authentication Middleware
 function extractToken(req) {
   const authHeader = String(req.headers.authorization || req.headers['x-auth-token'] || '').trim();
@@ -188,6 +196,12 @@ function requireAdmin(req, res, next) {
     return next();
   }
   return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
+}
+
+function requireSuperAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Authentication required.' });
+  if (req.user.roleId === 'super_admin' || ['onenet', 'bilalaaqueel'].includes(req.user.username)) return next();
+  return res.status(403).json({ error: 'Access denied: Super Admin privileges required.' });
 }
 
 // Serve uploaded advertisement videos statically with 7-day browser caching
@@ -3984,6 +3998,123 @@ app.get('/api/db/backups', authenticateToken, requireAdmin, (req, res) => {
     res.json(backups);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Only transient operational tables may be cleared. Identity, RBAC, fleet,
+// tenant and configuration tables are intentionally excluded from this list.
+const RESETTABLE_POSTGRES_TABLES = new Set([
+  'recycling_sessions', 'rvm_legacy_sessions', 'rvm_new_sessions', 'pecodrop_sessions',
+  'redemptions', 'enterprise_redemptions', 'feedbacks', 'feedbacks_log',
+  'binfullnotifications', 'notifications', 'activity_logs'
+]);
+
+const PROTECTED_POSTGRES_TABLES = new Set([
+  'users', 'adminaccounts', 'roles', 'machines', 'machine_configs',
+  'machine_variant_settings', 'machine_advertisements', 'organizations',
+  'departments', 'kiosk_org_bindings', 'database_reset_audit',
+  'schema_migrations', 'migrations'
+]);
+
+function safeCredentialMatch(actual, expected) {
+  const actualBuffer = Buffer.from(String(actual || ''), 'utf8');
+  const expectedBuffer = Buffer.from(String(expected || ''), 'utf8');
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+}
+
+function validateDatabaseResetCredentials(username, password) {
+  const expectedUsername = process.env.DB_RESET_USERNAME || 'OneNetSol';
+  const configuredHash = String(process.env.DB_RESET_PASSWORD_SHA256 || '').trim().toLowerCase();
+  const configuredPassword = process.env.DB_RESET_PASSWORD;
+  if (!configuredHash && !configuredPassword) return { configured: false, valid: false };
+  const passwordValid = configuredHash
+    ? safeCredentialMatch(crypto.createHash('sha256').update(String(password || ''), 'utf8').digest('hex'), configuredHash)
+    : safeCredentialMatch(password, configuredPassword);
+  return { configured: true, valid: safeCredentialMatch(username, expectedUsername) && passwordValid };
+}
+
+async function getResettablePostgresTables(pool) {
+  const result = await pool.query(`
+    SELECT table_name FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    ORDER BY table_name
+  `);
+  return result.rows.map(row => row.table_name)
+    .filter(name => RESETTABLE_POSTGRES_TABLES.has(name) && !PROTECTED_POSTGRES_TABLES.has(name));
+}
+
+app.get('/api/db/reset-options', authenticateToken, requireSuperAdmin, async (req, res) => {
+  try {
+    const activeName = String(activePgConfig?.database || '').toLowerCase();
+    if (activeDbType !== 'postgres' || activeName !== 'rvmpg') {
+      return res.status(409).json({ error: 'Operational data reset is available only for PostgreSQL database rvmpg.' });
+    }
+    const pool = getPgPool();
+    const tables = await getResettablePostgresTables(pool);
+    const tableDetails = [];
+    for (const name of tables) {
+      const countResult = await pool.query(`SELECT COUNT(*)::bigint AS count FROM "${name}"`);
+      tableDetails.push({ name, rowCount: Number(countResult.rows[0]?.count || 0) });
+    }
+    res.json({
+      database: 'rvmpg', tables: tableDetails,
+      protectedTables: [...PROTECTED_POSTGRES_TABLES].sort(),
+      credentialsConfigured: Boolean(process.env.DB_RESET_PASSWORD_SHA256 || process.env.DB_RESET_PASSWORD)
+    });
+  } catch (err) {
+    console.error('[Database Reset Options Error]', err.message);
+    res.status(500).json({ error: 'Unable to load PostgreSQL reset options.' });
+  }
+});
+
+app.post('/api/db/reset-data', databaseResetLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
+  const { scope, table, username, password, confirmation } = req.body || {};
+  const authResult = validateDatabaseResetCredentials(username, password);
+  if (!authResult.configured) return res.status(503).json({ error: 'Database reset credentials are not configured on the server.' });
+  if (!authResult.valid) return res.status(401).json({ error: 'Database reset authorization failed.' });
+  const activeName = String(activePgConfig?.database || '').toLowerCase();
+  if (activeDbType !== 'postgres' || activeName !== 'rvmpg') {
+    return res.status(409).json({ error: 'Operational data reset is available only for PostgreSQL database rvmpg.' });
+  }
+
+  const pool = getPgPool();
+  const availableTables = await getResettablePostgresTables(pool);
+  let targetTables;
+  if (scope === 'all') {
+    if (confirmation !== 'CLEAR ALL OPERATIONAL DATA') return res.status(400).json({ error: 'The clear-all confirmation phrase is incorrect.' });
+    targetTables = availableTables;
+  } else if (scope === 'table') {
+    if (!availableTables.includes(table) || PROTECTED_POSTGRES_TABLES.has(table)) {
+      return res.status(400).json({ error: 'The selected table is not approved for operational-data reset.' });
+    }
+    if (confirmation !== `TRUNCATE ${table}`) return res.status(400).json({ error: 'The selected-table confirmation phrase is incorrect.' });
+    targetTables = [table];
+  } else {
+    return res.status(400).json({ error: 'Reset scope must be either all or table.' });
+  }
+  if (targetTables.length === 0) return res.status(400).json({ error: 'No approved operational tables are available to clear.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`CREATE TABLE IF NOT EXISTS database_reset_audit (
+      id BIGSERIAL PRIMARY KEY, actor_username TEXT NOT NULL, scope TEXT NOT NULL,
+      affected_tables JSONB NOT NULL, executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`);
+    // No CASCADE: an unexpected dependency aborts instead of clearing protected data implicitly.
+    await client.query(`TRUNCATE TABLE ${targetTables.map(name => `"${name}"`).join(', ')} RESTART IDENTITY`);
+    await client.query(
+      'INSERT INTO database_reset_audit (actor_username, scope, affected_tables) VALUES ($1, $2, $3::jsonb)',
+      [req.user.username || 'unknown', scope, JSON.stringify(targetTables)]
+    );
+    await client.query('COMMIT');
+    res.json({ success: true, database: 'rvmpg', clearedTables: targetTables });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[Database Operational Reset Error]', err.message);
+    res.status(500).json({ error: 'PostgreSQL operational-data reset failed safely; no partial reset was committed.' });
+  } finally {
+    client.release();
   }
 });
 
