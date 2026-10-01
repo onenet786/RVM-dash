@@ -344,13 +344,6 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${
-                              isActive
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500'
-                            }`}>
-                              {item.orderNo}
-                            </span>
                             <Icon className={`w-3.5 h-3.5 shrink-0 ${
                               isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 group-hover:text-emerald-500'
                             }`} />

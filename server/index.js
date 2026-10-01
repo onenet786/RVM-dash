@@ -2838,69 +2838,18 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         };
       });
 
+      const registeredMachineIds = new Map(
+        Object.keys(grouped).map(machineId => [String(machineId).trim().toUpperCase(), machineId])
+      );
+
       sessions.forEach(s => {
-        const mId = s.machineId || s.machine_id;
+        const sessionMachineId = String(s.machineId || s.machine_id || '').trim();
+        if (!sessionMachineId) return;
+        const mId = registeredMachineIds.get(sessionMachineId.toUpperCase());
+        // Historical sessions enrich registered inventory only; they must never
+        // manufacture Machine Health cards for deleted or unknown machine IDs.
         if (!mId) return;
         const sTime = s.recycledAt || s.timestamp ? new Date(s.recycledAt || s.timestamp).getTime() : 0;
-        if (!grouped[mId]) {
-          const isOnline = sTime > 0 && (now - sTime <= ONLINE_THRESHOLD_MS);
-          const upperMId = String(mId).toUpperCase();
-          const mType = upperMId.includes('PECO') ? 'PECODROP' : upperMId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW';
-          const cId = upperMId.includes('UCP') || upperMId === 'RVM:01' ? 'UCP_LAHORE' : (upperMId.includes('METRO') || upperMId === 'RVM-007' || upperMId === 'RVM-0067') ? 'METRO_MALL' : 'ISP_MASTER';
-          const cName = cId === 'UCP_LAHORE' ? 'Client: UCP Lahore Campus' : cId === 'METRO_MALL' ? 'Client: Metro Mall RWP' : 'ISP Environmental Master (All Sites)';
-          grouped[mId] = {
-            machineId: mId,
-            name: `RVM Machine ${mId}`,
-            location: 'Islamabad Campus',
-            status: isOnline ? 'ONLINE' : 'OFFLINE',
-            isOnline,
-            lastPingAt: s.recycledAt || s.timestamp,
-            machineType: mType,
-            clientId: cId,
-            clientName: cName,
-            plasticBinFill: 45,
-            metalBinFill: 30,
-            paperBinFillKg: 8.50,
-            scaleStatus: 'Optimal',
-            tareOffsetGrams: 0.00,
-            zeroDriftGrams: 0.02,
-            inductiveStatus: 'NORMAL',
-            ultrasonicStatus: 'NORMAL',
-            opticalStatus: '60 FPS',
-            dropgateStatus: 'CLOSED',
-            antiCheatTrips: 0,
-            pulseCount: 1250,
-            offlineBacklogCount: 0,
-            pointsPerPlasticBottle: 10,
-            pointsPlasticSmall: 5,
-            pointsPlasticMedium: 10,
-            pointsPlasticLarge: 15,
-            pointsPerAluminiumCan: 20,
-            pointsCanSmall: 10,
-            pointsCanMedium: 15,
-            pointsCanLarge: 20,
-            pointsPerPaperKg: 15,
-            pointsPerGlass: 15,
-            pointsGlassSmall: 10,
-            pointsGlassMedium: 15,
-            pointsGlassLarge: 20,
-            plasticUnit: 'per_piece',
-            aluminiumUnit: 'per_piece',
-            paperUnit: 'per_kg',
-            glassUnit: 'per_piece',
-            configVersion: 1,
-            totalBottles: 0,
-            totalCups: 0,
-            totalPoints: 0,
-            sessionCount: 0,
-            plasticCount: 0,
-            glassCount: 0,
-            canCount: 0,
-            paperCount: 0,
-            lastActive: s.recycledAt || s.timestamp || null
-          };
-        }
-
         const mType = String(grouped[mId].machineType || '').toUpperCase();
         if (s.raw) {
           const r = s.raw;
@@ -4004,7 +3953,7 @@ app.get('/api/db/backups', authenticateToken, requireAdmin, (req, res) => {
 // Only transient operational tables may be cleared. Identity, RBAC, fleet,
 // tenant and configuration tables are intentionally excluded from this list.
 const RESETTABLE_POSTGRES_TABLES = new Set([
-  'recycling_sessions', 'rvm_legacy_sessions', 'rvm_new_sessions', 'pecodrop_sessions',
+  'recycling_sessions', 'recyclingsessions', 'rvm_legacy_sessions', 'rvm_new_sessions', 'pecodrop_sessions',
   'redemptions', 'enterprise_redemptions', 'feedbacks', 'feedbacks_log',
   'binfullnotifications', 'notifications', 'activity_logs'
 ]);
