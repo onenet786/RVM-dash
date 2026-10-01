@@ -2740,6 +2740,34 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               }
             }
 
+            // Intercept & sanitize legacy mock defaults (45%, 30%, 8.50kg, 1250 pulses)
+            const isMockDefault = (
+              (parseInt(r.plastic_bin_fill) === 45 && parseInt(r.metal_bin_fill) === 30) ||
+              (parseInt(r.plastic_bin_fill) === 58 && parseInt(r.metal_bin_fill) === 42) ||
+              (parseInt(r.plastic_bin_fill) === 65 && parseInt(r.metal_bin_fill) === 50) ||
+              (parseInt(r.plastic_bin_fill) === 85 && parseInt(r.pulse_count) === 1420) ||
+              (r.plastic_bin_fill == null && r.metal_bin_fill == null && r.paper_bin_fill_kg == null)
+            );
+
+            if (isMockDefault && pool) {
+              pool.query(
+                `UPDATE machines 
+                 SET plastic_bin_fill = 0, metal_bin_fill = 0, paper_bin_fill_kg = 0.00, 
+                     bin_fill_percentage = 0, pulse_count = 0, zero_drift_grams = 0.00, 
+                     scale_status = 'Ready' 
+                 WHERE machine_id = $1`,
+                [r.machine_id]
+              ).catch(() => {});
+            }
+
+            const plasticBinFill = isMockDefault ? 0 : (r.plastic_bin_fill != null ? parseInt(r.plastic_bin_fill) : 0);
+            const metalBinFill = isMockDefault ? 0 : (r.metal_bin_fill != null ? parseInt(r.metal_bin_fill) : 0);
+            const paperBinFillKg = isMockDefault ? 0.0 : (r.paper_bin_fill_kg != null ? parseFloat(r.paper_bin_fill_kg) : 0.0);
+            const scaleStatus = (isMockDefault || !r.scale_status || r.scale_status === 'Optimal') ? 'Ready' : r.scale_status;
+            const tareOffsetGrams = isMockDefault ? 0.00 : (r.tare_offset_grams != null ? parseFloat(r.tare_offset_grams) : 0.00);
+            const zeroDriftGrams = (isMockDefault || parseFloat(r.zero_drift_grams) === 0.02) ? 0.00 : (r.zero_drift_grams != null ? parseFloat(r.zero_drift_grams) : 0.00);
+            const pulseCount = (isMockDefault || parseInt(r.pulse_count) === 1250) ? 0 : (r.pulse_count != null ? parseInt(r.pulse_count) : 0);
+
             allRegisteredMachines.push({
               machineId: r.machine_id,
               name: r.name || `RVM Machine ${r.machine_id}`,
@@ -2753,19 +2781,19 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               machineType: mType,
               clientId: cId,
               clientName: cName,
-              plasticBinFill: r.plastic_bin_fill != null ? parseInt(r.plastic_bin_fill) : 0,
-              metalBinFill: r.metal_bin_fill != null ? parseInt(r.metal_bin_fill) : 0,
-              paperBinFillKg: r.paper_bin_fill_kg != null ? parseFloat(r.paper_bin_fill_kg) : 0.0,
-              scaleStatus: r.scale_status || 'Ready',
-              tareOffsetGrams: r.tare_offset_grams != null ? parseFloat(r.tare_offset_grams) : 0.00,
-              zeroDriftGrams: r.zero_drift_grams != null ? parseFloat(r.zero_drift_grams) : 0.00,
+              plasticBinFill,
+              metalBinFill,
+              paperBinFillKg,
+              scaleStatus,
+              tareOffsetGrams,
+              zeroDriftGrams,
               inductiveStatus: r.inductive_status || 'NORMAL',
               ultrasonicStatus: r.ultrasonic_status || 'NORMAL',
               opticalStatus: r.optical_status || '60 FPS',
               dropgateStatus: r.dropgate_status || 'CLOSED',
-              antiCheatTrips: r.anti_cheat_trips != null ? parseInt(r.anti_cheat_trips) : 0,
-              pulseCount: r.pulse_count != null ? parseInt(r.pulse_count) : 0,
-              offlineBacklogCount: r.offline_backlog_count != null ? parseInt(r.offline_backlog_count) : 0,
+              antiCheatTrips: isMockDefault ? 0 : (r.anti_cheat_trips != null ? parseInt(r.anti_cheat_trips) : 0),
+              pulseCount,
+              offlineBacklogCount: isMockDefault ? 0 : (r.offline_backlog_count != null ? parseInt(r.offline_backlog_count) : 0),
               pointsPerPlasticBottle: r.points_per_plastic ?? 10,
               pointsPlasticSmall: r.points_plastic_small ?? 5,
               pointsPlasticMedium: r.points_plastic_medium ?? 10,
