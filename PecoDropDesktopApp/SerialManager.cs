@@ -37,6 +37,35 @@ public class SerialManager : IDisposable
         }
     }
 
+    public static bool IsPortLikelyUsbSerial(string portName)
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"HARDWARE\DEVICEMAP\SERIALCOMM");
+            if (key != null)
+            {
+                foreach (string valName in key.GetValueNames())
+                {
+                    string? portVal = key.GetValue(valName) as string;
+                    if (string.Equals(portVal, portName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Exclude motherboard PCI / onboard serial ports (\Device\Serial0, \Device\Serial1, etc.)
+                        // USB serial devices use \Device\USBSER..., \Device\VCP..., \Device\CH341..., etc.
+                        if (valName.StartsWith(@"\Device\Serial", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return false;
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        catch { }
+
+        if (portName.Equals("COM1", StringComparison.OrdinalIgnoreCase)) return false;
+        return true;
+    }
+
     public void Connect(string port, int baudRate = 115200)
     {
         lock (_portLock)

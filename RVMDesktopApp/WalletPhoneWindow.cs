@@ -768,8 +768,37 @@ public sealed class WalletPhoneWindow : Window
         }
     }
 
+    private void PerformPhoneBackspace()
+    {
+        if (_phoneTextBox == null) return;
+        if (_phoneTextBox.SelectionLength > 0)
+        {
+            int start = _phoneTextBox.SelectionStart;
+            _phoneTextBox.Text = _phoneTextBox.Text.Remove(start, _phoneTextBox.SelectionLength);
+            _phoneTextBox.CaretIndex = start;
+        }
+        else if (_phoneTextBox.CaretIndex > 0)
+        {
+            int removeAt = _phoneTextBox.CaretIndex - 1;
+            _phoneTextBox.Text = _phoneTextBox.Text.Remove(removeAt, 1);
+            _phoneTextBox.CaretIndex = removeAt;
+        }
+        else if (!string.IsNullOrEmpty(_phoneTextBox.Text))
+        {
+            _phoneTextBox.Text = _phoneTextBox.Text[..^1];
+            _phoneTextBox.CaretIndex = _phoneTextBox.Text.Length;
+        }
+    }
+
     private void PhoneTextBox_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            PerformPhoneBackspace();
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Enter)
         {
             SubmitPhone();
@@ -779,6 +808,13 @@ public sealed class WalletPhoneWindow : Window
 
     private void WalletPhoneWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (_currentStep == WindowStep.PhoneInput && (e.Key == Key.Subtract || e.Key == Key.OemMinus))
+        {
+            PerformPhoneBackspace();
+            e.Handled = true;
+            return;
+        }
+
         if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
         {
             if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))

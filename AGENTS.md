@@ -13,6 +13,7 @@
       - 🟦 **Square (Neon Cyan Blue Glow)**: Office Paper & Documents (weighed in grams/kg via HX711 load cell).
   - Features: Corporate employee greeting, department tracking, cafeteria discounts, internal corporate perks, and CSR/ESG environmental metrics.
   - Confidential Hotkeys (Buffer Sequence):
+    - `55`: Confidential Real-time Telemetry Terminal toggle overlay.
     - `1122`: Activates Demo Mode & opens Demo Testing simulator window.
     - `1218`: Confidential System Restart dialogue (Yes / No / Cancel).
     - `1219`: Confidential System Shutdown dialogue (Yes / No / Cancel).
@@ -172,5 +173,5 @@ Use the phrase **`pedo arduino`** as an alias for this PecoDrop Arduino integrat
   - `0012`: Hardware kiosk left, video signage right.
   - `0021`: Video signage left, hardware kiosk right.
 - Display preference is machine-scoped in local SQL table `dbo.KioskDisplaySettings`, with `config.txt` as an offline fallback, and must be restored after both windows are created on application/Windows restart.
-- Existing confidential machine hotkeys remain: `1122` demo, `1218` restart, `1219` shutdown, `66` start, `77` stop, `88` reset, and `99` calibrate.
+- Existing confidential machine hotkeys remain: `55` telemetry, `1122` demo, `1218` restart, `1219` shutdown, `66` start, `77` stop, `88` reset, and `99` calibrate.
 - After firmware changes, upload the updated `.ino` with PecoDrop closed. Normal target: Arduino Mega or Mega 2560 / ATmega2560. COM-port and `stk500v2_getsync()` failures are upload/bootloader/port issues, not sketch-size failures.

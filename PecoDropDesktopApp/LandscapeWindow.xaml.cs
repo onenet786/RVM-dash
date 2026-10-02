@@ -374,8 +374,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private int digit1PressCount = 0;
     private DateTime lastDigit1PressTime = DateTime.MinValue;
-    private int digit8PressCount = 0;
-    private DateTime lastDigit8PressTime = DateTime.MinValue;
+    private int digit5PressCount = 0;
+    private DateTime lastDigit5PressTime = DateTime.MinValue;
     private DateTime lastDigit3PressTime = DateTime.MinValue;
     private string _demoSecretSequence = "";
     private DateTime _lastDemoSecretTime = DateTime.MinValue;
@@ -406,6 +406,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (_demoSecretSequence.Length > 0)
+            {
+                _demoSecretSequence = _demoSecretSequence[..^1];
+            }
+            e.Handled = true;
+            return;
+        }
+
         // Secret code 1122 to open Demo Testing simulator
         char digit = e.Key switch
         {
@@ -451,6 +461,37 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
+            if (_demoSecretSequence.EndsWith("55"))
+
+
+            {
+
+
+                _demoSecretSequence = "";
+
+
+                digit1PressCount = 0;
+
+
+                digit5PressCount = 0;
+
+
+                LogTelemetry("[HOTKEY 55] Telemetry toggled via hotkey 55");
+
+
+                ToggleTelemetry();
+
+
+                e.Handled = true;
+
+
+                return;
+
+
+            }
+
+
+
             if (_demoSecretSequence.EndsWith("66"))
             {
                 _demoSecretSequence = "";
@@ -473,7 +514,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                digit8PressCount = 0;
+                digit5PressCount = 0;
                 TriggerReset();
                 e.Handled = true;
                 return;
@@ -553,7 +594,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                digit8PressCount = 0;
+                digit5PressCount = 0;
                 LogTelemetry("[HOTKEY] System restart dialogue triggered");
                 e.Handled = true;
                 SystemPowerDialog.PromptAndRestart(this);
@@ -564,7 +605,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 _demoSecretSequence = "";
                 digit1PressCount = 0;
-                digit8PressCount = 0;
+                digit5PressCount = 0;
                 LogTelemetry("[HOTKEY] System shutdown dialogue triggered");
                 e.Handled = true;
                 SystemPowerDialog.PromptAndShutdown(this);
@@ -601,25 +642,26 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             digit1PressCount = 0;
         }
 
-        if (e.Key == Key.D8 || e.Key == Key.NumPad8)
+        if (e.Key == Key.D5 || e.Key == Key.NumPad5)
         {
             DateTime now = DateTime.Now;
-            if ((now - lastDigit8PressTime).TotalMilliseconds <= 1500)
+            if ((now - lastDigit5PressTime).TotalMilliseconds <= 1500)
             {
-                digit8PressCount++;
+                digit5PressCount++;
             }
             else
             {
-                digit8PressCount = 1;
+                digit5PressCount = 1;
             }
 
-            lastDigit8PressTime = now;
+            lastDigit5PressTime = now;
 
-            if (digit8PressCount >= 3)
+            if (digit5PressCount >= 2)
             {
-                digit8PressCount = 0;
-                lastDigit8PressTime = DateTime.MinValue;
-                LogTelemetry("[HOTKEY] Telemetry toggled");
+                digit5PressCount = 0;
+                lastDigit5PressTime = DateTime.MinValue;
+                _demoSecretSequence = "";
+                LogTelemetry("[HOTKEY 55] Telemetry toggled via hotkey 55");
                 ToggleTelemetry();
                 e.Handled = true;
                 return;
@@ -627,7 +669,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
         else
         {
-            digit8PressCount = 0;
+            digit5PressCount = 0;
         }
 
         if (e.Key == Key.D3 || e.Key == Key.NumPad3)
@@ -721,18 +763,24 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (TelemetryPanel.Visibility == Visibility.Visible)
         {
             TelemetryPanel.Visibility = Visibility.Collapsed;
-            AdPanel.SetValue(Grid.ColumnProperty, 0);
-            BottomGrid.ColumnDefinitions[1].Width = new GridLength(0);
-            BottomGrid.ColumnDefinitions[2].Width = new GridLength(0);
+            if (AdPanel != null) AdPanel.SetValue(Grid.ColumnProperty, 0);
+            if (BottomGrid != null && BottomGrid.ColumnDefinitions.Count >= 3)
+            {
+                BottomGrid.ColumnDefinitions[1].Width = new GridLength(0);
+                BottomGrid.ColumnDefinitions[2].Width = new GridLength(0);
+            }
         }
         else
         {
-            AdPanel.SetValue(Grid.ColumnProperty, 2);
-            BottomGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-            BottomGrid.ColumnDefinitions[1].Width = new GridLength(18);
-            BottomGrid.ColumnDefinitions[2].Width = new GridLength(340);
+            if (AdPanel != null) AdPanel.SetValue(Grid.ColumnProperty, 2);
+            if (BottomGrid != null && BottomGrid.ColumnDefinitions.Count >= 3)
+            {
+                BottomGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                BottomGrid.ColumnDefinitions[1].Width = new GridLength(18);
+                BottomGrid.ColumnDefinitions[2].Width = new GridLength(340);
+            }
             TelemetryPanel.Visibility = Visibility.Visible;
-            TelemetryScroll.ScrollToEnd();
+            TelemetryScroll?.ScrollToEnd();
         }
     }
 
@@ -1248,10 +1296,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 }
                 else
                 {
-                    // Fallback to single active USB COM port
+                    // Fallback to single active USB COM port (excluding onboard Intel SOL / motherboard ports)
                     var usbCandidates = availablePorts
                         .Where(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase) &&
-                                    !p.Equals(settings.CameraPort, StringComparison.OrdinalIgnoreCase))
+                                    !p.Equals(settings.CameraPort, StringComparison.OrdinalIgnoreCase) &&
+                                    SerialManager.IsPortLikelyUsbSerial(p))
                         .ToList();
                     if (usbCandidates.Count == 1)
                     {

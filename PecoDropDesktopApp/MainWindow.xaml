@@ -945,7 +945,7 @@
                 </Grid>
             </Border>
 
-            <!-- Real-time Telemetry Terminal Overlay (Press 8 to Toggle) -->
+            <!-- Real-time Telemetry Terminal Overlay (Press 55 to Toggle) -->
             <Border x:Name="TelemetryPanel" Grid.Column="0" Background="#080D18" BorderBrush="#22C55E" BorderThickness="0,0,0,2" Visibility="Collapsed">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -953,7 +953,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Border Background="#0D1526" Padding="18,12">
-                        <TextBlock Text="REAL-TIME TELEMETRY TERMINAL  (ESC OR 8 TO CLOSE)" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="#4ADE80"/>
+                        <TextBlock Text="REAL-TIME TELEMETRY TERMINAL  (ESC OR 55 TO CLOSE)" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="#4ADE80"/>
                     </Border>
                     <ScrollViewer x:Name="TelemetryScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,12">
                         <ItemsControl x:Name="TelemetryList">

@@ -233,16 +233,28 @@ public static class DatabaseManager
 
                     IF COL_LENGTH('dbo.PointSettings', 'Points') IS NULL
                         ALTER TABLE dbo.PointSettings ADD Points INT NOT NULL DEFAULT 10;
-
-                    IF COL_LENGTH('dbo.PointSettings', 'Unit') IS NULL
-                        ALTER TABLE dbo.PointSettings ADD Unit NVARCHAR(20) NOT NULL CONSTRAINT DF_PointSettings_Unit DEFAULT 'per_piece';
                 END
-
-                IF NOT EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = 'PAPER' AND UPPER(BottleSize) = 'WEIGHT')
-                    INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit, IsActive)
-                    VALUES ('WEIGHT', 'PAPER', 15, 'per_kg', 1);
             ", connection);
             cmd.ExecuteNonQuery();
+
+            using var cmdUnit = new SqlCommand(@"
+                IF OBJECT_ID('dbo.PointSettings', 'U') IS NOT NULL AND COL_LENGTH('dbo.PointSettings', 'Unit') IS NULL
+                BEGIN
+                    ALTER TABLE dbo.PointSettings ADD Unit NVARCHAR(20) NOT NULL CONSTRAINT DF_PointSettings_Unit DEFAULT 'per_piece';
+                END
+            ", connection);
+            cmdUnit.ExecuteNonQuery();
+
+            using var cmdPaper = new SqlCommand(@"
+                IF OBJECT_ID('dbo.PointSettings', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM dbo.PointSettings WHERE UPPER(MaterialType) = 'PAPER' AND UPPER(BottleSize) = 'WEIGHT')
+                    BEGIN
+                        EXEC sp_executesql N'INSERT INTO dbo.PointSettings (BottleSize, MaterialType, Points, Unit, IsActive) VALUES (''WEIGHT'', ''PAPER'', 15, ''per_kg'', 1)';
+                    END
+                END
+            ", connection);
+            cmdPaper.ExecuteNonQuery();
         }
         catch { }
     }

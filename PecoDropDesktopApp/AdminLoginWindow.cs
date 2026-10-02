@@ -89,6 +89,7 @@ public sealed class AdminLoginWindow : Window
         usernameBox.BorderThickness = new Thickness(1);
         usernameBox.Padding = new Thickness(10, 8, 10, 8);
         usernameBox.Margin = new Thickness(0, 0, 0, 16);
+        usernameBox.KeyDown += UsernameBox_KeyDown;
         formPanel.Children.Add(usernameBox);
 
         // Password Label & Box
@@ -193,8 +194,50 @@ public sealed class AdminLoginWindow : Window
         Loaded += (_, _) => passwordBox.Focus();
     }
 
+    private void UsernameBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (usernameBox.SelectionLength > 0)
+            {
+                int start = usernameBox.SelectionStart;
+                usernameBox.Text = usernameBox.Text.Remove(start, usernameBox.SelectionLength);
+                usernameBox.CaretIndex = start;
+            }
+            else if (usernameBox.CaretIndex > 0)
+            {
+                int removeAt = usernameBox.CaretIndex - 1;
+                usernameBox.Text = usernameBox.Text.Remove(removeAt, 1);
+                usernameBox.CaretIndex = removeAt;
+            }
+            else if (!string.IsNullOrEmpty(usernameBox.Text))
+            {
+                usernameBox.Text = usernameBox.Text[..^1];
+                usernameBox.CaretIndex = usernameBox.Text.Length;
+            }
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            passwordBox.Focus();
+            e.Handled = true;
+        }
+    }
+
     private void PasswordBox_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (!string.IsNullOrEmpty(passwordBox.Password))
+            {
+                passwordBox.Password = passwordBox.Password[..^1];
+            }
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Enter)
         {
             AttemptLogin();

@@ -240,6 +240,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (_demoSecretSequence.Length > 0)
+            {
+                _demoSecretSequence = _demoSecretSequence[..^1];
+            }
+            e.Handled = true;
+            return;
+        }
+
         // Secret code 1122 to open Demo Testing simulator
         char digit = e.Key switch
         {

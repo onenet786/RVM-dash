@@ -282,7 +282,12 @@ public partial class App : Application
             e.Handled = true;
             return;
         }
-        RvmMessageDialog.ShowError("RVM System Error", $"An unexpected error occurred:\n\n{e.Exception.Message}");
+        try
+        {
+            System.IO.File.WriteAllText("PecoDrop_Crash.log", e.Exception.ToString());
+        }
+        catch { }
+        RvmMessageDialog.ShowError("RVM System Error", $"An unexpected error occurred:\n\n{e.Exception.Message}\n\n{e.Exception.StackTrace}");
         e.Handled = true;
     }
 

@@ -243,6 +243,16 @@ public partial class SecondaryAdWindow : Window
             return;
         }
 
+        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (_demoSecretSequence.Length > 0)
+            {
+                _demoSecretSequence = _demoSecretSequence[..^1];
+            }
+            e.Handled = true;
+            return;
+        }
+
         char digit = e.Key switch
         {
             Key.D0 or Key.NumPad0 => '0',

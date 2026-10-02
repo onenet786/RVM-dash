@@ -347,6 +347,16 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             return;
         }
 
+        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            if (_demoSecretSequence.Length > 0)
+            {
+                _demoSecretSequence = _demoSecretSequence[..^1];
+            }
+            e.Handled = true;
+            return;
+        }
+
         // Secret code 1122 to open Demo Testing simulator
         char digit = e.Key switch
         {

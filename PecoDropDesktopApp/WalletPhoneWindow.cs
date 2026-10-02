@@ -168,7 +168,7 @@ public sealed class WalletPhoneWindow : Window
             return true;
         }
 
-        if (key == Key.Back)
+        if (key == Key.Back || key == Key.Subtract || key == Key.OemMinus)
         {
             if (_phoneTextBox.SelectionLength > 0)
             {
@@ -181,6 +181,11 @@ public sealed class WalletPhoneWindow : Window
                 int removeAt = _phoneTextBox.CaretIndex - 1;
                 _phoneTextBox.Text = _phoneTextBox.Text.Remove(removeAt, 1);
                 _phoneTextBox.CaretIndex = removeAt;
+            }
+            else if (!string.IsNullOrEmpty(_phoneTextBox.Text))
+            {
+                _phoneTextBox.Text = _phoneTextBox.Text[..^1];
+                _phoneTextBox.CaretIndex = _phoneTextBox.Text.Length;
             }
             return true;
         }
@@ -880,6 +885,13 @@ public sealed class WalletPhoneWindow : Window
 
     private void PhoneTextBox_KeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        {
+            TryHandleKioskNumpadKey(Key.Back);
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Enter)
         {
             SubmitPhone();

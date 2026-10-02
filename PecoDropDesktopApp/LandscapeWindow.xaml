@@ -732,17 +732,22 @@
         <!-- HIDDEN & OVERLAY UTILITIES                                     -->
         <!-- ============================================================== -->
         <Grid x:Name="BottomGrid" Grid.ColumnSpan="2" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="0"/>
+                <ColumnDefinition Width="0"/>
+            </Grid.ColumnDefinitions>
             <Border x:Name="AdPanel">
                 <MediaElement x:Name="AdvertisementPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" IsMuted="True" Volume="0" MediaEnded="AdvertisementPlayer_MediaEnded"/>
             </Border>
         </Grid>
 
-        <!-- TELEMETRY TERMINAL OVERLAY (ESC OR 8 TO CLOSE) -->
+        <!-- TELEMETRY TERMINAL OVERLAY (ESC OR 55 TO CLOSE) -->
         <Border x:Name="TelemetryPanel" Grid.ColumnSpan="2" Background="#080D18" BorderBrush="#22C55E" BorderThickness="0,0,0,2" Visibility="Collapsed" Panel.ZIndex="999">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Border Background="#0D1526" Padding="18,12">
-                    <TextBlock Text="REAL-TIME TELEMETRY TERMINAL  (ESC OR 8 TO CLOSE)" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="#4ADE80"/>
+                    <TextBlock Text="REAL-TIME TELEMETRY TERMINAL  (ESC OR 55 TO CLOSE)" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="#4ADE80"/>
                 </Border>
                 <ScrollViewer x:Name="TelemetryScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="18,12">
                     <ItemsControl x:Name="TelemetryList">
