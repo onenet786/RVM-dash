@@ -10,9 +10,47 @@ import pecoThumb from '../assets/ad_peco_green_journey.jpg';
 import pepsiThumb from '../assets/ad_pepsi_recycle_earn.jpg';
 import universityThumb from '../assets/ad_university_bottle_drive.jpg';
 
-export default function AdvertisementsTab() {
+export default function AdvertisementsTab({ currentUser, selectedClientId, stationFilter }) {
   const [ads, setAds] = useState([]);
   const [machines, setMachines] = useState([]);
+
+  const getAuthToken = () => {
+    return sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+  };
+
+  const getActiveUser = () => {
+    let u = currentUser;
+    if (!u || (!u.username && !u.roleId)) {
+      try {
+        u = JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
+      } catch (e) {
+        u = {};
+      }
+    }
+    return u || {};
+  };
+
+  const activeUser = getActiveUser();
+  const isSuperAdmin = (
+    activeUser?.username === 'onenet' ||
+    activeUser?.username === 'bilalaaqueel' ||
+    activeUser?.roleId === 'super_admin' ||
+    activeUser?.roleId === 'superadmin' ||
+    (activeUser?.roleName && activeUser.roleName.toLowerCase().includes('super admin'))
+  );
+
+  const isCorporateClient = !isSuperAdmin && (
+    Boolean(activeUser?.orgId) ||
+    activeUser?.roleId === 'client_admin' ||
+    activeUser?.roleId === 'corporate_sub_user'
+  );
+
+  const corporateOrgName = (
+    activeUser?.organizationName ||
+    activeUser?.orgName ||
+    (activeUser?.fullName ? activeUser.fullName.replace(/Corporate Client Lead.*/i, '').trim() : '') ||
+    'Corporate'
+  );
   const [loading, setLoading] = useState(true);
   const [syncingAll, setSyncingAll] = useState(false);
   
@@ -60,30 +98,36 @@ export default function AdvertisementsTab() {
 
   const fetchMachines = async () => {
     try {
-      const res = await fetch('/api/analytics/machines');
+      const token = getAuthToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch('/api/analytics/machines', { headers });
       if (res.ok) {
         const data = await res.json();
-        setMachines(data || []);
+        setMachines(Array.isArray(data) ? data : []);
       }
     } catch (err) {
       console.error('Failed to load machines:', err);
     }
   };
 
-  // Normalized live fleet machines from PostgreSQL
-  const allFleetMachines = machines.length > 0 ? machines.map(m => ({
+  // Live fleet machines from PostgreSQL
+  const rawFleetList = machines.map(m => ({
     id: m.machineId || m.machine_id || m.id,
     name: m.name || `Machine ${m.machineId || m.id}`,
-    location: m.location || 'Islamabad Campus',
-    type: ['PECODROP', 'PECO_DROP'].includes(String(m.machineType || m.machine_type || '').toUpperCase()) ? 'peco' : 'rvm'
-  })) : [
-    { id: 'PECO-01', name: 'Corporate Kiosk PECO-01', location: 'Engro Campus', type: 'peco' },
-    { id: 'PECO-02', name: 'Corporate Kiosk PECO-02', location: 'Corporate HQ', type: 'peco' },
-    { id: 'PECO-LHR-01', name: 'Corporate Kiosk PECO-LHR-01', location: 'Lahore Tech Park', type: 'peco' },
-    { id: 'PECO-KHI-01', name: 'Corporate Kiosk PECO-KHI-01', location: 'Karachi Hub', type: 'peco' },
-    { id: 'RVM-ISB-01', name: 'Public RVM Station RVM-ISB-01', location: 'Metro Station', type: 'rvm' },
-    { id: 'RVM-LHR-01', name: 'Public RVM Station RVM-LHR-01', location: 'Packages Mall', type: 'rvm' }
-  ];
+    location: m.location || 'Local Hub',
+    type: ['PECODROP', 'PECO_DROP'].includes(String(m.machineType || m.machine_type || '').toUpperCase()) ? 'peco' : 'rvm',
+    clientId: m.clientId,
+    clientName: m.clientName
+  }));
+
+  // If corporate client, enforce strict boundary to client-owned machines:
+  const allFleetMachines = isCorporateClient && activeUser?.orgId
+    ? rawFleetList.filter(m => String(m.clientId || '').toUpperCase() === String(activeUser.orgId).toUpperCase() || (Array.isArray(activeUser?.assignedMachines) && activeUser.assignedMachines.includes(String(m.id).toUpperCase())))
+    : (isSuperAdmin && rawFleetList.length === 0 ? [
+        { id: 'PECO-01', name: 'Corporate Kiosk PECO-01', location: 'Engro Campus', type: 'peco' },
+        { id: 'PECO-02', name: 'Corporate Kiosk PECO-02', location: 'Corporate HQ', type: 'peco' },
+        { id: 'RVM-ISB-01', name: 'Public RVM Station RVM-ISB-01', location: 'Metro Station', type: 'rvm' }
+      ] : rawFleetList);
 
   const pecoFleetList = allFleetMachines.filter(m => m.type === 'peco');
   const rvmFleetList = allFleetMachines.filter(m => m.type === 'rvm');
@@ -91,7 +135,12 @@ export default function AdvertisementsTab() {
   const fetchAds = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/machine/ads');
+      const token = getAuthToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const url = isSuperAdmin && selectedClientId && selectedClientId !== 'ALL'
+        ? `/api/machine/ads?clientId=${encodeURIComponent(selectedClientId)}`
+        : '/api/machine/ads';
+      const res = await fetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
         const loadedCampaigns = (data.ads || []).map(ad => {
@@ -144,7 +193,8 @@ export default function AdvertisementsTab() {
   const handleSyncAllDisplays = async () => {
     try {
       setSyncingAll(true);
-      const res = await fetch('/api/machine/ads/sync-all', { method: 'POST' });
+      const token = getAuthToken();
+      const res = await fetch('/api/machine/ads/sync-all', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       await fetchAds();
       showToast('success', '🚀 Fleet Video Sync Dispatched: All connected kiosk screens (Public RVMs & Corporate PecoDrop kiosks) synchronized successfully with master video playlist!');
     } catch (err) {
@@ -156,7 +206,8 @@ export default function AdvertisementsTab() {
 
   const handlePushToScreens = async (campaign) => {
     try {
-      const res = await fetch(`/api/machine/ads/${campaign.id}/push`, { method: 'POST' });
+      const token = getAuthToken();
+      const res = await fetch(`/api/machine/ads/${campaign.id}/push`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       const destNames = campaign.destinations.map(d => d.label).join(', ') || 'All Screens';
       showToast('success', `📡 Broadcast Dispatched: "${campaign.title}" pushed live to [${destNames}]! Hardware display refresh signal transmitted.`);
       await fetchAds();
@@ -224,13 +275,14 @@ export default function AdvertisementsTab() {
   const handleSaveCampaignDestinations = async () => {
     if (!editingCampaign) return;
     try {
+      const token = getAuthToken();
       await fetch(`/api/machine/ads/${editingCampaign.id}/destinations`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ destinations: editingCampaign.destinations })
       });
       // Broadcast immediately so kiosks download or remove accordingly:
-      await fetch(`/api/machine/ads/${editingCampaign.id}/push`, { method: 'POST' });
+      await fetch(`/api/machine/ads/${editingCampaign.id}/push`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {} });
       await fetchAds();
       showToast('success', `📡 Broadcast updated: "${editingCampaign.title}" synchronized live with target displays!`);
     } catch (err) {
@@ -250,8 +302,10 @@ export default function AdvertisementsTab() {
         purgeLocal: purgeLocalFiles ? 'true' : 'false'
       });
 
+      const token = getAuthToken();
       const res = await fetch(`/api/machine/ads/${encodeURIComponent(deletingCampaign.id)}?${params.toString()}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       if (res.ok) {
@@ -308,11 +362,13 @@ export default function AdvertisementsTab() {
       let scope = 'ALL';
       let catTheme = targetCategory === 'PecoDrop Exclusive' ? 'purple' : targetCategory === 'Campus Specific' ? 'cyan' : 'emerald';
 
+      const token = getAuthToken();
+
       if (uploadTargetMode === 'ALL') {
-        destinations = [{ id: 'ALL', label: 'All Screens (Fleet-wide Global Video Sync)', type: 'global' }];
-        scope = 'ALL';
+        destinations = [{ id: 'ALL', label: isCorporateClient ? `All Corporate Displays (${corporateOrgName})` : 'All Screens (Fleet-wide Global Video Sync)', type: isCorporateClient ? 'peco' : 'global' }];
+        scope = isCorporateClient ? 'PECODROP' : 'ALL';
       } else if (uploadTargetMode === 'ALL_PECO') {
-        destinations = [{ id: 'ALL_PECO', label: 'All PecoDrop Kiosks (Dual Displays)', type: 'peco' }];
+        destinations = [{ id: 'ALL_PECO', label: isCorporateClient ? `All ${corporateOrgName} PecoDrop Kiosks` : 'All PecoDrop Kiosks (Dual Displays)', type: 'peco' }];
         scope = 'PECODROP';
         catTheme = 'purple';
       } else if (uploadTargetMode === 'ALL_RVM') {
@@ -340,13 +396,15 @@ export default function AdvertisementsTab() {
         catTheme = hasPeco && !hasRvm ? 'purple' : hasRvm && !hasPeco ? 'cyan' : 'emerald';
       }
 
-      // If user uploaded a physical file, post to upload endpoint first
+      // If user uploaded a physical file, post to upload endpoint first with auth header
       if (uploadMode === 'file' && selectedFile) {
         const formData = new FormData();
         formData.append('video', selectedFile);
         formData.append('title', adTitle.trim());
+        const uploadHeaders = token ? { Authorization: `Bearer ${token}` } : {};
         const uploadRes = await fetch('/api/machine/ads/upload', {
           method: 'POST',
+          headers: uploadHeaders,
           body: formData
         });
         if (uploadRes.ok) {
@@ -356,10 +414,14 @@ export default function AdvertisementsTab() {
         }
       }
 
-      // Save campaign record directly to PostgreSQL DB
+      // Save campaign record directly to PostgreSQL DB with client & auth scoping
+      const saveHeaders = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      };
       const saveRes = await fetch('/api/machine/ads', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: saveHeaders,
         body: JSON.stringify({
           title: adTitle.trim(),
           videoUrl: finalVideoUrl,
@@ -367,13 +429,15 @@ export default function AdvertisementsTab() {
           fileSize: fileSizeBytes,
           durationSeconds: 30,
           isActive: true,
-          categoryBadge: targetCategory,
+          categoryBadge: isCorporateClient ? `${corporateOrgName} Campaign` : targetCategory,
           aspectRatio: targetOrientation,
           categoryTheme: catTheme,
-          location: 'All Locations (Nationwide)',
+          location: isCorporateClient ? `${corporateOrgName} Campus & Facilities` : 'All Locations (Nationwide)',
           scope,
           destinations,
-          status: 'Active Loop'
+          status: 'Active Loop',
+          clientId: isCorporateClient ? activeUser?.orgId : 'ISP_MASTER',
+          orgId: isCorporateClient ? activeUser?.orgId : 'ISP_MASTER'
         })
       });
 
@@ -426,17 +490,17 @@ export default function AdvertisementsTab() {
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-                  DIGITAL SIGNAGE HUB
+                  {isCorporateClient ? 'CORPORATE DIGITAL SIGNAGE' : 'DIGITAL SIGNAGE HUB'}
                 </span>
                 <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Machine Displays Live Sync
+                  {isCorporateClient ? `${corporateOrgName} Kiosks Live Sync` : 'Machine Displays Live Sync'}
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-black t-text-primary tracking-tight">
-                Screen Ad & Video Manager
+                {isCorporateClient ? `${corporateOrgName} Screen Ad & Video Manager` : 'Screen Ad & Video Manager'}
               </h1>
             </div>
           </div>
@@ -517,13 +581,15 @@ export default function AdvertisementsTab() {
             </div>
           </div>
           <div className="flex items-baseline gap-2 mt-3">
-            <span className="text-3xl font-black t-text-primary tracking-tight">8</span>
+            <span className="text-3xl font-black t-text-primary tracking-tight">{allFleetMachines.length}</span>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
               100% Synced
             </span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            5 RVM Headers • 3 PecoDrop Screens
+            {isCorporateClient
+              ? `${pecoFleetList.length} Corporate Kiosk${pecoFleetList.length === 1 ? '' : 's'}`
+              : `${rvmFleetList.length} RVM Headers • ${pecoFleetList.length} PecoDrop Screens`}
           </div>
         </div>
 
@@ -600,9 +666,15 @@ export default function AdvertisementsTab() {
               onChange={(e) => setNetworkScope(e.target.value)}
               className="w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold t-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-xs"
             >
-              <option value="ALL">🌐 Global Fleet (All 8 Machines)</option>
-              <option value="RVM_NEW">♻️ Public RVM Fleet (5 Machines)</option>
-              <option value="PECODROP">🏢 Corporate PecoDrop Fleet (3 Machines)</option>
+              {isCorporateClient ? (
+                <option value="ALL">🏢 {corporateOrgName} Fleet ({allFleetMachines.length} Kiosks)</option>
+              ) : (
+                <>
+                  <option value="ALL">🌐 Global Fleet (All {allFleetMachines.length} Machines)</option>
+                  <option value="RVM_NEW">♻️ Public RVM Fleet ({rvmFleetList.length} Machines)</option>
+                  <option value="PECODROP">🏢 Corporate PecoDrop Fleet ({pecoFleetList.length} Machines)</option>
+                </>
+              )}
             </select>
           </div>
 
@@ -614,10 +686,10 @@ export default function AdvertisementsTab() {
               onChange={(e) => setSelectedLocation(e.target.value)}
               className="w-full px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold t-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-xs"
             >
-              <option value="ALL">All Locations (Nationwide)</option>
-              <option value="Metro Mall">Metro Mall (Rawalpindi)</option>
-              <option value="Rawalpindi North Terminal">Rawalpindi North Terminal</option>
-              <option value="UCP Campus">UCP Campus (Lahore)</option>
+              <option value="ALL">All Locations ({isCorporateClient ? corporateOrgName : 'Nationwide'})</option>
+              {Array.from(new Set(allFleetMachines.map(m => m.location).filter(Boolean))).map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
             </select>
           </div>
 
@@ -861,48 +933,81 @@ export default function AdvertisementsTab() {
                 <label className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Quick Broadcast Presets:
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className={`grid gap-2 ${isCorporateClient ? 'grid-cols-2' : 'grid-cols-3'}`}>
                   <button
                     type="button"
-                    onClick={() => handleSelectPresetDestination('ALL')}
+                    onClick={() => {
+                      if (isCorporateClient) {
+                        const corpDests = allFleetMachines.length > 0 
+                          ? allFleetMachines.map(m => ({ id: m.id, label: `${m.id} (${m.location})`, type: m.type }))
+                          : [{ id: 'ALL_CORP', label: `${corporateOrgName} Kiosks (All)`, type: 'peco' }];
+                        setEditingCampaign({ ...editingCampaign, destinations: corpDests });
+                      } else {
+                        handleSelectPresetDestination('ALL');
+                      }
+                    }}
                     className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
-                      isAllScreens 
+                      isAllScreens || (isCorporateClient && dests.length === allFleetMachines.length && allFleetMachines.length > 0)
                         ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/30 shadow-xs' 
                         : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-emerald-500/30'
                     }`}
                   >
-                    <Globe className="w-4 h-4 text-emerald-500" />
-                    <span>All Screens</span>
-                    <span className="text-[10px] font-normal opacity-80">(Global Sync)</span>
+                    {isCorporateClient ? <Building2 className="w-4 h-4 text-emerald-500" /> : <Globe className="w-4 h-4 text-emerald-500" />}
+                    <span>{isCorporateClient ? `All ${corporateOrgName} Kiosks` : 'All Screens'}</span>
+                    <span className="text-[10px] font-normal opacity-80">{isCorporateClient ? `(${allFleetMachines.length} Kiosks)` : '(Global Sync)'}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSelectPresetDestination('ALL_PECO')}
-                    className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
-                      isAllPeco 
-                        ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30 shadow-xs' 
-                        : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-purple-500/30'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4 text-purple-500" />
-                    <span>All PecoDrop</span>
-                    <span className="text-[10px] font-normal opacity-80">(Dual Screens)</span>
-                  </button>
+                  {!isCorporateClient && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPresetDestination('ALL_PECO')}
+                        className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                          isAllPeco 
+                            ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30 shadow-xs' 
+                            : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-purple-500/30'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4 text-purple-500" />
+                        <span>All PecoDrop</span>
+                        <span className="text-[10px] font-normal opacity-80">(Dual Screens)</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSelectPresetDestination('ALL_RVM')}
-                    className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
-                      isAllRvm 
-                        ? 'bg-sky-500/15 border-sky-500 text-sky-700 dark:text-sky-300 ring-2 ring-sky-500/30 shadow-xs' 
-                        : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-sky-500/30'
-                    }`}
-                  >
-                    <Tv className="w-4 h-4 text-sky-500" />
-                    <span>All Public RVM</span>
-                    <span className="text-[10px] font-normal opacity-80">(Header Displays)</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectPresetDestination('ALL_RVM')}
+                        className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                          isAllRvm 
+                            ? 'bg-sky-500/15 border-sky-500 text-sky-700 dark:text-sky-300 ring-2 ring-sky-500/30 shadow-xs' 
+                            : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-sky-500/30'
+                        }`}
+                      >
+                        <Tv className="w-4 h-4 text-sky-500" />
+                        <span>All Public RVM</span>
+                        <span className="text-[10px] font-normal opacity-80">(Header Displays)</span>
+                      </button>
+                    </>
+                  )}
+
+                  {isCorporateClient && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (allFleetMachines.length > 0) {
+                          setEditingCampaign({ ...editingCampaign, destinations: [{ id: allFleetMachines[0].id, label: `${allFleetMachines[0].id} (${allFleetMachines[0].location})`, type: allFleetMachines[0].type }] });
+                        }
+                      }}
+                      className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all ${
+                        !isAllScreens && dests.length > 0 && dests.length < allFleetMachines.length
+                          ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30 shadow-xs' 
+                          : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-purple-500/30'
+                      }`}
+                    >
+                      <Sliders className="w-4 h-4 text-purple-500" />
+                      <span>Specific Kiosks</span>
+                      <span className="text-[10px] font-normal opacity-80">(Custom Selection)</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1120,21 +1225,21 @@ export default function AdvertisementsTab() {
                 </div>
               </div>
 
-              {/* Broadcast Target Screens (All Screens, Peco, RVM, or Specific) */}
+              {/* Broadcast Target Screens */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     Broadcast Target Screens *
                   </label>
                   <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                    {uploadTargetMode === 'ALL' && '🌐 Global Sync (All Screens)'}
+                    {uploadTargetMode === 'ALL' && (isCorporateClient ? `🏢 All ${corporateOrgName} Kiosks` : '🌐 Global Sync (All Screens)')}
                     {uploadTargetMode === 'ALL_PECO' && '🏢 All PecoDrop Kiosks'}
                     {uploadTargetMode === 'ALL_RVM' && '🥫 All Public RVM Stations'}
-                    {uploadTargetMode === 'SPECIFIC' && `🎯 ${selectedUploadMachines.length} Specific Machines Selected`}
+                    {uploadTargetMode === 'SPECIFIC' && `🎯 ${selectedUploadMachines.length} Specific Kiosks Selected`}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className={`grid gap-2 ${isCorporateClient ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'}`}>
                   <button
                     type="button"
                     onClick={() => setUploadTargetMode('ALL')}
@@ -1144,38 +1249,42 @@ export default function AdvertisementsTab() {
                         : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-emerald-500/30'
                     }`}
                   >
-                    <Globe className="w-4 h-4 text-emerald-500" />
-                    <span>All Screens</span>
-                    <span className="text-[9px] font-normal opacity-80">(Global Sync)</span>
+                    {isCorporateClient ? <Building2 className="w-4 h-4 text-emerald-500" /> : <Globe className="w-4 h-4 text-emerald-500" />}
+                    <span>{isCorporateClient ? `All ${corporateOrgName} Kiosks` : 'All Screens'}</span>
+                    <span className="text-[9px] font-normal opacity-80">{isCorporateClient ? `(${allFleetMachines.length} Connected Displays)` : '(Global Sync)'}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setUploadTargetMode('ALL_PECO')}
-                    className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                      uploadTargetMode === 'ALL_PECO'
-                        ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30 shadow-xs'
-                        : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-purple-500/30'
-                    }`}
-                  >
-                    <Building2 className="w-4 h-4 text-purple-500" />
-                    <span>All PecoDrop</span>
-                    <span className="text-[9px] font-normal opacity-80">(Dual Screens)</span>
-                  </button>
+                  {!isCorporateClient && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setUploadTargetMode('ALL_PECO')}
+                        className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                          uploadTargetMode === 'ALL_PECO'
+                            ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/30 shadow-xs'
+                            : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-purple-500/30'
+                        }`}
+                      >
+                        <Building2 className="w-4 h-4 text-purple-500" />
+                        <span>All PecoDrop</span>
+                        <span className="text-[9px] font-normal opacity-80">(Dual Screens)</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setUploadTargetMode('ALL_RVM')}
-                    className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
-                      uploadTargetMode === 'ALL_RVM'
-                        ? 'bg-sky-500/15 border-sky-500 text-sky-700 dark:text-sky-300 ring-2 ring-sky-500/30 shadow-xs'
-                        : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-sky-500/30'
-                    }`}
-                  >
-                    <Tv className="w-4 h-4 text-sky-500" />
-                    <span>All Public RVM</span>
-                    <span className="text-[9px] font-normal opacity-80">(Header Displays)</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() => setUploadTargetMode('ALL_RVM')}
+                        className={`p-2.5 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1 transition-all ${
+                          uploadTargetMode === 'ALL_RVM'
+                            ? 'bg-sky-500/15 border-sky-500 text-sky-700 dark:text-sky-300 ring-2 ring-sky-500/30 shadow-xs'
+                            : 't-bg-sec border t-border text-slate-500 dark:text-slate-400 hover:border-sky-500/30'
+                        }`}
+                      >
+                        <Tv className="w-4 h-4 text-sky-500" />
+                        <span>All Public RVM</span>
+                        <span className="text-[9px] font-normal opacity-80">(Header Displays)</span>
+                      </button>
+                    </>
+                  )}
 
                   <button
                     type="button"
@@ -1187,8 +1296,8 @@ export default function AdvertisementsTab() {
                     }`}
                   >
                     <Sliders className="w-4 h-4 text-amber-500" />
-                    <span>Specific...</span>
-                    <span className="text-[9px] font-normal opacity-80">(Pick Kiosks)</span>
+                    <span>Specific Kiosks</span>
+                    <span className="text-[9px] font-normal opacity-80">(Pick Displays)</span>
                   </button>
                 </div>
 
@@ -1244,53 +1353,54 @@ export default function AdvertisementsTab() {
                       </div>
                     </div>
 
-                    {/* Public RVM Options */}
-                    <div className="space-y-1.5 pt-2 border-t t-border">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-sky-700 dark:text-sky-300">
-                        <span className="flex items-center gap-1">
-                          <Tv className="w-3 h-3" />
-                          <span>Public RVM Stations:</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const rvmIds = rvmFleetList.map(m => m.id);
-                            const allSelected = rvmIds.every(id => selectedUploadMachines.includes(id));
-                            if (allSelected) {
-                              setSelectedUploadMachines(prev => prev.filter(id => !rvmIds.includes(id)));
-                            } else {
-                              setSelectedUploadMachines(prev => Array.from(new Set([...prev, ...rvmIds])));
-                            }
-                          }}
-                          className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline font-bold"
-                        >
-                          Select All RVM
-                        </button>
+                    {!isCorporateClient && rvmFleetList.length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t t-border">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                          <span className="flex items-center gap-1">
+                            <Tv className="w-3 h-3" />
+                            <span>Public RVM Stations:</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const rvmIds = rvmFleetList.map(m => m.id);
+                              const allSelected = rvmIds.every(id => selectedUploadMachines.includes(id));
+                              if (allSelected) {
+                                setSelectedUploadMachines(prev => prev.filter(id => !rvmIds.includes(id)));
+                              } else {
+                                setSelectedUploadMachines(prev => Array.from(new Set([...prev, ...rvmIds])));
+                              }
+                            }}
+                            className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline font-bold"
+                          >
+                            Select All RVM
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {rvmFleetList.map(kiosk => {
+                            const isSelected = selectedUploadMachines.includes(kiosk.id);
+                            return (
+                              <label
+                                key={kiosk.id}
+                                onClick={() => handleToggleUploadMachine(kiosk.id)}
+                                className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                                  isSelected 
+                                    ? 'bg-sky-500/10 border-sky-500 text-sky-800 dark:text-sky-200' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'
+                                }`}
+                              >
+                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                                  isSelected ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-400'
+                                }`}>
+                                  {isSelected && <Check className="w-2.5 h-2.5" />}
+                                </div>
+                                <span className="font-bold truncate">{kiosk.id}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {rvmFleetList.map(kiosk => {
-                          const isSelected = selectedUploadMachines.includes(kiosk.id);
-                          return (
-                            <label
-                              key={kiosk.id}
-                              onClick={() => handleToggleUploadMachine(kiosk.id)}
-                              className={`flex items-center gap-2 p-2 rounded-xl border text-xs cursor-pointer transition-all ${
-                                isSelected 
-                                  ? 'bg-sky-500/10 border-sky-500 text-sky-800 dark:text-sky-200' 
-                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500'
-                              }`}
-                            >
-                              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                                isSelected ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-400'
-                              }`}>
-                                {isSelected && <Check className="w-2.5 h-2.5" />}
-                              </div>
-                              <span className="font-bold truncate">{kiosk.id}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    )}
 
                   </div>
                 )}

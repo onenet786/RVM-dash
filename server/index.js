@@ -142,16 +142,30 @@ function verifyTokenWithAnySecret(token) {
 }
 
 async function refreshCorporateMachineScope(user) {
-  if (!user || user.roleId !== 'client_admin' || !user.orgId) return user;
+  if (!user || !user.orgId || user.roleId === 'super_admin' || user.username === 'onenet') return user;
   const pool = getPgPool();
   if (!pool) return user;
 
   try {
     const result = await pool.query(
-      'SELECT machine_id FROM kiosk_org_bindings WHERE org_id = $1 ORDER BY machine_id',
+      `SELECT DISTINCT UPPER(m_id) AS machine_id FROM (
+         SELECT machine_id AS m_id FROM kiosk_org_bindings WHERE UPPER(org_id) = UPPER($1)
+         UNION
+         SELECT machine_id AS m_id FROM machines WHERE UPPER(client_id) = UPPER($1)
+       ) sub WHERE m_id IS NOT NULL AND TRIM(m_id) <> '' ORDER BY machine_id`,
       [user.orgId]
     );
-    user.assignedMachines = result.rows.map(row => String(row.machine_id).trim().toUpperCase());
+    const assigned = result.rows.map(row => String(row.machine_id).trim().toUpperCase());
+    if (user.roleId === 'client_admin') {
+      user.assignedMachines = assigned;
+    } else if (user.roleId === 'corporate_sub_user') {
+      if (Array.isArray(user.assignedMachines) && user.assignedMachines.length > 0 && !user.assignedMachines.includes('*')) {
+        const subDelegated = user.assignedMachines.map(m => String(m).trim().toUpperCase());
+        user.assignedMachines = subDelegated.filter(m => assigned.includes(m));
+      } else {
+        user.assignedMachines = assigned;
+      }
+    }
   } catch (error) {
     console.error('[Auth Scope Refresh] Unable to refresh corporate fleet:', error.message);
   }
@@ -184,6 +198,18 @@ async function optionalAuth(req, res, next) {
     }
   }
   return next();
+}
+
+function requireAdminOrClientAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required.' });
+  }
+  const roleId = String(req.user.roleId || '').toLowerCase();
+  const username = String(req.user.username || '').toLowerCase();
+  if (roleId === 'super_admin' || roleId === 'superadmin' || roleId === 'admin' || roleId === 'client_admin' || username === 'onenet' || username === 'bilalaaqueel') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
 }
 
 function requireAdmin(req, res, next) {
@@ -2691,7 +2717,9 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         try {
           const metaRes = await pool.query(`
             SELECT m.machine_id, m.name, m.location, m.latitude, m.longitude, m.status, m.last_ping_at, m.public_ip, m.local_ip,
-                   m.machine_type, m.client_id, m.client_name,
+                   m.machine_type,
+                   COALESCE(kob.org_id, m.client_id, 'ISP_MASTER') AS client_id,
+                   COALESCE(o.name, m.client_name, 'ISP Environmental Master (All Sites)') AS client_name,
                    m.plastic_bin_fill, m.metal_bin_fill, m.paper_bin_fill_kg,
                    m.scale_status, m.tare_offset_grams, m.zero_drift_grams,
                    m.inductive_status, m.ultrasonic_status, m.optical_status, m.dropgate_status, m.anti_cheat_trips,
@@ -2702,6 +2730,8 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
                    c.plastic_unit, c.aluminium_unit, c.paper_unit, c.glass_unit, c.config_version
             FROM machines m
             LEFT JOIN machine_configs c ON m.machine_id = c.machine_id
+            LEFT JOIN kiosk_org_bindings kob ON UPPER(kob.machine_id) = UPPER(m.machine_id)
+            LEFT JOIN organizations o ON UPPER(o.org_id) = UPPER(COALESCE(kob.org_id, m.client_id))
           `);
           metaRes.rows.forEach(r => {
             const upperId = String(r.machine_id || '').toUpperCase();
@@ -2949,16 +2979,23 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
       }));
 
-      if (filterMachines && filterMachines.length > 0) {
+      const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || req.user?.username === 'onenet' || req.user?.username === 'bilalaaqueel';
+      const isCorpClient = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
+
+      if (isCorpClient) {
+        if (filterMachines && filterMachines.length > 0 && !filterMachines.includes('__RESTRICTED_NO_ACCESS__')) {
+          combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
+        } else if (req.user?.orgId) {
+          combined = combined.filter(m => String(m.clientId || '').toUpperCase() === String(req.user.orgId).toUpperCase());
+        } else {
+          combined = [];
+        }
+      } else if (filterMachines && filterMachines.length > 0) {
         if (filterMachines.includes('__RESTRICTED_NO_ACCESS__')) {
           combined = [];
         } else {
           combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
         }
-      }
-      const isSuper = req.user?.roleId === 'super_admin' || req.user?.username === 'onenet';
-      if (req.user?.orgId && !isSuper && (!filterMachines || filterMachines.length === 0)) {
-        combined = combined.filter(m => String(m.clientId || '').toUpperCase() === String(req.user.orgId).toUpperCase());
       }
       if (stationFilter && stationFilter !== 'ALL') {
         const targetType = (stationFilter === 'RVM_NEW' || stationFilter === 'RV_NEW') ? 'RVM_NEW' :
@@ -10187,7 +10224,7 @@ function invalidateAdsCache() {
 
 // ---------------- RVM ADVERTISEMENT VIDEO MANAGEMENT APIS ----------------
 // Upload advertisement video file (Protected: Requires Administrator Session)
-app.post('/api/machine/ads/upload', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/machine/ads/upload', authenticateToken, requireAdminOrClientAdmin, (req, res) => {
   adVideoUpload.single('video')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ success: false, error: err.message });
@@ -10214,24 +10251,75 @@ app.post('/api/machine/ads/upload', authenticateToken, requireAdmin, (req, res) 
 
 // Fetch active advertisement video playlist for RVM fleet / specific machine
 // Fetch active advertisement video playlist for RVM fleet / specific machine
-app.get('/api/machine/ads', async (req, res) => {
+app.get('/api/machine/ads', optionalAuth, async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
     const pool = getPgPool();
     let adsList = [];
+    const isFleetQuery = !machineId || machineId === '*' || machineId === 'ALL';
+    const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet' || String(req.user?.username || '').toLowerCase() === 'bilalaaqueel';
+    const isCorpUser = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
 
     if (pool && activeDbType === 'postgres') {
       try {
         let queryText = `
           SELECT id, machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
                  category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status,
-                 created_at, updated_at
+                 client_id, org_id, created_at, updated_at
           FROM machine_advertisements
-          ORDER BY display_order ASC, created_at DESC;
         `;
-        const result = await pool.query(queryText);
+        let queryParams = [];
+
+        if (!isFleetQuery) {
+          // Hardware Kiosk Polling (e.g. from PecoDropDesktopApp or RVMDesktopApp)
+          const ownerRes = await pool.query(`
+            SELECT COALESCE(b.org_id, m.client_id) AS org_id
+            FROM machines m
+            LEFT JOIN kiosk_org_bindings b ON UPPER(b.machine_id) = UPPER(m.machine_id)
+            WHERE UPPER(m.machine_id) = UPPER($1)
+            LIMIT 1
+          `, [machineId]);
+
+          let kioskOrgId = null;
+          if (ownerRes.rows.length > 0 && ownerRes.rows[0].org_id) {
+            const o = String(ownerRes.rows[0].org_id).trim().toUpperCase();
+            if (o && o !== 'ISP_MASTER' && o !== 'ALL') {
+              kioskOrgId = o;
+            }
+          }
+
+          if (kioskOrgId) {
+            // Corporate client kiosk: ONLY serve ads belonging to this corporate client
+            queryText += ` WHERE (UPPER(client_id) = $1 OR UPPER(org_id) = $1) `;
+            queryParams.push(kioskOrgId);
+          } else {
+            // Public RVM / ISP unassigned kiosk: ONLY serve ISP Master public ads
+            queryText += ` WHERE (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
+          }
+        } else {
+          // Dashboard Query
+          if (isCorpUser) {
+            // Corporate client dashboard: ONLY show ads belonging to this corporate client
+            const org = String(req.user.orgId || '').toUpperCase();
+            queryText += ` WHERE (UPPER(client_id) = $1 OR UPPER(org_id) = $1) `;
+            queryParams.push(org);
+          } else if (isSuper) {
+            const clientFilter = req.query.clientId || req.query.orgId;
+            if (clientFilter && clientFilter !== 'ALL' && clientFilter !== 'ISP_MASTER') {
+              queryText += ` WHERE (UPPER(client_id) = $1 OR UPPER(org_id) = $1) `;
+              queryParams.push(String(clientFilter).toUpperCase());
+            } else if (clientFilter === 'ALL') {
+              // Explicitly requested all
+            } else {
+              // Default Super Admin view: ISP Master ads only (do not mix corporate clients' private videos into master loop)
+              queryText += ` WHERE (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
+            }
+          }
+        }
+
+        queryText += ` ORDER BY display_order ASC, created_at DESC; `;
+        const result = await pool.query(queryText, queryParams);
         
-        const isFleetQuery = !machineId || machineId === '*' || machineId === 'ALL';
         const isPeco = machineId && machineId.toUpperCase().startsWith('PECO');
         const isRvm = machineId && (machineId.toUpperCase().startsWith('RVM') || machineId.toUpperCase().includes('CENTRAL'));
 
@@ -10248,26 +10336,21 @@ app.get('/api/machine/ads', async (req, res) => {
             try { destList = JSON.parse(r.destinations); } catch (e) {}
           }
 
-          // If requesting for a specific machine kiosk (e.g. from RVMDesktopApp or PecoDropDesktopApp), check targeting:
+          // If requesting for a specific machine kiosk, check targeting:
           if (!isFleetQuery) {
-            // Targeting logic:
-            // 1. Explicit All-Screens broadcast:
             const hasAllScreens = destList.some(d => 
               d.id === 'ALL' || d.id === 'GLOBAL-01' || d.id === 'ALL_SCREENS' || 
               d.label?.toLowerCase().includes('all screen') || d.label?.toLowerCase().includes('all fleet')
             ) || (destList.length === 0 && (r.machine_id === '*' || r.machine_id === 'ALL'));
 
-            // 2. All-PecoDrop broadcast:
             const hasAllPeco = isPeco && destList.some(d => 
               d.id === 'ALL_PECO' || d.label?.toLowerCase().includes('all pecodrop') || d.label?.toLowerCase().includes('all peco')
             );
 
-            // 3. All-Public-RVM broadcast:
             const hasAllRvm = isRvm && destList.some(d => 
               d.id === 'ALL_RVM' || d.label?.toLowerCase().includes('all public rvm') || d.label?.toLowerCase().includes('all rvm')
             );
 
-            // 4. Specific Machine match:
             const hasSpecificMatch = (r.machine_id && r.machine_id !== '*' && r.machine_id !== 'ALL' && r.machine_id.toUpperCase() === machineId.toUpperCase()) || 
               destList.some(d => d.id && d.id.toUpperCase() === machineId.toUpperCase());
 
@@ -10302,6 +10385,8 @@ app.get('/api/machine/ads', async (req, res) => {
             scope: r.scope || 'ALL',
             thumbnailUrl: r.thumbnail_url || null,
             displayOrder: r.display_order || 1,
+            clientId: r.client_id || 'ISP_MASTER',
+            orgId: r.org_id || r.client_id || 'ISP_MASTER',
             createdAt: r.created_at,
             updatedAt: r.updated_at
           });
@@ -10311,7 +10396,6 @@ app.get('/api/machine/ads', async (req, res) => {
       }
     }
 
-    // If no ads in DB yet, look for local default files in Ads directory
     if (adsList.length === 0) {
       try {
         if (fs.existsSync(ADS_UPLOAD_DIR)) {
@@ -10346,7 +10430,7 @@ app.get('/api/machine/ads', async (req, res) => {
 });
 
 // Save or Update Advertisement Video Configuration
-app.post('/api/machine/ads', async (req, res) => {
+app.post('/api/machine/ads', optionalAuth, async (req, res) => {
   try {
     let {
       id,
@@ -10358,7 +10442,7 @@ app.post('/api/machine/ads', async (req, res) => {
       durationSeconds = 0,
       isActive = true,
       displayOrder = 1,
-      replaceMode = 'append', // 'append' (keep old) or 'replace_delete' (delete old) or 'replace_deactivate'
+      replaceMode = 'append',
       cleanupOldVideos = false,
       categoryBadge = 'Public RVM',
       aspectRatio = '16:9 Landscape',
@@ -10367,8 +10451,15 @@ app.post('/api/machine/ads', async (req, res) => {
       scope = 'ALL',
       destinations = [],
       thumbnailUrl = null,
-      status = 'Active Loop'
+      status = 'Active Loop',
+      clientId: customClientId,
+      orgId: customOrgId
     } = req.body;
+
+    const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet' || String(req.user?.username || '').toLowerCase() === 'bilalaaqueel';
+    const isCorpUser = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
+    const effectiveClientId = isCorpUser ? req.user.orgId : (customClientId || customOrgId || 'ISP_MASTER');
+    const effectiveOrgId = effectiveClientId;
 
     if (!title || !videoUrl) {
       return res.status(400).json({ success: false, error: 'Title and videoUrl are required' });
@@ -10441,15 +10532,15 @@ app.post('/api/machine/ads', async (req, res) => {
             duration_seconds = $6, is_active = $7, display_order = $8,
             category_badge = $9, aspect_ratio = $10, category_theme = $11,
             location = $12, scope = $13, destinations = $14::jsonb,
-            thumbnail_url = $15, status = $16, updated_at = NOW()
-        WHERE id = $17
+            thumbnail_url = $15, status = $16, client_id = $17, org_id = $18, updated_at = NOW()
+        WHERE id = $19
         RETURNING *;
       `, [
         machineId, title, videoUrl, fileName || null, fileSize,
         durationSeconds, isActive, displayOrder,
         categoryBadge, aspectRatio, categoryTheme,
         location, scope, destJson,
-        thumbnailUrl, status, parseInt(id)
+        thumbnailUrl, status, effectiveClientId, effectiveOrgId, parseInt(id)
       ]);
       savedAd = updateRes.rows[0];
     } else {
@@ -10458,13 +10549,14 @@ app.post('/api/machine/ads', async (req, res) => {
         INSERT INTO machine_advertisements (
           machine_id, title, video_url, file_name, file_size, duration_seconds, is_active, display_order,
           category_badge, aspect_ratio, category_theme, location, scope, destinations, thumbnail_url, status,
-          created_at, updated_at
+          client_id, org_id, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15, $16, $17, $18, NOW(), NOW())
         RETURNING *;
       `, [
         machineId, title, videoUrl, fileName || null, fileSize, durationSeconds, isActive, displayOrder,
-        categoryBadge, aspectRatio, categoryTheme, location, scope, destJson, thumbnailUrl, status
+        categoryBadge, aspectRatio, categoryTheme, location, scope, destJson, thumbnailUrl, status,
+        effectiveClientId, effectiveOrgId
       ]);
       savedAd = insertRes.rows[0];
     }
@@ -10588,7 +10680,7 @@ app.post('/api/machine/ads/sync-all', async (req, res) => {
 });
 
 // Delete Advertisement Video (Handles DB record & Local file removal)
-app.delete('/api/machine/ads/:id', async (req, res) => {
+app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
   try {
     const rawId = req.params.id;
     const { fileName, title } = req.query;
@@ -10596,22 +10688,34 @@ app.delete('/api/machine/ads/:id', async (req, res) => {
     let deletedCount = 0;
     let deletedTitle = title || rawId;
 
+    const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet' || String(req.user?.username || '').toLowerCase() === 'bilalaaqueel';
+    const isCorpUser = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
+
     if (pool && activeDbType === 'postgres') {
       try {
         let selRes;
+        let authClause = '';
+        let authParams = [];
+        if (isCorpUser) {
+          authClause = ' AND (UPPER(client_id) = UPPER($4) OR UPPER(org_id) = UPPER($4))';
+          authParams.push(req.user.orgId);
+        }
+
         if (/^\d+$/.test(rawId)) {
           selRes = await pool.query(
-            `SELECT * FROM machine_advertisements WHERE id = $1 OR title ILIKE $2 OR file_name = $3`,
-            [parseInt(rawId), `%${title || ''}%`, fileName || '']
+            `SELECT * FROM machine_advertisements WHERE (id = $1 OR title ILIKE $2 OR file_name = $3)` + authClause,
+            [parseInt(rawId), `%${title || ''}%`, fileName || '', ...authParams]
           );
         } else {
+          const corpClause = isCorpUser ? ' AND (UPPER(client_id) = UPPER($5) OR UPPER(org_id) = UPPER($5))' : '';
           selRes = await pool.query(`
             SELECT * FROM machine_advertisements 
-            WHERE file_name = $1 
+            WHERE (file_name = $1 
                OR video_url LIKE $2 
                OR title ILIKE $3
-               OR title ILIKE $4
-          `, [fileName || rawId, `%${rawId}%`, `%${rawId}%`, `%${title || ''}%`]);
+               OR title ILIKE $4)` + corpClause,
+            [fileName || rawId, `%${rawId}%`, `%${rawId}%`, `%${title || ''}%`, ...(isCorpUser ? [req.user.orgId] : [])]
+          );
         }
 
         if ((!selRes || selRes.rows.length === 0) && title) {
@@ -10728,9 +10832,29 @@ app.get('/api/machine/ads/active', async (req, res) => {
         let queryParams = [];
 
         if (machineId && machineId !== 'ALL' && machineId !== '*') {
-          queryText += ` AND (machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL') `;
-          queryParams.push(machineId);
-          queryText += ` ORDER BY CASE WHEN machine_id = $1 THEN 0 ELSE 1 END, display_order ASC, updated_at DESC LIMIT 1;`;
+          const ownerRes = await pool.query(`
+            SELECT COALESCE(b.org_id, m.client_id) AS org_id
+            FROM machines m
+            LEFT JOIN kiosk_org_bindings b ON UPPER(b.machine_id) = UPPER(m.machine_id)
+            WHERE UPPER(m.machine_id) = UPPER($1)
+            LIMIT 1
+          `, [machineId]);
+
+          let kioskOrgId = null;
+          if (ownerRes.rows.length > 0 && ownerRes.rows[0].org_id) {
+            const o = String(ownerRes.rows[0].org_id).trim().toUpperCase();
+            if (o && o !== 'ISP_MASTER' && o !== 'ALL') {
+              kioskOrgId = o;
+            }
+          }
+
+          if (kioskOrgId) {
+            queryText += ` AND (UPPER(client_id) = $1 OR UPPER(org_id) = $1) `;
+            queryParams.push(kioskOrgId);
+          } else {
+            queryText += ` AND (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
+          }
+          queryText += ` ORDER BY display_order ASC, updated_at DESC LIMIT 1;`;
         } else {
           queryText += ` ORDER BY display_order ASC, updated_at DESC LIMIT 1;`;
         }
@@ -10798,9 +10922,29 @@ app.get('/api/machine/ads/playlist', async (req, res) => {
         let queryParams = [];
 
         if (machineId && machineId !== 'ALL' && machineId !== '*') {
-          queryText += ` AND (machine_id = $1 OR machine_id = '*' OR machine_id = 'ALL') `;
-          queryParams.push(machineId);
-          queryText += ` ORDER BY CASE WHEN machine_id = $1 THEN 0 ELSE 1 END, display_order ASC, created_at ASC;`;
+          const ownerRes = await pool.query(`
+            SELECT COALESCE(b.org_id, m.client_id) AS org_id
+            FROM machines m
+            LEFT JOIN kiosk_org_bindings b ON UPPER(b.machine_id) = UPPER(m.machine_id)
+            WHERE UPPER(m.machine_id) = UPPER($1)
+            LIMIT 1
+          `, [machineId]);
+
+          let kioskOrgId = null;
+          if (ownerRes.rows.length > 0 && ownerRes.rows[0].org_id) {
+            const o = String(ownerRes.rows[0].org_id).trim().toUpperCase();
+            if (o && o !== 'ISP_MASTER' && o !== 'ALL') {
+              kioskOrgId = o;
+            }
+          }
+
+          if (kioskOrgId) {
+            queryText += ` AND (UPPER(client_id) = $1 OR UPPER(org_id) = $1) `;
+            queryParams.push(kioskOrgId);
+          } else {
+            queryText += ` AND (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
+          }
+          queryText += ` ORDER BY display_order ASC, created_at ASC;`;
         } else {
           queryText += ` ORDER BY display_order ASC, created_at ASC;`;
         }
