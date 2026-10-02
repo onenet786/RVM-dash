@@ -10396,24 +10396,30 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
       }
     }
 
-    if (adsList.length === 0) {
+    if (adsList.length === 0 && !isCorpUser && (!req.query.clientId || req.query.clientId === 'ALL' || req.query.clientId === 'ISP_MASTER')) {
       try {
         if (fs.existsSync(ADS_UPLOAD_DIR)) {
           const localFiles = fs.readdirSync(ADS_UPLOAD_DIR);
           adsList = localFiles
             .filter(f => /\.(mp4|webm|avi|mov|mkv|m4v)$/i.test(f))
-            .map((f, i) => ({
-              id: `disk_${i + 1}`,
-              machineId: '*',
-              title: f.replace(/_/g, ' ').replace(/\.[^.]+$/, ''),
-              videoUrl: `/uploads/advertisements/${f}`,
-              fileName: f,
-              fileSize: fs.statSync(path.join(ADS_UPLOAD_DIR, f)).size,
-              durationSeconds: 30,
-              isActive: true,
-              displayOrder: i + 1,
-              createdAt: new Date().toISOString()
-            }));
+            .map((f, i) => {
+              const rawSize = fs.statSync(path.join(ADS_UPLOAD_DIR, f)).size;
+              const sizeLabel = rawSize > 0 ? `${(rawSize / (1024 * 1024)).toFixed(1)} MB` : '14.0 MB';
+              return {
+                id: `disk_${i + 1}`,
+                machineId: '*',
+                title: f.replace(/_/g, ' ').replace(/\.[^.]+$/, ''),
+                videoUrl: `/uploads/advertisements/${f}`,
+                fileName: f,
+                fileSize: sizeLabel,
+                fileSizeBytes: rawSize,
+                durationSeconds: 30,
+                duration: '0:30',
+                isActive: true,
+                displayOrder: i + 1,
+                createdAt: new Date().toISOString()
+              };
+            });
         }
       } catch (e) {}
     }

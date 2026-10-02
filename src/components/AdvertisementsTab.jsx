@@ -154,11 +154,24 @@ export default function AdvertisementsTab({ currentUser, selectedClientId, stati
             thumb = ad.thumbnailUrl;
           }
 
+          let formattedSize = '14.0 MB';
+          if (ad.fileSize && typeof ad.fileSize === 'string' && (ad.fileSize.includes('MB') || ad.fileSize.includes('GB') || ad.fileSize.includes('KB'))) {
+            formattedSize = ad.fileSize;
+          } else if (ad.fileSizeBytes && Number(ad.fileSizeBytes) > 0) {
+            formattedSize = `${(Number(ad.fileSizeBytes) / (1024 * 1024)).toFixed(1)} MB`;
+          } else if (ad.fileSize) {
+            const num = parseFloat(ad.fileSize);
+            if (!isNaN(num)) {
+              formattedSize = num > 100000 ? `${(num / (1024 * 1024)).toFixed(1)} MB` : `${num.toFixed(1)} MB`;
+            }
+          }
+
           return {
             id: ad.id,
             title: ad.title,
             filename: ad.fileName,
-            fileSize: ad.fileSize || '14.0 MB',
+            fileSize: formattedSize,
+            fileSizeBytes: ad.fileSizeBytes || null,
             duration: ad.duration || '0:30',
             thumbnail: thumb,
             aspectRatio: ad.aspectRatio || '16:9 Landscape',
@@ -472,7 +485,27 @@ export default function AdvertisementsTab({ currentUser, selectedClientId, stati
   const activeCount = campaigns.length;
   const loopCount = campaigns.filter(c => c.status === 'Active Loop').length;
   const singleCount = campaigns.filter(c => c.status !== 'Active Loop').length;
-  const totalStorageMb = campaigns.reduce((acc, c) => acc + (parseFloat(c.fileSize) || 12.0), 0).toFixed(1);
+  const totalStorageMbNum = campaigns.reduce((acc, c) => {
+    let sizeMb = 0;
+    if (c.fileSizeBytes && Number(c.fileSizeBytes) > 0) {
+      sizeMb = Number(c.fileSizeBytes) / (1024 * 1024);
+    } else if (c.fileSize) {
+      const s = String(c.fileSize).toUpperCase();
+      const num = parseFloat(s);
+      if (!isNaN(num)) {
+        if (s.includes('GB')) sizeMb = num * 1024;
+        else if (s.includes('KB')) sizeMb = num / 1024;
+        else if (s.includes('MB')) sizeMb = num;
+        else if (num > 100000) sizeMb = num / (1024 * 1024);
+        else sizeMb = num;
+      }
+    }
+    return acc + sizeMb;
+  }, 0);
+
+  const storageDisplay = totalStorageMbNum >= 1024 
+    ? { value: (totalStorageMbNum / 1024).toFixed(2), unit: 'GB Used' }
+    : { value: totalStorageMbNum.toFixed(1), unit: 'MB Used' };
 
   return (
     <div className="space-y-6 animate-fade-in w-full">
@@ -604,8 +637,8 @@ export default function AdvertisementsTab({ currentUser, selectedClientId, stati
             </div>
           </div>
           <div className="flex items-baseline gap-2 mt-3">
-            <span className="text-3xl font-black t-text-primary tracking-tight">{totalStorageMb}</span>
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">MB Used</span>
+            <span className="text-3xl font-black t-text-primary tracking-tight">{storageDisplay.value}</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{storageDisplay.unit}</span>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
             Optimized MP4 video format (H.264)
