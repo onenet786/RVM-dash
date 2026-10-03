@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release Tag (e.g. v2.0.2)'
+        description: 'Release Tag (e.g. v2.0.6)'
         required: false
-        default: 'v2.0.2'
+        default: 'v2.0.6'
   push:
     branches:
       - main
@@ -77,12 +77,12 @@ jobs:
           mkdir -p build/Payload
           cp -r "build/PleaseIsp.xcarchive/Products/Applications/PleaseIsp.app" build/Payload/
           cd build
-          zip -r -9 PecoDrop-v2.0.2.ipa Payload/
-          ls -lh PecoDrop-v2.0.2.ipa
+          zip -r -9 TrashToCash-v2.0.6.ipa Payload/
+          ls -lh TrashToCash-v2.0.6.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PecoDrop-iOS-v2.0.2
-          path: mobile_app/ios/build/PecoDrop-v2.0.2.ipa
+          name: TrashToCash-iOS-v2.0.6
+          path: mobile_app/ios/build/TrashToCash-v2.0.6.ipa
           retention-days: 90
