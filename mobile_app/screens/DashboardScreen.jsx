@@ -51,6 +51,19 @@ const DashboardScreen = ({ route }) => {
   const [editAvatar, setEditAvatar] = useState('male');
   const [editEmail, setEditEmail] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Corporate Workplace & Employee ID State
+  const [showCorporateModal, setShowCorporateModal] = useState(false);
+  const [corpCompanyCode, setCorpCompanyCode] = useState('');
+  const [corpEmployeeId, setCorpEmployeeId] = useState('');
+  const [corpDepartment, setCorpDepartment] = useState('');
+  const [corpLoading, setCorpLoading] = useState(false);
+  const [availableOrgs, setAvailableOrgs] = useState([
+    { org_id: 'ORG_ENGRO', name: 'Engro Corporation', code: 'ENGRO' },
+    { org_id: 'ORG_ALFALAH', name: 'Bank Alfalah', code: 'ALFALAH' },
+    { org_id: 'ORG_UCP', name: 'Univ. of Central Punjab', code: 'UCP' },
+    { org_id: 'ORG_METRO', name: 'Metro Cash & Carry', code: 'METRO' }
+  ]);
   
   const navigation = useNavigation();
   const rotateValue = useRef(new Animated.Value(0)).current;
@@ -344,6 +357,102 @@ const DashboardScreen = ({ route }) => {
     );
   };
 
+  const handleLinkCorporateAccount = async () => {
+    const cleanCode = corpCompanyCode.trim();
+    if (!cleanCode) {
+      Alert.alert('Company Code Required', 'Please enter your Company Code (e.g., ENGRO, ALFALAH, UCP, METRO) or tap a partner button.');
+      return;
+    }
+
+    const userId = localUser?.id || localUser?.userId || localUser?.email || localUser?.mobile || localUser?.username;
+    if (!userId) {
+      Alert.alert('Session Required', 'Please log in again to link your corporate account.');
+      return;
+    }
+
+    setCorpLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/user/link-corporate`, {
+        userId,
+        companyCode: cleanCode,
+        employeeId: corpEmployeeId.trim(),
+        department: corpDepartment.trim()
+      }, { timeout: 12000 });
+
+      if (res.data?.success && res.data?.user) {
+        const mergedUser = {
+          ...localUser,
+          ...res.data.user,
+          userType: 'ENTERPRISE',
+          orgId: res.data.user.orgId,
+          orgName: res.data.user.orgName,
+          department: res.data.user.department,
+          employeeId: res.data.user.employeeId
+        };
+        setLocalUser(mergedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+        setShowCorporateModal(false);
+        setCorpCompanyCode('');
+        setCorpEmployeeId('');
+        setCorpDepartment('');
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(`🎉 Verified! Linked to ${res.data.user.orgName}`, ToastAndroid.LONG);
+        } else {
+          Alert.alert('Corporate Verified', res.data.message || 'Corporate account linked successfully!');
+        }
+      } else {
+        Alert.alert('Corporate Link Notice', res.data?.message || 'Could not verify company code.');
+      }
+    } catch (err) {
+      console.warn('Link corporate error:', err);
+      Alert.alert('Verification Notice', err.response?.data?.message || err.message || 'Could not link corporate account.');
+    } finally {
+      setCorpLoading(false);
+    }
+  };
+
+  const handleUnlinkCorporateAccount = async () => {
+    Alert.alert(
+      'Unlink Corporate Account',
+      'Are you sure you want to disconnect your corporate membership and return to standard Citizen status?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlink',
+          style: 'destructive',
+          onPress: async () => {
+            const userId = localUser?.id || localUser?.userId || localUser?.email || localUser?.mobile || localUser?.username;
+            setCorpLoading(true);
+            try {
+              const res = await axios.post(`${API_BASE_URL}/user/unlink-corporate`, { userId });
+              if (res.data?.success) {
+                const mergedUser = {
+                  ...localUser,
+                  userType: 'CITIZEN',
+                  orgId: null,
+                  orgName: null,
+                  department: null,
+                  employeeId: null,
+                  organization: null
+                };
+                setLocalUser(mergedUser);
+                await AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+                setShowCorporateModal(false);
+                if (Platform.OS === 'android') {
+                  ToastAndroid.show('Switched to Citizen account', ToastAndroid.SHORT);
+                }
+              }
+            } catch (err) {
+              Alert.alert('Notice', err.response?.data?.message || err.message);
+            } finally {
+              setCorpLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleSaveProfile = async () => {
     if (!editFullName.trim()) {
       ToastAndroid.show("Please enter your full name", ToastAndroid.SHORT);
@@ -499,14 +608,21 @@ const DashboardScreen = ({ route }) => {
             </View>
           </View>
 
-          {/* Corporate Affiliation Card if Enterprise */}
-          {isEnterprise && (
-            <View style={styles.corporateBanner}>
+          {/* Corporate Affiliation / Workplace Link Card */}
+          {isEnterprise ? (
+            <TouchableOpacity 
+              style={styles.corporateBanner} 
+              onPress={() => setShowCorporateModal(true)}
+              activeOpacity={0.8}
+            >
               <View style={styles.corporateLogoBox}>
                 <MaterialCommunityIcons name="domain" size={24} color="#0284C7" />
               </View>
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.corporateOrgName} numberOfLines={1}>{orgName}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.corporateOrgName} numberOfLines={1}>{orgName}</Text>
+                  <MaterialCommunityIcons name="check-decagram" size={14} color="#0284C7" style={{ marginLeft: 4 }} />
+                </View>
                 <Text style={styles.corporateMetaText}>
                   {employeeId ? `Staff ID: ${employeeId}` : 'Campus Member'}{department ? ` • ${department}` : ''}
                 </Text>
@@ -515,9 +631,36 @@ const DashboardScreen = ({ route }) => {
                 <MaterialCommunityIcons name="laptop" size={12} color="#0284C7" style={{ marginRight: 3 }} />
                 <Text style={styles.corporateKioskTagText}>PecoDrop</Text>
               </View>
-            </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.corporateLinkBanner}
+              onPress={() => {
+                setCorpCompanyCode('');
+                setCorpEmployeeId('');
+                setCorpDepartment('');
+                setShowCorporateModal(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.corporateLinkIconBox}>
+                <MaterialCommunityIcons name="office-building-cog" size={24} color="#0284C7" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.corporateLinkTitle}>Corporate Workplace Membership</Text>
+                  <View style={styles.corporateNewPill}>
+                    <Text style={styles.corporateNewPillText}>LINK</Text>
+                  </View>
+                </View>
+                <Text style={styles.corporateLinkSubtitle} numberOfLines={1}>
+                  Enter Company Code & Staff ID for PecoDrop perks
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#0284C7" />
+            </TouchableOpacity>
           )}
-          
+
           {/* User Information Section with Avatar and Edit Option */}
           <View style={styles.userInfoContainer}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
