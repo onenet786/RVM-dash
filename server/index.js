@@ -64,7 +64,11 @@ try {
   console.warn('[DNS Config Warning]', e.message);
 }
 
-dotenv.config();
+const envPath = path.resolve(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, override: true });
+}
+dotenv.config({ override: true });
 
 const app = express();
 const PORT = process.env.PORT || 5009;
@@ -5890,11 +5894,38 @@ app.post('/api/auth/logout', (req, res) => {
 const pendingGoogle2FA = new Map();
 
 function getMailTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '465');
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-  const user = process.env.SMTP_USER || '';
-  const pass = process.env.SMTP_PASS || '';
+  let host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  let port = parseInt(process.env.SMTP_PORT || '465');
+  let secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  let user = (process.env.SMTP_USER || '').trim();
+  let pass = (process.env.SMTP_PASS || '').trim();
+
+  // If empty, force-read directly from .env file to bypass any PM2 empty variable overrides
+  if (!user || !pass) {
+    try {
+      const candidatePaths = [
+        path.resolve(process.cwd(), '.env'),
+        path.resolve(__dirname, '..', '.env'),
+        path.resolve(__dirname, '.env')
+      ];
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p)) {
+          const raw = fs.readFileSync(p, 'utf8');
+          const uM = raw.match(/^SMTP_USER\s*=\s*([^\r\n]+)/m);
+          const pM = raw.match(/^SMTP_PASS\s*=\s*([^\r\n]+)/m);
+          const hM = raw.match(/^SMTP_HOST\s*=\s*([^\r\n]+)/m);
+          const portM = raw.match(/^SMTP_PORT\s*=\s*([^\r\n]+)/m);
+          if (uM && uM[1]) user = uM[1].trim().replace(/^['"]|['"]$/g, '');
+          if (pM && pM[1]) pass = pM[1].trim().replace(/^['"]|['"]$/g, '');
+          if (hM && hM[1]) host = hM[1].trim().replace(/^['"]|['"]$/g, '');
+          if (portM && portM[1]) port = parseInt(portM[1].trim());
+          if (user && pass) break;
+        }
+      }
+    } catch (e) {
+      console.warn('[SMTP Direct .env Check Note]', e.message);
+    }
+  }
 
   if (!user || !pass) {
     return null;
@@ -6038,9 +6069,10 @@ async function handleGoogleInitiate2FA(req, res) {
       email,
       maskedEmail,
       name,
-      message: `A 6-digit verification code has been sent to ${email}`,
+      message: emailResult.sent ? `A 6-digit verification code has been sent to ${email}` : `Verification code generated for ${email}`,
       emailSent: emailResult.sent,
-      debugCode: (!process.env.SMTP_USER || !process.env.SMTP_PASS) ? code : undefined
+      emailError: emailResult.sent ? undefined : (emailResult.error || emailResult.note),
+      debugCode: emailResult.sent ? undefined : code
     });
   } catch (err) {
     console.error('[Google Initiate 2FA Error]', err);
@@ -6389,18 +6421,19 @@ async function handleSendSsoCode(req, res) {
       }
     }
 
-    console.log(`[Gmail/Work SSO] Verification OTP for ${cleanEmail}: ${code}`);
-    await sendGoogle2FAEmail(cleanEmail, code, existingName || 'Eco Citizen');
+    const emailResult = await sendGoogle2FAEmail(cleanEmail, code, existingName || 'Eco Citizen');
 
     res.json({
       success: true,
-      message: `Verification code generated for ${cleanEmail}`,
+      message: emailResult.sent ? `Verification code sent to ${cleanEmail}` : `Verification code generated for ${cleanEmail}`,
       isExisting,
       existingName,
       userType,
       orgName: orgName || detectedOrgName,
       corporateDetected,
-      codePreview: code
+      emailSent: emailResult.sent,
+      emailError: emailResult.sent ? undefined : (emailResult.error || emailResult.note),
+      codePreview: emailResult.sent ? undefined : code
     });
   } catch (err) {
     console.error('[SSO Code Error]', err);
