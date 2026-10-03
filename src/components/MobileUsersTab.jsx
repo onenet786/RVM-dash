@@ -5,7 +5,7 @@ import {
   Check, Copy, Ticket, Star, Building2, CheckCircle2
 } from 'lucide-react';
 
-export default function MobileUsersTab() {
+export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId = 'ALL', currentUser }) {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -18,11 +18,12 @@ export default function MobileUsersTab() {
     totalPaperGrams: 0,
     totalGlass: 0,
     totalRedeemed: 0,
-    totalRedemptions: 0
+    totalRedemptions: 0,
+    scope: null
   });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSegment, setActiveSegment] = useState('all'); // 'all', 'public', 'corporate', 'top'
+  const [activeSegment, setActiveSegment] = useState('all'); // 'all', 'public'/'active', 'corporate'/'pending', 'top'
   const [selectedUser, setSelectedUser] = useState(null);
   const [userHistory, setUserHistory] = useState([]);
   const [userRedemptions, setUserRedemptions] = useState([]);
@@ -31,6 +32,12 @@ export default function MobileUsersTab() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const isCorporateRole = ['client_admin', 'corporate_sub_user'].includes(currentUser?.roleId);
+  const isCorporateScope = (selectedClientId && selectedClientId !== 'ALL') || 
+    isCorporateRole || 
+    Boolean(currentUser?.orgId) || 
+    Boolean(stats?.scope?.isCorporate);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -55,7 +62,18 @@ export default function MobileUsersTab() {
       if (isManual) setRefreshing(true);
       else setLoading(true);
 
-      const res = await fetch('/api/analytics/mobile-users');
+      const queryParams = new URLSearchParams();
+      if (selectedClientId && selectedClientId !== 'ALL') {
+        queryParams.append('clientId', selectedClientId);
+      }
+      if (stationFilter && stationFilter !== 'ALL') {
+        queryParams.append('stationFilter', stationFilter);
+      }
+      const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token') || '';
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const qs = queryParams.toString();
+      const res = await fetch(`/api/analytics/mobile-users${qs ? `?${qs}` : ''}`, { headers });
       if (res.ok) {
         const data = await res.json();
         const allUsers = data.users || [];
@@ -71,7 +89,7 @@ export default function MobileUsersTab() {
             totalRedemptions: data.stats.totalRedemptions || calculatedRedemptions
           });
         }
-        if (isManual) showToast('Recycler directory refreshed with live telemetry');
+        if (isManual) showToast(isCorporateScope ? 'Corporate staff directory refreshed' : 'Recycler directory refreshed with live telemetry');
       }
     } catch (err) {
       console.error('Failed to fetch recyclers directory:', err);
@@ -85,13 +103,17 @@ export default function MobileUsersTab() {
     fetchMobileUsers();
     const interval = setInterval(() => fetchMobileUsers(false), 20000); // Polling every 20s
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedClientId, stationFilter]);
 
   const openUserHistory = async (user) => {
     setSelectedUser(user);
     setUserHistory([]);
     setUserRedemptions([]);
     setActiveModalTab('recycling');
+    if (user.isRosterPending) {
+      setLoadingHistory(false);
+      return;
+    }
     setLoadingHistory(true);
     try {
       const queryParams = new URLSearchParams();
@@ -137,11 +159,18 @@ export default function MobileUsersTab() {
 
   // Counts for Segment Buttons
   const segmentCounts = useMemo(() => {
-    const pub = users.filter(u => !isCorporateUser(u)).length;
-    const corp = users.filter(u => isCorporateUser(u)).length;
-    const top = users.filter(u => isTopChampion(u)).length;
-    return { all: users.length, public: pub, corporate: corp, top };
-  }, [users]);
+    if (isCorporateScope) {
+      const enrolled = users.filter(u => !u.isRosterPending).length;
+      const pending = users.filter(u => u.isRosterPending).length;
+      const top = users.filter(u => isTopChampion(u)).length;
+      return { all: users.length, enrolled, pending, top };
+    } else {
+      const pub = users.filter(u => !isCorporateUser(u)).length;
+      const corp = users.filter(u => isCorporateUser(u)).length;
+      const top = users.filter(u => isTopChampion(u)).length;
+      return { all: users.length, public: pub, corporate: corp, top };
+    }
+  }, [users, isCorporateScope]);
 
   // Active in last 30 days
   const activeThisMonth = useMemo(() => {
@@ -168,9 +197,15 @@ export default function MobileUsersTab() {
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       // Segment filter
-      if (activeSegment === 'public' && isCorporateUser(u)) return false;
-      if (activeSegment === 'corporate' && !isCorporateUser(u)) return false;
-      if (activeSegment === 'top' && !isTopChampion(u)) return false;
+      if (isCorporateScope) {
+        if (activeSegment === 'enrolled' && u.isRosterPending) return false;
+        if (activeSegment === 'pending' && !u.isRosterPending) return false;
+        if (activeSegment === 'top' && !isTopChampion(u)) return false;
+      } else {
+        if (activeSegment === 'public' && isCorporateUser(u)) return false;
+        if (activeSegment === 'corporate' && !isCorporateUser(u)) return false;
+        if (activeSegment === 'top' && !isTopChampion(u)) return false;
+      }
 
       // Query filter
       if (!searchQuery) return true;
@@ -181,11 +216,13 @@ export default function MobileUsersTab() {
         (u.mobile && u.mobile.toLowerCase().includes(q)) ||
         (u.email && u.email.toLowerCase().includes(q)) ||
         (u.id && String(u.id).toLowerCase().includes(q)) ||
+        (u.employeeId && String(u.employeeId).toLowerCase().includes(q)) ||
+        (u.deptName && u.deptName.toLowerCase().includes(q)) ||
         (u.nic && u.nic.toLowerCase().includes(q)) ||
         (u.orgName && u.orgName.toLowerCase().includes(q))
       );
     });
-  }, [users, activeSegment, searchQuery]);
+  }, [users, activeSegment, searchQuery, isCorporateScope]);
 
   // Export CSV
   const exportCSV = () => {
@@ -262,28 +299,77 @@ export default function MobileUsersTab() {
   return (
     <div className="space-y-6 animate-fade-in">
       
+      {/* Corporate Scope Notification Banner */}
+      {isCorporateScope && (
+        <div className="glass-panel p-4 rounded-3xl border border-purple-500/30 bg-purple-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                  Corporate Client Scope
+                </span>
+                <span className="text-xs font-bold t-text-primary">
+                  {stats?.scope?.orgName || (selectedClientId !== 'ALL' ? selectedClientId : currentUser?.orgName || 'Corporate Client')}
+                </span>
+                {stats?.scope?.domain && (
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    @{stats.scope.domain}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs t-text-muted mt-0.5">
+                Displaying verified corporate staff, authorized roster members, and recycling points exclusively for this organization. Public citizen data is filtered out.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs shrink-0 flex-wrap">
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              {segmentCounts.enrolled ?? 0} Enrolled on App
+            </span>
+            <span className="font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/20 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              {segmentCounts.pending ?? 0} Roster Pending
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header Panel */}
       <div className="glass-panel p-6 rounded-3xl border t-border flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white shrink-0">
-            <Users className="w-6 h-6 stroke-[2.2]" />
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 text-white ${
+            isCorporateScope 
+              ? 'bg-gradient-to-tr from-purple-600 to-indigo-500 shadow-purple-500/20' 
+              : 'bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/20'
+          }`}>
+            {isCorporateScope ? <Building2 className="w-6 h-6 stroke-[2.2]" /> : <Users className="w-6 h-6 stroke-[2.2]" />}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                User Management Portal
+              <span className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
+                isCorporateScope 
+                  ? 'text-purple-700 dark:text-purple-300 bg-purple-500/10 border-purple-500/20' 
+                  : 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+              }`}>
+                {isCorporateScope ? 'Corporate Client Roster' : 'User Management Portal'}
               </span>
               <span className="text-xs text-slate-400">|</span>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Mobile Ecosystem Active
+                {isCorporateScope ? 'Workplace ESG Active' : 'Mobile Ecosystem Active'}
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight t-text-primary mt-1">
-              Recyclers &amp; App Community
+              {isCorporateScope ? 'Corporate Workplace Members & Staff Directory' : 'Recyclers & App Community'}
             </h1>
             <p className="text-xs t-text-secondary mt-0.5">
-              Live directory of verified citizen recyclers, corporate campus members, wallet point balances, and machine activity.
+              {isCorporateScope 
+                ? 'Live directory of authorized corporate employees, mobile app enrollments, workplace recycling points, and sustainability activity.' 
+                : 'Live directory of verified citizen recyclers, corporate campus members, wallet point balances, and machine activity.'}
             </p>
           </div>
         </div>
@@ -306,7 +392,7 @@ export default function MobileUsersTab() {
             title="Export CSV"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export Recycler List</span>
+            <span>{isCorporateScope ? 'Export Staff Roster' : 'Export Recycler List'}</span>
           </button>
         </div>
       </div>
@@ -314,24 +400,40 @@ export default function MobileUsersTab() {
       {/* KPI Summary Row (5 Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         
-        {/* Card 1: Registered Recyclers */}
+        {/* Card 1: Registered Recyclers / Staff Members */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Registered Recyclers</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <UserCheck className="w-4 h-4" />
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">
+              {isCorporateScope ? 'Corporate Staff Members' : 'Registered Recyclers'}
+            </span>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              isCorporateScope ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {isCorporateScope ? <Building2 className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
             </div>
           </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl lg:text-3xl font-extrabold t-text-primary tracking-tight mono">
               {stats.totalUsers}
             </span>
-            <span className="text-xs font-semibold t-text-muted">accounts</span>
+            <span className="text-xs font-semibold t-text-muted">
+              {isCorporateScope ? 'staff members' : 'accounts'}
+            </span>
           </div>
           <div className="mt-2.5 text-xs t-text-muted flex items-center justify-between flex-wrap gap-1">
-            <span className="text-emerald-700 dark:text-emerald-400 font-medium">{segmentCounts.public} Public (RVM)</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-purple-700 dark:text-purple-400 font-medium">{segmentCounts.corporate} Corporate</span>
+            {isCorporateScope ? (
+              <>
+                <span className="text-emerald-700 dark:text-emerald-400 font-medium">{segmentCounts.enrolled} App Enrolled</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-amber-700 dark:text-amber-400 font-medium">{segmentCounts.pending} Pending Link</span>
+              </>
+            ) : (
+              <>
+                <span className="text-emerald-700 dark:text-emerald-400 font-medium">{segmentCounts.public} Public (RVM)</span>
+                <span className="text-slate-400">•</span>
+                <span className="text-purple-700 dark:text-purple-400 font-medium">{segmentCounts.corporate} Corporate</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -359,7 +461,9 @@ export default function MobileUsersTab() {
         {/* Card 3: Unclaimed Points */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Unclaimed Points</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">
+              {isCorporateScope ? 'Workplace Reward Points' : 'Unclaimed Points'}
+            </span>
             <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
             </div>
@@ -371,7 +475,7 @@ export default function MobileUsersTab() {
             <span className="text-xs font-semibold t-text-muted">pts</span>
           </div>
           <div className="mt-2.5 text-xs flex items-center justify-between flex-wrap gap-1">
-            <span className="t-text-muted">Voucher Value:</span>
+            <span className="t-text-muted">{isCorporateScope ? 'Perk Value:' : 'Voucher Value:'}</span>
             <span className="font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30 mono">
               PKR {Math.round((stats.totalPoints || 0) * 0.20).toLocaleString()}
             </span>
@@ -381,7 +485,9 @@ export default function MobileUsersTab() {
         {/* Card 4: Vouchers Cashed In */}
         <div className="glass-panel p-5 rounded-2xl border t-border relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">Vouchers Cashed In</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider t-text-muted">
+              {isCorporateScope ? 'Employee Redemptions' : 'Vouchers Cashed In'}
+            </span>
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <Gift className="w-4 h-4" />
             </div>
@@ -428,7 +534,7 @@ export default function MobileUsersTab() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, masked mobile number, email, or user ID..."
+            placeholder={isCorporateScope ? "Search by staff name, employee ID, department, or email..." : "Search by name, mobile, email, or user ID..."}
             className="w-full pl-10 pr-10 py-2.5 t-bg-sec border t-border text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 t-text-primary placeholder:t-text-muted font-medium transition-all"
           />
           {searchQuery && (
@@ -443,69 +549,123 @@ export default function MobileUsersTab() {
 
         {/* User Category Segment Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 text-xs font-semibold">
-          <button
-            onClick={() => { setActiveSegment('all'); showToast('Showing: All Recyclers'); }}
-            className={`px-3 py-1.5 rounded-xl transition-all ${
-              activeSegment === 'all'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-            }`}
-          >
-            All Recyclers ({segmentCounts.all})
-          </button>
+          {isCorporateScope ? (
+            <>
+              <button
+                onClick={() => { setActiveSegment('all'); showToast('Showing: All Staff Roster'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'all'
+                    ? 'bg-purple-700 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                All Staff Roster ({segmentCounts.all})
+              </button>
 
-          <button
-            onClick={() => { setActiveSegment('public'); showToast('Showing: Smart RVM Public Recyclers'); }}
-            className={`px-3 py-1.5 rounded-xl transition-all ${
-              activeSegment === 'public'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-            }`}
-          >
-            Smart RVM Public ({segmentCounts.public})
-          </button>
+              <button
+                onClick={() => { setActiveSegment('enrolled'); showToast('Showing: Enrolled Mobile Users'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'enrolled'
+                    ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                Enrolled on App ({segmentCounts.enrolled})
+              </button>
 
-          <button
-            onClick={() => { setActiveSegment('corporate'); showToast('Showing: PecoDrop Corporate Recyclers'); }}
-            className={`px-3 py-1.5 rounded-xl transition-all ${
-              activeSegment === 'corporate'
-                ? 'bg-emerald-700 text-white shadow-xs font-bold'
-                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-            }`}
-          >
-            PecoDrop Corporate ({segmentCounts.corporate})
-          </button>
+              <button
+                onClick={() => { setActiveSegment('pending'); showToast('Showing: Pending App Enrollment'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'pending'
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                Pending Link ({segmentCounts.pending})
+              </button>
 
-          <button
-            onClick={() => { setActiveSegment('top'); showToast('Showing: Top Green Champions'); }}
-            className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
-              activeSegment === 'top'
-                ? 'bg-amber-600 text-white shadow-xs font-bold'
-                : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-            }`}
-          >
-            <span>Top Green Champions</span>
-            <Star className="w-3 h-3 fill-current text-amber-300" />
-            <span>({segmentCounts.top})</span>
-          </button>
+              <button
+                onClick={() => { setActiveSegment('top'); showToast('Showing: Top Champions'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
+                  activeSegment === 'top'
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                <span>Top Champions</span>
+                <Star className="w-3 h-3 fill-current text-amber-300" />
+                <span>({segmentCounts.top})</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => { setActiveSegment('all'); showToast('Showing: All Recyclers'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'all'
+                    ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                All Recyclers ({segmentCounts.all})
+              </button>
+
+              <button
+                onClick={() => { setActiveSegment('public'); showToast('Showing: Smart RVM Public Recyclers'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'public'
+                    ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                Smart RVM Public ({segmentCounts.public})
+              </button>
+
+              <button
+                onClick={() => { setActiveSegment('corporate'); showToast('Showing: PecoDrop Corporate Recyclers'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  activeSegment === 'corporate'
+                    ? 'bg-emerald-700 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                PecoDrop Corporate ({segmentCounts.corporate})
+              </button>
+
+              <button
+                onClick={() => { setActiveSegment('top'); showToast('Showing: Top Green Champions'); }}
+                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
+                  activeSegment === 'top'
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                }`}
+              >
+                <span>Top Green Champions</span>
+                <Star className="w-3 h-3 fill-current text-amber-300" />
+                <span>({segmentCounts.top})</span>
+              </button>
+            </>
+          )}
         </div>
 
       </div>
 
-      {/* Recyclers Directory Table */}
+      {/* Recyclers / Staff Directory Table */}
       <div className="glass-panel rounded-3xl border t-border overflow-hidden">
         <div className="p-5 border-b t-border flex items-center justify-between flex-wrap gap-2">
           <div>
             <h2 className="text-sm font-bold t-text-primary flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-500" />
-              Registered Recyclers Directory
+              {isCorporateScope ? <Building2 className="w-4 h-4 text-purple-500" /> : <Users className="w-4 h-4 text-emerald-500" />}
+              {isCorporateScope ? 'Corporate Employee & Staff Directory' : 'Registered Recyclers Directory'}
             </h2>
             <p className="text-xs t-text-secondary mt-0.5">
-              Live points balances, lifetime deposits, verified channel, and machine activity
+              {isCorporateScope 
+                ? 'Authorized corporate roster, employee IDs, official departments, and recycling metrics'
+                : 'Live points balances, lifetime deposits, verified channel, and machine activity'}
             </p>
           </div>
           <span className="text-xs font-semibold t-text-secondary t-bg-sec border t-border px-3 py-1 rounded-lg">
-            Showing {filteredUsers.length} of {users.length} Verified Accounts
+            Showing {filteredUsers.length} of {users.length} {isCorporateScope ? 'Staff Records' : 'Verified Accounts'}
           </span>
         </div>
 
@@ -513,12 +673,12 @@ export default function MobileUsersTab() {
           <table className="w-full text-left text-xs">
             <thead className="t-bg-sec/70 border-b t-border t-text-muted uppercase font-bold tracking-wider">
               <tr>
-                <th className="py-3.5 px-4">User Profile</th>
-                <th className="py-3.5 px-4">Account Type &amp; Channel</th>
-                <th className="py-3.5 px-4">Points Balance</th>
+                <th className="py-3.5 px-4">{isCorporateScope ? 'Staff Member Profile' : 'User Profile'}</th>
+                <th className="py-3.5 px-4">{isCorporateScope ? 'Department & Staff ID' : 'Account Type & Channel'}</th>
+                <th className="py-3.5 px-4">{isCorporateScope ? 'Reward Points' : 'Points Balance'}</th>
                 <th className="py-3.5 px-4">Total Items Recycled</th>
                 <th className="py-3.5 px-4">Material Breakdown</th>
-                <th className="py-3.5 px-4">Last Activity</th>
+                <th className="py-3.5 px-4">{isCorporateScope ? 'App Status' : 'Last Activity'}</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -526,8 +686,14 @@ export default function MobileUsersTab() {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-14 text-center t-text-muted">
-                    <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-400" />
-                    <p className="font-semibold text-sm">No recyclers found matching search criteria</p>
+                    {isCorporateScope ? (
+                      <Building2 className="w-8 h-8 mx-auto mb-2 opacity-40 text-purple-400" />
+                    ) : (
+                      <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-400" />
+                    )}
+                    <p className="font-semibold text-sm">
+                      {isCorporateScope ? 'No corporate employees found matching search criteria' : 'No recyclers found matching search criteria'}
+                    </p>
                     <p className="text-xs mt-1">Try switching category segments or clearing the search query.</p>
                   </td>
                 </tr>
@@ -535,6 +701,7 @@ export default function MobileUsersTab() {
                 filteredUsers.map((user) => {
                   const isCorp = isCorporateUser(user);
                   const isTop = isTopChampion(user);
+                  const isRosterPending = Boolean(user.isRosterPending);
                   const totalItems = (user.bottles || 0) + (user.cups || 0) + (user.tetra || 0) + (user.paper || 0) + (user.glass || 0);
                   const initials = (user.fullName || user.username || 'User').substring(0, 2).toUpperCase();
 
@@ -545,19 +712,26 @@ export default function MobileUsersTab() {
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl font-bold flex items-center justify-center shrink-0 text-sm ${
-                            isCorp 
-                              ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30' 
-                              : isTop 
-                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30' 
-                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                            isRosterPending
+                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                              : isCorp 
+                                ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30' 
+                                : isTop 
+                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30' 
+                                  : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
                           }`}>
                             {initials}
                           </div>
                           <div>
                             <div className="font-bold t-text-primary flex items-center gap-1.5 flex-wrap">
                               <span>{user.fullName || user.username}</span>
-                              {isCorp ? (
-                                <span className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/30 font-semibold">
+                              {isRosterPending ? (
+                                <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.2 rounded border border-amber-500/30 font-semibold">
+                                  Roster Pre-Approved
+                                </span>
+                              ) : isCorp ? (
+                                <span className="text-[10px] bg-purple-500/10 text-purple-700 dark:text-purple-300 px-1.5 py-0.2 rounded border border-purple-500/30 font-semibold flex items-center gap-1">
+                                  <Check className="w-2.5 h-2.5" />
                                   {user.orgName ? user.orgName.replace('Client: ', '') : 'Corporate'}
                                 </span>
                               ) : isTop ? (
@@ -575,21 +749,35 @@ export default function MobileUsersTab() {
                               )}
                             </div>
                             <div className="text-[11px] t-text-muted mt-0.5 mono">
-                              ID: {String(user.id).substring(0, 10)} • {user.authProvider === 'google' ? 'Google Auth' : 'Verified Profile'}
+                              {user.employeeId ? `Staff ID: ${user.employeeId}` : `ID: ${String(user.id).substring(0, 10)}`} • {user.email || 'Verified Account'}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      {/* Account Type & Channel */}
+                      {/* Department & Staff ID / Account Type */}
                       <td className="py-3.5 px-4">
-                        <div className="font-medium mono t-text-primary flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-emerald-500" />
-                          <span>{user.mobile && user.mobile !== '-' ? user.mobile : 'Unlinked Phone'}</span>
-                        </div>
-                        <div className="text-[11px] t-text-muted truncate max-w-[190px] mt-0.5">
-                          {user.email && !user.email.endsWith('@rvm.local') ? user.email : 'SMS OTP Verified'}
-                        </div>
+                        {isCorporateScope ? (
+                          <>
+                            <div className="font-semibold text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                              <Building2 className="w-3 h-3 text-purple-500" />
+                              <span>{user.deptName || 'General Staff'}</span>
+                            </div>
+                            <div className="text-[11px] t-text-muted mt-0.5 mono">
+                              {user.mobile && user.mobile !== '-' ? user.mobile : (user.employeeId || 'No Mobile')}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-medium mono t-text-primary flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-emerald-500" />
+                              <span>{user.mobile && user.mobile !== '-' ? user.mobile : 'Unlinked Phone'}</span>
+                            </div>
+                            <div className="text-[11px] t-text-muted truncate max-w-[190px] mt-0.5">
+                              {user.email && !user.email.endsWith('@rvm.local') ? user.email : 'SMS OTP Verified'}
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       {/* Points Balance */}
@@ -598,9 +786,13 @@ export default function MobileUsersTab() {
                           {(user.points || 0).toLocaleString()} Pts
                         </div>
                         <div className="text-[11px] t-text-muted mt-0.5">
-                          {user.totalRedeemedPoints > 0 
-                            ? `${user.totalRedeemedPoints.toLocaleString()} redeemed`
-                            : `PKR ${Math.round((user.points || 0) * 0.20)} value`}
+                          {isRosterPending ? (
+                            <span className="italic text-amber-600 dark:text-amber-400">Pending App Link</span>
+                          ) : user.totalRedeemedPoints > 0 ? (
+                            `${user.totalRedeemedPoints.toLocaleString()} redeemed`
+                          ) : (
+                            `PKR ${Math.round((user.points || 0) * 0.20)} value`
+                          )}
                         </div>
                       </td>
 
@@ -638,35 +830,50 @@ export default function MobileUsersTab() {
                             </span>
                           )}
                           {totalItems === 0 && (
-                            <span className="text-[11px] t-text-muted italic">No items yet</span>
+                            <span className="text-[11px] t-text-muted italic">
+                              {isRosterPending ? 'Pending enrollment' : 'No items yet'}
+                            </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Last Activity */}
+                      {/* Status / Last Activity */}
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-xs t-text-primary flex items-center gap-1">
-                          {user.isOnline ? (
-                            <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                              Online Now
-                            </span>
-                          ) : (
-                            formatTimeAgo(user.lastActive)
-                          )}
-                        </div>
-                        <div className="text-[11px] t-text-muted mt-0.5">
-                          {user.lastActive ? new Date(user.lastActive).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Never'}
-                        </div>
+                        {isRosterPending ? (
+                          <div className="font-semibold text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>Awaiting App Sign-in</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-semibold text-xs t-text-primary flex items-center gap-1">
+                              {user.isOnline ? (
+                                <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                  Online Now
+                                </span>
+                              ) : (
+                                formatTimeAgo(user.lastActive)
+                              )}
+                            </div>
+                            <div className="text-[11px] t-text-muted mt-0.5">
+                              {user.lastActive ? new Date(user.lastActive).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Never'}
+                            </div>
+                          </>
+                        )}
                       </td>
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => openUserHistory(user)}
-                          className="px-3 py-1.5 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl font-bold transition-all inline-flex items-center gap-1 text-xs"
+                          className={`px-3 py-1.5 rounded-xl font-bold transition-all inline-flex items-center gap-1 text-xs ${
+                            isRosterPending
+                              ? 'text-amber-700 dark:text-amber-400 hover:text-amber-800 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30'
+                              : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30'
+                          }`}
                         >
-                          <span>View History</span>
+                          <span>{isRosterPending ? 'View Roster' : 'View History'}</span>
                           <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                       </td>
@@ -688,15 +895,21 @@ export default function MobileUsersTab() {
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b t-border">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-black text-sm">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm border ${
+                  selectedUser.isRosterPending
+                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                }`}>
                   {(selectedUser.fullName || selectedUser.username || 'U').substring(0, 2).toUpperCase()}
                 </div>
                 <div>
                   <h3 className="font-extrabold t-text-primary text-base flex items-center gap-2">
-                    <span>{selectedUser.fullName || selectedUser.username} – Recycling Activity</span>
+                    <span>
+                      {selectedUser.fullName || selectedUser.username} {selectedUser.isRosterPending ? '– Corporate Staff Profile' : '– Recycling Activity'}
+                    </span>
                   </h3>
                   <p className="text-xs t-text-muted mono mt-0.5">
-                    User ID: {selectedUser.id} • Mobile: {selectedUser.mobile}
+                    {selectedUser.employeeId ? `Staff ID: ${selectedUser.employeeId}` : `User ID: ${selectedUser.id}`} • {selectedUser.deptName || selectedUser.email || selectedUser.mobile}
                   </p>
                 </div>
               </div>
@@ -708,173 +921,218 @@ export default function MobileUsersTab() {
               </button>
             </div>
 
-            {/* Quick Stat Chips */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-              <div className="p-3 rounded-2xl t-bg-sec border border-amber-500/30">
-                <div className="text-[10px] text-amber-500 uppercase font-bold">Active Balance</div>
-                <div className="font-extrabold text-amber-600 dark:text-amber-400 text-base mono mt-0.5">
-                  {(selectedUser.points || 0).toLocaleString()} pts
-                </div>
-              </div>
-              <div className="p-3 rounded-2xl t-bg-sec border border-purple-500/30">
-                <div className="text-[10px] text-purple-500 uppercase font-bold">Redeemed</div>
-                <div className="font-extrabold text-purple-600 dark:text-purple-400 text-base mono mt-0.5">
-                  {(selectedUser.totalRedeemedPoints || 0).toLocaleString()} pts
-                </div>
-              </div>
-              <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30">
-                <div className="text-[10px] text-emerald-500 uppercase font-bold">Paper Recycled</div>
-                <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mono mt-0.5">
-                  {formatPaperWeight(selectedUser.paperGrams || 0)}
-                </div>
-              </div>
-              <div className="p-3 rounded-2xl t-bg-sec border t-border">
-                <div className="text-[10px] t-text-muted uppercase font-bold">Total Sessions</div>
-                <div className="font-extrabold t-text-primary text-base mono mt-0.5">
-                  {selectedUser.sessions || userHistory.length}
-                </div>
-              </div>
-            </div>
-
-            {/* Activity Modal Tabs */}
-            <div className="flex items-center gap-2 border-b t-border pb-2">
-              <button
-                onClick={() => setActiveModalTab('recycling')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeModalTab === 'recycling'
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-                }`}
-              >
-                <Recycle className="w-3.5 h-3.5" />
-                <span>Recycling Sessions ({userHistory.length})</span>
-              </button>
-
-              <button
-                onClick={() => setActiveModalTab('redemptions')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeModalTab === 'redemptions'
-                    ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30'
-                    : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
-                }`}
-              >
-                <Ticket className="w-3.5 h-3.5" />
-                <span>Vouchers & Redemptions ({userRedemptions.length})</span>
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            {activeModalTab === 'recycling' ? (
-              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {loadingHistory ? (
-                  <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
-                    <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
-                    <span>Loading recycling history...</span>
+            {selectedUser.isRosterPending ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3.5 rounded-2xl t-bg-sec border border-amber-500/30">
+                    <span className="text-[10px] text-amber-500 uppercase font-bold tracking-wider">Authorized Staff ID</span>
+                    <div className="font-extrabold text-base t-text-primary mono mt-0.5">{selectedUser.employeeId}</div>
+                    <div className="text-[11px] t-text-muted mt-1">Unique company employee code</div>
                   </div>
-                ) : userHistory.length === 0 ? (
-                  <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
-                    <Recycle className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-500" />
-                    <p className="font-bold t-text-primary">No Session History Found</p>
-                    <p className="mt-1">This user has not completed any machine deposits yet.</p>
+                  <div className="p-3.5 rounded-2xl t-bg-sec border border-purple-500/30">
+                    <span className="text-[10px] text-purple-500 uppercase font-bold tracking-wider">Assigned Department</span>
+                    <div className="font-extrabold text-base text-purple-600 dark:text-purple-300 mt-0.5">{selectedUser.deptName}</div>
+                    <div className="text-[11px] t-text-muted mt-1">Corporate functional unit</div>
                   </div>
-                ) : (
-                  userHistory.map((s, idx) => {
-                    const paperGrams = getPaperGrams(s);
-                    return (
-                    <div key={s.session_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
-                      <div>
-                        <div className="font-bold t-text-primary flex items-center gap-2">
-                          <span>{s.machine_id || 'Smart RVM Unit'}</span>
-                          <span className="text-[10px] text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20 font-mono">
-                            {s.session_id ? s.session_id.substring(0, 10) : `SES-${idx + 1}`}
-                          </span>
-                        </div>
-                        <div className="t-text-muted text-[11px] mt-0.5">
-                          {s.created_at || s.recycledAt ? new Date(s.created_at || s.recycledAt).toLocaleString() : 'Recent'} • 
-                          {' '}{s.plastic_count || s.bottles || 0} PET • {s.aluminium_count || s.cups || 0} Cans • {s.tetrapak_count || s.tetra_count || 0} Cartons
-                        </div>
-                        {paperGrams > 0 && (
-                          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-300">
-                            <span>🟦 Paper:</span>
-                            <span>{formatPaperWeight(paperGrams)}</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30 mono">
-                        +{s.points_earned || s.points || 0} Pts
-                      </span>
+                  <div className="p-3.5 rounded-2xl t-bg-sec border border-emerald-500/30">
+                    <span className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">Official Email</span>
+                    <div className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">{selectedUser.email}</div>
+                    <div className="text-[11px] t-text-muted mt-1">Pre-authorized corporate address</div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl t-bg-sec border t-border">
+                    <span className="text-[10px] t-text-muted uppercase font-bold tracking-wider">App Enrollment Status</span>
+                    <div className="font-extrabold text-sm text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Pending App Sign-In</span>
                     </div>
-                    );
-                  })
-                )}
+                    <div className="text-[11px] t-text-muted mt-1">Not yet signed in on mobile app</div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5">
+                  <div className="font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                    <Shield className="w-4 h-4" />
+                    <span>How this employee claims & activates their account:</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    1. The employee installs the <strong>Trash to Cash</strong> Android app.<br />
+                    2. Signs in using Google Auth or Mobile Number.<br />
+                    3. Under <strong>Profile &gt; Corporate Membership</strong>, enters their Company Code and Staff ID (<strong>{selectedUser.employeeId}</strong>).<br />
+                    4. Once verified, this roster entry automatically converts into an active mobile user with live telemetry and corporate perks!
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {loadingHistory ? (
-                  <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
-                    <RefreshCw className="w-4 h-4 animate-spin text-purple-500" />
-                    <span>Loading voucher redemptions...</span>
+              <>
+                {/* Quick Stat Chips */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                  <div className="p-3 rounded-2xl t-bg-sec border border-amber-500/30">
+                    <div className="text-[10px] text-amber-500 uppercase font-bold">Active Balance</div>
+                    <div className="font-extrabold text-amber-600 dark:text-amber-400 text-base mono mt-0.5">
+                      {(selectedUser.points || 0).toLocaleString()} pts
+                    </div>
                   </div>
-                ) : userRedemptions.length === 0 ? (
-                  <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
-                    <Ticket className="w-8 h-8 mx-auto mb-2 opacity-40 text-purple-500" />
-                    <p className="font-bold t-text-primary">No Vouchers Cashed</p>
-                    <p className="mt-1">All earned points remain fully active in user balance.</p>
+                  <div className="p-3 rounded-2xl t-bg-sec border border-purple-500/30">
+                    <div className="text-[10px] text-purple-500 uppercase font-bold">Redeemed</div>
+                    <div className="font-extrabold text-purple-600 dark:text-purple-400 text-base mono mt-0.5">
+                      {(selectedUser.totalRedeemedPoints || 0).toLocaleString()} pts
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30">
+                    <div className="text-[10px] text-emerald-500 uppercase font-bold">Paper Recycled</div>
+                    <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mono mt-0.5">
+                      {formatPaperWeight(selectedUser.paperGrams || 0)}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-2xl t-bg-sec border t-border">
+                    <div className="text-[10px] t-text-muted uppercase font-bold">Total Sessions</div>
+                    <div className="font-extrabold t-text-primary text-base mono mt-0.5">
+                      {selectedUser.sessions || userHistory.length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Modal Tabs */}
+                <div className="flex items-center gap-2 border-b t-border pb-2">
+                  <button
+                    onClick={() => setActiveModalTab('recycling')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                      activeModalTab === 'recycling'
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                        : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                    }`}
+                  >
+                    <Recycle className="w-3.5 h-3.5" />
+                    <span>Recycling Sessions ({userHistory.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModalTab('redemptions')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                      activeModalTab === 'redemptions'
+                        ? 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border border-purple-500/30'
+                        : 't-text-secondary hover:t-text-primary t-bg-sec border t-border'
+                    }`}
+                  >
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span>Vouchers & Redemptions ({userRedemptions.length})</span>
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                {activeModalTab === 'recycling' ? (
+                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                    {loadingHistory ? (
+                      <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                        <span>Loading recycling history...</span>
+                      </div>
+                    ) : userHistory.length === 0 ? (
+                      <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
+                        <Recycle className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-500" />
+                        <p className="font-bold t-text-primary">No Session History Found</p>
+                        <p className="mt-1">This user has not completed any machine deposits yet.</p>
+                      </div>
+                    ) : (
+                      userHistory.map((s, idx) => {
+                        const paperGrams = getPaperGrams(s);
+                        return (
+                        <div key={s.session_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
+                          <div>
+                            <div className="font-bold t-text-primary flex items-center gap-2">
+                              <span>{s.machine_id || 'Smart RVM Unit'}</span>
+                              <span className="text-[10px] text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20 font-mono">
+                                {s.session_id ? s.session_id.substring(0, 10) : `SES-${idx + 1}`}
+                              </span>
+                            </div>
+                            <div className="t-text-muted text-[11px] mt-0.5">
+                              {s.created_at || s.recycledAt ? new Date(s.created_at || s.recycledAt).toLocaleString() : 'Recent'} • 
+                              {' '}{s.plastic_count || s.bottles || 0} PET • {s.aluminium_count || s.cups || 0} Cans • {s.tetrapak_count || s.tetra_count || 0} Cartons
+                            </div>
+                            {paperGrams > 0 && (
+                              <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[11px] font-bold text-cyan-700 dark:text-cyan-300">
+                                <span>🟦 Paper:</span>
+                                <span>{formatPaperWeight(paperGrams)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/30 mono">
+                            +{s.points_earned || s.points || 0} Pts
+                          </span>
+                        </div>
+                        );
+                      })
+                    )}
                   </div>
                 ) : (
-                  userRedemptions.map((r, idx) => (
-                    <div key={r.redemption_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
-                      <div>
-                        <div className="font-bold t-text-primary flex items-center gap-2 flex-wrap">
-                          {r.category === 'easypaisa' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                              <Wallet className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                              EasyPaisa
-                            </span>
-                          ) : r.category === 'jazzcash' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                              <Smartphone className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                              JazzCash
-                            </span>
-                          ) : r.category === 'mobile_load' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                              <Smartphone className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                              Mobile Load
-                            </span>
-                          ) : r.category === 'raast' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
-                              <Wallet className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                              Raast
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
-                              <Gift className="w-3 h-3 text-purple-500" />
-                              Voucher
-                            </span>
-                          )}
-                          <span>{r.item_name || 'Reward Payout'}</span>
-                          {r.voucher_code && (
-                            <button
-                              onClick={() => copyToClipboard(r.voucher_code)}
-                              className="font-mono text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/20 flex items-center gap-1"
-                              title="Click to copy code"
-                            >
-                              <span>{r.voucher_code}</span>
-                              {copiedVoucher === r.voucher_code ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                            </button>
-                          )}
-                        </div>
-                        <div className="t-text-muted text-[11px] mt-0.5">
-                          {r.created_at ? new Date(r.created_at).toLocaleString() : 'Recent'} • Status: {(r.status || 'Completed').toUpperCase()}
-                        </div>
+                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                    {loadingHistory ? (
+                      <div className="py-10 text-center t-text-muted flex items-center justify-center gap-2 text-xs">
+                        <RefreshCw className="w-4 h-4 animate-spin text-purple-500" />
+                        <span>Loading voucher redemptions...</span>
                       </div>
-                      <span className="font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-xl border border-rose-500/30 mono">
-                        -{r.points_redeemed || 0} Pts
-                      </span>
-                    </div>
-                  ))
+                    ) : userRedemptions.length === 0 ? (
+                      <div className="p-8 text-center t-bg-sec rounded-2xl border t-border text-xs t-text-muted">
+                        <Ticket className="w-8 h-8 mx-auto mb-2 opacity-40 text-purple-500" />
+                        <p className="font-bold t-text-primary">No Vouchers Cashed</p>
+                        <p className="mt-1">All earned points remain fully active in user balance.</p>
+                      </div>
+                    ) : (
+                      userRedemptions.map((r, idx) => (
+                        <div key={r.redemption_id || idx} className="p-3 rounded-2xl t-bg-sec border t-border flex items-center justify-between text-xs hover:t-bg-hover transition-colors">
+                          <div>
+                            <div className="font-bold t-text-primary flex items-center gap-2 flex-wrap">
+                              {r.category === 'easypaisa' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                  <Wallet className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                  EasyPaisa
+                                </span>
+                              ) : r.category === 'jazzcash' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                  <Smartphone className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                  JazzCash
+                                </span>
+                              ) : r.category === 'mobile_load' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                  <Smartphone className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                  Mobile Load
+                                </span>
+                              ) : r.category === 'raast' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                                  <Wallet className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                  Raast
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                                  <Gift className="w-3 h-3 text-purple-500" />
+                                  Voucher
+                                </span>
+                              )}
+                              <span>{r.item_name || 'Reward Payout'}</span>
+                              {r.voucher_code && (
+                                <button
+                                  onClick={() => copyToClipboard(r.voucher_code)}
+                                  className="font-mono text-[11px] text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 px-1.5 py-0.5 rounded border border-purple-500/20 flex items-center gap-1"
+                                  title="Click to copy code"
+                                >
+                                  <span>{r.voucher_code}</span>
+                                  {copiedVoucher === r.voucher_code ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              )}
+                            </div>
+                            <div className="t-text-muted text-[11px] mt-0.5">
+                              {r.created_at ? new Date(r.created_at).toLocaleString() : 'Recent'} • Status: {(r.status || 'Completed').toUpperCase()}
+                            </div>
+                          </div>
+                          <span className="font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-xl border border-rose-500/30 mono">
+                            -{r.points_redeemed || 0} Pts
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
 
             {/* Modal Footer */}

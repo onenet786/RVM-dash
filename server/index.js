@@ -9507,6 +9507,7 @@ app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
 });
 
 // 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL - Resilient Optional Auth)
+// 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL - Resilient Optional Auth)
 app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
   try {
     let usersList = [];
@@ -9514,51 +9515,157 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
       totalUsers: 0,
       onlineNow: 0,
       totalPoints: 0,
+      totalRedeemed: 0,
       totalBottles: 0,
-      totalCups: 0
+      totalCups: 0,
+      totalGlass: 0,
+      totalPaper: 0,
+      totalPaperGrams: 0,
+      totalTetra: 0
     };
 
     const pool = getPgPool();
     if (pool) {
-      const isCorporatePortal = ['client_admin', 'corporate_sub_user'].includes(req.user?.roleId);
-      const scopedMachines = isCorporatePortal
-        ? (Array.isArray(req.user?.assignedMachines) ? req.user.assignedMachines : [])
-          .map(machineId => String(machineId).trim().toUpperCase()).filter(Boolean)
-        : null;
-      // 1. Fetch all citizens from PostgreSQL users table
-      const uRes = await pool.query(`
-        SELECT 
-          u.user_id,
-          u.username,
-          u.full_name,
-          u.email,
-          u.mobile,
-          u.age,
-          u.nic,
-          u.gender,
-          u.dob,
-          u.profile_image,
-          COALESCE(u.auth_provider, 'local') AS auth_provider,
-          COALESCE(u.user_type, 'CITIZEN') AS user_type,
-          u.org_id,
-          u.dept_id,
-          u.employee_id,
-          o.name AS org_name,
-          o.logo_url AS org_logo,
-          d.name AS dept_name,
-          COALESCE(u.points_balance, 0) AS points_balance,
-          COALESCE(u.is_online, FALSE) AS is_online,
-          u.last_login,
-          u.last_active,
-          u.created_at
-        FROM users u
-        LEFT JOIN organizations o ON u.org_id = o.org_id
-        LEFT JOIN departments d ON u.dept_id = d.dept_id
-        WHERE u.user_id NOT IN ('3214424625', '08884424625') 
-          AND u.username NOT IN ('3214424625', '08884424625') 
-          AND (u.mobile IS NULL OR u.mobile NOT IN ('3214424625', '08884424625'))
-        ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
-      `);
+      const isCorporateRole = ['client_admin', 'corporate_sub_user'].includes(req.user?.roleId);
+      const queryOrg = (req.query.clientId || req.query.orgId || '').trim();
+      let effectiveOrgId = null;
+
+      if (isCorporateRole && req.user?.orgId) {
+        effectiveOrgId = String(req.user.orgId).trim();
+      } else if (queryOrg && queryOrg !== 'ALL' && queryOrg !== 'null' && queryOrg !== 'undefined') {
+        effectiveOrgId = queryOrg;
+      }
+
+      let scopedMachines = null;
+      let orgInfo = null;
+
+      if (effectiveOrgId) {
+        // Fetch organization details
+        const orgRes = await pool.query(
+          `SELECT org_id, name, domain, logo_url FROM organizations WHERE UPPER(org_id) = UPPER($1) LIMIT 1;`,
+          [effectiveOrgId]
+        ).catch(() => ({ rows: [] }));
+        orgInfo = orgRes.rows[0] || { org_id: effectiveOrgId, name: effectiveOrgId };
+
+        // Fetch all bound machines for this organization
+        const boundRes = await pool.query(`
+          SELECT DISTINCT UPPER(machine_id) AS machine_id FROM kiosk_org_bindings WHERE UPPER(org_id) = UPPER($1)
+          UNION
+          SELECT DISTINCT UPPER(machine_id) AS machine_id FROM machines WHERE UPPER(client_id) = UPPER($1)
+        `, [effectiveOrgId]).catch(() => ({ rows: [] }));
+
+        scopedMachines = boundRes.rows.map(r => r.machine_id).filter(Boolean);
+        if (scopedMachines.length === 0) {
+          scopedMachines = ['__NO_MACHINES__']; // ensure query doesn't match all if none bound
+        }
+      } else if (isCorporateRole) {
+        scopedMachines = (Array.isArray(req.user?.assignedMachines) ? req.user.assignedMachines : [])
+          .map(m => String(m).trim().toUpperCase()).filter(Boolean);
+        if (scopedMachines.length === 0) scopedMachines = ['__NO_MACHINES__'];
+      }
+
+      // 1. Fetch users from PostgreSQL
+      let uRes;
+      if (effectiveOrgId) {
+        // Strictly fetch users belonging to this organization or claiming an employee roster spot in this org
+        uRes = await pool.query(`
+          SELECT 
+            u.user_id,
+            u.username,
+            u.full_name,
+            u.email,
+            u.mobile,
+            u.age,
+            u.nic,
+            u.gender,
+            u.dob,
+            u.profile_image,
+            COALESCE(u.auth_provider, 'local') AS auth_provider,
+            COALESCE(u.user_type, 'ENTERPRISE') AS user_type,
+            u.org_id,
+            u.dept_id,
+            u.employee_id,
+            COALESCE(o.name, $2) AS org_name,
+            COALESCE(o.logo_url, $3) AS org_logo,
+            d.name AS dept_name,
+            COALESCE(u.points_balance, 0) AS points_balance,
+            COALESCE(u.is_online, FALSE) AS is_online,
+            u.last_login,
+            u.last_active,
+            u.created_at
+          FROM users u
+          LEFT JOIN organizations o ON UPPER(u.org_id) = UPPER(o.org_id)
+          LEFT JOIN departments d ON UPPER(u.dept_id) = UPPER(d.dept_id)
+          WHERE (
+            UPPER(COALESCE(u.org_id, '')) = UPPER($1) 
+            OR u.user_id IN (
+              SELECT claimed_by_user_id FROM organization_employees 
+              WHERE UPPER(org_id) = UPPER($1) AND claimed_by_user_id IS NOT NULL
+            )
+          )
+          AND u.user_id NOT IN ('3214424625', '08884424625')
+          ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
+        `, [effectiveOrgId, orgInfo?.name || effectiveOrgId, orgInfo?.logo_url || null]);
+      } else {
+        // Super Admin / Global view (all citizens)
+        uRes = await pool.query(`
+          SELECT 
+            u.user_id,
+            u.username,
+            u.full_name,
+            u.email,
+            u.mobile,
+            u.age,
+            u.nic,
+            u.gender,
+            u.dob,
+            u.profile_image,
+            COALESCE(u.auth_provider, 'local') AS auth_provider,
+            COALESCE(u.user_type, 'CITIZEN') AS user_type,
+            u.org_id,
+            u.dept_id,
+            u.employee_id,
+            o.name AS org_name,
+            o.logo_url AS org_logo,
+            d.name AS dept_name,
+            COALESCE(u.points_balance, 0) AS points_balance,
+            COALESCE(u.is_online, FALSE) AS is_online,
+            u.last_login,
+            u.last_active,
+            u.created_at
+          FROM users u
+          LEFT JOIN organizations o ON UPPER(u.org_id) = UPPER(o.org_id)
+          LEFT JOIN departments d ON UPPER(u.dept_id) = UPPER(d.dept_id)
+          WHERE u.user_id NOT IN ('3214424625', '08884424625') 
+            AND u.username NOT IN ('3214424625', '08884424625') 
+            AND (u.mobile IS NULL OR u.mobile NOT IN ('3214424625', '08884424625'))
+          ORDER BY u.last_active DESC NULLS LAST, u.created_at DESC;
+        `);
+      }
+
+      // Fetch organization pre-approved roster if scoped
+      let rosterEmployees = [];
+      if (effectiveOrgId) {
+        const rRes = await pool.query(`
+          SELECT 
+            roster_id,
+            org_id,
+            employee_id,
+            full_name,
+            official_email,
+            mobile,
+            dept_id,
+            dept_name,
+            is_claimed,
+            claimed_by_user_id,
+            claimed_at,
+            created_at
+          FROM organization_employees
+          WHERE UPPER(org_id) = UPPER($1)
+          ORDER BY employee_id ASC;
+        `, [effectiveOrgId]).catch(() => ({ rows: [] }));
+        rosterEmployees = rRes.rows || [];
+      }
 
       // 2. Fetch session statistics from relational table: recycling_sessions
       const relSessions = await pool.query(`
@@ -9600,7 +9707,7 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         GROUP BY rs.user_id;
       `, [scopedMachines]).catch(() => ({ rows: [] }));
 
-      // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions to avoid duplicate counts
+      // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions
       const jsonSessions = await pool.query(`
         SELECT 
           COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') AS user_key,
@@ -9620,12 +9727,11 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         GROUP BY user_key;
       `, [scopedMachines]).catch(() => ({ rows: [] }));
 
-      // Map sessions to normalized phone/id keys (handling leading zeros: 03214424625 vs 3214424625)
+      // Map sessions to normalized phone/id keys
       const userSessionMap = {};
       const addStats = (key, b, c, g, p, pGrams, tGrams, pts, s) => {
         if (!key) return;
         let clean = String(key).trim().toLowerCase();
-        // Redirect any legacy fallback 3214424625 sessions to 08884424625 so it never steals stats from 03214424625
         if (clean === '3214424625') clean = '08884424625';
         const norm = clean.replace(/[^0-9a-z]/g, '').replace(/^0+/, '');
         if (!norm) return;
@@ -9675,7 +9781,13 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         }
       });
 
+      const processedUserIds = new Set();
+      const processedEmpIds = new Set();
+
       usersList = uRes.rows.map(u => {
+        processedUserIds.add(u.user_id);
+        if (u.employee_id) processedEmpIds.add(String(u.employee_id).toUpperCase().trim());
+
         const hasRecentHeartbeat = u.last_active && (Date.now() - new Date(u.last_active).getTime() < 2 * 60 * 1000);
         const isOnline = Boolean(u.is_online && hasRecentHeartbeat);
 
@@ -9720,9 +9832,13 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         }
 
         const effectivePoints = Math.max(parseInt(u.points_balance || 0), userSessionPoints);
-        if (effectivePoints > parseInt(u.points_balance || 0)) {
-          pool.query(`UPDATE users SET points_balance = $1 WHERE user_id = $2;`, [effectivePoints, u.user_id]).catch(() => {});
-        }
+
+        // Check matching roster entry if available
+        const matchedRoster = rosterEmployees.find(r => 
+          (u.employee_id && String(r.employee_id).toUpperCase() === String(u.employee_id).toUpperCase()) ||
+          (u.email && String(r.official_email).toLowerCase() === String(u.email).toLowerCase()) ||
+          (r.claimed_by_user_id === u.user_id)
+        );
 
         return {
           id: u.user_id,
@@ -9732,18 +9848,18 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
           mobile: u.mobile || '-',
           authProvider: u.auth_provider || 'local',
           userType: u.user_type || 'CITIZEN',
-          orgId: u.org_id || null,
-          deptId: u.dept_id || null,
-          employeeId: u.employee_id || null,
-          orgName: u.org_name || null,
-          orgLogo: u.org_logo || null,
-          deptName: u.dept_name || null,
+          orgId: u.org_id || (matchedRoster ? matchedRoster.org_id : null),
+          deptId: u.dept_id || (matchedRoster ? matchedRoster.dept_id : null),
+          employeeId: u.employee_id || (matchedRoster ? matchedRoster.employee_id : null),
+          orgName: u.org_name || (orgInfo ? orgInfo.name : null),
+          orgLogo: u.org_logo || (orgInfo ? orgInfo.logo_url : null),
+          deptName: u.dept_name || (matchedRoster ? matchedRoster.dept_name : null),
           age: u.age || 20,
           dob: u.dob || '',
           profileImage: u.profile_image || '',
           isBirthday: checkIsBirthday(u.dob),
           nic: u.nic || '-',
-          gender: u.gender || 'male',
+          gender: u.gender || 'unspecified',
           points: effectivePoints,
           redeemedPoints: userRedeemedPoints,
           totalRedeemedPoints: userRedeemedPoints,
@@ -9757,29 +9873,89 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
           tetraGrams: userTetraGrams,
           sessions: userSessions,
           isOnline,
+          isRosterPending: false,
+          isClaimed: true,
           lastLogin: u.last_login || null,
           lastActive: u.last_active || null,
           createdAt: u.created_at
         };
       });
 
-      if (isCorporatePortal) {
-        const orgId = String(req.user?.orgId || '').toUpperCase();
-        usersList = usersList.filter(user =>
-          user.sessions > 0 || (orgId && String(user.orgId || '').toUpperCase() === orgId)
-        );
+      // When scoped to a corporate client, include any pre-approved roster employees who haven't linked their app account yet
+      if (effectiveOrgId && rosterEmployees.length > 0) {
+        for (const emp of rosterEmployees) {
+          const empCode = String(emp.employee_id).toUpperCase().trim();
+          if (processedEmpIds.has(empCode)) continue;
+          if (emp.claimed_by_user_id && processedUserIds.has(emp.claimed_by_user_id)) continue;
+
+          usersList.push({
+            id: `ROSTER-${emp.employee_id}`,
+            username: emp.employee_id,
+            fullName: emp.full_name,
+            email: emp.official_email,
+            mobile: emp.mobile || '-',
+            authProvider: 'corporate_roster',
+            userType: 'ENTERPRISE',
+            orgId: emp.org_id,
+            deptId: emp.dept_id,
+            employeeId: emp.employee_id,
+            orgName: orgInfo?.name || emp.org_id,
+            orgLogo: orgInfo?.logo_url || null,
+            deptName: emp.dept_name,
+            age: 25,
+            dob: '',
+            profileImage: '',
+            isBirthday: false,
+            nic: '-',
+            gender: 'unspecified',
+            points: 0,
+            redeemedPoints: 0,
+            totalRedeemedPoints: 0,
+            redemptionsCount: 0,
+            bottles: 0,
+            cups: 0,
+            glass: 0,
+            paper: 0,
+            paperGrams: 0,
+            tetra: 0,
+            tetraGrams: 0,
+            sessions: 0,
+            isOnline: false,
+            isRosterPending: true,
+            isClaimed: Boolean(emp.is_claimed),
+            lastLogin: null,
+            lastActive: null,
+            createdAt: emp.created_at
+          });
+        }
       }
 
       stats.totalUsers = usersList.length;
       stats.onlineNow = usersList.filter(u => u.isOnline).length;
-      stats.totalPoints = usersList.reduce((acc, u) => acc + u.points, 0);
+      stats.totalPoints = usersList.reduce((acc, u) => acc + (u.points || 0), 0);
       stats.totalRedeemed = usersList.reduce((acc, u) => acc + (u.totalRedeemedPoints || 0), 0);
-      stats.totalBottles = usersList.reduce((acc, u) => acc + u.bottles, 0);
-      stats.totalCups = usersList.reduce((acc, u) => acc + u.cups, 0);
+      stats.totalBottles = usersList.reduce((acc, u) => acc + (u.bottles || 0), 0);
+      stats.totalCups = usersList.reduce((acc, u) => acc + (u.cups || 0), 0);
       stats.totalGlass = usersList.reduce((acc, u) => acc + (u.glass || 0), 0);
       stats.totalPaper = usersList.reduce((acc, u) => acc + (u.paper || 0), 0);
       stats.totalPaperGrams = usersList.reduce((acc, u) => acc + (u.paperGrams || 0), 0);
       stats.totalTetra = usersList.reduce((acc, u) => acc + (u.tetra || 0), 0);
+
+      stats.scope = effectiveOrgId ? {
+        isCorporate: true,
+        orgId: effectiveOrgId,
+        orgName: orgInfo?.name || effectiveOrgId,
+        orgLogo: orgInfo?.logo_url || null,
+        domain: orgInfo?.domain || null,
+        boundMachines: scopedMachines.filter(m => m !== '__NO_MACHINES__'),
+        totalRoster: rosterEmployees.length,
+        enrolledCount: usersList.filter(u => !u.isRosterPending).length,
+        pendingCount: usersList.filter(u => u.isRosterPending).length
+      } : {
+        isCorporate: false,
+        orgId: 'ALL',
+        orgName: 'All Ecosystem'
+      };
     }
 
     res.json({
