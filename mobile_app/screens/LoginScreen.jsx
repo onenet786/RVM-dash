@@ -260,11 +260,17 @@ export default function LoginScreen({ navigation, route }) {
         setTwoStepEmail(res.data.email || googleAccount.email);
         setTwoStepMaskedEmail(res.data.maskedEmail || googleAccount.email);
         setTwoStepName(res.data.name || googleAccount.name || 'Eco Citizen');
-        setTwoStepCode('');
+        
+        const autoCode = res.data.debugCode || res.data.codePreview || res.data.verificationCode || '';
+        setTwoStepCode(autoCode);
         setTwoStepCountdown(45);
         setTwoStepModalVisible(true);
         if (Platform.OS === 'android') {
-          ToastAndroid.show(`Verification code sent to ${googleAccount.email}`, ToastAndroid.LONG);
+          if (autoCode && !res.data.emailSent) {
+            ToastAndroid.show(`Verification code: ${autoCode}`, ToastAndroid.LONG);
+          } else {
+            ToastAndroid.show(`Verification code sent to ${googleAccount.email}`, ToastAndroid.LONG);
+          }
         }
       } else {
         Alert.alert('Google Sign-In', res.data?.message || 'Could not initiate two-step verification.');
@@ -356,14 +362,19 @@ export default function LoginScreen({ navigation, route }) {
           setDetectedOrgName(null);
         }
 
-        if (res.data.verificationCode) {
-          setSsoCode(res.data.verificationCode);
+        const autoCode = res.data.codePreview || res.data.debugCode || res.data.verificationCode || '';
+        if (autoCode) {
+          setSsoCode(autoCode);
         }
 
         setSsoStep(2);
         setResendCooldown(45);
         if (Platform.OS === 'android') {
-          ToastAndroid.show(`Verification code sent to ${cleanEmail}`, ToastAndroid.LONG);
+          if (autoCode) {
+            ToastAndroid.show(`Verification code: ${autoCode}`, ToastAndroid.LONG);
+          } else {
+            ToastAndroid.show(`Verification code sent to ${cleanEmail}`, ToastAndroid.LONG);
+          }
         }
       } else {
         // Fallback to Google initiate-2fa if sso-code returns notice
