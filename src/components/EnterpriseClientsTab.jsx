@@ -1201,9 +1201,15 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                                   {(emp.pointsBalance || 0).toLocaleString()} pts
                                 </td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Touchless Web SSO via standard phone camera">
-                                    <span>⚡</span> Web Claim (No App)
-                                  </span>
+                                  {emp.isClaimed ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Account verified and linked">
+                                      <span>✓</span> Linked / Active
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Pre-authorized on company whitelist, pending employee claim">
+                                      <span>⏳</span> Roster Whitelist
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             ))

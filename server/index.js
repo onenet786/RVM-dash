@@ -7386,22 +7386,16 @@ app.post('/api/enterprise/employees/bulk-import', optionalAuth, async (req, res)
           }
 
           await pool.query(`
-            INSERT INTO users (
-              user_id, username, full_name, email, mobile,
-              user_type, org_id, dept_id, employee_id,
-              auth_provider, role_id, points_balance, is_online, created_at
-            ) VALUES (
-              $1, $1, $2, $1, $3,
-              'ENTERPRISE', $4, $5, $6,
-              'enterprise_csv', 'user', 0, FALSE, NOW()
-            ) ON CONFLICT (email) DO UPDATE SET
+            INSERT INTO organization_employees (
+              org_id, employee_id, full_name, official_email, mobile, dept_id, dept_name
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (org_id, employee_id) DO UPDATE SET
               full_name = EXCLUDED.full_name,
-              mobile = COALESCE(EXCLUDED.mobile, users.mobile),
-              user_type = 'ENTERPRISE',
-              org_id = EXCLUDED.org_id,
-              dept_id = EXCLUDED.dept_id,
-              employee_id = EXCLUDED.employee_id;
-          `, [email, fullName, mobile, orgId, deptId, employeeId]);
+              official_email = COALESCE(EXCLUDED.official_email, organization_employees.official_email),
+              mobile = COALESCE(EXCLUDED.mobile, organization_employees.mobile),
+              dept_id = COALESCE(EXCLUDED.dept_id, organization_employees.dept_id),
+              dept_name = COALESCE(EXCLUDED.dept_name, organization_employees.dept_name);
+          `, [orgId, employeeId, fullName, email || null, mobile, deptId, deptName]);
           importedCount++;
         } catch (err) {
           console.warn('[Bulk Import Row Warning]', err.message);
@@ -7423,38 +7417,55 @@ app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
     if (pool) {
       const q = await pool.query(`
         SELECT 
-          u.user_id, u.username, u.full_name, u.email, u.mobile,
-          u.employee_id, u.auth_provider, u.points_balance, u.created_at, u.last_active,
-          d.dept_id, d.name AS dept_name,
+          oe.roster_id,
+          oe.employee_id,
+          oe.full_name,
+          oe.official_email,
+          oe.mobile,
+          oe.is_claimed,
+          oe.claimed_at,
+          oe.claimed_by_user_id,
+          d.dept_id,
+          COALESCE(oe.dept_name, d.name, 'General') AS dept_name,
+          u.user_id,
+          u.username,
+          u.points_balance,
+          u.last_active,
           COALESCE(SUM(s.plastic_count), 0) AS total_bottles,
           COALESCE(SUM(s.aluminium_count), 0) AS total_cans,
           COALESCE(SUM(s.paper_weight_grams) / 1000.0, 0) AS total_paper_kg
-        FROM users u
-        LEFT JOIN departments d ON u.dept_id = d.dept_id
+        FROM organization_employees oe
+        LEFT JOIN departments d ON oe.dept_id = d.dept_id
+        LEFT JOIN users u ON oe.claimed_by_user_id = u.user_id
         LEFT JOIN recycling_sessions s ON s.user_id = u.user_id
-        WHERE u.org_id = $1 OR u.org_id = $2
-        GROUP BY u.user_id, u.username, u.full_name, u.email, u.mobile, u.employee_id, u.auth_provider, u.points_balance, u.created_at, u.last_active, d.dept_id, d.name
-        ORDER BY u.created_at DESC;
+        WHERE oe.org_id = $1 OR oe.org_id = $2
+        GROUP BY 
+          oe.roster_id, oe.employee_id, oe.full_name, oe.official_email, oe.mobile,
+          oe.is_claimed, oe.claimed_at, oe.claimed_by_user_id, d.dept_id, d.name,
+          u.user_id, u.username, u.points_balance, u.last_active
+        ORDER BY oe.is_claimed DESC, oe.employee_id ASC;
       `, [orgId, orgId.startsWith('ORG_') ? orgId.replace(/^ORG_/, '') : `ORG_${orgId}`]);
 
       return res.json({
         success: true,
         employees: q.rows.map(r => ({
+          rosterId: r.roster_id,
           userId: r.user_id,
           username: r.username,
-          fullName: r.full_name || r.username,
-          email: r.email,
+          fullName: r.full_name,
+          email: r.official_email || (r.username && r.username.includes('@') ? r.username : '-'),
           mobile: r.mobile,
           employeeId: r.employee_id || '-',
-          authProvider: r.auth_provider || 'google',
+          isClaimed: Boolean(r.is_claimed),
+          claimedAt: r.claimed_at,
+          claimedByUserId: r.claimed_by_user_id,
           pointsBalance: Number(r.points_balance) || 0,
           bottles: Number(r.total_bottles) || 0,
           cans: Number(r.total_cans) || 0,
           paperKg: parseFloat(Number(r.total_paper_kg || 0).toFixed(2)),
           deptId: r.dept_id,
           deptName: r.dept_name || 'General',
-          lastActive: r.last_active,
-          createdAt: r.created_at
+          lastActive: r.last_active
         }))
       });
     }
@@ -8142,7 +8153,7 @@ async function handleGetPublicOrganizations(req, res) {
     const pool = getPgPool();
     if (pool) {
       const orgRes = await pool.query(
-        "SELECT org_id, name, domain, logo_url FROM organizations WHERE status = 'active' ORDER BY name ASC"
+        "SELECT org_id, name, domain, logo_url, company_code FROM organizations WHERE status = 'active' ORDER BY name ASC"
       );
       return res.json({ success: true, organizations: orgRes.rows });
     }
@@ -8154,18 +8165,49 @@ async function handleGetPublicOrganizations(req, res) {
 app.get('/api/corporate/organizations', handleGetPublicOrganizations);
 app.get('/corporate/organizations', handleGetPublicOrganizations);
 
+// Get Official Departments for an Organization
+async function handleGetCorporateDepartments(req, res) {
+  try {
+    const { orgId } = req.params;
+    const pool = getPgPool();
+    if (pool) {
+      const deptsRes = await pool.query(
+        "SELECT dept_id, org_id, name, monthly_target_kg FROM departments WHERE org_id = $1 OR org_id = $2 ORDER BY name ASC",
+        [orgId, orgId.startsWith('ORG_') ? orgId.replace(/^ORG_/, '') : `ORG_${orgId}`]
+      );
+      return res.json({ success: true, departments: deptsRes.rows });
+    }
+    res.json({ success: true, departments: [] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+app.get('/api/corporate/departments/:orgId', handleGetCorporateDepartments);
+app.get('/corporate/departments/:orgId', handleGetCorporateDepartments);
+
 // Link Citizen user to Corporate Workplace using Company Code & Employee ID
 async function handleLinkCorporate(req, res) {
   try {
     const { userId, companyCode, employeeId, department } = req.body;
-    if (!userId || !companyCode) {
-      return res.status(400).json({ success: false, message: 'User identifier and Company Code are required' });
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User identifier is required.' });
+    }
+    if (!companyCode || !String(companyCode).trim()) {
+      return res.status(400).json({ success: false, message: 'Company Code or Organization is required.' });
+    }
+
+    const cleanEmpId = (employeeId || '').trim();
+    if (!cleanEmpId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Official Employee / Staff ID is strictly required to verify your corporate workplace membership.'
+      });
     }
 
     const cleanCode = String(companyCode).trim().toLowerCase();
-    const cleanEmpId = (employeeId || '').trim();
     const pool = getPgPool();
 
+    // 1. Locate Organization
     let matchedOrg = null;
     if (pool) {
       const orgRes = await pool.query(`
@@ -8176,6 +8218,7 @@ async function handleLinkCorporate(req, res) {
            OR LOWER(domain) = $1 || '.com'
            OR LOWER(domain) = $1 || '.pk'
            OR LOWER(name) ILIKE '%' || $1 || '%'
+           OR (company_code IS NOT NULL AND LOWER(company_code) = $1)
         LIMIT 1;
       `, [cleanCode]);
       if (orgRes.rows.length > 0) {
@@ -8183,43 +8226,106 @@ async function handleLinkCorporate(req, res) {
       }
     }
 
-    // PostgreSQL is the single production source of truth (no mock in-memory fallback)
     if (!matchedOrg) {
       return res.status(404).json({
         success: false,
-        message: 'Company Code or Organization not found in the active corporate registry. Please contact your organization administrator.'
+        message: `Company Code or Organization "${companyCode}" was not found in the active corporate registry. Please contact your administrator.`
       });
     }
 
-    // Match department or pick first department of organization
-    let deptId = null;
-    let deptName = (department || '').trim() || 'General Office';
+    // 2. Fetch User Record to verify user email / mobile
+    let userRecord = null;
     if (pool) {
-      try {
-        let deptRes = null;
-        if (department && department.trim()) {
-          deptRes = await pool.query(
-            'SELECT * FROM departments WHERE org_id = $1 AND LOWER(name) ILIKE $2 LIMIT 1',
-            [matchedOrg.org_id, `%${department.trim().toLowerCase()}%`]
-          );
-        }
-        if (!deptRes || deptRes.rows.length === 0) {
-          deptRes = await pool.query(
-            'SELECT * FROM departments WHERE org_id = $1 ORDER BY dept_id ASC LIMIT 1',
-            [matchedOrg.org_id]
-          );
-        }
-        if (deptRes && deptRes.rows.length > 0) {
-          deptId = deptRes.rows[0].dept_id;
-          deptName = deptRes.rows[0].name;
-        }
-      } catch (deptErr) {
-        console.warn('[Department Match Warning]', deptErr.message);
+      const userRes = await pool.query(`
+        SELECT user_id, username, full_name, email, mobile, user_type, org_id, employee_id
+        FROM users 
+        WHERE user_id = $1 OR username = $1 OR email = $1 OR mobile = $1
+        LIMIT 1;
+      `, [String(userId).trim()]);
+      if (userRes.rows.length > 0) {
+        userRecord = userRes.rows[0];
       }
     }
 
-    const finalEmpId = cleanEmpId || `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const userEmail = (userRecord?.email || '').trim().toLowerCase();
+    const userMobile = (userRecord?.mobile || '').trim();
 
+    // 3. Strict Verification against Authoritative Employee Roster Whitelist (organization_employees)
+    let rosterEmp = null;
+    if (pool) {
+      const rosterCheck = await pool.query(`
+        SELECT * FROM organization_employees
+        WHERE org_id = $1
+          AND (
+            UPPER(TRIM(employee_id)) = UPPER(TRIM($2))
+            OR (official_email IS NOT NULL AND LOWER(official_email) = $3)
+            OR (mobile IS NOT NULL AND mobile = $4)
+          )
+        LIMIT 1;
+      `, [matchedOrg.org_id, cleanEmpId, userEmail, userMobile]);
+
+      if (rosterCheck.rows.length > 0) {
+        rosterEmp = rosterCheck.rows[0];
+      }
+    }
+
+    // IF NOT IN ROSTER: STRICT REJECTION!
+    if (!rosterEmp) {
+      console.warn(`[Corporate Verification Rejected] Staff ID '${cleanEmpId}' not in roster for ${matchedOrg.name} (${matchedOrg.org_id})`);
+      return res.status(403).json({
+        success: false,
+        message: `Verification Rejected: Staff ID "${cleanEmpId}" is not registered in the authorized employee roster for ${matchedOrg.name}. Please check your official Staff ID or contact your company HR / CSR department.`
+      });
+    }
+
+    // 4. Check if Employee ID has already been claimed by another user account
+    if (rosterEmp.is_claimed && rosterEmp.claimed_by_user_id && String(rosterEmp.claimed_by_user_id) !== String(userRecord?.user_id || userId)) {
+      return res.status(409).json({
+        success: false,
+        message: `Verification Rejected: Staff ID "${rosterEmp.employee_id}" has already been claimed and linked to another active account. If you believe this is in error, please contact your company administrator.`
+      });
+    }
+
+    // 5. Department Validation & Binding
+    let finalDeptId = rosterEmp.dept_id;
+    let finalDeptName = rosterEmp.dept_name || 'General';
+
+    // If department was selected/provided, verify it belongs to this organization
+    if (department && String(department).trim()) {
+      const cleanDeptInput = String(department).trim();
+      const deptCheck = await pool.query(`
+        SELECT dept_id, name FROM departments 
+        WHERE org_id = $1 AND (dept_id = $2 OR LOWER(name) = LOWER($2))
+        LIMIT 1;
+      `, [matchedOrg.org_id, cleanDeptInput]);
+
+      if (deptCheck.rows.length > 0) {
+        finalDeptId = deptCheck.rows[0].dept_id;
+        finalDeptName = deptCheck.rows[0].name;
+      } else if (!finalDeptId) {
+        return res.status(400).json({
+          success: false,
+          message: `Department "${cleanDeptInput}" does not exist for ${matchedOrg.name}. Please select a valid official department.`
+        });
+      }
+    }
+
+    // Fallback department from departments table if still missing
+    if (!finalDeptId && pool) {
+      const fallbackDept = await pool.query(
+        'SELECT dept_id, name FROM departments WHERE org_id = $1 ORDER BY dept_id ASC LIMIT 1',
+        [matchedOrg.org_id]
+      );
+      if (fallbackDept.rows.length > 0) {
+        finalDeptId = fallbackDept.rows[0].dept_id;
+        finalDeptName = fallbackDept.rows[0].name;
+      }
+    }
+
+    const verifiedEmpId = rosterEmp.employee_id;
+    const targetUserId = userRecord?.user_id || String(userId).trim();
+
+    // 6. Update user in users table
     if (pool) {
       await pool.query(`
         UPDATE users 
@@ -8228,35 +8334,47 @@ async function handleLinkCorporate(req, res) {
             dept_id = $2,
             employee_id = $3,
             last_active = NOW()
-        WHERE user_id = $4 OR username = $4 OR email = $4 OR mobile = $4;
-      `, [matchedOrg.org_id, deptId, finalEmpId, String(userId).trim()]);
+        WHERE user_id = $4;
+      `, [matchedOrg.org_id, finalDeptId, verifiedEmpId, targetUserId]);
+
+      // 7. Mark as claimed in organization_employees
+      await pool.query(`
+        UPDATE organization_employees
+        SET is_claimed = TRUE,
+            claimed_by_user_id = $1,
+            claimed_at = NOW(),
+            dept_id = COALESCE($2, dept_id),
+            dept_name = COALESCE($3, dept_name)
+        WHERE roster_id = $4;
+      `, [targetUserId, finalDeptId, finalDeptName, rosterEmp.roster_id]);
     }
 
     if (typeof invalidateMobileUserCaches === 'function') {
-      invalidateMobileUserCaches(userId);
+      invalidateMobileUserCaches(targetUserId);
     }
 
-    console.log(`[Corporate Linked] User ${userId} linked to ${matchedOrg.name} (Org: ${matchedOrg.org_id}, Emp: ${finalEmpId})`);
+    console.log(`[Corporate Verified & Linked] User ${targetUserId} verified as ${rosterEmp.full_name} (${verifiedEmpId}) at ${matchedOrg.name}`);
 
     res.json({
       success: true,
-      message: `Congratulations! You are now verified as an Enterprise member at ${matchedOrg.name}.`,
+      message: `Verified! Welcome to ${matchedOrg.name} Enterprise Workplace as ${rosterEmp.full_name} (${verifiedEmpId}).`,
       user: {
-        id: userId,
-        userId: userId,
+        id: targetUserId,
+        userId: targetUserId,
         userType: 'ENTERPRISE',
         orgId: matchedOrg.org_id,
         orgName: matchedOrg.name,
         domain: matchedOrg.domain,
-        department: deptName,
-        deptId: deptId,
-        employeeId: finalEmpId,
+        department: finalDeptName,
+        deptId: finalDeptId,
+        employeeId: verifiedEmpId,
+        fullName: rosterEmp.full_name,
         organization: {
           orgId: matchedOrg.org_id,
           name: matchedOrg.name,
           domain: matchedOrg.domain,
           logoUrl: matchedOrg.logo_url,
-          department: deptName
+          department: finalDeptName
         }
       }
     });
@@ -8278,6 +8396,15 @@ async function handleUnlinkCorporate(req, res) {
 
     const pool = getPgPool();
     if (pool) {
+      // Release claim in organization_employees
+      await pool.query(`
+        UPDATE organization_employees 
+        SET is_claimed = FALSE,
+            claimed_by_user_id = NULL,
+            claimed_at = NULL
+        WHERE claimed_by_user_id = $1;
+      `, [String(userId).trim()]);
+
       await pool.query(`
         UPDATE users 
         SET user_type = 'CITIZEN',
