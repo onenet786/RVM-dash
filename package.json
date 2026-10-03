@@ -9,7 +9,8 @@
     "client": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "migrate": "node server/migrate.js"
+    "migrate": "node server/migrate.js",
+    "sync-users": "node scripts/sync-legacy-users.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
