@@ -56,7 +56,8 @@ export async function runMigrations() {
       );
 
       INSERT INTO departments (dept_id, org_id, name, monthly_target_kg)
-      VALUES
+      SELECT v.dept_id, v.org_id, v.name, v.monthly_target_kg
+      FROM (VALUES
         ('DEPT_BA_OPS', 'ORG_ALFALAH', 'Operations & Clearing', 800.00),
         ('DEPT_BA_FIN', 'ORG_ALFALAH', 'Finance & Accounts', 600.00),
         ('DEPT_BA_HR', 'ORG_ALFALAH', 'Human Resources', 400.00),
@@ -69,6 +70,8 @@ export async function runMigrations() {
         ('DEPT_UCP_ADMIN', 'ORG_UCP', 'University Administration', 400.00),
         ('DEPT_METRO_OPS', 'ORG_METRO', 'Store Operations', 600.00),
         ('DEPT_METRO_LOG', 'ORG_METRO', 'Supply Chain & Logistics', 500.00)
+      ) AS v(dept_id, org_id, name, monthly_target_kg)
+      JOIN organizations o ON o.org_id = v.org_id
       ON CONFLICT (dept_id) DO NOTHING;
 
       -- 2b. Ensure authoritative organization_employees whitelist roster exists
