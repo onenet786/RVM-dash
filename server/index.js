@@ -8146,7 +8146,7 @@ async function handleGetPublicOrganizations(req, res) {
       );
       return res.json({ success: true, organizations: orgRes.rows });
     }
-    res.json({ success: true, organizations: inMemoryOrganizations || [] });
+    res.json({ success: true, organizations: [] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -8183,19 +8183,11 @@ async function handleLinkCorporate(req, res) {
       }
     }
 
-    if (!matchedOrg && typeof inMemoryOrganizations !== 'undefined') {
-      matchedOrg = inMemoryOrganizations.find(o => 
-        o.org_id.toLowerCase() === cleanCode ||
-        o.org_id.toLowerCase() === `org_${cleanCode}` ||
-        o.domain.toLowerCase() === cleanCode ||
-        o.name.toLowerCase().includes(cleanCode)
-      );
-    }
-
+    // PostgreSQL is the single production source of truth (no mock in-memory fallback)
     if (!matchedOrg) {
       return res.status(404).json({
         success: false,
-        message: 'Invalid Company Code. Registered partner codes include ENGRO, ALFALAH, UCP, and METRO.'
+        message: 'Company Code or Organization not found in the active corporate registry. Please contact your organization administrator.'
       });
     }
 
