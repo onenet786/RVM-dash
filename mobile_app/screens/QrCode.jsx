@@ -21,6 +21,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { WebView } from 'react-native-webview';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PERMISSIONS, RESULTS, request } from 'react-native-permissions';
 import { API_BASE_URL } from '../config/api';
 
 const { width } = Dimensions.get('window');
@@ -165,18 +166,45 @@ export default function QrCode({ navigation }) {
         return false;
       }
     }
+
+    if (Platform.OS === 'ios') {
+      try {
+        const result = await request(PERMISSIONS.IOS.CAMERA);
+        if (result === RESULTS.GRANTED || result === RESULTS.LIMITED) {
+          return true;
+        }
+
+        if (result === RESULTS.BLOCKED) {
+          Alert.alert(
+            'Camera Access Disabled',
+            'Enable Camera for Trash to Cash in iPhone Settings to scan kiosk QR codes.',
+            [
+              { text: 'Not Now', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+          );
+          return null;
+        }
+        return false;
+      } catch (err) {
+        console.warn('iOS camera permission request error:', err);
+        return false;
+      }
+    }
+
     return true;
   };
 
   const handleOpenScanner = async () => {
     const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
+    if (hasPermission === false) {
       Alert.alert(
         'Camera Permission Needed',
         'Please grant camera permission to scan kiosk screen QR codes, or enter your session PIN manually below.'
       );
       return;
     }
+    if (hasPermission !== true) return;
     setShowScannerModal(true);
   };
 
@@ -524,7 +552,7 @@ export default function QrCode({ navigation }) {
       if (!md) {
         statusEl.innerText = 'Camera Access Restricted by Phone';
         statusEl.style.color = '#F87171';
-        errEl.innerText = 'Android WebView camera blocked by device security policy. Choose an option below:';
+        errEl.innerText = 'The in-app browser cannot access the camera. Check camera permission in phone Settings or choose an option below:';
         errEl.style.display = 'block';
         if (fallbackRow) fallbackRow.style.display = 'flex';
         notifyParent({ type: 'CAMERA_UNSUPPORTED' });
