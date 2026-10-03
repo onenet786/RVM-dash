@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
 namespace PecoDropDesktopApp;
@@ -79,6 +80,33 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         CompartmentStatusPresenter.UpdateCard(PaperCompartmentCard, PaperCompartmentStatus, compartmentAvailability["PAPER"], "PAPER");
         CompartmentWarningText.Text = compartmentAvailability.WarningText;
         CompartmentWarningBanner.Visibility = CompartmentWarningText.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+
+        var plasticState = compartmentAvailability["PLASTIC"];
+        var metalState = compartmentAvailability["METAL"];
+        var paperState = compartmentAvailability["PAPER"];
+
+        if (ModernPlasticStatusText != null)
+        {
+            ModernPlasticStatusText.Text = plasticState.Available ? "Ready" : (plasticState.BinFull ? "Full" : "Unavailable");
+            ModernPlasticStatusText.Foreground = plasticState.Available ? new SolidColorBrush(Color.FromRgb(4, 120, 87)) : Brushes.Red;
+        }
+        if (ModernMetalStatusText != null)
+        {
+            ModernMetalStatusText.Text = metalState.Available ? "Ready" : (metalState.BinFull ? "Full" : "Unavailable");
+            ModernMetalStatusText.Foreground = metalState.Available ? new SolidColorBrush(Color.FromRgb(3, 105, 161)) : Brushes.Red;
+        }
+        if (ModernPaperStatusText != null)
+        {
+            ModernPaperStatusText.Text = paperState.Available ? "Ready" : (paperState.BinFull ? "Full" : "Unavailable");
+            ModernPaperStatusText.Foreground = paperState.Available ? new SolidColorBrush(Color.FromRgb(180, 83, 9)) : Brushes.Red;
+        }
+
+        bool allOk = plasticState.Available && metalState.Available && paperState.Available;
+        if (ModernMachineStatusText != null)
+        {
+            ModernMachineStatusText.Text = allOk ? "Operational" : "Partial / Warning";
+        }
+
         if (pendingBottleResult is not null && !compartmentAvailability.CanAccept(pendingBottleResult.Material))
         {
             pendingBottleResult = null;
@@ -207,6 +235,19 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
         UpdateRvmNameDisplay(settings.MachineId);
 
+        string configuredTheme = DatabaseManager.GetUiTheme(settings.MachineId);
+        ApplyUiTheme(configuredTheme);
+
+        try
+        {
+            var initQr = QrCodeGenerator.GenerateQrCode($"https://isprvm.binishaqsoft.com/kiosk/start/{settings.MachineId}", 6);
+            if (ModernStartQrImage != null) ModernStartQrImage.Source = initQr;
+            if (StartQrImage != null) StartQrImage.Source = initQr;
+        }
+        catch { }
+
+        RefreshLeaderboard();
+
         HeartbeatService.StatusChanged += OnNetworkStatusChanged;
         HeartbeatService.Start(settings.MachineId, settings.CentralApiUrl, settings.Location, settings.Latitude, settings.Longitude);
 
@@ -305,6 +346,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         try
         {
             InstructionPlayer?.Close();
+            ModernInstructionPlayer?.Close();
             AdvertisementPlayer?.Close();
             serial?.Disconnect();
         }
@@ -789,6 +831,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         var now = DateTime.Now;
         if (LiveDateText != null) LiveDateText.Text = now.ToString("dd MMM yyyy");
         if (LiveTimeText != null) LiveTimeText.Text = now.ToString("hh:mm tt");
+        if (ModernClockDateText != null) ModernClockDateText.Text = now.ToString("dd MMM yyyy");
+        if (ModernClockTimeText != null) ModernClockTimeText.Text = now.ToString("hh:mm tt");
     }
 
     private void UpdateImpactMetrics()
@@ -974,13 +1018,23 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 LogTelemetry($"[VIDEO] No instruction video found in: {settings.InstructionVideoFolder}");
                 InstructionPlaceholder.Visibility = Visibility.Visible;
                 InstructionPlayer.Visibility = Visibility.Collapsed;
+                if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            InstructionPlayer.Source = new Uri(Path.GetFullPath(path));
+            var videoUri = new Uri(Path.GetFullPath(path));
+            InstructionPlayer.Source = videoUri;
             InstructionPlaceholder.Visibility = Visibility.Collapsed;
             InstructionPlayer.Visibility = Visibility.Visible;
             InstructionPlayer.Play();
+
+            if (ModernInstructionPlayer != null)
+            {
+                ModernInstructionPlayer.Source = videoUri;
+                ModernInstructionPlayer.Visibility = Visibility.Visible;
+                ModernInstructionPlayer.Play();
+            }
+
             LogTelemetry($"[VIDEO] Instruction video loaded: {Path.GetFileName(path)}");
         }
         catch (Exception ex)
@@ -988,20 +1042,41 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             LogTelemetry($"[VIDEO Error] Could not load instruction video: {ex.Message}");
             InstructionPlaceholder.Visibility = Visibility.Visible;
             InstructionPlayer.Visibility = Visibility.Collapsed;
+            if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
         }
     }
 
     private void InstructionPlayer_MediaEnded(object sender, RoutedEventArgs e)
     {
-        InstructionPlayer.Position = TimeSpan.Zero;
-        InstructionPlayer.Play();
+        if (sender is MediaElement me)
+        {
+            me.Position = TimeSpan.Zero;
+            me.Play();
+        }
+        else
+        {
+            InstructionPlayer.Position = TimeSpan.Zero;
+            InstructionPlayer.Play();
+            if (ModernInstructionPlayer != null && ModernInstructionPlayer.Visibility == Visibility.Visible)
+            {
+                ModernInstructionPlayer.Position = TimeSpan.Zero;
+                ModernInstructionPlayer.Play();
+            }
+        }
     }
 
     private void InstructionPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
     {
         LogTelemetry($"[INSTRUCTION VIDEO FAILED] {e.ErrorException?.Message}");
-        InstructionPlaceholder.Visibility = Visibility.Visible;
-        InstructionPlayer.Visibility = Visibility.Collapsed;
+        if (sender == ModernInstructionPlayer)
+        {
+            if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            InstructionPlaceholder.Visibility = Visibility.Visible;
+            InstructionPlayer.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void AdvertisementPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
@@ -1161,13 +1236,58 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (HeaderRvmNameText != null) HeaderRvmNameText.Text = name;
         if (AdHeaderRvmNameText != null) AdHeaderRvmNameText.Text = name;
         if (CommandCenterRvmNameText != null) CommandCenterRvmNameText.Text = name;
+        if (ModernRvmNameText != null) ModernRvmNameText.Text = name;
+        if (ModernRvmLocationText != null) ModernRvmLocationText.Text = !string.IsNullOrWhiteSpace(settings.Location) ? settings.Location : "OneNetSol";
     }
 
     private void RefreshLeaderboard()
     {
         try
         {
-            LeaderboardList.ItemsSource = DatabaseManager.GetLeaderboard().DefaultView;
+            var leaderboardDt = DatabaseManager.GetLeaderboard();
+            LeaderboardList.ItemsSource = leaderboardDt.DefaultView;
+            if (ModernLeaderboardList != null)
+            {
+                ModernLeaderboardList.ItemsSource = leaderboardDt.DefaultView;
+            }
+
+            // Populate Top 3 Podium
+            if (leaderboardDt.Rows.Count >= 1)
+            {
+                var r1 = leaderboardDt.Rows[0];
+                if (ModernPodium1Name != null) ModernPodium1Name.Text = r1["DisplayName"]?.ToString() ?? "MartinM";
+                if (ModernPodium1Points != null) ModernPodium1Points.Text = $"{r1["PointsBalance"]} pts";
+                if (ModernPodium1Avatar != null && r1["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r1["AvatarPath"].ToString()))
+                {
+                    try { ModernPodium1Avatar.ImageSource = new BitmapImage(new Uri(r1["AvatarPath"].ToString()!)); } catch { }
+                }
+            }
+            if (leaderboardDt.Rows.Count >= 2)
+            {
+                var r2 = leaderboardDt.Rows[1];
+                if (ModernPodium2Name != null) ModernPodium2Name.Text = r2["DisplayName"]?.ToString() ?? "AyeshaK";
+                if (ModernPodium2Points != null) ModernPodium2Points.Text = $"{r2["PointsBalance"]} pts";
+                if (ModernPodium2Avatar != null && r2["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r2["AvatarPath"].ToString()))
+                {
+                    try { ModernPodium2Avatar.ImageSource = new BitmapImage(new Uri(r2["AvatarPath"].ToString()!)); } catch { }
+                }
+            }
+            if (leaderboardDt.Rows.Count >= 3)
+            {
+                var r3 = leaderboardDt.Rows[2];
+                if (ModernPodium3Name != null) ModernPodium3Name.Text = r3["DisplayName"]?.ToString() ?? "Rehan";
+                if (ModernPodium3Points != null) ModernPodium3Points.Text = $"{r3["PointsBalance"]} pts";
+                if (ModernPodium3Avatar != null && r3["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r3["AvatarPath"].ToString()))
+                {
+                    try { ModernPodium3Avatar.ImageSource = new BitmapImage(new Uri(r3["AvatarPath"].ToString()!)); } catch { }
+                }
+            }
+
+            // Recent activity feed
+            if (ModernRecentActivityList != null)
+            {
+                ModernRecentActivityList.ItemsSource = DatabaseManager.GetRecentActivities(4);
+            }
 
             var last = DatabaseManager.GetLastRecyclerInfo();
             if (LastRecyclerNameText != null) LastRecyclerNameText.Text = last.DisplayName;
@@ -1178,6 +1298,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         catch (Exception ex)
         {
             LeaderboardList.ItemsSource = null;
+            if (ModernLeaderboardList != null) ModernLeaderboardList.ItemsSource = null;
             LogTelemetry($"[DB] Leaderboard unavailable: {ex.Message}");
         }
     }
@@ -1485,6 +1606,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 {
                     StartQrImage.Source = qrBmp;
                 }
+                if (ModernStartQrImage != null)
+                {
+                    ModernStartQrImage.Source = qrBmp;
+                }
                 if (StartQrCard != null)
                 {
                     StartQrCard.Visibility = Visibility.Visible;
@@ -1707,6 +1832,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             : $"{result.Size} {itemDescription} - {points} points";
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
+        if (ModernRewardBalanceText != null) ModernRewardBalanceText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
 
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
@@ -2139,6 +2265,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 : $"{result.Size} {itemDescription} - {points} points";
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
+        if (ModernRewardBalanceText != null) ModernRewardBalanceText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
 
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
@@ -2446,6 +2573,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             RejectedCountText.Text =
             PlasticTotalCountText.Text = CanTotalCountText.Text = RejectedTotalCountText.Text = "0";
         TotalPointsText.Text = "0";
+        if (ModernRewardBalanceText != null) ModernRewardBalanceText.Text = "0";
         paperTotalWeightKg = 0;
         PaperWeightText.Text = PaperTotalWeightText.Text = "0.000";
         UpdateImpactMetrics();
@@ -2590,4 +2718,69 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         return result;
     }
+
+    public void ApplyUiTheme(string? theme = null)
+    {
+        try
+        {
+            string chosenTheme = theme ?? settings.UiTheme ?? "Modern";
+            if (string.IsNullOrWhiteSpace(chosenTheme)) chosenTheme = "Modern";
+
+            bool isModern = chosenTheme.Equals("Modern", StringComparison.OrdinalIgnoreCase);
+
+            if (ModernScreenLayout != null)
+            {
+                ModernScreenLayout.Visibility = isModern ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (ClassicScreenLayout != null)
+            {
+                ClassicScreenLayout.Visibility = isModern ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            LogTelemetry($"[UI THEME] Applied UI theme: {chosenTheme} (Modern={isModern})");
+
+            // Sync instruction video player state to the active layout
+            if (isModern)
+            {
+                if (ModernInstructionPlayer != null && InstructionPlayer != null && InstructionPlayer.Source != null)
+                {
+                    ModernInstructionPlayer.Source = InstructionPlayer.Source;
+                    ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    ModernInstructionPlayer.Play();
+                }
+            }
+            else
+            {
+                if (InstructionPlayer != null && InstructionPlayer.Source != null)
+                {
+                    InstructionPlayer.Visibility = Visibility.Visible;
+                    InstructionPlayer.Play();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[UI THEME ERROR] {ex.Message}");
+        }
+    }
+
+    private void ModernStartRecycling_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Modern Touchless Start / QR clicked");
+        TriggerStart();
+    }
+
+    private void ModernInsertSlot_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Modern Insert Items slot clicked");
+        if (IsDemoMode)
+        {
+            SimulateItemDeposit("PLASTIC", "MEDIUM", true);
+        }
+        else
+        {
+            ShowLayoutToast("Please insert containers into the illuminated apertures: ⭕ Plastic, 🔺 Metal, 🟦 Paper");
+        }
+    }
 }
+

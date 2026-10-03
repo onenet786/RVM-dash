@@ -25,6 +25,8 @@
     <Resource Include="Assets\RvmLogo.png" />
     <Resource Include="Assets\ispp.jpg" />
     <Resource Include="Assets\ISPP.jpeg" />
+    <Resource Include="Assets\peco_centerpiece_hero.jpg" />
+    <Content Include="Assets\peco_centerpiece_hero.jpg" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\DancingCan.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingPlastic.mp4" CopyToOutputDirectory="Always" />
     <Content Include="Assets\DancingTetra.mp4" CopyToOutputDirectory="Always" />

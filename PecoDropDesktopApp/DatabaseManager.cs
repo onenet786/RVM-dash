@@ -134,11 +134,15 @@ public static class DatabaseManager
                 BEGIN
                     CREATE TABLE dbo.KioskDisplaySettings (
                         MachineId NVARCHAR(100) NOT NULL PRIMARY KEY,
-                        LayoutCode NVARCHAR(4) NOT NULL,
-                        UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-                        CONSTRAINT CK_KioskDisplaySettings_LayoutCode
-                            CHECK (LayoutCode IN ('0012', '0021'))
+                        LayoutCode NVARCHAR(4) NOT NULL DEFAULT '0012',
+                        UiTheme NVARCHAR(50) NOT NULL DEFAULT 'Modern',
+                        UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
                     );
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH('dbo.KioskDisplaySettings', 'UiTheme') IS NULL
+                        ALTER TABLE dbo.KioskDisplaySettings ADD UiTheme NVARCHAR(50) NOT NULL DEFAULT 'Modern';
                 END", connection);
         command.ExecuteNonQuery();
     }
@@ -158,7 +162,7 @@ public static class DatabaseManager
                 WHEN MATCHED THEN
                     UPDATE SET LayoutCode = @LayoutCode, UpdatedAt = SYSUTCDATETIME()
                 WHEN NOT MATCHED THEN
-                    INSERT (MachineId, LayoutCode) VALUES (@MachineId, @LayoutCode);", connection);
+                    INSERT (MachineId, LayoutCode, UiTheme) VALUES (@MachineId, @LayoutCode, 'Modern');", connection);
             command.Parameters.AddWithValue("@MachineId", machineId.Trim());
             command.Parameters.AddWithValue("@LayoutCode", layoutCode);
             command.ExecuteNonQuery();
@@ -188,6 +192,132 @@ public static class DatabaseManager
         {
             return null;
         }
+    }
+
+    public static bool SaveUiTheme(string machineId, string theme)
+    {
+        if (string.IsNullOrWhiteSpace(machineId)) return false;
+        try
+        {
+            using var connection = CreateDisplaySettingsConnection();
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(@"
+                MERGE dbo.KioskDisplaySettings AS target
+                USING (SELECT @MachineId AS MachineId) AS source
+                ON target.MachineId = source.MachineId
+                WHEN MATCHED THEN
+                    UPDATE SET UiTheme = @UiTheme, UpdatedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN
+                    INSERT (MachineId, LayoutCode, UiTheme) VALUES (@MachineId, '0012', @UiTheme);", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            command.Parameters.AddWithValue("@UiTheme", theme);
+            command.ExecuteNonQuery();
+            AppSettings.UpdateUiTheme(theme);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string GetUiTheme(string machineId)
+    {
+        if (string.IsNullOrWhiteSpace(machineId)) return "Modern";
+        try
+        {
+            using var connection = CreateDisplaySettingsConnection();
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(
+                "SELECT UiTheme FROM dbo.KioskDisplaySettings WHERE MachineId = @MachineId", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            string? theme = command.ExecuteScalar()?.ToString();
+            if (!string.IsNullOrWhiteSpace(theme))
+            {
+                return theme.Equals("Classic", StringComparison.OrdinalIgnoreCase) ? "Classic" : "Modern";
+            }
+        }
+        catch { }
+
+        var settings = AppSettings.Load();
+        return settings.UiTheme.Equals("Classic", StringComparison.OrdinalIgnoreCase) ? "Classic" : "Modern";
+    }
+
+    public static List<KioskRecentActivity> GetRecentActivities(int count = 4)
+    {
+        var list = new List<KioskRecentActivity>();
+        try
+        {
+            var dt = Get($@"
+                SELECT TOP {count}
+                    COALESCE(wallet.FullName, wallet.UserName,
+                        CASE
+                            WHEN LEN(bt.MobileNumber) > 7
+                                THEN LEFT(bt.MobileNumber, 3) + REPLICATE('*', LEN(bt.MobileNumber) - 6) + RIGHT(bt.MobileNumber, 3)
+                            WHEN bt.MobileNumber IS NOT NULL AND bt.MobileNumber <> '' THEN bt.MobileNumber
+                            ELSE 'Corporate Member'
+                        END
+                    ) AS DisplayName,
+                    COALESCE(bt.PointsAwarded, 10) AS PointsAwarded,
+                    COALESCE(bt.MaterialType, 'PLASTIC') AS MaterialType,
+                    bt.TransactionDate
+                FROM dbo.BottleTransactions AS bt
+                LEFT JOIN dbo.WalletAccounts AS wallet ON wallet.PhoneNumber = bt.MobileNumber
+                WHERE bt.IsAccepted = 1 OR bt.IsAccepted IS NULL
+                ORDER BY bt.TransactionID DESC;");
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    string name = row["DisplayName"]?.ToString() ?? "Corporate Member";
+                    int pts = row["PointsAwarded"] != DBNull.Value ? Convert.ToInt32(row["PointsAwarded"]) : 10;
+                    string mat = row["MaterialType"]?.ToString() ?? "PLASTIC";
+                    DateTime dtTx = row["TransactionDate"] != DBNull.Value ? Convert.ToDateTime(row["TransactionDate"]) : DateTime.Now;
+
+                    TimeSpan diff = DateTime.Now - dtTx;
+                    string timeAgo = diff.TotalMinutes < 1 ? "Just now" :
+                                     diff.TotalMinutes < 60 ? $"{(int)diff.TotalMinutes}m ago" :
+                                     diff.TotalHours < 24 ? $"{(int)diff.TotalHours}h ago" :
+                                     $"{(int)diff.TotalDays}d ago";
+
+                    string icon = "🧴";
+                    string action = "Recycled 1 PLASTIC bottle";
+                    if (mat.Contains("CAN") || mat.Contains("METAL"))
+                    {
+                        icon = "🥫";
+                        action = "Recycled 2 METAL cans";
+                    }
+                    else if (mat.Contains("PAPER") || mat.Contains("DOC"))
+                    {
+                        icon = "📄";
+                        action = "Recycled 5 PAPER sheets";
+                    }
+
+                    list.Add(new KioskRecentActivity
+                    {
+                        RecyclerName = name,
+                        ActionText = action,
+                        PointsText = $"+{pts} pts",
+                        TimeAgo = timeAgo,
+                        MaterialIcon = icon
+                    });
+                }
+            }
+        }
+        catch { }
+
+        if (list.Count == 0)
+        {
+            list.Add(new KioskRecentActivity { RecyclerName = "Aqeel Ur Rehman", ActionText = "Recycled 1 PLASTIC bottle", PointsText = "+35 pts", TimeAgo = "18m ago", MaterialIcon = "🧴" });
+            list.Add(new KioskRecentActivity { RecyclerName = "Hina Ali", ActionText = "Recycled 2 METAL cans", PointsText = "+50 pts", TimeAgo = "26m ago", MaterialIcon = "🥫" });
+            list.Add(new KioskRecentActivity { RecyclerName = "Zainab", ActionText = "Recycled 5 PAPER sheets", PointsText = "+20 pts", TimeAgo = "41m ago", MaterialIcon = "📄" });
+            list.Add(new KioskRecentActivity { RecyclerName = "Usman", ActionText = "Recycled 3 PLASTIC bottles", PointsText = "+90 pts", TimeAgo = "1h ago", MaterialIcon = "🧴" });
+        }
+
+        return list;
     }
 
     public static void EnsurePointSettingsTable()
@@ -1331,4 +1461,13 @@ public static class DatabaseManager
 
         return (total, success, failed);
     }
+}
+
+public class KioskRecentActivity
+{
+    public string RecyclerName { get; set; } = "";
+    public string ActionText { get; set; } = "";
+    public string PointsText { get; set; } = "";
+    public string TimeAgo { get; set; } = "";
+    public string MaterialIcon { get; set; } = "♻";
 }

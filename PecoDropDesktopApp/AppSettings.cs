@@ -19,6 +19,7 @@ public sealed class AppSettings
     public string CaptureDirectory { get; init; } = @"Captures";
     public string DisplayMode { get; init; } = "MultiDisplay";
     public string DisplayLayout { get; init; } = "0012";
+    public string UiTheme { get; init; } = "Modern";
     public string Location { get; init; } = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
     public double? Latitude { get; init; } = 31.5826;
     public double? Longitude { get; init; } = 74.3276;
@@ -52,7 +53,8 @@ public sealed class AppSettings
             ModelPath = Get(values, "ModelPath", @"Models\rvm_classifier.onnx"),
             CaptureDirectory = Get(values, "CaptureDirectory", "Captures"),
             DisplayMode = Get(values, "DisplayMode", "MultiDisplay"),
-            DisplayLayout = Get(values, "DisplayLayout", "0012")
+            DisplayLayout = Get(values, "DisplayLayout", "0012"),
+            UiTheme = Get(values, "UiTheme", "Modern")
         };
     }
 
@@ -108,6 +110,7 @@ public sealed class AppSettings
         content.AppendLine($"ModelPath={configValues.GetValueOrDefault("ModelPath", @"Models\rvm_classifier.onnx")}");
         content.AppendLine($"CaptureDirectory={configValues.GetValueOrDefault("CaptureDirectory", "Captures")}");
         content.AppendLine($"DisplayLayout={configValues.GetValueOrDefault("DisplayLayout", "0012")}");
+        content.AppendLine($"UiTheme = {configValues.GetValueOrDefault("UiTheme", "Modern")}");
         content.AppendLine($"MachineId = {configValues.GetValueOrDefault("MachineId", "RVM-RWP")}");
         content.AppendLine($"CentralApiUrl = {configValues.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com")}");
         content.AppendLine($"Location = {configValues.GetValueOrDefault("Location", "Islamabad Campus")}");
@@ -138,6 +141,17 @@ public sealed class AppSettings
         {
             var values = LoadRawConfig();
             values["DisplayLayout"] = layout;
+            SaveConfigToFile(values);
+        }
+        catch { }
+    }
+
+    public static void UpdateUiTheme(string theme)
+    {
+        try
+        {
+            var values = LoadRawConfig();
+            values["UiTheme"] = theme;
             SaveConfigToFile(values);
         }
         catch { }

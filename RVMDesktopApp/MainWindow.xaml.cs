@@ -145,6 +145,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        ApplyUiTheme();
         UpdateClockDisplay();
         clockTimer.Start();
         UpdateImpactMetrics();
@@ -230,6 +231,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private void SetLiveBadgeOnline()
     {
         if (ApiStatusText != null) ApiStatusText.Text = "API: ONLINE 🟢";
+        if (ModernApiStatusText != null) ModernApiStatusText.Text = "API: ONLINE";
         if (ApiDot != null) ApiDot.Fill = Brushes.LightGreen;
         if (LiveBadgeText != null) LiveBadgeText.Text = "LIVE 🟢";
         if (LiveBadgeBorder != null)
@@ -249,6 +251,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private void SetLiveBadgeUnauthorized(string reason)
     {
         if (ApiStatusText != null) ApiStatusText.Text = "API: UNAUTHORIZED 🔴";
+        if (ModernApiStatusText != null) ModernApiStatusText.Text = "API: UNAUTH";
         if (ApiDot != null) ApiDot.Fill = Brushes.OrangeRed;
         if (LiveBadgeText != null) LiveBadgeText.Text = "UNAUTHORIZED 🔴";
         if (LiveBadgeBorder != null)
@@ -269,6 +272,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private void SetLiveBadgeOffline(string reason)
     {
         if (ApiStatusText != null) ApiStatusText.Text = "API: OFFLINE 🔴";
+        if (ModernApiStatusText != null) ModernApiStatusText.Text = "API: OFFLINE";
         if (ApiDot != null) ApiDot.Fill = Brushes.OrangeRed;
         if (LiveBadgeText != null) LiveBadgeText.Text = "NO NETWORK 🔴";
         if (LiveBadgeBorder != null)
@@ -291,7 +295,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         try
         {
             InstructionPlayer?.Close();
+            ModernInstructionPlayer?.Close();
             AdvertisementPlayer?.Close();
+            ModernAdvertisementPlayer?.Close();
             serial?.Disconnect();
         }
         catch { }
@@ -629,6 +635,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         var now = DateTime.Now;
         if (LiveDateText != null) LiveDateText.Text = now.ToString("dd MMM yyyy");
         if (LiveTimeText != null) LiveTimeText.Text = now.ToString("hh:mm tt");
+        if (ModernLiveDateText != null) ModernLiveDateText.Text = now.ToString("dd MMM yyyy");
+        if (ModernLiveTimeText != null) ModernLiveTimeText.Text = now.ToString("hh:mm tt");
     }
 
     private void UpdateImpactMetrics()
@@ -891,8 +899,21 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         }
         else
         {
-            AdvertisementPlayer.Position = TimeSpan.Zero;
-            AdvertisementPlayer.Play();
+            if (sender is MediaElement me)
+            {
+                me.Position = TimeSpan.Zero;
+                me.Play();
+            }
+            else
+            {
+                AdvertisementPlayer.Position = TimeSpan.Zero;
+                AdvertisementPlayer.Play();
+                if (ModernAdvertisementPlayer != null && ModernAdvertisementPlayer.Visibility == Visibility.Visible)
+                {
+                    ModernAdvertisementPlayer.Position = TimeSpan.Zero;
+                    ModernAdvertisementPlayer.Play();
+                }
+            }
         }
     }
 
@@ -933,10 +954,22 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             }
 
             _defaultInstructionVideoPath = Path.GetFullPath(path);
-            InstructionPlayer.Source = new Uri(_defaultInstructionVideoPath);
+            var videoUri = new Uri(_defaultInstructionVideoPath);
+            InstructionPlayer.Source = videoUri;
             InstructionPlaceholder.Visibility = Visibility.Collapsed;
             InstructionPlayer.Visibility = Visibility.Visible;
             InstructionPlayer.Play();
+
+            if (ModernInstructionPlayer != null)
+            {
+                ModernInstructionPlayer.Source = videoUri;
+                ModernInstructionPlayer.Visibility = Visibility.Visible;
+                ModernInstructionPlayer.Play();
+                if (ModernHeroInteractivePlaceholder != null)
+                {
+                    ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
+                }
+            }
             LogTelemetry($"[VIDEO] Instruction video loaded: {Path.GetFileName(path)}");
         }
         catch (Exception ex)
@@ -962,8 +995,21 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        InstructionPlayer.Position = TimeSpan.Zero;
-        InstructionPlayer.Play();
+        if (sender is MediaElement me)
+        {
+            me.Position = TimeSpan.Zero;
+            me.Play();
+        }
+        else
+        {
+            InstructionPlayer.Position = TimeSpan.Zero;
+            InstructionPlayer.Play();
+            if (ModernInstructionPlayer != null && ModernInstructionPlayer.Visibility == Visibility.Visible)
+            {
+                ModernInstructionPlayer.Position = TimeSpan.Zero;
+                ModernInstructionPlayer.Play();
+            }
+        }
     }
 
     private void DetectingLaserTimer_Tick(object? sender, EventArgs e)
@@ -1007,21 +1053,38 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             try
             {
-                InstructionPlayer.Source = new Uri(_defaultInstructionVideoPath);
+                var vidUri = new Uri(_defaultInstructionVideoPath);
+                InstructionPlayer.Source = vidUri;
                 InstructionPlayer.Visibility = Visibility.Visible;
                 if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
                 InstructionPlayer.Position = TimeSpan.Zero;
                 InstructionPlayer.Play();
+
+                if (ModernInstructionPlayer != null)
+                {
+                    ModernInstructionPlayer.Source = vidUri;
+                    ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    ModernInstructionPlayer.Position = TimeSpan.Zero;
+                    ModernInstructionPlayer.Play();
+                    if (ModernHeroInteractivePlaceholder != null)
+                    {
+                        ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
+                    }
+                }
             }
             catch
             {
                 if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Visible;
+                if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+                if (ModernHeroInteractivePlaceholder != null) ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
             }
         }
         else
         {
             if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Visible;
             InstructionPlayer.Visibility = Visibility.Collapsed;
+            if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+            if (ModernHeroInteractivePlaceholder != null) ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
         }
 
         if (StartQrCard != null && !machineStarted) StartQrCard.Visibility = Visibility.Visible;
@@ -1039,6 +1102,15 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             InstructionPlayer.Stop();
             InstructionPlayer.Visibility = Visibility.Collapsed;
+            if (ModernInstructionPlayer != null)
+            {
+                ModernInstructionPlayer.Stop();
+                ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+            }
+            if (ModernHeroInteractivePlaceholder != null)
+            {
+                ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
+            }
         }
         catch { }
 
@@ -1092,6 +1164,15 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             InstructionPlayer.Stop();
             InstructionPlayer.Visibility = Visibility.Collapsed;
+            if (ModernInstructionPlayer != null)
+            {
+                ModernInstructionPlayer.Stop();
+                ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+            }
+            if (ModernHeroInteractivePlaceholder != null)
+            {
+                ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
+            }
         }
         catch { }
 
@@ -1163,10 +1244,19 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             try
             {
-                InstructionPlayer.Source = new Uri(Path.GetFullPath(videoPath));
+                var vidUri = new Uri(Path.GetFullPath(videoPath));
+                InstructionPlayer.Source = vidUri;
                 InstructionPlayer.Visibility = Visibility.Visible;
                 InstructionPlayer.Position = TimeSpan.Zero;
                 InstructionPlayer.Play();
+
+                if (ModernInstructionPlayer != null)
+                {
+                    ModernInstructionPlayer.Source = vidUri;
+                    ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    ModernInstructionPlayer.Position = TimeSpan.Zero;
+                    ModernInstructionPlayer.Play();
+                }
                 LogTelemetry($"[STATE] Playing Celebration Video: {fileName} for {material}");
             }
             catch (Exception ex)
@@ -1207,10 +1297,19 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             try
             {
-                InstructionPlayer.Source = new Uri(Path.GetFullPath(rejectVideoPath));
+                var vidUri = new Uri(Path.GetFullPath(rejectVideoPath));
+                InstructionPlayer.Source = vidUri;
                 InstructionPlayer.Visibility = Visibility.Visible;
                 InstructionPlayer.Position = TimeSpan.Zero;
                 InstructionPlayer.Play();
+
+                if (ModernInstructionPlayer != null)
+                {
+                    ModernInstructionPlayer.Source = vidUri;
+                    ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    ModernInstructionPlayer.Position = TimeSpan.Zero;
+                    ModernInstructionPlayer.Play();
+                }
             }
             catch { }
         }
@@ -1227,8 +1326,15 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     private void InstructionPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
     {
         LogTelemetry($"[INSTRUCTION VIDEO FAILED] {e.ErrorException?.Message}");
-        InstructionPlaceholder.Visibility = Visibility.Visible;
-        InstructionPlayer.Visibility = Visibility.Collapsed;
+        if (sender == ModernInstructionPlayer)
+        {
+            if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            InstructionPlaceholder.Visibility = Visibility.Visible;
+            InstructionPlayer.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void AdvertisementPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
@@ -1284,12 +1390,56 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         try
         {
             currentPlayingAdPath = Path.GetFullPath(path);
-            AdvertisementPlayer.Visibility = Visibility.Visible;
-            AdvertisementPlayer.Source = new Uri(currentPlayingAdPath);
+            var adUri = new Uri(currentPlayingAdPath);
+            bool isModern = ModernScreenLayout != null && ModernScreenLayout.Visibility == Visibility.Visible;
+
+            // Classic player
+            AdvertisementPlayer.Visibility = isModern ? Visibility.Collapsed : Visibility.Visible;
+            AdvertisementPlayer.Source = adUri;
             AdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
             AdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
             AdvertisementPlayer.Stretch = Stretch.Fill;
-            AdvertisementPlayer.Play();
+            AdvertisementPlayer.IsMuted = isModern;
+            if (!isModern)
+            {
+                AdvertisementPlayer.Play();
+            }
+            else
+            {
+                try { AdvertisementPlayer.Pause(); } catch { }
+            }
+
+            // Modern player
+            if (ModernAdvertisementPlayer != null)
+            {
+                ModernAdvertisementPlayer.Visibility = isModern ? Visibility.Visible : Visibility.Collapsed;
+                ModernAdvertisementPlayer.Source = adUri;
+                ModernAdvertisementPlayer.LoadedBehavior = System.Windows.Controls.MediaState.Manual;
+                ModernAdvertisementPlayer.UnloadedBehavior = System.Windows.Controls.MediaState.Stop;
+                ModernAdvertisementPlayer.Stretch = Stretch.Fill;
+                ModernAdvertisementPlayer.IsMuted = !isModern;
+                if (isModern)
+                {
+                    ModernAdvertisementPlayer.Play();
+                }
+                else
+                {
+                    try { ModernAdvertisementPlayer.Pause(); } catch { }
+                }
+
+                if (ModernBottomBannerImage != null)
+                {
+                    ModernBottomBannerImage.Visibility = isModern ? Visibility.Collapsed : Visibility.Visible;
+                }
+                if (ModernAdOverlayHeader != null)
+                {
+                    ModernAdOverlayHeader.Visibility = isModern ? Visibility.Visible : Visibility.Collapsed;
+                }
+                if (ModernAdOverlayFooter != null)
+                {
+                    ModernAdOverlayFooter.Visibility = isModern ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -1407,6 +1557,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             DbStatusText.Text = "DB: ONLINE";
             DbDot.Fill = Brushes.LightGreen;
+            if (ModernDbStatusText != null) ModernDbStatusText.Text = "DB: ONLINE";
             LogTelemetry("[DB] Connected successfully");
             RefreshLeaderboard();
         }
@@ -1414,6 +1565,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             DbStatusText.Text = "DB: OFFLINE";
             DbDot.Fill = Brushes.OrangeRed;
+            if (ModernDbStatusText != null) ModernDbStatusText.Text = "DB: OFFLINE";
             BottleInfoText.Text = message;
             LogTelemetry($"[DB] Connection failed: {message}");
         }
@@ -1425,6 +1577,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     {
         string serverUrl = CentralSyncService.CentralApiUrl;
         if (ApiStatusText != null) ApiStatusText.Text = "API: CHECKING...";
+        if (ModernApiStatusText != null) ModernApiStatusText.Text = "API: CHECKING";
+        if (ModernApiStatusText != null) ModernApiStatusText.Text = "API: CHECKING";
         if (ApiDot != null) ApiDot.Fill = Brushes.Orange;
 
         try
@@ -1545,6 +1699,10 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 if (StartQrImage != null)
                 {
                     StartQrImage.Source = qrBmp;
+                }
+                if (ModernStartQrImage != null)
+                {
+                    ModernStartQrImage.Source = qrBmp;
                 }
                 if (StartQrCard != null)
                 {
@@ -1696,13 +1854,25 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (HeaderRvmNameText != null) HeaderRvmNameText.Text = name;
         if (AdHeaderRvmNameText != null) AdHeaderRvmNameText.Text = name;
         if (CommandCenterRvmNameText != null) CommandCenterRvmNameText.Text = name;
+        if (ModernHeaderRvmNameText != null) ModernHeaderRvmNameText.Text = name;
     }
 
     private void RefreshLeaderboard()
     {
         try
         {
-            LeaderboardList.ItemsSource = DatabaseManager.GetLeaderboard().DefaultView;
+            var dt = DatabaseManager.GetLeaderboard().DefaultView;
+            if (LeaderboardList != null) LeaderboardList.ItemsSource = dt;
+            if (ModernLeaderboardList != null) ModernLeaderboardList.ItemsSource = dt;
+
+            try
+            {
+                if (ModernRecentActivityList != null)
+                {
+                    ModernRecentActivityList.ItemsSource = DatabaseManager.GetRecentActivities(3);
+                }
+            }
+            catch { }
 
             var last = DatabaseManager.GetLastRecyclerInfo();
             if (LastRecyclerNameText != null) LastRecyclerNameText.Text = last.DisplayName;
@@ -1730,6 +1900,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             BottleInfoText.Text = "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
+            if (ModernHardwareStatusText != null) ModernHardwareStatusText.Text = "HARDWARE: OK";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: CALIBRATING • ";
+            if (ModernHardwareErrorBanner != null) ModernHardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {settings.ArduinoPort} at {settings.ArduinoBaud} baud");
             LogTelemetry("[CMD] CALIBRATE");
             serial.SendCommand("CALIBRATE");
@@ -1749,6 +1922,16 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 if (HardwareErrorText != null)
                 {
                     HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: Check {settings.ArduinoPort} connection or update config.txt • ہارڈویئر منسلک نہیں ہے";
+                }
+            }
+            if (ModernHardwareStatusText != null) ModernHardwareStatusText.Text = "HARDWARE: ERR";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: ERROR • ";
+            if (ModernHardwareErrorBanner != null)
+            {
+                ModernHardwareErrorBanner.Visibility = Visibility.Visible;
+                if (ModernHardwareErrorText != null)
+                {
+                    ModernHardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: Could not find file \"{settings.ArduinoPort}\" • ہارڈویئر کنکشن ایرر";
                 }
             }
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
@@ -1861,6 +2044,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             rejectedCount++;
             RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
+            UpdateAllModernCounters();
 
             StatusText.Text = "Rejected";
             StatusText.Foreground = Brushes.OrangeRed;
@@ -1893,6 +2077,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
+        UpdateAllModernCounters();
 
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
@@ -1976,6 +2161,16 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                     HardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: {error.Message} • ہارڈویئر کا رابطہ منقطع ہے";
                 }
             }
+            if (ModernHardwareStatusText != null) ModernHardwareStatusText.Text = "HARDWARE: ERR";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: ERROR • ";
+            if (ModernHardwareErrorBanner != null)
+            {
+                ModernHardwareErrorBanner.Visibility = Visibility.Visible;
+                if (ModernHardwareErrorText != null)
+                {
+                    ModernHardwareErrorText.Text = $"HARDWARE CONNECTION ERROR: {error.Message} • ہارڈویئر کنکشن ایرر";
+                }
+            }
             LogTelemetry($"[HARDWARE] Serial error: {error.Message}");
         });
     }
@@ -1990,6 +2185,10 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             ConnectionText.Foreground = Brushes.LightGreen;
             StatusDot.Fill = Brushes.LightGreen;
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
+            if (ModernHardwareStatusText != null) ModernHardwareStatusText.Text = "HARDWARE: OK";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: OPERATIONAL • ";
+            if (ModernHardwareErrorBanner != null) ModernHardwareErrorBanner.Visibility = Visibility.Collapsed;
+            if (ModernUltrasonicStatusText != null) ModernUltrasonicStatusText.Text = "ULTRASONIC CHAMBER: READY";
             return;
         }
 
@@ -1999,6 +2198,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: CALIBRATING • ";
+            if (ModernUltrasonicStatusText != null) ModernUltrasonicStatusText.Text = "CALIBRATING ULTRASONIC CHAMBER...";
             return;
         }
 
@@ -2037,6 +2238,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             StatusText.Foreground = Brushes.LimeGreen;
             BottleInfoText.Text = $"Empty pipe distance: {value} cm";
             MachineStateText.Text = "MACHINE: READY";
+            if (ModernMachineStateText != null) ModernMachineStateText.Text = "MACHINE: OPERATIONAL • ";
+            if (ModernUltrasonicStatusText != null) ModernUltrasonicStatusText.Text = "ULTRASONIC CHAMBER: READY";
             return;
         }
 
@@ -2218,6 +2421,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             rejectedCount++;
             RejectedCountText.Text = RejectedTotalCountText.Text = rejectedCount.ToString();
+            UpdateAllModernCounters();
 
             StatusText.Text = "Rejected";
             StatusText.Foreground = Brushes.OrangeRed;
@@ -2265,6 +2469,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         TotalItemsText.Text = totalItems.ToString();
         TotalPointsText.Text = totalPoints.ToString();
         UpdateImpactMetrics();
+        UpdateAllModernCounters();
 
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
@@ -2577,6 +2782,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             PlasticTotalCountText.Text = CanTotalCountText.Text = TetraPakTotalCountText.Text = RejectedTotalCountText.Text = "0";
         TotalPointsText.Text = "0";
         UpdateImpactMetrics();
+        UpdateAllModernCounters();
         SimulatorStateChanged?.Invoke();
     }
 
@@ -2603,6 +2809,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             else if (size == "LARGE") TetraPakLargeCountText.Text = (++tetraPakLargeCount).ToString();
             TetraPakTotalCountText.Text = (tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount).ToString();
         }
+        UpdateAllModernCounters();
     }
 
     private void SaveTransaction(BottleResult result, int points, bool accepted)
@@ -2705,5 +2912,160 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         }
 
         return result;
+    }
+
+    public void ApplyUiTheme(string? theme = null)
+    {
+        try
+        {
+            string? chosenTheme = theme;
+            if (string.IsNullOrWhiteSpace(chosenTheme))
+            {
+                try
+                {
+                    chosenTheme = DatabaseManager.GetUiTheme(settings.MachineId);
+                }
+                catch { }
+            }
+
+            if (string.IsNullOrWhiteSpace(chosenTheme))
+            {
+                chosenTheme = settings.UiTheme;
+            }
+
+            if (string.IsNullOrWhiteSpace(chosenTheme))
+            {
+                chosenTheme = "Modern";
+            }
+
+            bool isModern = !string.Equals(chosenTheme, "Classic", StringComparison.OrdinalIgnoreCase);
+
+            if (ModernScreenLayout != null)
+            {
+                ModernScreenLayout.Visibility = isModern ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (ClassicScreenLayout != null)
+            {
+                ClassicScreenLayout.Visibility = isModern ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            LogTelemetry($"[UI THEME] Applied UI theme: {chosenTheme} (Modern={isModern})");
+
+            // Sync instruction video player & advertisement player states to the active layout
+            if (isModern)
+            {
+                if (ModernInstructionPlayer != null)
+                {
+                    if (InstructionPlayer != null && InstructionPlayer.Source != null)
+                    {
+                        ModernInstructionPlayer.Source = InstructionPlayer.Source;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_defaultInstructionVideoPath) && File.Exists(_defaultInstructionVideoPath))
+                    {
+                        ModernInstructionPlayer.Source = new Uri(_defaultInstructionVideoPath);
+                    }
+
+                    if (ModernInstructionPlayer.Source != null)
+                    {
+                        ModernInstructionPlayer.Visibility = Visibility.Visible;
+                        ModernInstructionPlayer.IsMuted = false;
+                        ModernInstructionPlayer.Play();
+                        if (ModernHeroInteractivePlaceholder != null)
+                        {
+                            ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
+                        }
+                    }
+                }
+
+                if (InstructionPlayer != null)
+                {
+                    InstructionPlayer.IsMuted = true;
+                    try { InstructionPlayer.Pause(); } catch { }
+                }
+
+                if (ModernAdvertisementPlayer != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(currentPlayingAdPath) && File.Exists(currentPlayingAdPath))
+                    {
+                        ModernAdvertisementPlayer.Source = new Uri(currentPlayingAdPath);
+                    }
+                    else if (AdvertisementPlayer != null && AdvertisementPlayer.Source != null)
+                    {
+                        ModernAdvertisementPlayer.Source = AdvertisementPlayer.Source;
+                    }
+
+                    if (ModernAdvertisementPlayer.Source != null)
+                    {
+                        ModernAdvertisementPlayer.Visibility = Visibility.Visible;
+                        ModernAdvertisementPlayer.IsMuted = false;
+                        ModernAdvertisementPlayer.Play();
+                        if (ModernBottomBannerImage != null) ModernBottomBannerImage.Visibility = Visibility.Collapsed;
+                        if (ModernAdOverlayHeader != null) ModernAdOverlayHeader.Visibility = Visibility.Visible;
+                        if (ModernAdOverlayFooter != null) ModernAdOverlayFooter.Visibility = Visibility.Visible;
+                    }
+                }
+
+                if (AdvertisementPlayer != null)
+                {
+                    AdvertisementPlayer.IsMuted = true;
+                    try { AdvertisementPlayer.Pause(); } catch { }
+                }
+            }
+            else
+            {
+                if (ModernInstructionPlayer != null)
+                {
+                    ModernInstructionPlayer.IsMuted = true;
+                    try { ModernInstructionPlayer.Pause(); } catch { }
+                }
+                if (ModernAdvertisementPlayer != null)
+                {
+                    ModernAdvertisementPlayer.IsMuted = true;
+                    try { ModernAdvertisementPlayer.Pause(); } catch { }
+                }
+
+                if (InstructionPlayer != null && InstructionPlayer.Source != null)
+                {
+                    InstructionPlayer.IsMuted = false;
+                    InstructionPlayer.Visibility = Visibility.Visible;
+                    InstructionPlayer.Play();
+                }
+
+                if (AdvertisementPlayer != null && AdvertisementPlayer.Source != null)
+                {
+                    AdvertisementPlayer.IsMuted = false;
+                    AdvertisementPlayer.Visibility = Visibility.Visible;
+                    AdvertisementPlayer.Play();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[UI THEME ERROR] {ex.Message}");
+        }
+    }
+
+    private void UpdateAllModernCounters()
+    {
+        try
+        {
+            if (ModernRewardBalanceText != null) ModernRewardBalanceText.Text = totalPoints.ToString();
+            int totPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
+            int totCan = canSmallCount + canMediumCount + canLargeCount;
+            int totUbc = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
+
+            if (ModernPlasticTotalText != null) ModernPlasticTotalText.Text = totPlastic.ToString();
+            if (ModernPlasticBreakdownText != null) ModernPlasticBreakdownText.Text = $"S:{plasticSmallCount} M:{plasticMediumCount} L:{plasticLargeCount}";
+
+            if (ModernCanTotalText != null) ModernCanTotalText.Text = totCan.ToString();
+            if (ModernCanBreakdownText != null) ModernCanBreakdownText.Text = $"S:{canSmallCount} M:{canMediumCount} L:{canLargeCount}";
+
+            if (ModernUbcTotalText != null) ModernUbcTotalText.Text = totUbc.ToString();
+            if (ModernUbcBreakdownText != null) ModernUbcBreakdownText.Text = $"S:{tetraPakSmallCount} M:{tetraPakMediumCount} L:{tetraPakLargeCount}";
+
+            if (ModernRejectedTotalText != null) ModernRejectedTotalText.Text = rejectedCount.ToString();
+            if (ModernRejectedCountText != null) ModernRejectedCountText.Text = $"{rejectedCount} pcs";
+        }
+        catch { }
     }
 }

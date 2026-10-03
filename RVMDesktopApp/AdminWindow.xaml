@@ -322,6 +322,12 @@
                                             <TextBlock Text="Machine ID (e.g. RVM-RWP):" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                                             <TextBox x:Name="CfgMachineId" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
 
+                                            <TextBlock Text="Kiosk UI Theme:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="CfgUiTheme" Height="34" Margin="0,0,0,10" Background="#F1F5F9" Foreground="#0F172A" BorderBrush="#38BDF8" BorderThickness="1.5" FontWeight="Bold" FontSize="12.5" VerticalContentAlignment="Center" Padding="8,4">
+                                                <ComboBoxItem Content="Modern (New Redesign)" Tag="Modern" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" Padding="8,5" IsSelected="True"/>
+                                                <ComboBoxItem Content="Classic (Legacy View)" Tag="Classic" Foreground="#0F172A" Background="#F8FAFC" FontWeight="Bold" Padding="8,5"/>
+                                            </ComboBox>
+
                                             <TextBlock Text="Central Dashboard Base URL:" Style="{StaticResource SecondaryText}" Margin="0,0,0,4"/>
                                             <TextBox x:Name="CfgCentralApiUrl" Height="32" Padding="8,4" Margin="0,0,0,10" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
 

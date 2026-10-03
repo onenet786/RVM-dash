@@ -106,6 +106,94 @@ public static class DatabaseManager
         catch { }
     }
 
+    public static void EnsureDisplaySettingsTable(SqlConnection? conn = null)
+    {
+        try
+        {
+            void ExecuteOn(SqlConnection c)
+            {
+                using var cmd = new SqlCommand(@"
+                    IF OBJECT_ID('dbo.KioskDisplaySettings', 'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.KioskDisplaySettings (
+                            MachineId NVARCHAR(100) NOT NULL PRIMARY KEY,
+                            LayoutCode NVARCHAR(10) NOT NULL DEFAULT '0012',
+                            UiTheme NVARCHAR(50) NOT NULL DEFAULT 'Modern',
+                            UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+                        );
+                    END
+                    ELSE IF COL_LENGTH('dbo.KioskDisplaySettings', 'UiTheme') IS NULL
+                    BEGIN
+                        ALTER TABLE dbo.KioskDisplaySettings ADD UiTheme NVARCHAR(50) NOT NULL DEFAULT 'Modern';
+                    END", c);
+                cmd.ExecuteNonQuery();
+            }
+
+            if (conn != null)
+            {
+                ExecuteOn(conn);
+            }
+            else
+            {
+                using var connection = new SqlConnection(ConnectionString);
+                connection.Open();
+                ExecuteOn(connection);
+            }
+        }
+        catch { }
+    }
+
+    public static bool SaveUiTheme(string machineId, string theme)
+    {
+        if (string.IsNullOrWhiteSpace(machineId)) return false;
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(@"
+                MERGE dbo.KioskDisplaySettings AS target
+                USING (SELECT @MachineId AS MachineId) AS source
+                ON target.MachineId = source.MachineId
+                WHEN MATCHED THEN
+                    UPDATE SET UiTheme = @UiTheme, UpdatedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN
+                    INSERT (MachineId, LayoutCode, UiTheme) VALUES (@MachineId, '0012', @UiTheme);", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            command.Parameters.AddWithValue("@UiTheme", theme);
+            command.ExecuteNonQuery();
+            AppSettings.UpdateUiTheme(theme);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static string GetUiTheme(string machineId)
+    {
+        if (string.IsNullOrWhiteSpace(machineId)) return "Modern";
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            EnsureDisplaySettingsTable(connection);
+            using var command = new SqlCommand(
+                "SELECT UiTheme FROM dbo.KioskDisplaySettings WHERE MachineId = @MachineId", connection);
+            command.Parameters.AddWithValue("@MachineId", machineId.Trim());
+            string? theme = command.ExecuteScalar()?.ToString();
+            if (!string.IsNullOrWhiteSpace(theme))
+            {
+                return theme.Equals("Classic", StringComparison.OrdinalIgnoreCase) ? "Classic" : "Modern";
+            }
+        }
+        catch { }
+
+        var settings = AppSettings.Load();
+        return settings.UiTheme.Equals("Classic", StringComparison.OrdinalIgnoreCase) ? "Classic" : "Modern";
+    }
+
     public static DataTable GetLocalPointSettings(string machineName = "RVM-001")
     {
         EnsurePointSettingsTable();
@@ -637,11 +725,11 @@ public static class DatabaseManager
 
         if (dt.Rows.Count == 0)
         {
-            dt.Rows.Add(1, "MartinM", "03001234567", "male", 0, 244);
-            dt.Rows.Add(2, "AyeshaK", "03007654321", "female", 0, 76);
-            dt.Rows.Add(3, "Rehan", "03009876543", "male", 0, 38);
-            dt.Rows.Add(4, "Karim", "03001122334", "male", 0, 133);
-            dt.Rows.Add(5, "Farhan", "03005566778", "male", 0, 18);
+            dt.Rows.Add(1, "abiddut12", "03001234567", "male", 0, 71295);
+            dt.Rows.Add(2, "03009482110", "03009482110", "female", 0, 11019);
+            dt.Rows.Add(3, "Muhammad Hassan Tahir", "03009876543", "male", 0, 6617);
+            dt.Rows.Add(4, "Muhammad Hassan", "03001122334", "male", 0, 6617);
+            dt.Rows.Add(5, "Aqeel Ur Rehman", "03005566778", "male", 0, 6327);
         }
 
         if (!dt.Columns.Contains("AvatarPath")) dt.Columns.Add("AvatarPath", typeof(string));
@@ -1091,4 +1179,105 @@ public static class DatabaseManager
 
         return (total, success, failed);
     }
+
+    public static List<KioskRecentActivity> GetRecentActivities(int count = 3)
+    {
+        var list = new List<KioskRecentActivity>();
+        try
+        {
+            var dt = Get($@"
+                SELECT TOP {count}
+                    COALESCE(wallet.FullName, wallet.UserName,
+                        CASE
+                            WHEN LEN(bt.MobileNumber) > 7
+                                THEN LEFT(bt.MobileNumber, 3) + REPLICATE('*', LEN(bt.MobileNumber) - 6) + RIGHT(bt.MobileNumber, 3)
+                            WHEN bt.MobileNumber IS NOT NULL AND bt.MobileNumber <> '' THEN bt.MobileNumber
+                            ELSE 'Citizen'
+                        END
+                    ) AS DisplayName,
+                    COALESCE(bt.PointsAwarded, 10) AS PointsAwarded,
+                    COALESCE(bt.MaterialType, 'PLASTIC') AS MaterialType,
+                    bt.TransactionDate
+                FROM dbo.BottleTransactions AS bt
+                LEFT JOIN dbo.WalletAccounts AS wallet ON wallet.PhoneNumber = bt.MobileNumber
+                WHERE bt.IsAccepted = 1 OR bt.IsAccepted IS NULL
+                ORDER BY bt.TransactionID DESC;");
+
+            if (dt != null && dt.Rows.Count > 0)
+            {
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    string name = row["DisplayName"]?.ToString() ?? "Citizen";
+                    int pts = row["PointsAwarded"] != DBNull.Value ? Convert.ToInt32(row["PointsAwarded"]) : 10;
+                    string mat = row["MaterialType"]?.ToString() ?? "PLASTIC";
+                    DateTime dtTx = row["TransactionDate"] != DBNull.Value ? Convert.ToDateTime(row["TransactionDate"]) : DateTime.Now;
+
+                    TimeSpan diff = DateTime.Now - dtTx;
+                    string timeAgo = diff.TotalMinutes < 1 ? "Just now" :
+                                     diff.TotalMinutes < 60 ? $"{(int)diff.TotalMinutes}m ago" :
+                                     diff.TotalHours < 24 ? $"{(int)diff.TotalHours}h ago" :
+                                     $"{(int)diff.TotalDays}d ago";
+
+                    string icon = "♻️";
+                    string action = $"Recycled {mat}";
+                    string urduAction = mat.Contains("CAN") ? "کین ری سائیکل کیا" :
+                                       mat.Contains("UBC") ? "کارٹن ری سائیکل کیا" : "پلاسٹک ری سائیکل کیا";
+
+                    list.Add(new KioskRecentActivity
+                    {
+                        RecyclerName = name,
+                        ActionText = action,
+                        UrduActionText = urduAction,
+                        PointsText = $"+{pts} pts",
+                        TimeAgo = timeAgo,
+                        MaterialIcon = icon
+                    });
+                }
+            }
+        }
+        catch { }
+
+        if (list.Count == 0)
+        {
+            list.Add(new KioskRecentActivity
+            {
+                RecyclerName = "Aqeel Ur Rehman",
+                ActionText = "Recycled PLASTIC",
+                UrduActionText = "پلاسٹک ری سائیکل کیا",
+                PointsText = "+35 pts",
+                TimeAgo = "20h ago",
+                MaterialIcon = "♻️"
+            });
+            list.Add(new KioskRecentActivity
+            {
+                RecyclerName = "Muhammad Hassan",
+                ActionText = "Recycled CAN",
+                UrduActionText = "کین ری سائیکل کیا",
+                PointsText = "+20 pts",
+                TimeAgo = "1d ago",
+                MaterialIcon = "♻️"
+            });
+            list.Add(new KioskRecentActivity
+            {
+                RecyclerName = "Fatima Ali",
+                ActionText = "Recycled PLASTIC",
+                UrduActionText = "پلاسٹک ری سائیکل کیا",
+                PointsText = "+15 pts",
+                TimeAgo = "1d ago",
+                MaterialIcon = "♻️"
+            });
+        }
+
+        return list;
+    }
+}
+
+public sealed class KioskRecentActivity
+{
+    public string RecyclerName { get; set; } = "Citizen";
+    public string ActionText { get; set; } = "Recycled 1 PLASTIC";
+    public string UrduActionText { get; set; } = "پلاسٹک ری سائیکل کیا";
+    public string PointsText { get; set; } = "+10 pts";
+    public string TimeAgo { get; set; } = "Just now";
+    public string MaterialIcon { get; set; } = "♻️";
 }

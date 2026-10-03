@@ -93,6 +93,16 @@ public partial class AdminWindow : Window
             CfgInstructionsFolder.Text = raw.GetValueOrDefault("InstructionVideoFolder", @"Ads\Instructions");
             CfgModelPath.Text = raw.GetValueOrDefault("ModelPath", @"Models\rvm_classifier.onnx");
             CfgCaptureDir.Text = raw.GetValueOrDefault("CaptureDirectory", "Captures");
+
+            string curTheme = DatabaseManager.GetUiTheme(CfgMachineId.Text.Trim());
+            foreach (ComboBoxItem item in CfgUiTheme.Items)
+            {
+                if (item.Tag?.ToString()?.Equals(curTheme, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    CfgUiTheme.SelectedItem = item;
+                    break;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -156,9 +166,22 @@ public partial class AdminWindow : Window
                 ["CaptureDirectory"] = CfgCaptureDir.Text.Trim()
             };
 
+            string chosenTheme = (CfgUiTheme.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "Modern";
+            dict["UiTheme"] = chosenTheme;
+            DatabaseManager.SaveUiTheme(dict["MachineId"], chosenTheme);
+
             AppSettings.SaveConfigToFile(dict);
             DatabaseManager.SaveConfiguredMachineId(dict["MachineId"], dict["ConnectionString"]);
             DatabaseManager.RepairLegacyMachineNames(dict["MachineId"]);
+
+            if (Owner is LandscapeWindow landWin)
+            {
+                landWin.ApplyUiTheme(chosenTheme);
+            }
+            else if (Application.Current.MainWindow is LandscapeWindow appLandWin)
+            {
+                appLandWin.ApplyUiTheme(chosenTheme);
+            }
             CentralSyncService.CentralApiUrl = dict["CentralApiUrl"];
 
             double? lat = double.TryParse(CfgLatitude.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double dLat) ? dLat : null;

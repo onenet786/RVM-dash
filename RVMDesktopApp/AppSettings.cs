@@ -20,6 +20,7 @@ public sealed class AppSettings
     public string Location { get; init; } = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
     public double? Latitude { get; init; } = 31.5826;
     public double? Longitude { get; init; } = 74.3276;
+    public string UiTheme { get; init; } = "Modern";
 
     public static AppSettings Load()
     {
@@ -40,7 +41,8 @@ public sealed class AppSettings
             AdvertisementVideoFolder = Get(values, "AdvertisementVideoFolder", @"Ads\Advertisements"),
             InstructionVideoFolder = Get(values, "InstructionVideoFolder", @"Ads\Instructions"),
             ModelPath = Get(values, "ModelPath", @"Models\rvm_classifier.onnx"),
-            CaptureDirectory = Get(values, "CaptureDirectory", "Captures")
+            CaptureDirectory = Get(values, "CaptureDirectory", "Captures"),
+            UiTheme = Get(values, "UiTheme", "Modern")
         };
     }
 
@@ -102,6 +104,7 @@ public sealed class AppSettings
             content.AppendLine($"Latitude = {latVal}");
         if (configValues.TryGetValue("Longitude", out string? lngVal) && !string.IsNullOrWhiteSpace(lngVal))
             content.AppendLine($"Longitude = {lngVal}");
+        content.AppendLine($"UiTheme = {configValues.GetValueOrDefault("UiTheme", "Modern")}");
 
         string text = content.ToString();
         string baseFile = Path.Combine(AppContext.BaseDirectory, "config.txt");
@@ -117,6 +120,17 @@ public sealed class AppSettings
             }
         }
         catch {}
+    }
+
+    public static void UpdateUiTheme(string theme)
+    {
+        try
+        {
+            var values = LoadRawConfig();
+            values["UiTheme"] = theme;
+            SaveConfigToFile(values);
+        }
+        catch { }
     }
 
     private static double? GetDoubleOrNull(Dictionary<string, string> values, string key)

@@ -81,6 +81,11 @@
     </Window.Resources>
 
     <Grid x:Name="MainRootGrid" ClipToBounds="True">
+
+        <!-- ========================================================================= -->
+        <!-- 1. CLASSIC KIOSK SCREEN LAYOUT (LEGACY PORTRAIT VIEW)                     -->
+        <!-- ========================================================================= -->
+        <Grid x:Name="ClassicScreenLayout" Visibility="Collapsed">
         <Grid.RowDefinitions>
             <!-- TOP 67%: Interactive Kiosk Dashboard (Expanded to provide generous vertical room) -->
             <RowDefinition x:Name="TopDashboardRow" Height="67*"/>
@@ -1236,6 +1241,678 @@
                     </Border>
                 </Grid>
             </Border>
+        </Grid>
+        </Grid>
+
+        <!-- ========================================================================= -->
+        <!-- 2. MODERN REDESIGN KIOSK SCREEN LAYOUT (IMAGE SPECIFICATION)              -->
+        <!-- ========================================================================= -->
+        <Grid x:Name="ModernScreenLayout" Visibility="Visible" Background="#F7F9F5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Row 0: Top Header Bar -->
+                <RowDefinition Height="Auto"/> <!-- Row 1: Hardware & Machine Diagnostics Bar -->
+                <RowDefinition Height="Auto"/> <!-- Row 2: Hardware Error Banner (Conditional) -->
+                <RowDefinition Height="*"/>    <!-- Row 3: How to Use RVM / Hero Video Showcase -->
+                <RowDefinition Height="Auto"/> <!-- Row 4: 5 Sequential Steps Process Strip -->
+                <RowDefinition Height="Auto"/> <!-- Row 5: Live Session Breakdown & Leaderboard / Activity -->
+                <RowDefinition Height="Auto"/> <!-- Row 6: Bottom Hero Banner Graphic -->
+            </Grid.RowDefinitions>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 0: TOP HEADER BAR                                                 -->
+            <!-- ===================================================================== -->
+            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12" Padding="14,7" Margin="14,10,14,4" Effect="{StaticResource CardShadow}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: RVM Logo, Machine Name Chip & Subtitle -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Viewbox Width="44" Height="44" Margin="0,0,10,0">
+                            <Grid Width="46" Height="46">
+                                <Ellipse Stroke="#073B28" StrokeThickness="2.2" Fill="#F0FDF4"/>
+                                <Path Data="M 20 12 L 20 7 L 26 7 L 26 12 L 31 17 L 31 37 L 15 37 L 15 17 Z" Fill="#073B28"/>
+                                <Path Data="M 30 23 C 41 24 41 39 28 39 C 32 33 32 27 30 23 Z" Fill="#22C55E"/>
+                            </Grid>
+                        </Viewbox>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="RVM" FontSize="22" FontWeight="Black" Foreground="#073B28" FontFamily="Segoe UI Black, Segoe UI, Arial"/>
+                                <Border Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="5" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ModernHeaderRvmNameText" Text="RVM-007" FontSize="9" FontWeight="Black" Foreground="#0369A1"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="REVERSE VENDING MACHINE" FontSize="8.5" FontWeight="Black" Foreground="#073B28" Margin="0,1,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Center: Welcome Headline with Urdu Nastaliq -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="🍃 " FontSize="16" Foreground="#15803D" VerticalAlignment="Center"/>
+                            <TextBlock Text="WELCOME  •  " FontSize="19" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                            <TextBlock Text="خوش آمدید" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock Text="Recycle Today for a Better Tomorrow • " FontSize="10" FontWeight="Medium" Foreground="#475569" VerticalAlignment="Center"/>
+                            <TextBlock Text="آج ری سائیکل کریں بہتر کل کے لیے" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Right: Date, Time & Company Brand -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="10,3" Margin="0,0,8,0">
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,1">
+                                    <TextBlock Text="📅 " FontSize="9.5"/>
+                                    <TextBlock x:Name="ModernLiveDateText" Text="03 Oct 2026" FontSize="9.5" FontWeight="SemiBold" Foreground="#334155"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🕒 " FontSize="10"/>
+                                    <TextBlock x:Name="ModernLiveTimeText" Text="04:28 AM" FontSize="11" FontWeight="Black" Foreground="#073B28"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="8,4" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🌱" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Environmental Solutions Pvt. Ltd." FontSize="9" FontWeight="Black" Foreground="#15803D"/>
+                                    <TextBlock Text="CLEANER PAKISTAN, GREENER TOMORROW" FontSize="7" FontWeight="Bold" Foreground="#073B28"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 1: HARDWARE & MACHINE DIAGNOSTICS BAR                             -->
+            <!-- ===================================================================== -->
+            <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2EAE0" BorderThickness="1" CornerRadius="9" Padding="12,4" Margin="14,0,14,4" Effect="{StaticResource SubtleItemShadow}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⚙️ HARDWARE &amp; MACHINE DIAGNOSTICS • " FontSize="9.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                        <TextBlock Text="ہارڈ ویئر و مشین ڈائیگنوسٹکس" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#073B28" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="8,2" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="6" Height="6" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ModernHardwareStatusText" Text="HARDWARE: OK" FontSize="8.5" FontWeight="Bold" Foreground="#166534"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="8,2" Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="6" Height="6" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ModernDbStatusText" Text="DB: ONLINE" FontSize="8.5" FontWeight="Bold" Foreground="#166534"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="8,2">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="6" Height="6" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ModernApiStatusText" Text="API: ONLINE" FontSize="8.5" FontWeight="Bold" Foreground="#166534"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse Width="7" Height="7" Fill="#16A34A" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ModernMachineStateText" Text="MACHINE: OPERATIONAL • " FontSize="9" FontWeight="Black" Foreground="#166534" VerticalAlignment="Center"/>
+                        <TextBlock Text="مشین: فعال" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#166534" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 2: HARDWARE CONNECTION ERROR BANNER (DYNAMIC)                     -->
+            <!-- ===================================================================== -->
+            <Border x:Name="ModernHardwareErrorBanner" Grid.Row="2" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1.2" CornerRadius="8" Padding="10,4" Margin="14,0,14,4" Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="9" Background="#FEE2E2" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <TextBlock Text="⚠️" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="ModernHardwareErrorText" Text="HARDWARE CONNECTION ERROR: Check USB COM port • " FontSize="9.5" FontWeight="Bold" Foreground="#DC2626"/>
+                        <TextBlock Text="ہارڈویئر منسلک نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#DC2626"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="RETRY 🔄" Background="#DC2626" Foreground="White" FontSize="9" FontWeight="Bold" Padding="10,2" Cursor="Hand" Click="RetryHardwareConnection_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 3: HOW TO USE RVM / HERO SHOWCASE / INSTRUCTIONAL VIDEO           -->
+            <!-- ===================================================================== -->
+            <Border Grid.Row="3" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="16" Margin="14,0,14,6" Effect="{StaticResource CardShadow}" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Title & Step indicator -->
+                        <RowDefinition Height="*"/>    <!-- Centerpiece Interactive / Video / QR -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Card Header -->
+                    <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="14,6">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🍃 HOW TO USE RVM • " FontSize="12.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                                <TextBlock Text="طریقہ کار" FontFamily="{StaticResource UrduFont}" FontSize="14.5" FontWeight="Black" Foreground="#15803D" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <!-- 7 Step dots -->
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#22C55E" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,3,0"/>
+                                <Border Width="18" Height="6" CornerRadius="3" Background="#CBD5E1" Margin="0,0,8,0"/>
+                                <TextBlock Text="STEP 1 OF 7" FontSize="9" FontWeight="Black" Foreground="#64748B" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Card Body -->
+                    <Grid Grid.Row="1">
+                        <!-- 1. Background Video Player (Plays video seamlessly when available) -->
+                        <MediaElement x:Name="ModernInstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="StartButton_Click" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
+
+                        <!-- 2. Concentric Glowing Circle Hero Showcase (Visible by default in idle mode) -->
+                        <Grid x:Name="ModernHeroInteractivePlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#F0FDF4" Offset="0.0"/>
+                                    <GradientStop Color="#FFFFFF" Offset="0.5"/>
+                                    <GradientStop Color="#F0FDF4" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Grid.Background>
+
+                            <Grid Margin="16,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Left Side: Press 0 to Start + Concentric Glowing Circle Button -->
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/> <!-- Title & Urdu -->
+                                        <RowDefinition Height="*"/>    <!-- Concentric Button -->
+                                        <RowDefinition Height="Auto"/> <!-- Status Pill & Tip -->
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Headline -->
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,4">
+                                        <TextBlock Text="Press 0 to Start" FontSize="26" FontWeight="Black" Foreground="#073B28"/>
+                                        <TextBlock Text="شروع کرنے کے لئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#15803D" Margin="0,-2,0,2"/>
+                                        <TextBlock Text="Begin your recycling session to make a difference" FontSize="11" Foreground="#475569"/>
+                                        <TextBlock Text="اپنی ری سائیکلنگ سیشن شروع کریں اور مثبت تبدیلی کا حصہ بنیں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
+                                    </StackPanel>
+
+                                    <!-- Giant Concentric Circle Button with 0 -->
+                                    <Button Grid.Row="1" Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid Width="170" Height="170">
+                                            <Ellipse Width="170" Height="170" Fill="#DCFCE7" Opacity="0.5"/>
+                                            <Ellipse Width="146" Height="146" Fill="#BBF7D0" Opacity="0.65"/>
+                                            <Ellipse Width="122" Height="122" Fill="#86EFAC" Opacity="0.8"/>
+                                            <Ellipse Width="98" Height="98" Fill="#073B28">
+                                                <Ellipse.Effect>
+                                                    <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.3" Color="#073B28"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                            <TextBlock Text="0" FontSize="50" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <!-- Status Pill & Tip -->
+                                    <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                        <Border Background="#FEF9C3" BorderBrush="#FDE047" BorderThickness="1" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📡 " FontSize="10"/>
+                                                <TextBlock x:Name="ModernUltrasonicStatusText" Text="CALIBRATING ULTRASONIC CHAMBER..." FontSize="9.5" FontWeight="Black" Foreground="#854D0E"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="8,3">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <TextBlock Text="💡 " FontSize="10"/>
+                                                <TextBlock Text="Tip: Touch the glowing circle on screen or press &quot;0&quot; on keypad to begin session. • " FontSize="8.5" Foreground="#475569"/>
+                                                <TextBlock Text="مشورہ: سیشن شروع کرنے کے لیے اسکرین پر روشن دائرے کو ٹچ کریں یا کی پیڈ پر &quot;0&quot; دبائیں۔" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#15803D"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Right Side: Touchless Start Dynamic QR Card -->
+                                <Border Grid.Column="1" VerticalAlignment="Center" Margin="12,0,4,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <StackPanel HorizontalAlignment="Center" Width="135">
+                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,6" HorizontalAlignment="Center">
+                                            <TextBlock Text="📱 TOUCHLESS START" FontSize="8.5" FontWeight="Black" Foreground="#15803D"/>
+                                        </Border>
+                                        <TextBlock Text="بغیر لمس شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                        <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" Padding="4" CornerRadius="8" HorizontalAlignment="Center">
+                                            <Image x:Name="ModernStartQrImage" Width="105" Height="105" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        </Border>
+                                        <TextBlock Text="SCAN TO START" FontSize="10.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                                        <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 4: 5 SEQUENTIAL STEPS PROCESS STRIP                               -->
+            <!-- ===================================================================== -->
+            <Border Grid.Row="4" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12" Padding="10,6" Margin="14,0,14,6" Effect="{StaticResource SubtleItemShadow}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="🍃 HOW TO USE RVM • " FontSize="11.5" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                        <TextBlock Text="طریقہ کار" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Black" Foreground="#15803D" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Step 1 (Active Highlighted) -->
+                        <Border Grid.Column="0" Background="#DCFCE7" BorderBrush="#16A34A" BorderThickness="1.5" CornerRadius="8" Padding="6,4" Margin="0,0,3,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="9" Background="#16A34A" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="1" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="👆" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="Press 0 to Start" FontSize="9" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="شروع کرنے کے لئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 2 -->
+                        <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="6,4" Margin="3,0,3,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="9" Background="#0284C7" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="2" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="🧴🥫" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="Insert Items" FontSize="9" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="اشیاء ڈالیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#0284C7" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 3 -->
+                        <Border Grid.Column="2" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="6,4" Margin="3,0,3,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="9" Background="#0D9488" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="3" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="📡" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="Items Detection" FontSize="9" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="خودکار شناخت" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#0D9488" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 4 -->
+                        <Border Grid.Column="3" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="6,4" Margin="3,0,3,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="9" Background="#16A34A" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="4" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="✓" FontSize="14" FontWeight="Black" Foreground="#16A34A" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="Confirm &amp; Earn Points" FontSize="8.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="تصدیق اور پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#16A34A" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Step 5 -->
+                        <Border Grid.Column="4" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="6,4" Margin="3,0,0,0">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="18" Height="18" CornerRadius="9" Background="#D97706" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                    <TextBlock Text="5" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="🎁" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,2"/>
+                                <TextBlock Text="Redeem Rewards" FontSize="8.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                <TextBlock Text="انعامات حاصل کریں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" FontWeight="Bold" Foreground="#D97706" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 5: LIVE SESSION BREAKDOWN & LEADERBOARD / RECENT ACTIVITY         -->
+            <!-- ===================================================================== -->
+            <Grid Grid.Row="5" Margin="14,0,14,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT COLUMN: LIVE SESSION CONTAINER BREAKDOWN -->
+                <Border Grid.Column="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12" Padding="10,6" Effect="{StaticResource CardShadow}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Header -->
+                            <RowDefinition Height="Auto"/> <!-- Reward Balance Strip -->
+                            <RowDefinition Height="*"/>    <!-- 4 Material Cards -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="📊 LIVE SESSION BREAKDOWN • " FontSize="10" FontWeight="Black" Foreground="#073B28" VerticalAlignment="Center"/>
+                            <TextBlock Text="موجودہ سیشن کی تفصیل" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Reward Balance Bar -->
+                        <Border Grid.Row="1" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="8,4" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="🎁 " FontSize="13"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="YOUR REWARD BALANCE" FontSize="8" FontWeight="Black" Foreground="#073B28"/>
+                                        <TextBlock Text="آپ کا ریوارڈ بیلنس" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ModernRewardBalanceText" Text="0" FontSize="20" FontWeight="Black" Foreground="#15803D" VerticalAlignment="Center"/>
+                                    <StackPanel VerticalAlignment="Center" Margin="4,0,0,0">
+                                        <TextBlock Text="POINTS" FontSize="8" FontWeight="Black" Foreground="#073B28"/>
+                                        <TextBlock Text="پوائنٹس" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#15803D"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- 4 Material Cards (Plastic, Can, UBC, Reject) -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="4"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Plastic -->
+                            <Border Grid.Column="0" Background="#F0FDFA" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="8" Padding="4,4">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                        <TextBlock Text="🧴 " FontSize="10"/>
+                                        <TextBlock Text="PLASTIC" FontSize="8.5" FontWeight="Black" Foreground="#047857"/>
+                                    </StackPanel>
+                                    <TextBlock Text="پلاسٹک" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#0F766E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🍾" FontSize="18" HorizontalAlignment="Center" Margin="0,2,0,2"/>
+                                    <TextBlock x:Name="ModernPlasticBreakdownText" Text="S:0 M:0 L:0" FontSize="7.5" FontWeight="Bold" Foreground="#0F766E" HorizontalAlignment="Center"/>
+                                    <Border Background="#CCFBF1" CornerRadius="4" Padding="4,1.5" Margin="0,3,0,0">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="TOTAL " FontSize="7.5" FontWeight="Bold" Foreground="#0F766E"/>
+                                            <TextBlock x:Name="ModernPlasticTotalText" Text="0" FontSize="11" FontWeight="Black" Foreground="#047857"/>
+                                            <TextBlock Text=" pcs" FontSize="7.5" Foreground="#0F766E"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Can -->
+                            <Border Grid.Column="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="8" Padding="4,4">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                        <TextBlock Text="🥫 " FontSize="10"/>
+                                        <TextBlock Text="CAN" FontSize="8.5" FontWeight="Black" Foreground="#0369A1"/>
+                                    </StackPanel>
+                                    <TextBlock Text="کین" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#0284C7" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="🥤" FontSize="18" HorizontalAlignment="Center" Margin="0,2,0,2"/>
+                                    <TextBlock x:Name="ModernCanBreakdownText" Text="S:0 M:0 L:0" FontSize="7.5" FontWeight="Bold" Foreground="#0284C7" HorizontalAlignment="Center"/>
+                                    <Border Background="#E0F2FE" CornerRadius="4" Padding="4,1.5" Margin="0,3,0,0">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="TOTAL " FontSize="7.5" FontWeight="Bold" Foreground="#0284C7"/>
+                                            <TextBlock x:Name="ModernCanTotalText" Text="0" FontSize="11" FontWeight="Black" Foreground="#0369A1"/>
+                                            <TextBlock Text=" pcs" FontSize="7.5" Foreground="#0284C7"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- UBC -->
+                            <Border Grid.Column="4" Background="#FEFCE8" BorderBrush="#FEF08A" BorderThickness="1" CornerRadius="8" Padding="4,4">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                        <TextBlock Text="🧃 " FontSize="10"/>
+                                        <TextBlock Text="UBC" FontSize="8.5" FontWeight="Black" Foreground="#A16207"/>
+                                    </StackPanel>
+                                    <TextBlock Text="کارٹن" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#854D0E" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="📦" FontSize="18" HorizontalAlignment="Center" Margin="0,2,0,2"/>
+                                    <TextBlock x:Name="ModernUbcBreakdownText" Text="S:0 M:0 L:0" FontSize="7.5" FontWeight="Bold" Foreground="#854D0E" HorizontalAlignment="Center"/>
+                                    <Border Background="#FEF9C3" CornerRadius="4" Padding="4,1.5" Margin="0,3,0,0">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="TOTAL " FontSize="7.5" FontWeight="Bold" Foreground="#854D0E"/>
+                                            <TextBlock x:Name="ModernUbcTotalText" Text="0" FontSize="11" FontWeight="Black" Foreground="#A16207"/>
+                                            <TextBlock Text=" pcs" FontSize="7.5" Foreground="#854D0E"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Reject -->
+                            <Border Grid.Column="6" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="4,4">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,2">
+                                        <TextBlock Text="🚫 " FontSize="10"/>
+                                        <TextBlock Text="REJECT" FontSize="8.5" FontWeight="Black" Foreground="#DC2626"/>
+                                    </StackPanel>
+                                    <TextBlock Text="مسترد" FontFamily="{StaticResource UrduFont}" FontSize="9" FontWeight="Bold" Foreground="#B91C1C" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="❌" FontSize="18" HorizontalAlignment="Center" Margin="0,2,0,2"/>
+                                    <TextBlock x:Name="ModernRejectedCountText" Text="0 pcs" FontSize="7.5" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Center"/>
+                                    <Border Background="#FEE2E2" CornerRadius="4" Padding="4,1.5" Margin="0,3,0,0">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="TOTAL " FontSize="7.5" FontWeight="Bold" Foreground="#B91C1C"/>
+                                            <TextBlock x:Name="ModernRejectedTotalText" Text="0" FontSize="11" FontWeight="Black" Foreground="#DC2626"/>
+                                            <TextBlock Text=" pcs" FontSize="7.5" Foreground="#B91C1C"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- RIGHT COLUMN: LEADERBOARD & RECENT ACTIVITY FEED -->
+                <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12" Padding="10,6" Effect="{StaticResource CardShadow}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Leaderboard Header -->
+                            <RowDefinition Height="*"/>    <!-- Top 5 List -->
+                            <RowDefinition Height="Auto"/> <!-- Recent Activity Header -->
+                            <RowDefinition Height="Auto"/> <!-- Recent Activity List -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Leaderboard Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🏆 Leaderboard • " FontSize="10" FontWeight="Black" Foreground="#073B28"/>
+                                <TextBlock Text="لیڈر بورڈ" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#15803D"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="10" Padding="6,1.5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="5" Height="5" Fill="#16A34A" Margin="0,0,3,0"/>
+                                    <TextBlock Text="LIVE" FontSize="8" FontWeight="Black" Foreground="#166534"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Top 5 Leaderboard List -->
+                        <ItemsControl Grid.Row="1" x:Name="ModernLeaderboardList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" Padding="0,2">
+                                        <Grid VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="18"/>
+                                                <ColumnDefinition Width="22"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Rank Number / Medal -->
+                                            <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="9.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                                            <!-- Avatar Circle -->
+                                            <Border Grid.Column="1" Width="18" Height="18" CornerRadius="9" BorderBrush="#CBD5E1" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
+                                                </Border.Background>
+                                            </Border>
+
+                                            <!-- Name & Progress Bar -->
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="5,0,5,0">
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="9" FontWeight="Bold" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3" Background="#E2E8F0" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,1,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- Points -->
+                                            <TextBlock Grid.Column="3" Text="{Binding PointsBalance, StringFormat='{}{0} pts'}" FontSize="8.5" FontWeight="Black" Foreground="#15803D" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Recent Activity Header -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,4,0,2">
+                            <TextBlock Text="🔔 Recent Activity • " FontSize="9" FontWeight="Black" Foreground="#073B28"/>
+                            <TextBlock Text="حالیہ سرگرمیاں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#15803D"/>
+                        </StackPanel>
+
+                        <!-- Recent Activity Feed (3 items) -->
+                        <ItemsControl Grid.Row="3" x:Name="ModernRecentActivityList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#F1F5F9" BorderThickness="0,0,0,1" Padding="0,2">
+                                        <Grid VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="16"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="42"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Material Icon -->
+                                            <TextBlock Grid.Column="0" Text="{Binding MaterialIcon}" FontSize="9.5" VerticalAlignment="Center"/>
+
+                                            <!-- Recycler Name & Action -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding RecyclerName}" FontSize="8.5" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,3,0"/>
+                                                <TextBlock Text="• " FontSize="8" Foreground="#94A3B8"/>
+                                                <TextBlock Text="{Binding ActionText}" FontSize="8" Foreground="#475569"/>
+                                            </StackPanel>
+
+                                            <!-- Points Pill -->
+                                            <TextBlock Grid.Column="2" Text="{Binding PointsText}" FontSize="8.5" FontWeight="Black" Foreground="#15803D" Margin="2,0,4,0" VerticalAlignment="Center"/>
+
+                                            <!-- Time Ago -->
+                                            <TextBlock Grid.Column="3" Text="{Binding TimeAgo}" FontSize="7.5" Foreground="#94A3B8" TextAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ===================================================================== -->
+            <!-- ROW 6: DIGITAL SIGNAGE ADVERTISEMENT VIDEO / HERO BANNER GRAPHIC       -->
+            <!-- ===================================================================== -->
+            <Border Grid.Row="6" Background="#000000" BorderBrush="#E2E8F0" BorderThickness="1.5" CornerRadius="12" Margin="14,0,14,10" Effect="{StaticResource SubtleItemShadow}" ClipToBounds="True" MinHeight="140">
+                <Grid>
+                    <!-- Fallback Static Hero Banner (shown when no ad video is playing) -->
+                    <Image x:Name="ModernBottomBannerImage" Source="pack://application:,,,/RVMDesktopApp;component/Assets/rvm_bottom_banner.jpg" Stretch="Uniform" Height="140" HorizontalAlignment="Center" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Visibility="Visible"/>
+
+                    <!-- Modern Full HD Advertisement Video Player -->
+                    <MediaElement x:Name="ModernAdvertisementPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="AdvertisementPlayer_MediaEnded" MediaFailed="AdvertisementPlayer_MediaFailed"/>
+
+                    <!-- Top Signage Overlay Headline on Video -->
+                    <Border x:Name="ModernAdOverlayHeader" VerticalAlignment="Top" Background="#CC073B28" Padding="14,5" Visibility="Collapsed">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="SMALL ACTIONS BIG IMPACT" FontSize="14" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                            <TextBlock Text="RECYCLE TODAY FOR A BETTER TOMORROW • آج ری سائیکل کریں" FontSize="9" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Bottom Dark Green Eco-Sustainability Footer on Video -->
+                    <Border x:Name="ModernAdOverlayFooter" VerticalAlignment="Bottom" Background="#D9073B28" Padding="8,4" BorderBrush="#15803D" BorderThickness="0,1,0,0" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Text="♻ " FontSize="11" Foreground="#86EFAC"/>
+                                <TextBlock Text="REDUCE • کچرا کم کریں" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Text="🍃 " FontSize="11" Foreground="#86EFAC"/>
+                                <TextBlock Text="REUSE • دوبارہ استعمال" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock Text="🔄 " FontSize="11" Foreground="#86EFAC"/>
+                                <TextBlock Text="RECYCLE • ری سائیکل" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+
 
             <!-- Real-time Telemetry Terminal Overlay (Press 8 to Toggle) -->
             <Border x:Name="TelemetryPanel" Grid.Column="0" Background="#080D18" BorderBrush="#22C55E" BorderThickness="0,0,0,2" Visibility="Collapsed">
@@ -1258,6 +1935,5 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
-        </Grid>
     </Grid>
 </Window>
