@@ -11,7 +11,9 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  NativeModules
+  NativeModules,
+  Modal,
+  ToastAndroid
 } from 'react-native';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
@@ -28,6 +30,26 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [lastGoogleUser, setLastGoogleUser] = useState(null);
+
+  // Two-Step Verification (2FA via Gmail) State
+  const [twoStepModalVisible, setTwoStepModalVisible] = useState(false);
+  const [twoStepEmail, setTwoStepEmail] = useState('');
+  const [twoStepMaskedEmail, setTwoStepMaskedEmail] = useState('');
+  const [twoStepName, setTwoStepName] = useState('');
+  const [twoStepCode, setTwoStepCode] = useState('');
+  const [twoStepLoading, setTwoStepLoading] = useState(false);
+  const [twoStepCountdown, setTwoStepCountdown] = useState(0);
+  const [pendingGoogleAccount, setPendingGoogleAccount] = useState(null);
+
+  useEffect(() => {
+    let timer;
+    if (twoStepCountdown > 0) {
+      timer = setInterval(() => {
+        setTwoStepCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [twoStepCountdown]);
 
   useEffect(() => {
     // Check if user previously signed in via Google on this device
@@ -130,45 +152,104 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // Helper to authenticate Google account on backend & save for 1-tap next time
-  const authenticateGoogleUser = async (googleAccount) => {
+  // 2. Initiate Google Two-Step Verification (Sends OTP code to Gmail)
+  const initiateGoogleTwoStep = async (googleAccount) => {
     setGoogleLoading(true);
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/google`, {
+      const res = await axios.post(`${API_BASE_URL}/auth/google/initiate-2fa`, {
         email: googleAccount.email,
         name: googleAccount.name || googleAccount.email.split('@')[0],
-        picture: googleAccount.photoUrl || '',
+        picture: googleAccount.photoUrl || googleAccount.picture || '',
         idToken: googleAccount.idToken || ''
       }, { timeout: 12000 });
 
-      if (res.data && res.data.success && res.data.user) {
-        // Save as last google user for instant 1-tap next time
-        const userToSave = {
-          email: googleAccount.email,
-          name: googleAccount.name || (res.data.user.full_name || res.data.user.name || googleAccount.email.split('@')[0]),
-          photoUrl: googleAccount.photoUrl || ''
-        };
-        await AsyncStorage.setItem('@last_google_user', JSON.stringify(userToSave));
-        setLastGoogleUser(userToSave);
-
-        const recycleData = res.data.recycleDetails || null;
-        await completeSessionLogin(res.data.user, res.data.token, recycleData);
+      if (res.data && res.data.success) {
+        setPendingGoogleAccount(googleAccount);
+        setTwoStepEmail(res.data.email || googleAccount.email);
+        setTwoStepMaskedEmail(res.data.maskedEmail || googleAccount.email);
+        setTwoStepName(res.data.name || googleAccount.name || 'Eco Citizen');
+        setTwoStepCode('');
+        setTwoStepCountdown(45);
+        setTwoStepModalVisible(true);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show(`Verification code sent to ${googleAccount.email}`, ToastAndroid.LONG);
+        }
       } else {
-        Alert.alert('Google Sign-In', res.data?.message || 'Could not authenticate Google account.');
+        Alert.alert('Google Sign-In', res.data?.message || 'Could not initiate two-step verification.');
       }
     } catch (error) {
-      console.warn('Google sign-in error:', error);
-      Alert.alert('Google Sign-In', error.response?.data?.message || error.message || 'Authentication failed');
+      console.warn('Google 2FA initiation error:', error);
+      Alert.alert('Verification Notice', error.response?.data?.message || error.message || 'Could not send verification code.');
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  // 2. Native Google Sign-In (Directly launches single native account picker if needed)
+  // 3. Verify Two-Step Code from Gmail & Complete Session Login
+  const handleVerifyTwoStepCode = async () => {
+    const cleanOtp = twoStepCode.trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
+      Alert.alert('Code Required', 'Please enter the 6-digit verification code sent to your Gmail.');
+      return;
+    }
+
+    setTwoStepLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/google/verify-2fa`, {
+        email: twoStepEmail,
+        otp: cleanOtp
+      }, { timeout: 12000 });
+
+      if (res.data && res.data.success && res.data.user) {
+        // Save as last google user for 1-tap "Continue as <Name>" button
+        const userToSave = {
+          email: twoStepEmail,
+          name: res.data.user.full_name || res.data.user.name || twoStepName || twoStepEmail.split('@')[0],
+          photoUrl: pendingGoogleAccount?.photoUrl || res.data.user.picture || ''
+        };
+        await AsyncStorage.setItem('@last_google_user', JSON.stringify(userToSave));
+        setLastGoogleUser(userToSave);
+
+        setTwoStepModalVisible(false);
+        const recycleData = res.data.recycleDetails || null;
+        await completeSessionLogin(res.data.user, res.data.token, recycleData);
+      } else {
+        Alert.alert('Verification Failed', res.data?.message || 'Invalid verification code.');
+      }
+    } catch (error) {
+      console.warn('Google 2FA verify error:', error);
+      Alert.alert('Verification Failed', error.response?.data?.message || 'Verification code is invalid or has expired. Please check your Gmail and try again.');
+    } finally {
+      setTwoStepLoading(false);
+    }
+  };
+
+  // 4. Resend Two-Step Verification Code
+  const handleResendTwoStepCode = async () => {
+    if (twoStepCountdown > 0 || twoStepLoading) return;
+    try {
+      const res = await axios.post(`${API_BASE_URL}/auth/google/resend-2fa`, {
+        email: twoStepEmail
+      }, { timeout: 10000 });
+      if (res.data?.success) {
+        setTwoStepCountdown(45);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show('New verification code sent to your Gmail', ToastAndroid.LONG);
+        }
+      } else {
+        Alert.alert('Resend Failed', res.data?.message || 'Could not resend code.');
+      }
+    } catch (error) {
+      Alert.alert('Resend Notice', error.response?.data?.message || 'Failed to resend code.');
+    }
+  };
+
+  // 5. Native Google Sign-In with Mandatory Two-Step Verification
   const handleContinueWithGoogle = async (forcePicker = false) => {
-    // If previously signed in on this device and user didn't ask to switch, log in directly without dialog
+    // If previously signed in on this device and user clicks "Continue as <Name>":
+    // STRICTLY REQUIRE TWO-STEP VERIFICATION VIA GMAIL CODE EVERY SINGLE TIME
     if (lastGoogleUser && !forcePicker) {
-      await authenticateGoogleUser(lastGoogleUser);
+      await initiateGoogleTwoStep(lastGoogleUser);
       return;
     }
 
@@ -181,7 +262,7 @@ export default function LoginScreen({ navigation }) {
       // Shows single native Android Account Chooser dialog (zero double popups)
       const googleAccount = await GoogleAuth.signIn();
       if (googleAccount && googleAccount.email) {
-        await authenticateGoogleUser(googleAccount);
+        await initiateGoogleTwoStep(googleAccount);
       }
     } catch (error) {
       if (error.code === 'E_CANCELLED' || error.message?.includes('cancelled')) {
@@ -339,6 +420,95 @@ export default function LoginScreen({ navigation }) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Two-Step Verification Modal via Gmail */}
+      <Modal
+        visible={twoStepModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          if (!twoStepLoading) setTwoStepModalVisible(false);
+        }}
+      >
+        <View style={styles.twoStepOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.twoStepKeyboard}
+          >
+            <View style={styles.twoStepCard}>
+              <View style={styles.twoStepShieldCircle}>
+                <Icon name="shield-checkmark" size={38} color="#10B981" />
+              </View>
+
+              <Text style={styles.twoStepTitle}>Two-Step Verification</Text>
+              <Text style={styles.twoStepSubtitle}>
+                A 6-digit security code was sent to your Gmail:
+              </Text>
+
+              <View style={styles.twoStepEmailChip}>
+                <Icon name="logo-google" size={15} color="#EA4335" style={{ marginRight: 6 }} />
+                <Text style={styles.twoStepEmailText} numberOfLines={1}>{twoStepEmail}</Text>
+              </View>
+
+              <View style={styles.twoStepInputWrapper}>
+                <TextInput
+                  style={styles.twoStepInput}
+                  placeholder="• • • • • •"
+                  placeholderTextColor="#94A3B8"
+                  value={twoStepCode}
+                  onChangeText={setTwoStepCode}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus={true}
+                  selectionColor="#10B981"
+                />
+              </View>
+
+              <View style={styles.twoStepResendRow}>
+                <TouchableOpacity
+                  onPress={handleResendTwoStepCode}
+                  disabled={twoStepCountdown > 0 || twoStepLoading}
+                  style={styles.twoStepResendBtn}
+                >
+                  <Text style={[
+                    styles.twoStepResendText,
+                    (twoStepCountdown > 0 || twoStepLoading) && styles.twoStepResendTextDisabled
+                  ]}>
+                    {twoStepCountdown > 0 ? `Resend code in ${twoStepCountdown}s` : 'Resend Code'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.twoStepVerifyBtn,
+                  (twoStepLoading || twoStepCode.trim().length < 4) && styles.twoStepVerifyBtnDisabled
+                ]}
+                onPress={handleVerifyTwoStepCode}
+                disabled={twoStepLoading || twoStepCode.trim().length < 4}
+                activeOpacity={0.85}
+              >
+                {twoStepLoading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.twoStepVerifyBtnText}>Verify & Continue</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.twoStepCancelBtn}
+                onPress={() => {
+                  setTwoStepModalVisible(false);
+                  setTwoStepCode('');
+                }}
+                disabled={twoStepLoading}
+              >
+                <Text style={styles.twoStepCancelText}>Cancel / Choose Another Account</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -472,5 +642,139 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1F2937',
     fontWeight: '700',
+  },
+  // Two-Step Verification (Gmail OTP) Modal Styles
+  twoStepOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  twoStepKeyboard: {
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+  },
+  twoStepCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  twoStepShieldCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 2,
+    borderColor: '#A7F3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  twoStepTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  twoStepSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  twoStepEmailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 12,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  twoStepEmailText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  twoStepInputWrapper: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#10B981',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+  },
+  twoStepInput: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 10,
+    color: '#0F172A',
+    textAlign: 'center',
+    paddingVertical: 14,
+  },
+  twoStepResendRow: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  twoStepResendBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  twoStepResendText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  twoStepResendTextDisabled: {
+    color: '#94A3B8',
+  },
+  twoStepVerifyBtn: {
+    width: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  twoStepVerifyBtnDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  twoStepVerifyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  twoStepCancelBtn: {
+    marginTop: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  twoStepCancelText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

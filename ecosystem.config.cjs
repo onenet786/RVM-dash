@@ -19,7 +19,13 @@ module.exports = {
         PG_DATABASE: 'rvmpg',
         MONGODB_URI: 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority',
         MONGODB_DBNAME: 'ONS-RVM',
-        JWT_SECRET: 'rvm-isp-production-secret-key-2026-aapanel'
+        JWT_SECRET: 'rvm-isp-production-secret-key-2026-aapanel',
+        SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+        SMTP_PORT: process.env.SMTP_PORT || '465',
+        SMTP_SECURE: process.env.SMTP_SECURE || 'true',
+        SMTP_USER: process.env.SMTP_USER || '',
+        SMTP_PASS: process.env.SMTP_PASS || '',
+        SMTP_FROM: process.env.SMTP_FROM || 'Trash to Cash Verification'
       },
       env_production: {
         NODE_ENV: 'production',
@@ -33,7 +39,13 @@ module.exports = {
         PG_DATABASE: 'rvmpg',
         MONGODB_URI: 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority',
         MONGODB_DBNAME: 'ONS-RVM',
-        JWT_SECRET: 'rvm-isp-production-secret-key-2026-aapanel'
+        JWT_SECRET: 'rvm-isp-production-secret-key-2026-aapanel',
+        SMTP_HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
+        SMTP_PORT: process.env.SMTP_PORT || '465',
+        SMTP_SECURE: process.env.SMTP_SECURE || 'true',
+        SMTP_USER: process.env.SMTP_USER || '',
+        SMTP_PASS: process.env.SMTP_PASS || '',
+        SMTP_FROM: process.env.SMTP_FROM || 'Trash to Cash Verification'
       }
     }
   ]
