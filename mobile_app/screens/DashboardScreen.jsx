@@ -58,7 +58,11 @@ const DashboardScreen = ({ route }) => {
   const [corpEmployeeId, setCorpEmployeeId] = useState('');
   const [corpDepartment, setCorpDepartment] = useState('');
   const [corpLoading, setCorpLoading] = useState(false);
-  const [availableOrgs, setAvailableOrgs] = useState([]);
+  const [availableOrgs, setAvailableOrgs] = useState([
+    { org_id: 'ORG_ALLIED@ALLIED_5092', name: 'Allied Bank Pvt Ltd', code: 'ALLIED' },
+    { org_id: 'ORG_UCP', name: 'University of Central Punjab', code: 'UCP' },
+    { org_id: 'ORG_ZONG@ZONG_9961', name: 'ZONG PAKISTAN', code: 'ZONG' }
+  ]);
   
   const navigation = useNavigation();
   const rotateValue = useRef(new Animated.Value(0)).current;
@@ -1402,7 +1406,7 @@ const DashboardScreen = ({ route }) => {
                   <Text style={styles.modalLabel}>Company Code or Corporate Domain *</Text>
                   <TextInput
                     style={styles.modalInput}
-                    placeholder="e.g. ENGRO, ALFALAH, UCP, METRO or engro.com"
+                    placeholder="e.g. ALLIED, UCP, ZONG or ucp.edu.pk"
                     placeholderTextColor="#94A3B8"
                     value={corpCompanyCode}
                     onChangeText={setCorpCompanyCode}
