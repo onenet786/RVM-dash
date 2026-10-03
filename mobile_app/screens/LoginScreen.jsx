@@ -223,6 +223,41 @@ export default function LoginScreen({ navigation, route }) {
       return;
     }
 
+    // Android can display its native Google account chooser. iOS has no
+    // AccountManager equivalent in this project, so verify the selected
+    // Gmail/work account through the same email OTP flow used by the server.
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Continue with Google',
+        'Enter your Gmail or corporate Google Workspace email. We will send a verification code to confirm the account.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Send Code',
+            onPress: async (value) => {
+              const email = (value || '').trim().toLowerCase();
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(email)) {
+                Alert.alert('Invalid Email', 'Please enter a valid Gmail or corporate Google Workspace email.');
+                return;
+              }
+
+              await initiateGoogleTwoStep({
+                email,
+                name: email.split('@')[0],
+                photoUrl: '',
+                idToken: ''
+              });
+            }
+          }
+        ],
+        'plain-text',
+        lastGoogleUser?.email || '',
+        'email-address'
+      );
+      return;
+    }
+
     setGoogleLoading(true);
     try {
       if (!GoogleAuth || !GoogleAuth.signIn) {
