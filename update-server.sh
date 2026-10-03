@@ -79,10 +79,13 @@ fi
 echo "📦 [5/7] Verifying npm dependencies..."
 npm install --production=false --no-audit
 
-# 8. Run PostgreSQL Database Schema Migration
-echo "🐘 [6/7] Applying PostgreSQL schema updates..."
+# 8. Run PostgreSQL Database Schema Migration & User Sync
+echo "🐘 [6/7] Applying PostgreSQL schema updates and legacy users sync..."
 if [ -f "server/migrate.js" ]; then
   node server/migrate.js || echo "⚠️ Migration completed with notice."
+fi
+if [ -f "scripts/sync-legacy-users.js" ]; then
+  node scripts/sync-legacy-users.js || echo "⚠️ User sync completed with notice."
 fi
 
 # 9. Build Production Vite Frontend
