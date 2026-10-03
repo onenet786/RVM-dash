@@ -144,7 +144,7 @@ function verifyTokenWithAnySecret(token) {
 }
 
 async function refreshCorporateMachineScope(user) {
-  if (!user || !user.orgId || user.roleId === 'super_admin' || user.username === 'onenet') return user;
+  if (!user || !user.orgId || user.roleId === 'super_admin' || user.username === 'onenet' || user.username === 'bilalaaqueel') return user;
   const pool = getPgPool();
   if (!pool) return user;
 
@@ -157,15 +157,28 @@ async function refreshCorporateMachineScope(user) {
        ) sub WHERE m_id IS NOT NULL AND TRIM(m_id) <> '' ORDER BY machine_id`,
       [user.orgId]
     );
-    const assigned = result.rows.map(row => String(row.machine_id).trim().toUpperCase());
+    const assignedSet = new Set(result.rows.map(row => String(row.machine_id).trim().toUpperCase()));
+
+    const orgRes = await pool.query(
+      'SELECT assigned_machines FROM organizations WHERE UPPER(org_id) = UPPER($1)',
+      [user.orgId]
+    ).catch(() => ({ rows: [] }));
+    if (orgRes.rows.length > 0 && Array.isArray(orgRes.rows[0].assigned_machines)) {
+      orgRes.rows[0].assigned_machines.forEach(m => {
+        if (m) assignedSet.add(String(m).trim().toUpperCase());
+      });
+    }
+
+    const assigned = Array.from(assignedSet);
     if (user.roleId === 'client_admin') {
-      user.assignedMachines = assigned;
+      user.assignedMachines = assigned.length > 0 ? assigned : ['__RESTRICTED_NO_ACCESS__'];
     } else if (user.roleId === 'corporate_sub_user') {
       if (Array.isArray(user.assignedMachines) && user.assignedMachines.length > 0 && !user.assignedMachines.includes('*')) {
         const subDelegated = user.assignedMachines.map(m => String(m).trim().toUpperCase());
-        user.assignedMachines = subDelegated.filter(m => assigned.includes(m));
+        const filtered = subDelegated.filter(m => assigned.includes(m));
+        user.assignedMachines = filtered.length > 0 ? filtered : ['__RESTRICTED_NO_ACCESS__'];
       } else {
-        user.assignedMachines = assigned;
+        user.assignedMachines = assigned.length > 0 ? assigned : ['__RESTRICTED_NO_ACCESS__'];
       }
     }
   } catch (error) {
@@ -1557,16 +1570,19 @@ function getMachineScopeQuery(req, fieldName = 'machineId') {
 
 function getEffectiveMachineScope(req) {
   const userRole = String(req.user?.roleId || '').toLowerCase();
-  const isSuper = userRole === 'super_admin' || userRole === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet';
+  const isSuper = userRole === 'super_admin' || userRole === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet' || String(req.user?.username || '').toLowerCase() === 'bilalaaqueel';
 
   // 1. User-level machine constraints from session token/auth
   let userAssigned = null;
   if (!isSuper && req.user && Array.isArray(req.user.assignedMachines) && !req.user.assignedMachines.includes('*')) {
     userAssigned = req.user.assignedMachines.map(m => String(m).trim().toUpperCase()).filter(Boolean);
+    if (userAssigned.length === 0 && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId))) {
+      return ['__RESTRICTED_NO_ACCESS__'];
+    }
   }
 
   // 2. Query parameter machine constraints (?assignedMachines=... or ?machines=... or ?machineId=...)
-  const queryParam = req.query.assignedMachines || req.query.machines || req.query.machineId;
+  const queryParam = req.query?.assignedMachines || req.query?.machines || req.query?.machineId;
   let queryMachines = null;
   if (queryParam) {
     let list = Array.isArray(queryParam) ? queryParam : (typeof queryParam === 'string' ? queryParam.split(',') : []);
@@ -1590,6 +1606,163 @@ function getEffectiveMachineScope(req) {
 
 function getAssignedMachinesList(req) {
   return getEffectiveMachineScope(req);
+}
+
+// Authoritative multi-tenant scope resolver across PostgreSQL tables (kiosk_org_bindings, machines, organizations)
+async function resolveScopeContext(req, pool) {
+  const userRole = String(req?.user?.roleId || '').toLowerCase();
+  const isSuper = userRole === 'super_admin' || userRole === 'superadmin' || String(req?.user?.username || '').toLowerCase() === 'onenet' || String(req?.user?.username || '').toLowerCase() === 'bilalaaqueel';
+  
+  const authenticatedOrgId = (!isSuper && req?.user?.orgId) ? String(req.user.orgId).trim().toUpperCase() : '';
+  const requestedClientId = String(req?.query?.clientId || req?.query?.orgId || '').trim().toUpperCase();
+  
+  let effectiveOrgId = '';
+  if (authenticatedOrgId) {
+    effectiveOrgId = authenticatedOrgId;
+  } else if (requestedClientId && requestedClientId !== 'ALL' && requestedClientId !== 'ISP_MASTER' && requestedClientId !== 'NULL' && requestedClientId !== 'UNDEFINED') {
+    effectiveOrgId = requestedClientId;
+  }
+
+  const isClientScoped = Boolean(effectiveOrgId);
+
+  // 1. Fetch all machines from Postgres
+  let machines = [];
+  if (pool) {
+    try {
+      const mRes = await pool.query('SELECT machine_id, name, location, machine_type, client_id, client_name, status, plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg, scale_status, pulse_count, offline_backlog_count, last_ping_at FROM machines');
+      machines = mRes.rows;
+    } catch (e) {}
+  }
+
+  // 2. If client scoped, resolve all machine IDs bound to this client
+  let clientMachineIds = null;
+  if (isClientScoped && pool) {
+    try {
+      const boundRes = await pool.query(`
+        SELECT DISTINCT UPPER(machine_id) AS machine_id FROM kiosk_org_bindings WHERE UPPER(org_id) = UPPER($1)
+        UNION
+        SELECT DISTINCT UPPER(machine_id) AS machine_id FROM machines WHERE UPPER(client_id) = UPPER($1)
+      `, [effectiveOrgId]).catch(() => ({ rows: [] }));
+
+      const orgRes = await pool.query(
+        'SELECT assigned_machines FROM organizations WHERE UPPER(org_id) = UPPER($1)',
+        [effectiveOrgId]
+      ).catch(() => ({ rows: [] }));
+
+      const set = new Set(boundRes.rows.map(r => r.machine_id).filter(Boolean));
+      if (orgRes.rows.length > 0 && Array.isArray(orgRes.rows[0].assigned_machines)) {
+        orgRes.rows[0].assigned_machines.forEach(m => {
+          if (m) set.add(String(m).trim().toUpperCase());
+        });
+      }
+
+      // Legacy fallback client IDs
+      if (effectiveOrgId === 'METRO_MALL' || effectiveOrgId === 'ORG_METRO') {
+        machines.forEach(m => {
+          const upperId = String(m.machine_id || '').toUpperCase();
+          const upperName = String(m.name || '').toUpperCase();
+          if (upperId.includes('METRO') || upperName.includes('METRO')) set.add(upperId);
+        });
+      } else if (effectiveOrgId === 'UCP_LAHORE' || effectiveOrgId === 'ORG_UCP') {
+        machines.forEach(m => {
+          const upperId = String(m.machine_id || '').toUpperCase();
+          const upperName = String(m.name || '').toUpperCase();
+          if (upperId.includes('UCP') || upperName.includes('UCP')) set.add(upperId);
+        });
+      } else if (effectiveOrgId === 'ORG_ENGRO') {
+        machines.forEach(m => {
+          const upperId = String(m.machine_id || '').toUpperCase();
+          const upperName = String(m.name || '').toUpperCase();
+          if (upperId.includes('ENGRO') || upperName.includes('ENGRO')) set.add(upperId);
+        });
+      } else if (effectiveOrgId === 'ORG_ALFALAH') {
+        machines.forEach(m => {
+          const upperId = String(m.machine_id || '').toUpperCase();
+          const upperName = String(m.name || '').toUpperCase();
+          if (upperId.includes('ALFALAH') || upperName.includes('ALFALAH')) set.add(upperId);
+        });
+      }
+      clientMachineIds = Array.from(set);
+    } catch (e) {
+      clientMachineIds = [];
+    }
+  }
+
+  let scopedMachines = machines;
+  if (isClientScoped) {
+    const allowedClientSet = new Set((clientMachineIds || []).map(id => id.toUpperCase()));
+    scopedMachines = scopedMachines.filter(m => allowedClientSet.has(String(m.machine_id || '').toUpperCase()));
+  }
+
+  // Filter by Station Type
+  const stationFilter = String(req?.query?.stationFilter || 'ALL').toUpperCase();
+  if (stationFilter !== 'ALL') {
+    scopedMachines = scopedMachines.filter(m => {
+      const t = String(m.machine_type || '').toUpperCase();
+      const id = String(m.machine_id || '').toUpperCase();
+      if (stationFilter === 'PECODROP') return t === 'PECODROP' || id.includes('PECO');
+      if (stationFilter === 'RVM_OLD') return t === 'RVM_OLD' || id.includes('OLD');
+      if (stationFilter === 'RVM_NEW') return t === 'RVM_NEW' || (!id.includes('PECO') && !id.includes('OLD'));
+      return t === stationFilter;
+    });
+  }
+
+  // Filter by Location
+  const locationFilter = String(req?.query?.location || 'ALL').trim().toUpperCase();
+  if (locationFilter && locationFilter !== 'ALL') {
+    scopedMachines = scopedMachines.filter(m =>
+      String(m.location || '').toUpperCase().includes(locationFilter)
+    );
+  }
+
+  // User-level assigned machines boundary
+  const effectiveScope = getEffectiveMachineScope(req);
+  if (effectiveScope && effectiveScope.length > 0) {
+    if (effectiveScope.includes('__RESTRICTED_NO_ACCESS__')) {
+      scopedMachines = [];
+    } else {
+      const userSet = new Set(effectiveScope.map(m => m.toUpperCase()));
+      scopedMachines = scopedMachines.filter(m => userSet.has(String(m.machine_id || '').toUpperCase()));
+    }
+  }
+
+  const allowedMachineIds = new Set(scopedMachines.map(m => String(m.machine_id || '').toUpperCase()));
+
+  return {
+    isClientScoped,
+    effectiveOrgId,
+    clientMachineIds: clientMachineIds ? new Set(clientMachineIds) : null,
+    scopedMachines,
+    allowedMachineIds,
+    allMachines: machines,
+    stationFilter,
+    locationFilter,
+    isSuper
+  };
+}
+
+function isSessionAllowed(session, { isClientScoped, allowedMachineIds }) {
+  const mId = String(session.machineId || session.machine_id || session.kioskId || session.kiosk_id || '').trim().toUpperCase();
+  if (isClientScoped) {
+    if (allowedMachineIds.size === 0) return false;
+    return allowedMachineIds.has(mId);
+  }
+  if (allowedMachineIds.size > 0 && !allowedMachineIds.has(mId)) {
+    return false;
+  }
+  return true;
+}
+
+function isAlertAllowed(alert, { isClientScoped, allowedMachineIds }) {
+  const mId = String(alert.machineId || alert.machine_id || alert.kioskId || alert.kiosk_id || '').trim().toUpperCase();
+  if (isClientScoped) {
+    if (allowedMachineIds.size === 0) return false;
+    return allowedMachineIds.has(mId);
+  }
+  if (allowedMachineIds.size > 0 && !allowedMachineIds.has(mId)) {
+    return false;
+  }
+  return true;
 }
 
 // Lightweight, tenant-scoped labels for the corporate portal header.
@@ -1624,59 +1797,17 @@ app.get('/api/corporate/fleet-labels', optionalAuth, async (req, res) => {
 app.get('/api/overview', optionalAuth, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
-      const stationFilter = String(req.query.stationFilter || 'ALL').toUpperCase();
-      const clientId = String(req.query.clientId || 'ALL').toUpperCase();
       const pool = getPgPool();
-
-      // 1. Resolve registered machines map with hardware model and client organization
-      let machines = [];
-      if (pool) {
-        try {
-          const mRes = await pool.query('SELECT machine_id, name, location, machine_type, client_id, client_name, status, plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg, scale_status, pulse_count, offline_backlog_count FROM machines');
-          machines = mRes.rows;
-        } catch (e) {}
-      }
-
-      // Filter machines according to global navbar station and client selection
-      let scopedMachines = machines;
-      if (stationFilter !== 'ALL') {
-        scopedMachines = scopedMachines.filter(m => String(m.machine_type || '').toUpperCase() === stationFilter);
-      }
-      if (clientId !== 'ALL') {
-        scopedMachines = scopedMachines.filter(m => {
-          const cId = String(m.client_id || '').toUpperCase();
-          if (clientId === 'METRO_MALL' || clientId === 'ORG_METRO') {
-            return cId === 'ORG_METRO' || cId === 'METRO_MALL' || String(m.machine_id || '').toUpperCase().includes('METRO') || String(m.name || '').toUpperCase().includes('METRO');
-          }
-          if (clientId === 'UCP_LAHORE' || clientId === 'ORG_UCP') {
-            return cId === 'ORG_UCP' || cId === 'UCP_LAHORE' || String(m.machine_id || '').toUpperCase().includes('UCP') || String(m.name || '').toUpperCase().includes('UCP');
-          }
-          return cId === clientId;
-        });
-      }
-      const locationFilter = String(req.query.location || 'ALL').trim().toUpperCase();
-      if (locationFilter && locationFilter !== 'ALL') {
-        scopedMachines = scopedMachines.filter(machine =>
-          String(machine.location || '').toUpperCase().includes(locationFilter)
-        );
-      }
-
-      // Enforce authenticated user & query machine scope
-      const effectiveScope = getEffectiveMachineScope(req);
-      if (effectiveScope && effectiveScope.length > 0) {
-        if (effectiveScope.includes('__RESTRICTED_NO_ACCESS__')) {
-          scopedMachines = [];
-        } else {
-          scopedMachines = scopedMachines.filter(m => effectiveScope.includes(m.machine_id.toUpperCase()));
-        }
-      }
-
-      const isSuper = req.user?.roleId === 'super_admin' || req.user?.username === 'onenet';
-      if (req.user?.orgId && !isSuper && (!effectiveScope || effectiveScope.length === 0)) {
-        scopedMachines = scopedMachines.filter(m => String(m.client_id || '').toUpperCase() === String(req.user.orgId).toUpperCase());
-      }
-
-      const allowedMachineIds = new Set(scopedMachines.map(m => m.machine_id.toUpperCase()));
+      const scopeCtx = await resolveScopeContext(req, pool);
+      const {
+        isClientScoped,
+        effectiveOrgId,
+        scopedMachines,
+        allowedMachineIds,
+        allMachines: machines,
+        stationFilter
+      } = scopeCtx;
+      const clientId = effectiveOrgId || 'ALL';
 
       let sessions = await fetchCollectionDocs('recycling_sessions');
       if (sessions.length === 0) {
@@ -1690,13 +1821,8 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       const binAlerts = await fetchCollectionDocs('binfullnotifications');
       const redemptions = await fetchCollectionDocs('redemptions');
 
-      // Filter sessions by scoped machine IDs
-      let filteredSessions = sessions.filter(s => {
-        const mId = String(s.machineId || s.machine_id || '').trim().toUpperCase();
-        if (effectiveScope && effectiveScope.includes('__RESTRICTED_NO_ACCESS__')) return false;
-        if (allowedMachineIds.size > 0 && !allowedMachineIds.has(mId)) return false;
-        return true;
-      });
+      // Filter sessions by scoped machine IDs (strictly enforce tenant boundary)
+      let filteredSessions = sessions.filter(s => isSessionAllowed(s, scopeCtx));
 
       const dateRange = String(req.query.dateRange || '30d').toLowerCase();
       if (dateRange !== 'all_time') {
@@ -1935,8 +2061,9 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         };
       });
 
-      // Hardware Routed Bin Alerts: map from real binAlerts or empty array
-      const recentAlerts = (Array.isArray(binAlerts) ? binAlerts : []).slice(0, 10).map(a => ({
+      // Hardware Routed Bin Alerts: strictly scoped to tenant machines
+      const scopedAlerts = (Array.isArray(binAlerts) ? binAlerts : []).filter(a => isAlertAllowed(a, scopeCtx));
+      const recentAlerts = scopedAlerts.slice(0, 10).map(a => ({
         _id: a._id || a.id || `ALT-${Math.random().toString(36).substr(2, 5)}`,
         machineId: a.machineId || a.machine_id || 'RVM-001',
         hardwareType: a.hardwareType || 'RVM_NEW',
@@ -1946,6 +2073,20 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         occurredAt: a.occurredAt || a.created_at || new Date().toISOString()
       }));
 
+      let scopedUsersCount = users.length;
+      if (isClientScoped && pool) {
+        try {
+          const uRes = await pool.query(`
+            SELECT COUNT(DISTINCT user_id) as cnt FROM users 
+            WHERE UPPER(COALESCE(org_id, '')) = UPPER($1) 
+               OR user_id IN (SELECT claimed_by_user_id FROM organization_employees WHERE UPPER(org_id) = UPPER($1) AND claimed_by_user_id IS NOT NULL);
+          `, [effectiveOrgId]);
+          scopedUsersCount = parseInt(uRes.rows[0]?.cnt || 0);
+        } catch (e) {
+          scopedUsersCount = 0;
+        }
+      }
+
       return res.json({
         database: activePgConfig.database || 'rvmpg',
         databaseType: 'postgres',
@@ -1953,10 +2094,11 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         stationFilter,
         clientId,
         totalSessions: filteredSessions.length,
-        totalUsers: users.length,
-        totalFeedbacks: feedbacks.length,
-        totalBinAlerts: recentAlerts.length,
-        totalRedemptions: redemptions.length,
+        totalUsers: isClientScoped ? scopedUsersCount : users.length,
+        totalFeedbacks: isClientScoped ? 0 : feedbacks.length,
+        totalBinAlerts: scopedAlerts.length,
+        totalRedemptions: isClientScoped ? 0 : redemptions.length,
+        totalMachines: scopedMachines.length,
         totalBottles,
         totalCups,
         totalPoints,
@@ -2268,16 +2410,25 @@ app.get('/api/collections/:name', authenticateToken, async (req, res) => {
   }
 });
 
-// Analytics Trends Endpoint (Resilient Optional Auth)
+// Analytics Trends Endpoint (Resilient Optional Auth & Tenant Scoped)
 app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
   try {
+    const pool = getPgPool();
+    const scopeCtx = await resolveScopeContext(req, pool);
+
     if (activeDbType === 'postgres' && activePgConfig) {
       let sessions = await fetchCollectionDocs('recycling_sessions');
       if (sessions.length === 0) {
         sessions = await fetchCollectionDocs('recyclingsessions');
       }
+
+      if (scopeCtx.isClientScoped && scopeCtx.allowedMachineIds.size === 0) {
+        return res.json([]);
+      }
+
+      const filtered = sessions.filter(s => isSessionAllowed(s, scopeCtx));
       const grouped = {};
-      sessions.forEach(s => {
+      filtered.forEach(s => {
         const rawDate = s.recycledAt || s.timestamp || s.created_at;
         let dateKey = '';
         if (rawDate instanceof Date) {
@@ -2291,14 +2442,21 @@ app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
         }
 
         if (!grouped[dateKey]) {
-          grouped[dateKey] = { _id: dateKey, bottles: 0, cups: 0, points: 0, count: 0 };
+          grouped[dateKey] = { _id: dateKey, bottles: 0, cups: 0, cans: 0, cartons: 0, points: 0, count: 0 };
         }
-        grouped[dateKey].bottles += parseInt(s.bottles || s.totalBottles || s.plasticCount || 0) || 0;
-        grouped[dateKey].cups += parseInt(s.cups || s.totalCups || s.aluminiumCount || 0) || 0;
-        grouped[dateKey].points += parseInt(s.points || s.totalPoints || 0) || 0;
+        const b = parseInt(s.bottles || s.totalBottles || s.plasticCount || 0) || 0;
+        const c = parseInt(s.cups || s.totalCups || s.aluminiumCount || 0) || 0;
+        const tetra = parseInt(s.cartonCount || s.cartons || (s.tetrapak_weight_grams ? Math.round(s.tetrapak_weight_grams / 35) : 0)) || 0;
+        const pts = parseInt(s.points || s.totalPoints || s.pointsEarned || 0) || 0;
+
+        grouped[dateKey].bottles += b;
+        grouped[dateKey].cups += c;
+        grouped[dateKey].cans += c;
+        grouped[dateKey].cartons += tetra;
+        grouped[dateKey].points += pts;
         grouped[dateKey].count += 1;
       });
-      const trends = Object.values(grouped).sort((a, b) => a._id.localeCompare(b._id)).slice(0, 30);
+      const trends = Object.values(grouped).sort((a, b) => a._id.localeCompare(b._id)).slice(-30);
       return res.json(trends);
     }
 
@@ -2438,13 +2596,18 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         });
       }
 
-      // Respect assignedMachines filter if present
-      const effectiveScope = getEffectiveMachineScope(req);
-      if (effectiveScope && effectiveScope.length > 0 && !effectiveScope.includes('*')) {
-        filteredSessions = filteredSessions.filter(s => {
-          const mId = String(s.machineId || s.machine_id || '').toUpperCase();
-          return effectiveScope.includes(mId);
-        });
+      // Respect tenant machine scope & assignedMachines
+      const scopeCtx = await resolveScopeContext(req, pool);
+      if (scopeCtx.isClientScoped) {
+        filteredSessions = filteredSessions.filter(s => isSessionAllowed(s, scopeCtx));
+      } else {
+        const effectiveScope = getEffectiveMachineScope(req);
+        if (effectiveScope && effectiveScope.length > 0 && !effectiveScope.includes('*')) {
+          filteredSessions = filteredSessions.filter(s => {
+            const mId = String(s.machineId || s.machine_id || '').toUpperCase();
+            return effectiveScope.includes(mId);
+          });
+        }
       }
 
       const grouped = {};
@@ -3035,40 +3198,14 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
       const stationFilter = String(req.query.stationFilter || 'ALL').toUpperCase();
       const clientId = String(req.query.clientId || 'ALL').toUpperCase();
 
+      const scopeCtx = await resolveScopeContext(req, pool);
       let combined = Object.values(grouped).map(m => ({
         ...m,
         alertCount: alertsMap[m.machineId] ? alertsMap[m.machineId].alertCount : 0,
         lastAlert: alertsMap[m.machineId] ? alertsMap[m.machineId].lastAlert : null
       }));
 
-      const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || req.user?.username === 'onenet' || req.user?.username === 'bilalaaqueel';
-      const isCorpClient = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
-
-      if (isCorpClient) {
-        if (filterMachines && filterMachines.length > 0 && !filterMachines.includes('__RESTRICTED_NO_ACCESS__')) {
-          combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
-        } else if (req.user?.orgId) {
-          combined = combined.filter(m => String(m.clientId || '').toUpperCase() === String(req.user.orgId).toUpperCase());
-        } else {
-          combined = [];
-        }
-      } else if (filterMachines && filterMachines.length > 0) {
-        if (filterMachines.includes('__RESTRICTED_NO_ACCESS__')) {
-          combined = [];
-        } else {
-          combined = combined.filter(m => m.machineId && filterMachines.includes(m.machineId.toUpperCase()));
-        }
-      }
-      if (stationFilter && stationFilter !== 'ALL') {
-        const targetType = (stationFilter === 'RVM_NEW' || stationFilter === 'RV_NEW') ? 'RVM_NEW' :
-                           (stationFilter === 'PECODROP' || stationFilter === 'PECO') ? 'PECODROP' :
-                           (stationFilter === 'RVM_OLD' || stationFilter === 'LEGACY') ? 'RVM_OLD' : stationFilter;
-        combined = combined.filter(m => String(m.machineType || '').toUpperCase() === targetType);
-      }
-      if (clientId && clientId !== 'ALL') {
-        combined = combined.filter(m => String(m.clientId || '').toUpperCase() === clientId);
-      }
-
+      combined = combined.filter(m => isSessionAllowed({ machineId: m.machineId }, scopeCtx));
       return res.json(combined);
     }
 
@@ -3179,41 +3316,15 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
   }
 });
 
-// Live Machine Asset Summary for Global Top Bar Control Strip (Public Telemetry Counters)
-app.get('/api/analytics/machines/summary', async (req, res) => {
+// Live Machine Asset Summary for Global Top Bar Control Strip (Public Telemetry Counters & Tenant Scoped)
+app.get('/api/analytics/machines/summary', optionalAuth, async (req, res) => {
   try {
     const pool = getPgPool();
-    let allMachines = [];
-    if (pool) {
-      const resM = await pool.query('SELECT machine_id, name, status, last_ping_at, machine_type, client_id, client_name FROM machines');
-      allMachines = resM.rows;
-    }
+    const scopeCtx = await resolveScopeContext(req, pool);
+    const { scopedMachines } = scopeCtx;
+
     const alerts = await fetchCollectionDocs('binfullnotifications');
     const now = Date.now();
-
-    // Support optional client filtering
-    const clientId = String(req.query.clientId || 'ALL').toUpperCase();
-    let scopedMachines = allMachines;
-    if (clientId && clientId !== 'ALL') {
-      scopedMachines = allMachines.filter(m => {
-        const upperId = String(m.machine_id || '').toUpperCase();
-        const upperName = String(m.name || '').toUpperCase();
-        const cId = String(m.client_id || '').toUpperCase();
-        if (clientId === 'METRO_MALL' || clientId === 'ORG_METRO') {
-          return cId === 'METRO_MALL' || cId === 'ORG_METRO' || upperId.includes('METRO') || upperName.includes('METRO') || upperName.includes('PECO-RWP') || upperName.includes('RVM-RWP-MT') || upperId === 'RVM-007' || upperId === 'RVM-0067';
-        }
-        if (clientId === 'UCP_LAHORE' || clientId === 'ORG_UCP') {
-          return cId === 'UCP_LAHORE' || cId === 'ORG_UCP' || upperId.includes('UCP') || upperName.includes('UCP') || upperId === 'RVM:01';
-        }
-        if (clientId === 'ORG_ENGRO') {
-          return cId === 'ORG_ENGRO' || upperId.includes('ENGRO') || upperName.includes('ENGRO') || upperId.includes('LHR-01');
-        }
-        if (clientId === 'ORG_ALFALAH') {
-          return cId === 'ORG_ALFALAH' || upperId.includes('ALFALAH') || upperName.includes('ALFALAH') || upperId.includes('KHI-01');
-        }
-        return cId === clientId;
-      });
-    }
 
     let onlineCount = 0;
     scopedMachines.forEach(m => {
@@ -3238,6 +3349,9 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
       rvmOld: scopedMachines.filter(m => getNormalizedStation(m) === 'rvmOld').length
     };
 
+    // Filter alerts strictly to scoped machines
+    const scopedAlerts = (Array.isArray(alerts) ? alerts : []).filter(a => isAlertAllowed(a, scopeCtx));
+
     let dynamicClients = [
       { id: 'ALL', name: 'ISP Environmental Master (All Sites)', badge: 'Master Nationwide' },
       { id: 'ISP_MASTER', name: 'ISP Environmental Master (All Sites / Public Network)', badge: 'Master Network' }
@@ -3261,7 +3375,7 @@ app.get('/api/analytics/machines/summary', async (req, res) => {
       totalActive: scopedMachines.length,
       onlineCount,
       offlineCount,
-      activeAlerts: alerts.length || 0,
+      activeAlerts: scopedAlerts.length,
       byStation,
       clients: dynamicClients
     });
@@ -3785,46 +3899,9 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
         sessions = await fetchCollectionDocs('recyclingsessions');
       }
 
-      // Resolve the exact fleet permitted by authentication, navbar client,
-      // and station type before calculating any tenant ESG figures.
       const pool = getPgPool();
-      let allowedMachineIds = getEffectiveMachineScope(req);
-      const requestedClientId = String(req.query.clientId || '').trim().toUpperCase();
-      const userRole = String(req.user?.roleId || '').toLowerCase();
-      const isSuper = ['super_admin', 'superadmin'].includes(userRole)
-        || String(req.user?.username || '').toLowerCase() === 'onenet';
-      // A tenant account can never override its token organization via query
-      // parameters. Only super admins may select another client explicitly.
-      const authenticatedOrgId = !isSuper && req.user?.orgId
-        ? String(req.user.orgId).toUpperCase()
-        : '';
-      const effectiveClientId = authenticatedOrgId
-        || (requestedClientId && requestedClientId !== 'ALL' ? requestedClientId : '');
-      const requestedStation = String(req.query.stationFilter || '').trim().toUpperCase();
-
-      if (pool && (effectiveClientId || (requestedStation && requestedStation !== 'ALL'))) {
-        const machineRes = await pool.query('SELECT machine_id, client_id, machine_type FROM machines');
-        const contextualIds = machineRes.rows
-          .filter(m => !effectiveClientId || String(m.client_id || '').toUpperCase() === effectiveClientId)
-          .filter(m => !requestedStation || requestedStation === 'ALL' || String(m.machine_type || '').toUpperCase() === requestedStation)
-          .map(m => String(m.machine_id || '').toUpperCase())
-          .filter(Boolean);
-
-        if (allowedMachineIds && allowedMachineIds.length > 0 && !allowedMachineIds.includes('*')) {
-          const contextualSet = new Set(contextualIds);
-          allowedMachineIds = allowedMachineIds.filter(id => contextualSet.has(String(id).toUpperCase()));
-        } else {
-          allowedMachineIds = contextualIds;
-        }
-      }
-
-      if (allowedMachineIds && !allowedMachineIds.includes('*')) {
-        const allowedSet = new Set(allowedMachineIds.map(id => String(id).toUpperCase()));
-        sessions = sessions.filter(s => {
-          const machineId = s.machineId || s.machine_id || s.kioskId || s.kiosk_id || '';
-          return allowedSet.has(String(machineId).toUpperCase());
-        });
-      }
+      const scopeCtx = await resolveScopeContext(req, pool);
+      sessions = sessions.filter(s => isSessionAllowed(s, scopeCtx));
 
       count = sessions.length;
       sessions.forEach(s => {

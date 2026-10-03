@@ -59,7 +59,11 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       const u = currentUser || JSON.parse(sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user') || '{}');
       const params = new URLSearchParams();
       if (stationFilter && stationFilter !== 'ALL') params.append('stationFilter', stationFilter);
-      if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
+      if (selectedClientId && selectedClientId !== 'ALL') {
+        params.append('clientId', selectedClientId);
+      } else if (u.orgId && u.roleId !== 'super_admin' && u.username !== 'onenet' && u.username !== 'bilalaaqueel') {
+        params.append('clientId', u.orgId);
+      }
       if (dateRange) params.append('dateRange', dateRange);
       if (selectedLocation && selectedLocation !== 'ALL') params.append('location', selectedLocation);
       if (u.assignedMachines) {
@@ -754,8 +758,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 className="text-base font-bold t-text-primary">Breakdown by Material &amp; Size (All Machines)</h2>
-            <p className="text-xs t-text-muted">Detailed item counts and verified weight across your entire machine network</p>
+            <h2 className="text-base font-bold t-text-primary">
+              Breakdown by Material &amp; Size {selectedClientId !== 'ALL' ? `(${clientList.find(c => c.id === selectedClientId)?.rawName || clientList.find(c => c.id === selectedClientId)?.name || selectedClientId})` : '(All Machines)'}
+            </h2>
+            <p className="text-xs t-text-muted">Detailed item counts and verified weight across {selectedClientId !== 'ALL' ? 'assigned client units' : 'your entire machine network'}</p>
           </div>
           <span className="text-[11px] font-semibold t-text-secondary t-bg-sec px-2.5 py-1 rounded-md border t-border">
             Pieces &amp; Weight Summary
@@ -1089,7 +1095,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
                   <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   Recent Recycling Drops
                 </h3>
-                <p className="text-xs t-text-muted">Live feed of items deposited across all machines</p>
+                <p className="text-xs t-text-muted">Live feed of items deposited across {selectedClientId !== 'ALL' ? 'assigned client units' : 'all machines'}</p>
               </div>
               <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 cursor-pointer">
                 Live Feed Active

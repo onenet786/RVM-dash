@@ -65,6 +65,8 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
       const queryParams = new URLSearchParams();
       if (selectedClientId && selectedClientId !== 'ALL') {
         queryParams.append('clientId', selectedClientId);
+      } else if (currentUser?.orgId && currentUser?.roleId !== 'super_admin' && currentUser?.username !== 'onenet' && currentUser?.username !== 'bilalaaqueel') {
+        queryParams.append('clientId', currentUser.orgId);
       }
       if (stationFilter && stationFilter !== 'ALL') {
         queryParams.append('stationFilter', stationFilter);
