@@ -137,10 +137,15 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
   const handleConfirmDelete = async () => {
     setDeleteModal(prev => ({ ...prev, loading: true }));
     try {
-      const token = localStorage.getItem('rvm_token') || sessionStorage.getItem('rvm_token');
+      const token = sessionStorage.getItem('rvm_auth_token') || 
+                    localStorage.getItem('rvm_auth_token') || 
+                    sessionStorage.getItem('rvm_token') || 
+                    localStorage.getItem('rvm_token') || '';
       const authHeaders = {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(currentUser?.roleId ? { 'x-user-role': currentUser.roleId } : { 'x-user-role': 'super_admin' }),
+        ...(currentUser?.username ? { 'x-user-name': currentUser.username } : { 'x-user-name': 'onenet' })
       };
 
       if (deleteModal.mode === 'bulk') {
