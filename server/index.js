@@ -9887,9 +9887,21 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
           LIMIT 1
         ) pr ON TRUE
         WHERE rs.user_id IS NOT NULL AND rs.user_id NOT IN ('anonymous', '', 'null')
-          AND ($1::text[] IS NULL OR UPPER(rs.machine_id) = ANY($1::text[]))
+          AND (
+            $1::text[] IS NULL 
+            OR UPPER(rs.machine_id) = ANY($1::text[])
+            OR ($2::text IS NOT NULL AND (
+              rs.user_id IN (
+                SELECT user_id FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2)
+                UNION
+                SELECT mobile FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2) AND mobile IS NOT NULL
+                UNION
+                SELECT username FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2) AND username IS NOT NULL
+              )
+            ))
+          )
         GROUP BY rs.user_id;
-      `, [scopedMachines]).catch(() => ({ rows: [] }));
+      `, [scopedMachines, effectiveOrgId]).catch(() => ({ rows: [] }));
 
       // 3. Fetch session statistics from JSONB table ONLY for sessions not yet migrated into recycling_sessions
       const jsonSessions = await pool.query(`
@@ -9907,9 +9919,19 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         WHERE id NOT IN (SELECT session_id FROM recycling_sessions)
           AND (data->>'phoneNumber' IS NOT NULL OR data->>'userId' IS NOT NULL OR data->>'user_id' IS NOT NULL OR data->>'userName' IS NOT NULL)
           AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') NOT IN ('anonymous', '', 'null')
-          AND ($1::text[] IS NULL OR UPPER(COALESCE(data->>'machineId', data->>'machine_id', '')) = ANY($1::text[]))
+          AND (
+            $1::text[] IS NULL 
+            OR UPPER(COALESCE(data->>'machineId', data->>'machine_id', '')) = ANY($1::text[])
+            OR ($2::text IS NOT NULL AND COALESCE(data->>'phoneNumber', data->>'userId', data->>'user_id', data->>'userName') IN (
+              SELECT user_id FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2)
+              UNION
+              SELECT mobile FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2) AND mobile IS NOT NULL
+              UNION
+              SELECT username FROM users WHERE UPPER(COALESCE(org_id, '')) = UPPER($2) AND username IS NOT NULL
+            ))
+          )
         GROUP BY user_key;
-      `, [scopedMachines]).catch(() => ({ rows: [] }));
+      `, [scopedMachines, effectiveOrgId]).catch(() => ({ rows: [] }));
 
       // Map sessions to normalized phone/id keys
       const userSessionMap = {};

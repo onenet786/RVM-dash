@@ -57,6 +57,27 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
       : `${safeGrams.toLocaleString()} g`;
   };
 
+  const modalPaperGrams = useMemo(() => {
+    if (userHistory && userHistory.length > 0) {
+      const sum = userHistory.reduce((acc, s) => acc + (getPaperGrams(s) || 0), 0);
+      if (sum > 0) return sum;
+    }
+    return selectedUser?.paperGrams || selectedUser?.paper_weight_grams || 0;
+  }, [userHistory, selectedUser]);
+
+  const modalTotalSessions = useMemo(() => {
+    if (userHistory && userHistory.length > 0) return userHistory.length;
+    return selectedUser?.sessions || 0;
+  }, [userHistory, selectedUser]);
+
+  const modalRedeemedPoints = useMemo(() => {
+    if (userRedemptions && userRedemptions.length > 0) {
+      const sum = userRedemptions.reduce((acc, r) => acc + (r.points_redeemed || r.points || 0), 0);
+      if (sum > 0) return sum;
+    }
+    return selectedUser?.totalRedeemedPoints || selectedUser?.redeemedPoints || 0;
+  }, [userRedemptions, selectedUser]);
+
   const fetchMobileUsers = async (isManual = false) => {
     try {
       if (isManual) setRefreshing(true);
@@ -977,19 +998,19 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
                   <div className="p-3 rounded-2xl t-bg-sec border border-purple-500/30">
                     <div className="text-[10px] text-purple-500 uppercase font-bold">Redeemed</div>
                     <div className="font-extrabold text-purple-600 dark:text-purple-400 text-base mono mt-0.5">
-                      {(selectedUser.totalRedeemedPoints || 0).toLocaleString()} pts
+                      {(modalRedeemedPoints || 0).toLocaleString()} pts
                     </div>
                   </div>
                   <div className="p-3 rounded-2xl t-bg-sec border border-emerald-500/30">
                     <div className="text-[10px] text-emerald-500 uppercase font-bold">Paper Recycled</div>
                     <div className="font-extrabold text-emerald-600 dark:text-emerald-400 text-base mono mt-0.5">
-                      {formatPaperWeight(selectedUser.paperGrams || 0)}
+                      {formatPaperWeight(modalPaperGrams)}
                     </div>
                   </div>
                   <div className="p-3 rounded-2xl t-bg-sec border t-border">
                     <div className="text-[10px] t-text-muted uppercase font-bold">Total Sessions</div>
                     <div className="font-extrabold t-text-primary text-base mono mt-0.5">
-                      {selectedUser.sessions || userHistory.length}
+                      {modalTotalSessions}
                     </div>
                   </div>
                 </div>
