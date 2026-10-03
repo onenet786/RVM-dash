@@ -39,10 +39,10 @@ if ! command -v node &> /dev/null; then
 fi
 
 # 3. Detect Active Branch or Use Passed Argument
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "B26-28Sep2026")"
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "02Oct2026")"
 BRANCH="${1:-$CURRENT_BRANCH}"
 if [ "$BRANCH" = "HEAD" ] || [ -z "$BRANCH" ]; then
-  BRANCH="B26-28Sep2026"
+  BRANCH="02Oct2026"
 fi
 echo "🌿 Target Branch: $BRANCH (Current: $CURRENT_BRANCH)"
 
