@@ -782,6 +782,9 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 truncate max-w-[200px]" title={`@${org.domain}`}>
                           @{org.domain}
                         </span>
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-mono font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25" title="Employee Mobile App Linking Code">
+                          Code: {org.org_id ? org.org_id.replace('ORG_', '').split('@')[0].split('_')[0] : org.name}
+                        </span>
                       </div>
                     </div>
                   </div>
