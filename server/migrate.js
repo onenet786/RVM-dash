@@ -29,10 +29,47 @@ export async function runMigrations() {
       ALTER TABLE organizations ADD COLUMN IF NOT EXISTS assigned_machines TEXT[] DEFAULT '{}';
       ALTER TABLE organizations ADD COLUMN IF NOT EXISTS company_code VARCHAR(100);
 
+      -- Ensure core organizations exist prior to child table FK constraints
+      INSERT INTO organizations (org_id, name, domain, company_code, logo_url, contact_email, monthly_budget, monthly_target_kg, status)
+      VALUES 
+        ('ORG_ALFALAH', 'Bank Alfalah Limited', 'bankalfalah.com', 'ALFALAH', NULL, 'sustainability@bankalfalah.com', 250000, 2500.00, 'active'),
+        ('ORG_ENGRO', 'Engro Corporation', 'engro.com', 'ENGRO', NULL, 'csr@engro.com', 200000, 2000.00, 'active'),
+        ('ORG_UCP', 'University of Central Punjab', 'ucp.edu.pk', 'UCP', NULL, 'green.campus@ucp.edu.pk', 150000, 1500.00, 'active'),
+        ('ORG_METRO', 'Metro Cash & Carry', 'metro.pk', 'METRO', NULL, 'eco@metro.pk', 180000, 1800.00, 'active')
+      ON CONFLICT (org_id) DO UPDATE SET
+        company_code = COALESCE(organizations.company_code, EXCLUDED.company_code);
+
       UPDATE organizations SET company_code = 'ALFALAH' WHERE org_id = 'ORG_ALFALAH' AND (company_code IS NULL OR company_code = '');
       UPDATE organizations SET company_code = 'ENGRO' WHERE org_id = 'ORG_ENGRO' AND (company_code IS NULL OR company_code = '');
       UPDATE organizations SET company_code = 'UCP' WHERE org_id = 'ORG_UCP' AND (company_code IS NULL OR company_code = '');
       UPDATE organizations SET company_code = 'METRO' WHERE org_id = 'ORG_METRO' AND (company_code IS NULL OR company_code = '');
+
+      -- Ensure departments table exists before organization_employees references it
+      CREATE TABLE IF NOT EXISTS departments (
+        dept_id VARCHAR(100) PRIMARY KEY,
+        org_id VARCHAR(100) NOT NULL REFERENCES organizations(org_id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        manager_name VARCHAR(255),
+        manager_email VARCHAR(255),
+        monthly_target_kg NUMERIC(10, 2) DEFAULT 250.00,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO departments (dept_id, org_id, name, monthly_target_kg)
+      VALUES
+        ('DEPT_BA_OPS', 'ORG_ALFALAH', 'Operations & Clearing', 800.00),
+        ('DEPT_BA_FIN', 'ORG_ALFALAH', 'Finance & Accounts', 600.00),
+        ('DEPT_BA_HR', 'ORG_ALFALAH', 'Human Resources', 400.00),
+        ('DEPT_BA_IT', 'ORG_ALFALAH', 'Information Technology', 500.00),
+        ('DEPT_ENG_SUST', 'ORG_ENGRO', 'Sustainability & ESG', 700.00),
+        ('DEPT_ENG_PETRO', 'ORG_ENGRO', 'Petrochemicals Division', 900.00),
+        ('DEPT_ENG_CORP', 'ORG_ENGRO', 'Corporate Communications', 500.00),
+        ('DEPT_UCP_ENGG', 'ORG_UCP', 'Faculty of Engineering', 600.00),
+        ('DEPT_UCP_CS', 'ORG_UCP', 'Computer Science Dept', 500.00),
+        ('DEPT_UCP_ADMIN', 'ORG_UCP', 'University Administration', 400.00),
+        ('DEPT_METRO_OPS', 'ORG_METRO', 'Store Operations', 600.00),
+        ('DEPT_METRO_LOG', 'ORG_METRO', 'Supply Chain & Logistics', 500.00)
+      ON CONFLICT (dept_id) DO NOTHING;
 
       -- 2b. Ensure authoritative organization_employees whitelist roster exists
       CREATE TABLE IF NOT EXISTS organization_employees (
@@ -55,9 +92,10 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_org_emp_email ON organization_employees(org_id, LOWER(official_email));
       CREATE INDEX IF NOT EXISTS idx_org_emp_claimed ON organization_employees(claimed_by_user_id);
 
-      -- Seed sample employees if table is empty
+      -- Safe seeding of employees: strictly join with organizations to prevent foreign key violations
       INSERT INTO organization_employees (org_id, employee_id, full_name, official_email, mobile, dept_id, dept_name)
-      VALUES
+      SELECT v.org_id, v.employee_id, v.full_name, v.official_email, v.mobile, v.dept_id, v.dept_name
+      FROM (VALUES
         ('ORG_ALFALAH', 'BA-1001', 'Ahmed Khan', 'ahmed.khan@bankalfalah.com', '03001234561', 'DEPT_BA_OPS', 'Operations & Clearing'),
         ('ORG_ALFALAH', 'BA-1002', 'Fatima Noor', 'fatima.noor@bankalfalah.com', '03001234562', 'DEPT_BA_FIN', 'Finance & Accounts'),
         ('ORG_ALFALAH', 'BA-1003', 'Bilal Tariq', 'bilal.tariq@bankalfalah.com', '03001234563', 'DEPT_BA_HR', 'Human Resources'),
@@ -71,6 +109,8 @@ export async function runMigrations() {
         ('ORG_UCP', 'UCP-503', 'Hassan Ali', 'hassan.ali@ucp.edu.pk', '03331234563', 'DEPT_UCP_ADMIN', 'University Administration'),
         ('ORG_METRO', 'MET-301', 'Tariq Mehmood', 'tariq.m@metro.pk', '03451234561', 'DEPT_METRO_OPS', 'Store Operations'),
         ('ORG_METRO', 'MET-302', 'Sadia Bashir', 'sadia.b@metro.pk', '03451234562', 'DEPT_METRO_LOG', 'Supply Chain & Logistics')
+      ) AS v(org_id, employee_id, full_name, official_email, mobile, dept_id, dept_name)
+      JOIN organizations o ON o.org_id = v.org_id
       ON CONFLICT (org_id, employee_id) DO NOTHING;
 
       -- 3. Ensure kiosk_org_bindings junction table exists
