@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import compression from 'compression';
+import bcrypt from 'bcryptjs';
 
 import { MongoClient, ObjectId } from 'mongodb';
 import dns from 'dns';
@@ -7286,19 +7287,36 @@ async function handleMobileLogin(req, res) {
     }
 
     let user = null;
+    const cleanDigits = identifier.replace(/\D/g, '');
+    let localPhone = null;
+    let intlPhone = null;
+    if (cleanDigits.length === 11 && cleanDigits.startsWith('03')) {
+      localPhone = cleanDigits;
+      intlPhone = '92' + cleanDigits.slice(1);
+    } else if (cleanDigits.length === 12 && cleanDigits.startsWith('923')) {
+      intlPhone = cleanDigits;
+      localPhone = '0' + cleanDigits.slice(2);
+    }
+
     const pool = getPgPool();
     if (pool) {
       const userRes = await pool.query(`
         SELECT user_id, username, full_name, email, mobile, password, age, nic, gender, points_balance, status,
                user_type, org_id, dept_id, employee_id
         FROM users
-        WHERE mobile = $1 OR email = $1 OR username = $1
+        WHERE mobile = $1 
+           OR email = $1 
+           OR username = $1
+           OR ($2::text IS NOT NULL AND mobile = $2)
+           OR ($3::text IS NOT NULL AND mobile = $3)
         LIMIT 1;
-      `, [identifier]);
+      `, [identifier, localPhone, intlPhone]);
       if (userRes.rows.length > 0) {
         user = userRes.rows[0];
       }
     }
+
+    console.log('[Mobile Login Attempt]', { identifier, foundUser: Boolean(user), username: user?.username });
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
@@ -7312,7 +7330,20 @@ async function handleMobileLogin(req, res) {
       });
     }
 
-    if (user.password !== password) {
+    // Verify password (supports both legacy bcrypt hashes from MongoDB rvmapp and direct passwords)
+    let passwordMatches = false;
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
+      try {
+        passwordMatches = bcrypt.compareSync(password, user.password);
+      } catch (bcErr) {
+        console.warn('[bcrypt compare note]', bcErr.message);
+        passwordMatches = false;
+      }
+    } else {
+      passwordMatches = (user.password === password);
+    }
+
+    if (!passwordMatches) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
 

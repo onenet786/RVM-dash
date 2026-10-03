@@ -48,7 +48,7 @@
 
 ## Mobile Application Guidelines (`mobileapp`)
 - **App Name & Package**:
-  - Name: `SmartRecycling` (display label in strings.xml and package builds).
+  - Name: `Trash to Cash` (display label in strings.xml and package builds).
   - Package ID: `com.pleaseisp`
   - Workspace Path: `d:\GIT-HUB\RVM-dash\mobile_app`
   - Release Deliverables: `mobile_app\release-playstore\SmartRecycling-v2.0.6.apk` and `SmartRecycling-v2.0.6.aab`.

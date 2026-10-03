@@ -55,6 +55,12 @@ export default function LoginScreen({ navigation }) {
       fullName: rawUser.fullName || rawUser.full_name || rawUser.name || 'Eco Recycler',
       mobile: rawUser.mobile || rawUser.phoneNo || '',
       email: rawUser.email || '',
+      userType: rawUser.userType || rawUser.user_type || (rawUser.orgId || rawUser.org_id ? 'ENTERPRISE' : 'CITIZEN'),
+      orgId: rawUser.orgId || rawUser.org_id || null,
+      orgName: rawUser.orgName || rawUser.org_name || null,
+      employeeId: rawUser.employeeId || rawUser.employee_id || null,
+      deptId: rawUser.deptId || rawUser.dept_id || null,
+      department: rawUser.department || rawUser.department_name || null,
       points: rawUser.points_balance !== undefined ? rawUser.points_balance : (rawUser.pointsBalance !== undefined ? rawUser.pointsBalance : (rawUser.points || 0)),
       points_balance: rawUser.points_balance !== undefined ? rawUser.points_balance : (rawUser.pointsBalance !== undefined ? rawUser.pointsBalance : 0)
     };
@@ -90,7 +96,7 @@ export default function LoginScreen({ navigation }) {
   const handleSignIn = async () => {
     const cleanInput = emailOrPhone.trim();
     if (!cleanInput) {
-      Alert.alert('Email Required', 'Please enter your email or mobile number');
+      Alert.alert('Mobile or Email Required', 'Please enter your registered mobile number or email address');
       return;
     }
 
@@ -218,15 +224,21 @@ export default function LoginScreen({ navigation }) {
 
           {/* Form Fields */}
           <View style={styles.formContainer}>
-            {/* Email Field */}
+            {/* Mobile Number or Email Field */}
             <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons 
+                name={/^\d+$/.test(emailOrPhone.replace(/[\s+-]/g, '')) ? "cellphone" : "email-outline"} 
+                size={20} 
+                color="#64748B" 
+                style={{ marginRight: 8 }} 
+              />
               <TextInput
                 style={styles.textInput}
-                placeholder="Email"
+                placeholder="Mobile number (03xx) or Email"
                 placeholderTextColor="#9CA3AF"
                 value={emailOrPhone}
                 onChangeText={setEmailOrPhone}
-                keyboardType="email-address"
+                keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
               />

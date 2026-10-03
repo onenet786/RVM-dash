@@ -136,7 +136,7 @@ const SmartSplashScreen = ({ isReady = true, onFinish }) => {
     // 7. Dynamic high-tech status steps
     const t1 = setTimeout(() => setStatusMessage('Connecting to Smart Kiosks...'), 700);
     const t2 = setTimeout(() => setStatusMessage('Synchronizing Eco Credentials...'), 1400);
-    const t3 = setTimeout(() => setStatusMessage('Ready • Welcome to Smart Recycling'), 1900);
+    const t3 = setTimeout(() => setStatusMessage('Ready • Welcome to Trash to Cash'), 1900);
 
     // 8. Exit transition after minimum display time
     const exitTimer = setTimeout(() => {
@@ -256,11 +256,11 @@ const SmartSplashScreen = ({ isReady = true, onFinish }) => {
           </View>
 
           <Text style={styles.titleMain}>
-            SMART <Text style={styles.titleHighlight}>RECYCLING</Text>
+            TRASH TO <Text style={styles.titleHighlight}>CASH</Text>
           </Text>
 
           <Text style={styles.tagline}>
-            Deposit • Earn Rewards • Protect Nature
+            Turn Trash Into Cash • Deposit • Protect Nature
           </Text>
 
           {/* High-Tech Progress Bar */}

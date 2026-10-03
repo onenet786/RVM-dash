@@ -204,7 +204,7 @@ const SignUpScreen = ({ navigation }) => {
 
       Alert.alert(
         'Registration Complete',
-        'Your smart recycling account has been registered successfully!',
+        'Your Trash to Cash account has been registered successfully!',
         [
           {
             text: 'Sign In Now',

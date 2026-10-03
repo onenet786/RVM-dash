@@ -422,19 +422,28 @@ const DashboardScreen = ({ route }) => {
   const totalRedeemed = parseInt(localHistory?.totalRedeemedPoints ?? localHistory?.redeemedPoints ?? 0);
   const totalEarned = parseInt(localHistory?.totalEarnedPoints ?? localHistory?.earnedPoints ?? (currentBalance + totalRedeemed));
 
+  const isEnterprise = localUser?.userType === 'ENTERPRISE' || Boolean(localUser?.orgId);
+  const orgName = localUser?.orgName || (localUser?.orgId ? String(localUser.orgId).replace('ORG_', '').replace('_', ' ') : 'Corporate Partner');
+  const employeeId = localUser?.employeeId || '';
+  const department = localUser?.department || '';
+  const cashEquivalentPkr = Math.floor(currentBalance * 0.10);
+
   const plasticCount = parseInt(localHistory?.plasticCount || localHistory?.bottles || 0);
   const aluminiumCount = parseInt(localHistory?.aluminiumCount || localHistory?.cups || 0);
-  const glassCount = parseInt(localHistory?.glassCount || 0);
-  const paperCount = parseInt(localHistory?.paperCount || 0);
-  const totalItemsCount = parseInt(localHistory?.totalItems || (plasticCount + aluminiumCount + glassCount + paperCount) || 0);
+  const paperCount = parseInt(localHistory?.paperCount || localHistory?.paper || 0);
+  const totalItemsCount = parseInt(localHistory?.totalItems || (plasticCount + aluminiumCount + paperCount) || 0);
   
   const totalWeightKg = localHistory?.totalWeightKg !== undefined
     ? localHistory.totalWeightKg 
-    : (plasticCount * 0.025 + aluminiumCount * 0.015 + glassCount * 0.2 + paperCount * 0.03).toFixed(2);
+    : (plasticCount * 0.025 + aluminiumCount * 0.015 + paperCount * 0.03).toFixed(2);
     
   const co2AvoidedKg = localHistory?.co2AvoidedKg !== undefined
     ? localHistory.co2AvoidedKg 
-    : (plasticCount * 0.08 + aluminiumCount * 0.15 + glassCount * 0.12 + paperCount * 0.05).toFixed(2);
+    : (plasticCount * 0.08 + aluminiumCount * 0.15 + paperCount * 0.05).toFixed(2);
+
+  const paperWeightDisplay = paperCount > 0 
+    ? (paperCount >= 1000 ? `${(paperCount / 1000).toFixed(2)} kg` : `${paperCount} g`) 
+    : (totalWeightKg > 0 ? `${(totalWeightKg * 0.35).toFixed(2)} kg` : '0 g');
 
   const recentSessions = localHistory?.recentSessions || [];
 
@@ -466,7 +475,48 @@ const DashboardScreen = ({ route }) => {
             />
           </TouchableOpacity>
           
-          <Text style={styles.cardTitle}>Eco Dashboard</Text>
+          {/* Top Brand & Persona Banner */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingRight: 40 }}>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="recycle" size={22} color="#059669" style={{ marginRight: 6 }} />
+                <Text style={[styles.cardTitle, { marginBottom: 0 }]}>Trash to Cash</Text>
+              </View>
+              <Text style={styles.cardHeaderSubtitle}>
+                {isEnterprise ? 'Corporate Campus Kiosk Portal' : 'Smart Reverse Vending Network'}
+              </Text>
+            </View>
+            <View style={isEnterprise ? styles.enterpriseBadgePill : styles.citizenBadgePill}>
+              <MaterialCommunityIcons 
+                name={isEnterprise ? "office-building" : "account-check"} 
+                size={13} 
+                color={isEnterprise ? "#0284C7" : "#059669"} 
+                style={{ marginRight: 4 }} 
+              />
+              <Text style={isEnterprise ? styles.enterpriseBadgeText : styles.citizenBadgeText}>
+                {isEnterprise ? 'ENTERPRISE' : 'CITIZEN'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Corporate Affiliation Card if Enterprise */}
+          {isEnterprise && (
+            <View style={styles.corporateBanner}>
+              <View style={styles.corporateLogoBox}>
+                <MaterialCommunityIcons name="domain" size={24} color="#0284C7" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.corporateOrgName} numberOfLines={1}>{orgName}</Text>
+                <Text style={styles.corporateMetaText}>
+                  {employeeId ? `Staff ID: ${employeeId}` : 'Campus Member'}{department ? ` • ${department}` : ''}
+                </Text>
+              </View>
+              <View style={styles.corporateKioskTag}>
+                <MaterialCommunityIcons name="laptop" size={12} color="#0284C7" style={{ marginRight: 3 }} />
+                <Text style={styles.corporateKioskTagText}>PecoDrop</Text>
+              </View>
+            </View>
+          )}
           
           {/* User Information Section with Avatar and Edit Option */}
           <View style={styles.userInfoContainer}>
@@ -533,6 +583,7 @@ const DashboardScreen = ({ route }) => {
                 </View>
                 <Text style={[styles.pointsStatNumber, { color: '#0284C7' }]}>{currentBalance.toLocaleString()}</Text>
                 <Text style={styles.pointsStatUnit}>Available pts</Text>
+                <Text style={styles.cashConversionUnit}>≈ Rs {cashEquivalentPkr}</Text>
               </View>
 
               {/* 2. Total Lifetime Earned */}
@@ -543,6 +594,7 @@ const DashboardScreen = ({ route }) => {
                 </View>
                 <Text style={[styles.pointsStatNumber, { color: '#059669' }]}>{totalEarned.toLocaleString()}</Text>
                 <Text style={styles.pointsStatUnit}>Lifetime pts</Text>
+                <Text style={[styles.cashConversionUnit, { color: '#059669' }]}>≈ Rs {Math.floor(totalEarned * 0.10)}</Text>
               </View>
 
               {/* 3. Total Redeemed */}
@@ -553,7 +605,40 @@ const DashboardScreen = ({ route }) => {
                 </View>
                 <Text style={[styles.pointsStatNumber, { color: '#D97706' }]}>{totalRedeemed.toLocaleString()}</Text>
                 <Text style={styles.pointsStatUnit}>Used pts</Text>
+                <Text style={[styles.cashConversionUnit, { color: '#D97706' }]}>≈ Rs {Math.floor(totalRedeemed * 0.10)}</Text>
               </View>
+            </View>
+
+            {/* Quick Action Navigation Bar */}
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity 
+                style={[styles.quickActionBtn, styles.quickActionBtnPrimary]}
+                onPress={() => navigation.navigate('QrCode')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="qrcode-scan" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.quickActionBtnTextPrimary}>Scan Kiosk</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.quickActionBtn, styles.quickActionBtnSuccess]}
+                onPress={() => navigation.navigate('Rewards')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="cash-multiple" size={16} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.quickActionBtnTextSuccess}>
+                  {isEnterprise ? 'Perks & CSR' : 'Cashout (PKR)'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.quickActionBtn, styles.quickActionBtnDefault]}
+                onPress={() => navigation.navigate('location')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="map-marker-radius" size={16} color="#0284C7" style={{ marginRight: 4 }} />
+                <Text style={styles.quickActionBtnTextDefault}>Find Kiosks</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Milestone Goal Tracker */}
@@ -570,7 +655,7 @@ const DashboardScreen = ({ route }) => {
             <View style={styles.impactMetricItem}>
               <MaterialCommunityIcons name="recycle" size={22} color="#10B981" />
               <Text style={styles.impactValue}>{totalItemsCount}</Text>
-              <Text style={styles.impactLabel}>Items Recycled</Text>
+              <Text style={styles.impactLabel}>{isEnterprise ? 'PecoDrop Items' : 'Items Recycled'}</Text>
             </View>
             <View style={styles.impactMetricItem}>
               <MaterialCommunityIcons name="scale" size={22} color="#0EA5E9" />
@@ -585,108 +670,213 @@ const DashboardScreen = ({ route }) => {
           </View>
         </View>
 
-        {/* Recovered Items & Material Variants Section */}
+        {/* Recovered Items & Material Streams Section */}
         <View style={styles.variantsCard}>
           <View style={styles.sectionHeaderRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialCommunityIcons name="shape-outline" size={22} color="#0EA5E9" style={{ marginRight: 6 }} />
-              <Text style={styles.sectionTitle}>Recovered Items & Variants</Text>
+              <MaterialCommunityIcons 
+                name={isEnterprise ? "cube-outline" : "shape-outline"} 
+                size={22} 
+                color={isEnterprise ? "#0284C7" : "#059669"} 
+                style={{ marginRight: 6 }} 
+              />
+              <Text style={styles.sectionTitle}>
+                {isEnterprise ? 'PecoDrop Intake Apertures' : 'Accepted Recyclables Breakdown'}
+              </Text>
             </View>
-            <View style={styles.totalBadge}>
-              <Text style={styles.totalBadgeText}>{totalItemsCount} Total</Text>
+            <View style={isEnterprise ? styles.totalBadgeEnterprise : styles.totalBadge}>
+              <Text style={isEnterprise ? styles.totalBadgeTextEnterprise : styles.totalBadgeText}>
+                {totalItemsCount} Total
+              </Text>
             </View>
           </View>
 
           <Text style={styles.variantsSubtitle}>
-            Detailed breakdown of all recyclable material variants deposited into RVMs:
+            {isEnterprise 
+              ? 'Illuminated 3-aperture corporate campus streams on your PecoDrop unit:'
+              : 'Real-time items deposited into public Smart RVM kiosks:'}
           </Text>
 
-          {/* 4 Variant Types Grid */}
+          {/* 4 Cards Grid - Dually Adaptive for Enterprise vs Citizen */}
           <View style={styles.variantGrid}>
             
-            {/* 1. PET Plastic Bottles */}
-            <View style={[styles.variantCard, styles.petCard]}>
-              <View style={styles.variantTopRow}>
-                <View style={[styles.variantIconCircle, { backgroundColor: '#E0F2FE' }]}>
-                  <MaterialCommunityIcons name="bottle-soda-classic" size={24} color="#0284C7" />
+            {isEnterprise ? (
+              <>
+                {/* 1. ⭕ PecoDrop Circle Aperture (Plastic) */}
+                <View style={[styles.variantCard, styles.pecoCircleCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#FCE7F3' }]}>
+                      <MaterialCommunityIcons name="circle-outline" size={24} color="#E11D48" />
+                    </View>
+                    <Text style={[styles.variantCountNumber, { color: '#E11D48' }]}>{plasticCount}</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>⭕ Circle: Plastic</Text>
+                  <Text style={styles.variantSpecs}>PET Beverage Bottles</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>250ml - 500ml</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>1.0L - 1.5L</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.variantCountNumber}>{plasticCount}</Text>
-              </View>
-              <Text style={styles.variantTitle}>PET Bottles</Text>
-              <Text style={styles.variantSpecs}>Clear & Colored Plastic</Text>
-              
-              <View style={styles.variantSubtagsContainer}>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>250ml - 500ml</Text>
-                </View>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>1.0L - 1.5L</Text>
-                </View>
-              </View>
-            </View>
 
-            {/* 2. Aluminium Cans */}
-            <View style={[styles.variantCard, styles.canCard]}>
-              <View style={styles.variantTopRow}>
-                <View style={[styles.variantIconCircle, { backgroundColor: '#CCFBF1' }]}>
-                  <MaterialCommunityIcons name="cup-water" size={24} color="#0D9488" />
+                {/* 2. 🔺 PecoDrop Triangle Aperture (Cans) */}
+                <View style={[styles.variantCard, styles.pecoTriangleCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                      <MaterialCommunityIcons name="triangle-outline" size={24} color="#059669" />
+                    </View>
+                    <Text style={[styles.variantCountNumber, { color: '#059669' }]}>{aluminiumCount}</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>🔺 Triangle: Cans</Text>
+                  <Text style={styles.variantSpecs}>Aluminium & Metal Cans</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>250ml Sleek</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>330ml Std</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.variantCountNumber}>{aluminiumCount}</Text>
-              </View>
-              <Text style={styles.variantTitle}>Aluminium Cans</Text>
-              <Text style={styles.variantSpecs}>Soda & Beverage Cans</Text>
-              
-              <View style={styles.variantSubtagsContainer}>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>250ml Sleek</Text>
-                </View>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>330ml Std</Text>
-                </View>
-              </View>
-            </View>
 
-            {/* 3. Glass Containers */}
-            <View style={[styles.variantCard, styles.glassCard]}>
-              <View style={styles.variantTopRow}>
-                <View style={[styles.variantIconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <MaterialCommunityIcons name="glass-wine" size={24} color="#D97706" />
+                {/* 3. 🟦 PecoDrop Square Aperture (Office Paper - Weighed) */}
+                <View style={[styles.variantCard, styles.pecoSquareCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                      <MaterialCommunityIcons name="square-outline" size={24} color="#0284C7" />
+                    </View>
+                    <Text style={[styles.variantCountNumber, { color: '#0284C7', fontSize: 18 }]}>
+                      {paperWeightDisplay}
+                    </Text>
+                  </View>
+                  <Text style={styles.variantTitle}>🟦 Square: Paper</Text>
+                  <Text style={styles.variantSpecs}>HX711 Load Cell Weighed</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>Office A4</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>Shreds / Grams</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.variantCountNumber}>{glassCount}</Text>
-              </View>
-              <Text style={styles.variantTitle}>Glass Bottles</Text>
-              <Text style={styles.variantSpecs}>Beverages & Glass Jars</Text>
-              
-              <View style={styles.variantSubtagsContainer}>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Returnable</Text>
-                </View>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Recyclable</Text>
-                </View>
-              </View>
-            </View>
 
-            {/* 4. Cups & Cartons */}
-            <View style={[styles.variantCard, styles.paperCard]}>
-              <View style={styles.variantTopRow}>
-                <View style={[styles.variantIconCircle, { backgroundColor: '#EEF2FF' }]}>
-                  <MaterialCommunityIcons name="coffee" size={24} color="#4F46E5" />
+                {/* 4. Corporate ESG & Campus CSR Score */}
+                <View style={[styles.variantCard, styles.pecoEsgCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#F5F3FF' }]}>
+                      <MaterialCommunityIcons name="shield-check" size={24} color="#7C3AED" />
+                    </View>
+                    <Text style={[styles.variantCountNumber, { color: '#7C3AED', fontSize: 18 }]}>
+                      {co2AvoidedKg} kg
+                    </Text>
+                  </View>
+                  <Text style={styles.variantTitle}>🏢 Campus CSR</Text>
+                  <Text style={styles.variantSpecs}>Zero-Waste Goal Progress</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>ESG Verified</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>🌳 {Math.max(1, Math.round(totalItemsCount / 12))} Trees</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.variantCountNumber}>{paperCount}</Text>
-              </View>
-              <Text style={styles.variantTitle}>Cups & Cartons</Text>
-              <Text style={styles.variantSpecs}>Cups & Juice Cartons</Text>
-              
-              <View style={styles.variantSubtagsContainer}>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Cups</Text>
+              </>
+            ) : (
+              <>
+                {/* 1. PET Plastic Bottles (Citizen RVM) */}
+                <View style={[styles.variantCard, styles.petCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                      <MaterialCommunityIcons name="bottle-soda-classic" size={24} color="#0284C7" />
+                    </View>
+                    <Text style={styles.variantCountNumber}>{plasticCount}</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>PET Bottles</Text>
+                  <Text style={styles.variantSpecs}>Clear & Colored Plastic</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>250ml - 500ml</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>1.0L - 1.5L</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.variantTag}>
-                  <Text style={styles.variantTagText}>Tetra Pak</Text>
+
+                {/* 2. Aluminium Cans (Citizen RVM) */}
+                <View style={[styles.variantCard, styles.canCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#CCFBF1' }]}>
+                      <MaterialCommunityIcons name="cup-water" size={24} color="#0D9488" />
+                    </View>
+                    <Text style={styles.variantCountNumber}>{aluminiumCount}</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>Aluminium Cans</Text>
+                  <Text style={styles.variantSpecs}>Soda & Beverage Cans</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>250ml Sleek</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>330ml Std</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
+
+                {/* 3. UBC Tetra Pak Cartons (Citizen RVM) */}
+                <View style={[styles.variantCard, styles.paperCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#EEF2FF' }]}>
+                      <MaterialCommunityIcons name="package-variant-closed" size={24} color="#4F46E5" />
+                    </View>
+                    <Text style={styles.variantCountNumber}>{paperCount}</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>UBC Tetra Pak</Text>
+                  <Text style={styles.variantSpecs}>Juice & Milk Cartons</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>200ml Packs</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>1.0L UBC</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* 4. Intake Quality & Zero Rejection */}
+                <View style={[styles.variantCard, styles.rejectCard]}>
+                  <View style={styles.variantTopRow}>
+                    <View style={[styles.variantIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                      <MaterialCommunityIcons name="check-decagram" size={24} color="#D97706" />
+                    </View>
+                    <Text style={[styles.variantCountNumber, { color: '#D97706' }]}>100%</Text>
+                  </View>
+                  <Text style={styles.variantTitle}>Clean Intake</Text>
+                  <Text style={styles.variantSpecs}>0 Rejections Recorded</Text>
+                  
+                  <View style={styles.variantSubtagsContainer}>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>Empty Liquid</Text>
+                    </View>
+                    <View style={styles.variantTag}>
+                      <Text style={styles.variantTagText}>Intact Barcode</Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
 
           </View>
 
@@ -698,6 +888,7 @@ const DashboardScreen = ({ route }) => {
             </Text>
           </View>
         </View>
+
 
         {/* Recent Recycling Activity Log */}
         {recentSessions.length > 0 && (
@@ -1150,8 +1341,88 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#0EA5E9',
-    marginBottom: 12,
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  cardHeaderSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  enterpriseBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  enterpriseBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0284C7',
+    letterSpacing: 0.5,
+  },
+  citizenBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  citizenBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.5,
+  },
+  corporateBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
+    padding: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  corporateLogoBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
+  },
+  corporateOrgName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  corporateMetaText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  corporateKioskTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  corporateKioskTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0284C7',
   },
   userInfoContainer: {
     marginBottom: 14,
@@ -1211,6 +1482,53 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748B',
     marginTop: 1,
+  },
+  cashConversionUnit: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#0284C7',
+    marginTop: 2,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  quickActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    elevation: 1,
+  },
+  quickActionBtnPrimary: {
+    backgroundColor: '#0284C7',
+  },
+  quickActionBtnSuccess: {
+    backgroundColor: '#059669',
+  },
+  quickActionBtnDefault: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  quickActionBtnTextPrimary: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  quickActionBtnTextSuccess: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  quickActionBtnTextDefault: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284C7',
   },
   milestoneGoalRow: {
     flexDirection: 'row',
@@ -1279,12 +1597,23 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   totalBadge: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   totalBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  totalBadgeEnterprise: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  totalBadgeTextEnterprise: {
     fontSize: 12,
     fontWeight: '700',
     color: '#0284C7',
@@ -1316,11 +1645,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDFA',
     borderColor: '#99F6E4',
   },
-  glassCard: {
+  paperCard: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  rejectCard: {
     backgroundColor: '#FFFBEB',
     borderColor: '#FDE68A',
   },
-  paperCard: {
+  pecoCircleCard: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  pecoTriangleCard: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  pecoSquareCard: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+  },
+  pecoEsgCard: {
     backgroundColor: '#F5F3FF',
     borderColor: '#DDD6FE',
   },
