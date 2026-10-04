@@ -299,17 +299,17 @@
                                 </Grid>
 
                                 <!-- Dynamic Touchless QR Start Floating Card (Visible on Idle on top of video or placeholder) -->
-                                <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,6" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
-                                    <Viewbox Stretch="Uniform" MaxHeight="210" HorizontalAlignment="Center">
-                                        <StackPanel HorizontalAlignment="Center" Width="150">
-                                            <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2.5" Margin="0,0,0,6" HorizontalAlignment="Center">
-                                                <TextBlock Text="📱 TOUCHLESS START" FontSize="9.5" FontWeight="Black" Foreground="#15803D"/>
+                                <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <Viewbox Stretch="Uniform" MaxHeight="290" HorizontalAlignment="Center">
+                                        <StackPanel HorizontalAlignment="Center" Width="190">
+                                            <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,5" HorizontalAlignment="Center">
+                                                <TextBlock Text="📱 TOUCHLESS SCAN" FontSize="9.5" FontWeight="Black" Foreground="#15803D"/>
                                             </Border>
-                                            <Border Background="#FFFFFF" Padding="3" CornerRadius="8" HorizontalAlignment="Center">
-                                                <Image x:Name="StartQrImage" Width="115" Height="115" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                            <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" Padding="4" CornerRadius="8" HorizontalAlignment="Center">
+                                                <Image x:Name="StartQrImage" Width="175" Height="175" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
                                             </Border>
-                                            <TextBlock Text="SCAN TO START" FontSize="11.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
-                                            <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="SCAN TO START" FontSize="11" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                                            <TextBlock Text="اسکین کریں اور شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
                                         </StackPanel>
                                     </Viewbox>
                                 </Border>
@@ -1508,17 +1508,17 @@
                                 </Grid>
 
                                 <!-- Right Side: Touchless Start Dynamic QR Card -->
-                                <Border Grid.Column="1" VerticalAlignment="Center" Margin="12,0,4,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
-                                    <StackPanel HorizontalAlignment="Center" Width="135">
-                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,6" HorizontalAlignment="Center">
-                                            <TextBlock Text="📱 TOUCHLESS START" FontSize="8.5" FontWeight="Black" Foreground="#15803D"/>
+                                <Border Grid.Column="1" VerticalAlignment="Center" Margin="12,0,4,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <StackPanel HorizontalAlignment="Center" Width="190">
+                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,5" HorizontalAlignment="Center">
+                                            <TextBlock Text="📱 TOUCHLESS SCAN" FontSize="9.5" FontWeight="Black" Foreground="#15803D"/>
                                         </Border>
-                                        <TextBlock Text="بغیر لمس شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center" Margin="0,0,0,4"/>
-                                        <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" Padding="4" CornerRadius="8" HorizontalAlignment="Center">
-                                            <Image x:Name="ModernStartQrImage" Width="105" Height="105" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        <TextBlock Text="بغیر لمس شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                                        <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1.5" Padding="4" CornerRadius="8" HorizontalAlignment="Center">
+                                            <Image x:Name="ModernStartQrImage" Width="175" Height="175" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
                                         </Border>
-                                        <TextBlock Text="SCAN TO START" FontSize="10.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
-                                        <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="SCAN TO START" FontSize="11" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                                        <TextBlock Text="اسکین کریں اور شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>

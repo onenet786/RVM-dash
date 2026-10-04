@@ -240,7 +240,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         try
         {
-            var initQr = QrCodeGenerator.GenerateQrCode($"https://isprvm.binishaqsoft.com/kiosk/start/{settings.MachineId}", 6);
+            var initQr = QrCodeGenerator.GenerateQrCode($"https://isprvm.binishaqsoft.com/kiosk/start/{settings.MachineId}", 10);
             if (ModernStartQrImage != null) ModernStartQrImage.Source = initQr;
             if (StartQrImage != null) StartQrImage.Source = initQr;
         }
@@ -1601,7 +1601,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             {
                 _currentStartToken = resp.StartToken;
                 _startTokenExpiresAt = DateTime.UtcNow.AddSeconds(110);
-                var qrBmp = QrCodeGenerator.GenerateQrCode(resp.QrUrl, 6);
+                var qrBmp = QrCodeGenerator.GenerateQrCode(resp.QrUrl, 10);
                 if (StartQrImage != null)
                 {
                     StartQrImage.Source = qrBmp;
@@ -1613,6 +1613,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 if (StartQrCard != null)
                 {
                     StartQrCard.Visibility = Visibility.Visible;
+                }
+                if (ModernStartQrCard != null)
+                {
+                    ModernStartQrCard.Visibility = Visibility.Visible;
                 }
                 LogTelemetry($"[TOUCHLESS 📱] Dynamic start QR generated for kiosk {settings.MachineId}");
             }
@@ -1727,6 +1731,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
         }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
         {
             UserGreetingBanner.Visibility = Visibility.Collapsed;
@@ -1752,6 +1757,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         scanTimer.Stop();
         activeUserMobile = null;
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();

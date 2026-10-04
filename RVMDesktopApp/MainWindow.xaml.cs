@@ -1695,7 +1695,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             {
                 _currentStartToken = resp.StartToken;
                 _startTokenExpiresAt = DateTime.UtcNow.AddSeconds(110);
-                var qrBmp = QrCodeGenerator.GenerateQrCode(resp.QrUrl, 6);
+                var qrBmp = QrCodeGenerator.GenerateQrCode(resp.QrUrl, 10);
                 if (StartQrImage != null)
                 {
                     StartQrImage.Source = qrBmp;
