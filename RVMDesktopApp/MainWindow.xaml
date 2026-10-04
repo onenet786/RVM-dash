@@ -1441,7 +1441,7 @@
                         <!-- 1. Background Video Player (Plays video seamlessly when available) -->
                         <MediaElement x:Name="ModernInstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Fill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" Cursor="Hand" MouseLeftButtonUp="StartButton_Click" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
 
-                        <!-- 2. Concentric Glowing Circle Hero Showcase (Visible by default in idle mode when video not playing) -->
+                        <!-- 2. Concentric Glowing Circle Hero Showcase (Visible by default in idle mode) -->
                         <Grid x:Name="ModernHeroInteractivePlaceholder" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                             <Grid.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -1452,340 +1452,76 @@
                             </Grid.Background>
 
                             <Grid Margin="16,8">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/> <!-- Title & Urdu -->
-                                    <RowDefinition Height="*"/>    <!-- Concentric Button -->
-                                    <RowDefinition Height="Auto"/> <!-- Status Pill & Tip -->
-                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                                <!-- Headline -->
-                                <StackPanel Grid.Row="0" Margin="0,0,0,4" HorizontalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="Press 0 to Start  •  " FontSize="26" FontWeight="Black" Foreground="#073B28"/>
-                                        <TextBlock Text="شروع کرنے کے لئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#15803D"/>
+                                <!-- Left Side: Press 0 to Start + Concentric Glowing Circle Button -->
+                                <Grid Grid.Column="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/> <!-- Title & Urdu -->
+                                        <RowDefinition Height="*"/>    <!-- Concentric Button -->
+                                        <RowDefinition Height="Auto"/> <!-- Status Pill & Tip -->
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Headline -->
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,4">
+                                        <TextBlock Text="Press 0 to Start" FontSize="26" FontWeight="Black" Foreground="#073B28"/>
+                                        <TextBlock Text="شروع کرنے کے لئے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="24" FontWeight="Black" Foreground="#15803D" Margin="0,-2,0,2"/>
+                                        <TextBlock Text="Begin your recycling session to make a difference" FontSize="11" Foreground="#475569"/>
+                                        <TextBlock Text="اپنی ری سائیکلنگ سیشن شروع کریں اور مثبت تبدیلی کا حصہ بنیں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D"/>
                                     </StackPanel>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,1,0,0">
-                                        <TextBlock Text="Begin your recycling session to make a difference • " FontSize="11" Foreground="#475569"/>
-                                        <TextBlock Text="اپنی ری سائیکلنگ سیشن شروع کریں اور مثبت تبدیلی کا حصہ بنیں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#15803D"/>
-                                    </StackPanel>
-                                </StackPanel>
 
-                                <!-- Giant Concentric Circle Button with 0 -->
-                                <Button Grid.Row="1" Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Grid Width="170" Height="170">
-                                        <Ellipse Width="170" Height="170" Fill="#DCFCE7" Opacity="0.5"/>
-                                        <Ellipse Width="146" Height="146" Fill="#BBF7D0" Opacity="0.65"/>
-                                        <Ellipse Width="122" Height="122" Fill="#86EFAC" Opacity="0.8"/>
-                                        <Ellipse Width="98" Height="98" Fill="#073B28">
-                                            <Ellipse.Effect>
-                                                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.3" Color="#073B28"/>
-                                            </Ellipse.Effect>
-                                        </Ellipse>
-                                        <TextBlock Text="0" FontSize="50" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0"/>
-                                    </Grid>
-                                </Button>
-
-                                <!-- Status Pill & Tip -->
-                                <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,4,0,0">
-                                    <Border Background="#FEF9C3" BorderBrush="#FDE047" BorderThickness="1" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="📡 " FontSize="10"/>
-                                            <TextBlock x:Name="ModernUltrasonicStatusText" Text="CALIBRATING ULTRASONIC CHAMBER..." FontSize="9.5" FontWeight="Black" Foreground="#854D0E"/>
-                                        </StackPanel>
-                                    </Border>
-
-                                    <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="8,3">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <TextBlock Text="💡 " FontSize="10"/>
-                                            <TextBlock Text="Tip: Touch the glowing circle on screen or press &quot;0&quot; on keypad to begin session. • " FontSize="8.5" Foreground="#475569"/>
-                                            <TextBlock Text="مشورہ: سیشن شروع کرنے کے لیے اسکرین پر روشن دائرے کو ٹچ کریں یا کی پیڈ پر &quot;0&quot; دبائیں۔" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#15803D"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </Grid>
-
-                        <!-- 3. Dynamic Touchless QR Start Floating Card (Visible on Idle over video or placeholder) -->
-                        <Border x:Name="ModernStartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,6" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
-                            <Viewbox Stretch="Uniform" MaxHeight="210" HorizontalAlignment="Center">
-                                <StackPanel HorizontalAlignment="Center" Width="150">
-                                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2.5" Margin="0,0,0,6" HorizontalAlignment="Center">
-                                        <TextBlock Text="📱 TOUCHLESS START" FontSize="9.5" FontWeight="Black" Foreground="#15803D"/>
-                                    </Border>
-                                    <Border Background="#FFFFFF" Padding="3" CornerRadius="8" HorizontalAlignment="Center">
-                                        <Image x:Name="ModernStartQrImage" Width="115" Height="115" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
-                                    </Border>
-                                    <TextBlock Text="SCAN TO START" FontSize="11.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
-                                    <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
-                                </StackPanel>
-                            </Viewbox>
-                        </Border>
-
-                        <!-- ========================================================================= -->
-                        <!-- 4. MODERN STATE: PLEASE INSERT BOTTLE / CAN / UBC (ACTIVE SESSION)        -->
-                        <!-- ========================================================================= -->
-                        <Grid x:Name="ModernPleaseInsertOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Panel.ZIndex="15">
-                            <Border Background="#071E16" BorderBrush="#22C55E" BorderThickness="2">
-                                <Grid>
-                                    <Ellipse Width="650" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#0D3B2C" Opacity="0.6">
-                                        <Ellipse.Effect>
-                                            <BlurEffect Radius="60"/>
-                                        </Ellipse.Effect>
-                                    </Ellipse>
-
-                                    <Grid Margin="24,14">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- Header Title -->
-                                        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,2,0,6">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Border Background="#16A34A" CornerRadius="8" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="READY" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                </Border>
-                                                <TextBlock Text="PLEASE INSERT BOTTLE / CAN / UBC" FontSize="24" FontWeight="Black" Foreground="#4ADE80" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <TextBlock Text="برائے مہربانی بوتل، کین یا یو بی سی اندر داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="21" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-
-                                            <!-- Active Authenticated User Greeting Badge -->
-                                            <Border x:Name="ModernUserGreetingBanner" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" CornerRadius="10" Padding="14,4" HorizontalAlignment="Center" Margin="0,4,0,0" Visibility="Collapsed">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <TextBlock Text="👤 " FontSize="12" VerticalAlignment="Center"/>
-                                                    <TextBlock x:Name="ModernGreetingUserNameText" Text="Eco Citizen" FontSize="13" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                                    <Border Background="#166534" CornerRadius="6" Padding="6,2" VerticalAlignment="Center">
-                                                        <TextBlock x:Name="ModernGreetingPointsBalanceText" Text="Balance: 0 pts" FontSize="10.5" FontWeight="Bold" Foreground="#FDE047"/>
-                                                    </Border>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-
-                                        <!-- Center: Visual Guide & Target Deposit Port -->
-                                        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="260"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <!-- Left Items: Bottle & Can -->
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
-                                                <Border Background="#0D2D21" BorderBrush="#10B981" BorderThickness="1.5" CornerRadius="12" Padding="12,8" Margin="0,0,0,8" Effect="{StaticResource CardShadow}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="🧴" FontSize="24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                        <StackPanel>
-                                                            <TextBlock Text="PLASTIC BOTTLE" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="PET / HDPE • پلاسٹک بوتل" FontSize="10" FontWeight="SemiBold" Foreground="#A7F3D0"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Background="#0D2D21" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="12" Padding="12,8" Effect="{StaticResource CardShadow}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="🥫" FontSize="24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                        <StackPanel>
-                                                            <TextBlock Text="ALUMINIUM CAN" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="Beverage Can • کین" FontSize="10" FontWeight="SemiBold" Foreground="#BAE6FD"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <!-- Center: Animated Insert Chamber Portal -->
-                                            <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <Ellipse Width="170" Height="170" Stroke="#22C55E" StrokeThickness="2.5" StrokeDashArray="6 3">
-                                                    <Ellipse.RenderTransform>
-                                                        <RotateTransform x:Name="ModernInsertRingRotate" Angle="0" CenterX="85" CenterY="85"/>
-                                                    </Ellipse.RenderTransform>
-                                                </Ellipse>
-                                                <Ellipse Width="145" Height="145" Fill="#051911" Stroke="#16A34A" StrokeThickness="2.5"/>
-                                                <Ellipse Width="120" Height="120" Fill="#0B2F22"/>
-
-                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <TextBlock x:Name="ModernInsertArrowIcon" Text="⬇" FontSize="34" FontWeight="Black" Foreground="#4ADE80" HorizontalAlignment="Center">
-                                                        <TextBlock.RenderTransform>
-                                                            <TranslateTransform x:Name="ModernInsertArrowBounce" Y="0"/>
-                                                        </TextBlock.RenderTransform>
-                                                    </TextBlock>
-                                                    <TextBlock Text="DEPOSIT HERE" FontSize="11" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                                    <TextBlock Text="یہاں داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Bold" Foreground="#FDE047" HorizontalAlignment="Center"/>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <!-- Right Items: UBC & Guide -->
-                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0,0,0">
-                                                <Border Background="#0D2D21" BorderBrush="#F59E0B" BorderThickness="1.5" CornerRadius="12" Padding="12,8" Margin="0,0,0,8" Effect="{StaticResource CardShadow}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="🧃" FontSize="24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                        <StackPanel>
-                                                            <TextBlock Text="UBC / TETRA PAK" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="Carton &amp; Cup • ٹیٹرا پیک" FontSize="10" FontWeight="SemiBold" Foreground="#FDE68A"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Background="#0D2D21" BorderBrush="#94A3B8" BorderThickness="1.5" CornerRadius="12" Padding="12,8" Effect="{StaticResource CardShadow}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="☝" FontSize="24" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                        <StackPanel>
-                                                            <TextBlock Text="1 BY 1 DEPOSIT" FontSize="13" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                            <TextBlock Text="ایک ایک کرکے داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="10" FontWeight="SemiBold" Foreground="#CBD5E1"/>
-                                                        </StackPanel>
-                                                    </StackPanel>
-                                                </Border>
-                                            </StackPanel>
+                                    <!-- Giant Concentric Circle Button with 0 -->
+                                    <Button Grid.Row="1" Style="{StaticResource ExactInsertCircleButton}" Click="StartButton_Click" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid Width="170" Height="170">
+                                            <Ellipse Width="170" Height="170" Fill="#DCFCE7" Opacity="0.5"/>
+                                            <Ellipse Width="146" Height="146" Fill="#BBF7D0" Opacity="0.65"/>
+                                            <Ellipse Width="122" Height="122" Fill="#86EFAC" Opacity="0.8"/>
+                                            <Ellipse Width="98" Height="98" Fill="#073B28">
+                                                <Ellipse.Effect>
+                                                    <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.3" Color="#073B28"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                            <TextBlock Text="0" FontSize="50" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0"/>
                                         </Grid>
+                                    </Button>
 
-                                        <!-- Footer Guidance -->
-                                        <Border Grid.Row="2" Background="#061A13" BorderBrush="#10B981" BorderThickness="1" CornerRadius="8" Padding="14,4" HorizontalAlignment="Center">
-                                            <TextBlock Text="💡 Insert item barcode facing upwards • خالی اور صاف کنٹینر سیدھا داخل کریں" FontSize="11.5" FontWeight="Bold" Foreground="#A7F3D0"/>
+                                    <!-- Status Pill & Tip -->
+                                    <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                        <Border Background="#FEF9C3" BorderBrush="#FDE047" BorderThickness="1" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📡 " FontSize="10"/>
+                                                <TextBlock x:Name="ModernUltrasonicStatusText" Text="CALIBRATING ULTRASONIC CHAMBER..." FontSize="9.5" FontWeight="Black" Foreground="#854D0E"/>
+                                            </StackPanel>
                                         </Border>
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </Grid>
 
-                        <!-- ========================================================================= -->
-                        <!-- 5. MODERN STATE: DETECTING & SIZING ITEM                                  -->
-                        <!-- ========================================================================= -->
-                        <Grid x:Name="ModernDetectingOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Panel.ZIndex="15">
-                            <Border Background="#03140F" BorderBrush="#06B6D4" BorderThickness="2.5">
-                                <Grid>
-                                    <Ellipse Width="650" Height="380" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#06282E" Opacity="0.6">
-                                        <Ellipse.Effect>
-                                            <BlurEffect Radius="60"/>
-                                        </Ellipse.Effect>
-                                    </Ellipse>
-
-                                    <Grid Margin="20,12">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,2,0,4">
+                                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="8,3">
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Border Background="#0284C7" CornerRadius="8" Padding="8,3" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="SCANNING" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                </Border>
-                                                <TextBlock Text="DETECTING &amp; SIZING ITEM..." FontSize="23" FontWeight="Black" Foreground="#38BDF8" VerticalAlignment="Center"/>
+                                                <TextBlock Text="💡 " FontSize="10"/>
+                                                <TextBlock Text="Tip: Touch the glowing circle on screen or press &quot;0&quot; on keypad to begin session. • " FontSize="8.5" Foreground="#475569"/>
+                                                <TextBlock Text="مشورہ: سیشن شروع کرنے کے لیے اسکرین پر روشن دائرے کو ٹچ کریں یا کی پیڈ پر &quot;0&quot; دبائیں۔" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#15803D"/>
                                             </StackPanel>
-                                            <TextBlock Text="آئٹم کی شناخت اور پیمائش ہو رہی ہے، برائے مہربانی انتظار فرمائیں" FontFamily="{StaticResource UrduFont}" FontSize="19" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                        </StackPanel>
-
-                                        <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="440" Height="190">
-                                            <Border Background="#020E0A" BorderBrush="#0EA5E9" BorderThickness="2" CornerRadius="14" ClipToBounds="True">
-                                                <Grid>
-                                                    <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Opacity="0.25">
-                                                        <Line X1="0" Y1="50" X2="440" Y2="50" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                        <Line X1="0" Y1="100" X2="440" Y2="100" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                        <Line X1="0" Y1="150" X2="440" Y2="150" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                        <Line X1="110" Y1="0" X2="110" Y2="190" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                        <Line X1="220" Y1="0" X2="220" Y2="190" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                        <Line X1="330" Y1="0" X2="330" Y2="190" Stroke="#38BDF8" StrokeThickness="1" StrokeDashArray="4 4"/>
-                                                    </Canvas>
-
-                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <TextBlock Text="🧴" FontSize="56" HorizontalAlignment="Center" Opacity="0.85"/>
-                                                    </StackPanel>
-
-                                                    <Canvas HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                                        <Rectangle x:Name="ModernDetectingLaserLine" Canvas.Left="0" Canvas.Top="20" Width="440" Height="4" Fill="#F43F5E">
-                                                            <Rectangle.Effect>
-                                                                <DropShadowEffect Color="#F43F5E" BlurRadius="16" ShadowDepth="0" Opacity="0.9"/>
-                                                            </Rectangle.Effect>
-                                                        </Rectangle>
-                                                    </Canvas>
-
-                                                    <Border Background="#EB041A14" CornerRadius="10" Padding="12,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" BorderBrush="#22C55E" BorderThickness="1">
-                                                        <TextBlock x:Name="ModernDetectingStatusDetailText" Text="CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE" FontSize="10.5" FontWeight="Black" Foreground="#4ADE80"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </Grid>
-
-                                        <StackPanel Grid.Row="2" HorizontalAlignment="Center" Margin="0,2,0,0">
-                                            <TextBlock Text="PLEASE WAIT A MOMENT • DO NOT PULL ITEM" FontSize="12.5" FontWeight="ExtraBold" Foreground="#F8FAFC" HorizontalAlignment="Center"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Grid>
-                            </Border>
-                        </Grid>
-
-                        <!-- ========================================================================= -->
-                        <!-- 6. MODERN STATE: ACCEPTED OVERLAY                                         -->
-                        <!-- ========================================================================= -->
-                        <Grid x:Name="ModernAcceptedOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Panel.ZIndex="15">
-                            <Grid Margin="18,14">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <Border Grid.Row="0" Background="#E6051E16" BorderBrush="#22C55E" BorderThickness="2" CornerRadius="14" Padding="18,7" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <TextBlock Text="✔ " FontSize="20" FontWeight="Black" Foreground="#4ADE80" VerticalAlignment="Center"/>
-                                            <TextBlock Text="ITEM ACCEPTED! • " FontSize="20" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                                            <TextBlock Text="آئٹم قبول کر لیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="22" FontWeight="Black" Foreground="#FDE047" VerticalAlignment="Center"/>
-                                        </StackPanel>
-                                        <TextBlock x:Name="ModernAcceptedItemBadgeText" Text="PLASTIC BOTTLE • MEDIUM" FontSize="12" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                        </Border>
                                     </StackPanel>
-                                </Border>
+                                </Grid>
 
-                                <Border Grid.Row="2" Background="#EB166534" BorderBrush="#FACC15" BorderThickness="2" CornerRadius="16" Padding="22,7" HorizontalAlignment="Center" Effect="{StaticResource CardShadow}">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="⭐ " FontSize="18" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="ModernAcceptedItemPointsText" Text="+10 REWARD POINTS ADDED" FontSize="17" FontWeight="Black" Foreground="#FEF08A" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" • پوائنٹس جمع ہو گئے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <!-- Right Side: Touchless Start Dynamic QR Card -->
+                                <Border Grid.Column="1" VerticalAlignment="Center" Margin="12,0,4,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                                    <StackPanel HorizontalAlignment="Center" Width="135">
+                                        <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,6" HorizontalAlignment="Center">
+                                            <TextBlock Text="📱 TOUCHLESS START" FontSize="8.5" FontWeight="Black" Foreground="#15803D"/>
+                                        </Border>
+                                        <TextBlock Text="بغیر لمس شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                        <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" Padding="4" CornerRadius="8" HorizontalAlignment="Center">
+                                            <Image x:Name="ModernStartQrImage" Width="105" Height="105" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                        </Border>
+                                        <TextBlock Text="SCAN TO START" FontSize="10.5" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,1"/>
+                                        <TextBlock Text="اسکین کر کے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
-                        </Grid>
-
-                        <!-- ========================================================================= -->
-                        <!-- 7. MODERN STATE: REJECTED OVERLAY                                         -->
-                        <!-- ========================================================================= -->
-                        <Grid x:Name="ModernRejectedOverlay" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Panel.ZIndex="15">
-                            <Border Background="#1A0607" BorderBrush="#EF4444" BorderThickness="2.5">
-                                <Grid>
-                                    <Ellipse Width="600" Height="360" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#450A0A" Opacity="0.7">
-                                        <Ellipse.Effect>
-                                            <BlurEffect Radius="50"/>
-                                        </Ellipse.Effect>
-                                    </Ellipse>
-
-                                    <Grid Margin="20,14">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <StackPanel Grid.Row="0" HorizontalAlignment="Center">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                <Border Background="#DC2626" CornerRadius="8" Padding="8,3" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="WARNING" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF"/>
-                                                </Border>
-                                                <TextBlock Text="ITEM REJECTED" FontSize="25" FontWeight="Black" Foreground="#F87171" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <TextBlock Text="آئٹم مسترد کر دیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="22" FontWeight="Black" Foreground="#FCA5A5" HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                            <TextBlock Text="⚠️" FontSize="50" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                                            <TextBlock x:Name="ModernRejectedReasonText" Text="Barcode Not Recognized / Damaged Container" FontSize="16" FontWeight="Black" Foreground="#FECACA" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="بارکوڈ تسلیم نہیں ہو سکا یا کنٹینر قابل قبول نہیں ہے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Bold" Foreground="#FCA5A5" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                                        </StackPanel>
-
-                                        <Border Grid.Row="2" Background="#7F1D1D" BorderBrush="#F87171" BorderThickness="1.5" CornerRadius="10" Padding="14,6" HorizontalAlignment="Center">
-                                            <TextBlock Text="↩ PLEASE RETRIEVE YOUR ITEM FROM APERTURE • برائے مہربانی اپنی چیز واپس نکالیں" FontSize="12.5" FontWeight="Black" Foreground="#FEF2F2"/>
-                                        </Border>
-                                    </Grid>
-                                </Grid>
-                            </Border>
                         </Grid>
                     </Grid>
                 </Grid>

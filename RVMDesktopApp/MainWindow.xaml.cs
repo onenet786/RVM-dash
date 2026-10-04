@@ -1036,10 +1036,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             Canvas.SetTop(DetectingLaserLine, _laserPos);
         }
-        if (ModernDetectingLaserLine != null)
-        {
-            Canvas.SetTop(ModernDetectingLaserLine, _laserPos);
-        }
     }
 
     public void ShowDefaultInstructionVideoState()
@@ -1052,11 +1048,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
-
-        if (ModernPleaseInsertOverlay != null) ModernPleaseInsertOverlay.Visibility = Visibility.Collapsed;
-        if (ModernDetectingOverlay != null) ModernDetectingOverlay.Visibility = Visibility.Collapsed;
-        if (ModernAcceptedOverlay != null) ModernAcceptedOverlay.Visibility = Visibility.Collapsed;
-        if (ModernRejectedOverlay != null) ModernRejectedOverlay.Visibility = Visibility.Collapsed;
 
         if (!string.IsNullOrEmpty(_defaultInstructionVideoPath) && File.Exists(_defaultInstructionVideoPath))
         {
@@ -1097,7 +1088,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         }
 
         if (StartQrCard != null && !machineStarted) StartQrCard.Visibility = Visibility.Visible;
-        if (ModernStartQrCard != null && !machineStarted) ModernStartQrCard.Visibility = Visibility.Visible;
 
         LogTelemetry("[STATE] Instruction screen -> DEFAULT IDLE INSTRUCTION VIDEO");
     }
@@ -1119,7 +1109,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             }
             if (ModernHeroInteractivePlaceholder != null)
             {
-                ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
+                ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
             }
         }
         catch { }
@@ -1129,19 +1119,12 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
-
-        if (ModernDetectingOverlay != null) ModernDetectingOverlay.Visibility = Visibility.Collapsed;
-        if (ModernAcceptedOverlay != null) ModernAcceptedOverlay.Visibility = Visibility.Collapsed;
-        if (ModernRejectedOverlay != null) ModernRejectedOverlay.Visibility = Visibility.Collapsed;
-
         if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Visible;
-        if (ModernPleaseInsertOverlay != null) ModernPleaseInsertOverlay.Visibility = Visibility.Visible;
 
         // Animate Arrow Bounce
         try
         {
-            if (InsertArrowBounce != null || ModernInsertArrowBounce != null)
+            if (InsertArrowBounce != null)
             {
                 var bounceAnim = new DoubleAnimation
                 {
@@ -1152,11 +1135,10 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                     RepeatBehavior = RepeatBehavior.Forever,
                     EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
                 };
-                InsertArrowBounce?.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
-                ModernInsertArrowBounce?.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
+                InsertArrowBounce.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
             }
 
-            if (InsertRingRotate != null || ModernInsertRingRotate != null)
+            if (InsertRingRotate != null)
             {
                 var rotateAnim = new DoubleAnimation
                 {
@@ -1165,8 +1147,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                     Duration = TimeSpan.FromSeconds(8),
                     RepeatBehavior = RepeatBehavior.Forever
                 };
-                InsertRingRotate?.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
-                ModernInsertRingRotate?.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
+                InsertRingRotate.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
             }
         }
         catch { }
@@ -1190,7 +1171,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             }
             if (ModernHeroInteractivePlaceholder != null)
             {
-                ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
+                ModernHeroInteractivePlaceholder.Visibility = Visibility.Visible;
             }
         }
         catch { }
@@ -1199,24 +1180,23 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (PleaseInsertOverlay != null) PleaseInsertOverlay.Visibility = Visibility.Collapsed;
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
-        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
-
-        if (ModernPleaseInsertOverlay != null) ModernPleaseInsertOverlay.Visibility = Visibility.Collapsed;
-        if (ModernAcceptedOverlay != null) ModernAcceptedOverlay.Visibility = Visibility.Collapsed;
-        if (ModernRejectedOverlay != null) ModernRejectedOverlay.Visibility = Visibility.Collapsed;
-
         if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Visible;
-        if (ModernDetectingOverlay != null) ModernDetectingOverlay.Visibility = Visibility.Visible;
 
-        string detailMsg = !string.IsNullOrWhiteSpace(detail) ? detail : "CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE";
-        if (DetectingStatusDetailText != null) DetectingStatusDetailText.Text = detailMsg;
-        if (ModernDetectingStatusDetailText != null) ModernDetectingStatusDetailText.Text = detailMsg;
+        if (!string.IsNullOrWhiteSpace(detail) && DetectingStatusDetailText != null)
+        {
+            DetectingStatusDetailText.Text = detail;
+        }
+        else if (DetectingStatusDetailText != null)
+        {
+            DetectingStatusDetailText.Text = "CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE";
+        }
 
         _laserPos = 20.0;
         _laserDown = true;
-        if (DetectingLaserLine != null) Canvas.SetTop(DetectingLaserLine, _laserPos);
-        if (ModernDetectingLaserLine != null) Canvas.SetTop(ModernDetectingLaserLine, _laserPos);
+        if (DetectingLaserLine != null)
+        {
+            Canvas.SetTop(DetectingLaserLine, _laserPos);
+        }
         _detectingLaserTimer.Start();
 
         LogTelemetry("[STATE] Instruction screen -> DETECTING & SIZING ITEM");
@@ -1232,13 +1212,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Collapsed;
         if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
-        if (ModernHeroInteractivePlaceholder != null) ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
-        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
-
-        if (ModernPleaseInsertOverlay != null) ModernPleaseInsertOverlay.Visibility = Visibility.Collapsed;
-        if (ModernDetectingOverlay != null) ModernDetectingOverlay.Visibility = Visibility.Collapsed;
-        if (ModernRejectedOverlay != null) ModernRejectedOverlay.Visibility = Visibility.Collapsed;
 
         string matUpper = (material ?? "").Trim().ToUpperInvariant();
         string fileName;
@@ -1263,15 +1236,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
             videoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Assets", fileName);
         }
 
-        string badgeText = $"{size.ToUpperInvariant()} {matUpper}";
-        string pointsText = $"+{points} REWARD POINTS ADDED";
-        if (AcceptedItemBadgeText != null) AcceptedItemBadgeText.Text = badgeText;
-        if (AcceptedItemPointsText != null) AcceptedItemPointsText.Text = pointsText;
-        if (ModernAcceptedItemBadgeText != null) ModernAcceptedItemBadgeText.Text = badgeText;
-        if (ModernAcceptedItemPointsText != null) ModernAcceptedItemPointsText.Text = pointsText;
-
+        if (AcceptedItemBadgeText != null) AcceptedItemBadgeText.Text = $"{size.ToUpperInvariant()} {matUpper}";
+        if (AcceptedItemPointsText != null) AcceptedItemPointsText.Text = $"+{points} REWARD POINTS ADDED";
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Visible;
-        if (ModernAcceptedOverlay != null) ModernAcceptedOverlay.Visibility = Visibility.Visible;
 
         if (File.Exists(videoPath))
         {
@@ -1313,20 +1280,17 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         if (DetectingOverlay != null) DetectingOverlay.Visibility = Visibility.Collapsed;
         if (AcceptedOverlay != null) AcceptedOverlay.Visibility = Visibility.Collapsed;
         if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
-        if (ModernHeroInteractivePlaceholder != null) ModernHeroInteractivePlaceholder.Visibility = Visibility.Collapsed;
-        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
 
-        if (ModernPleaseInsertOverlay != null) ModernPleaseInsertOverlay.Visibility = Visibility.Collapsed;
-        if (ModernDetectingOverlay != null) ModernDetectingOverlay.Visibility = Visibility.Collapsed;
-        if (ModernAcceptedOverlay != null) ModernAcceptedOverlay.Visibility = Visibility.Collapsed;
-
-        string msg = !string.IsNullOrWhiteSpace(reason) ? reason.ToUpperInvariant() : "PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER";
-        if (RejectedMessageText != null) RejectedMessageText.Text = msg;
-        if (ModernRejectedReasonText != null) ModernRejectedReasonText.Text = msg;
+        if (!string.IsNullOrWhiteSpace(reason) && RejectedMessageText != null)
+        {
+            RejectedMessageText.Text = reason.ToUpperInvariant();
+        }
+        else if (RejectedMessageText != null)
+        {
+            RejectedMessageText.Text = "PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER";
+        }
 
         if (RejectedOverlay != null) RejectedOverlay.Visibility = Visibility.Visible;
-        if (ModernRejectedOverlay != null) ModernRejectedOverlay.Visibility = Visibility.Visible;
 
         string rejectVideoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "ItemRejected.mp4");
         if (File.Exists(rejectVideoPath))
@@ -1744,10 +1708,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                 {
                     StartQrCard.Visibility = Visibility.Visible;
                 }
-                if (ModernStartQrCard != null)
-                {
-                    ModernStartQrCard.Visibility = Visibility.Visible;
-                }
                 LogTelemetry($"[TOUCHLESS 📱] Dynamic start QR generated for kiosk {settings.MachineId}");
             }
         }
@@ -1780,10 +1740,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                         if (GreetingUserNameText != null) GreetingUserNameText.Text = userName;
                         if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
                         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
-
-                        if (ModernGreetingUserNameText != null) ModernGreetingUserNameText.Text = userName;
-                        if (ModernGreetingPointsBalanceText != null) ModernGreetingPointsBalanceText.Text = $"Balance: {balance} pts";
-                        if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Visible;
                     }
 
                     if (statusResp.FinishRequested)
@@ -1843,12 +1799,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
                     if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
                     if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
 
-                    if (ModernGreetingUserNameText != null) ModernGreetingUserNameText.Text = userName;
-                    if (ModernGreetingPointsBalanceText != null) ModernGreetingPointsBalanceText.Text = $"Balance: {balance} pts";
-                    if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Visible;
-
                     LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
-                    StartMachine(forceSimulator: !serial.IsConnected || IsDemoMode);
+                    StartMachine();
                 }
                 else if (statusResp.Status == "EXPIRED" || statusResp.Status == "IDLE")
                 {
@@ -2005,9 +1957,10 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
-            // Gracefully engage demo/simulator mode so user/mobile session can proceed smoothly
-            IsDemoMode = true;
-            LogTelemetry("[START] Hardware COM port not connected -> Running session in Demo/Simulator mode");
+            MachineStateText.Text = "MACHINE: ERROR";
+            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Visible;
+            SimulatorStateChanged?.Invoke();
+            return;
         }
 
         if (serial.IsConnected)
@@ -2021,13 +1974,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             _startHandshakeTimer.Start();
         }
-        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
-
-        if (string.IsNullOrWhiteSpace(activeUserMobile))
+        if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
         {
-            if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-            if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Collapsed;
+            UserGreetingBanner.Visibility = Visibility.Collapsed;
         }
 
         StatusText.Text = (IsDemoMode || !serial.IsConnected) ? "Machine Started (Demo Mode)" : "Machine Started";
@@ -2052,9 +2001,6 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         _inactivityCountdownTimer.Stop();
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
-        if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Collapsed;
-        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
-        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         _currentStartToken = null;
         _startTokenExpiresAt = DateTime.MinValue;
         _ = RegisterStartHandshakeAsync();

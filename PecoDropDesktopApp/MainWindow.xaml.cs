@@ -1246,38 +1246,24 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
     {
         if (machineStarted)
         {
-            try
+            if (!string.IsNullOrWhiteSpace(activeUserMobile))
             {
-                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
-                if (statusResp != null && statusResp.FinishRequested)
+                try
                 {
-                    _startHandshakeTimer.Stop();
-
-                    if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
+                    var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
                     {
-                        activeUserMobile = statusResp.MobileNumber;
+                        _startHandshakeTimer.Stop();
+                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
+                        CompleteSessionToWallet();
+                        return;
                     }
-
-                    if (totalItems > 0)
-                    {
-                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish ({totalItems} items)! Completing session...");
-                        CompleteSessionToWallet(skipRatingModal: true);
-                    }
-                    else
-                    {
-                        LogTelemetry("[TOUCHLESS 📱] Mobile requested session finish (0 items). Closing session cleanly...");
-                        StopMachine();
-                        StatusText.Text = "Session closed from mobile";
-                        StatusText.Foreground = Brushes.SlateGray;
-                        BottleInfoText.Text = "Session ended without any items deposited.";
-                        ResetSession();
-                    }
-                    return;
                 }
+                catch { }
             }
-            catch (Exception ex)
+            else
             {
-                LogTelemetry($"[TOUCHLESS WARN] Poll finish error: {ex.Message}");
+                _startHandshakeTimer.Stop();
             }
             return;
         }
@@ -1571,9 +1557,13 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
-        if (!_startHandshakeTimer.IsEnabled)
+        if (string.IsNullOrWhiteSpace(activeUserMobile))
         {
-            _startHandshakeTimer.Start();
+            _startHandshakeTimer.Stop();
+        }
+        else
+        {
+            if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
         }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
@@ -2219,9 +2209,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         };
     }
 
-    public void CompleteSessionToWallet() => CompleteSessionToWallet(skipRatingModal: false);
-
-    public void CompleteSessionToWallet(bool skipRatingModal = false)
+    public void CompleteSessionToWallet()
     {
         _startHandshakeTimer.Stop();
 
@@ -2234,12 +2222,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
 
         if (totalItems == 0)
         {
-            LogTelemetry("[SESSION] Session completed with 0 items. Closing cleanly...");
-            StopMachine();
-            StatusText.Text = "Session ended (0 items)";
-            StatusText.Foreground = Brushes.SlateGray;
-            BottleInfoText.Text = "Session ended without claiming points.";
-            ResetSession();
+            StatusText.Text = "No items to credit";
+            StatusText.Foreground = Brushes.OrangeRed;
+            BottleInfoText.Text = "Insert an item before using your wallet";
             return;
         }
 
@@ -2283,17 +2268,14 @@ public partial class MainWindow : Window, IKioskSimulatorTarget
         {
             // Touchless flow: Citizen scanned QR to authenticate upfront!
             phoneNumber = activeUserMobile;
-            if (!skipRatingModal)
+            var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
             {
-                var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
-                {
-                    Owner = this
-                };
-                ratingWindow.ShowDialog();
-                userRating = ratingWindow.Rating;
-                userFeedback = ratingWindow.FeedbackText;
-                feedbackSubmitted = ratingWindow.FeedbackSubmitted;
-            }
+                Owner = this
+            };
+            ratingWindow.ShowDialog();
+            userRating = ratingWindow.Rating;
+            userFeedback = ratingWindow.FeedbackText;
+            feedbackSubmitted = ratingWindow.FeedbackSubmitted;
             LogTelemetry($"[TOUCHLESS 🚀] Auto-claiming session for QR user: {phoneNumber} (+{currentTotalPoints} pts)");
         }
         else
