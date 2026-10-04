@@ -21,6 +21,7 @@
         <DropShadowEffect x:Key="SubtleItemShadow" BlurRadius="6" ShadowDepth="1" Opacity="0.04" Color="#073B28"/>
         <DropShadowEffect x:Key="CircleShadow" BlurRadius="16" ShadowDepth="3" Opacity="0.08" Color="#073B28"/>
         <DropShadowEffect x:Key="TealGlassShadow" BlurRadius="18" ShadowDepth="3" Opacity="0.20" Color="#0D9488"/>
+        <DropShadowEffect x:Key="GlowShadow" BlurRadius="20" ShadowDepth="0" Opacity="0.35" Color="#22C55E"/>
 
         <Style x:Key="ExactInsertCircleButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -295,7 +296,7 @@
                         </Grid>
 
                         <!-- Touchless QR Start Floating Card (Visible on idle over video or placeholder) -->
-                        <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="10" Padding="8,6" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="StartButton_Click">
+                        <Border x:Name="StartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="10" Padding="8,6" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="ModernQr_Click">
                             <StackPanel HorizontalAlignment="Center" Width="120">
                                 <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="5" Padding="3,1.5" Margin="0,0,0,4" HorizontalAlignment="Center">
                                     <TextBlock Text="📱 TOUCHLESS" FontSize="8.5" FontWeight="Black" Foreground="#15803D"/>
@@ -773,17 +774,37 @@
                             </Border>
                         </StackPanel>
 
-                        <!-- Right: Location Pin -->
-                        <Border Grid.Column="2" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="12,6" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="📍" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock x:Name="ModernRvmNameText" Text="PecoDrop Smart Kiosk" FontSize="11" FontWeight="Bold" Foreground="#0F172A"/>
-                                    <TextBlock x:Name="ModernRvmLocationText" Text="OneNetSol" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B"/>
+                        <!-- Right: QR Pass / Home Button + Location Pin -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Background="#15803D" BorderBrush="#86EFAC" BorderThickness="1.5" CornerRadius="10" Padding="10,6" Margin="0,0,8,0" Cursor="Hand" MouseLeftButtonUp="ModernReturnToIdle_Click" ToolTip="Return to Fullscreen Attract Screen &amp; QR Pass (Escape / Back)">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="📲" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="QR PASS / HOME • ہوم" FontFamily="{StaticResource UrduFont}" FontSize="10.5" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
+                            </Border>
+
+                            <Border Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="12,6" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="📍" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="ModernRvmNameText" Text="PecoDrop Smart Kiosk" FontSize="11" FontWeight="Bold" Foreground="#0F172A"/>
+                                        <TextBlock x:Name="ModernRvmLocationText" Text="OneNetSol" FontSize="9.5" FontWeight="SemiBold" Foreground="#64748B"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                     </Grid>
+
+                    <!-- ACTIVE AUTHENTICATED CORPORATE USER GREETING BANNER -->
+                    <Border x:Name="ModernUserGreetingBanner" Grid.Row="0" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-8" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" CornerRadius="8" Padding="12,3" Visibility="Collapsed" Effect="{StaticResource CardShadow}" Panel.ZIndex="10">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="👤 " FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ModernGreetingUserNameText" Text="Corporate Employee" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Border Background="#166534" CornerRadius="5" Padding="6,1.5" VerticalAlignment="Center">
+                                <TextBlock x:Name="ModernGreetingPointsBalanceText" Text="Balance: 0 pts" FontSize="10" FontWeight="Bold" Foreground="#FDE047"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
 
                     <!-- ROW 1: MACHINE STATUS DIAGNOSTICS BAR -->
                     <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" Effect="{StaticResource CardShadow}">
@@ -798,14 +819,14 @@
                                 <TextBlock Text="MACHINE STATUS" FontSize="9.5" FontWeight="Black" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,10,0"/>
 
                                 <!-- ALL SYSTEMS -->
-                                <Border Background="#DCFCE7" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="16" Padding="8,4" Margin="0,0,6,0">
+                                <Border x:Name="ModernAllSystemsBorder" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="16" Padding="8,4" Margin="0,0,6,0">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Border Width="16" Height="16" CornerRadius="8" Background="#16A34A" Margin="0,0,5,0">
-                                            <TextBlock Text="✓" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Border x:Name="ModernAllSystemsIconBorder" Width="16" Height="16" CornerRadius="8" Background="#DC2626" Margin="0,0,5,0">
+                                            <TextBlock x:Name="ModernAllSystemsIconText" Text="✕" FontSize="10" FontWeight="Black" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="ALL SYSTEMS" FontSize="8.5" FontWeight="Black" Foreground="#166534"/>
-                                            <TextBlock x:Name="ModernMachineStatusText" Text="Operational" FontSize="7.5" FontWeight="SemiBold" Foreground="#15803D"/>
+                                            <TextBlock x:Name="ModernAllSystemsTitleText" Text="ALL SYSTEMS" FontSize="8.5" FontWeight="Black" Foreground="#991B1B"/>
+                                            <TextBlock x:Name="ModernMachineStatusText" Text="Offline" FontSize="7.5" FontWeight="SemiBold" Foreground="#DC2626"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -818,7 +839,7 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="PLASTIC" FontSize="8.5" FontWeight="Black" Foreground="#334155"/>
-                                            <TextBlock x:Name="ModernPlasticStatusText" Text="Ready" FontSize="7.5" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                            <TextBlock x:Name="ModernPlasticStatusText" Text="Offline" FontSize="7.5" FontWeight="SemiBold" Foreground="#DC2626"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -831,7 +852,7 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="METAL" FontSize="8.5" FontWeight="Black" Foreground="#334155"/>
-                                            <TextBlock x:Name="ModernMetalStatusText" Text="Ready" FontSize="7.5" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                            <TextBlock x:Name="ModernMetalStatusText" Text="Offline" FontSize="7.5" FontWeight="SemiBold" Foreground="#DC2626"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -844,11 +865,19 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="PAPER" FontSize="8.5" FontWeight="Black" Foreground="#334155"/>
-                                            <TextBlock x:Name="ModernPaperStatusText" Text="Ready" FontSize="7.5" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                            <TextBlock x:Name="ModernPaperStatusText" Text="Offline" FontSize="7.5" FontWeight="SemiBold" Foreground="#DC2626"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
+
+                            <!-- Modern Hardware Offline / Warning Banner in Column 1 -->
+                            <Border x:Name="ModernHardwareErrorBanner" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="12" Padding="8,4" Margin="10,0" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="⚠️" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="ModernHardwareErrorText" Text="HARDWARE OFFLINE: Arduino Disconnected • ہارڈویئر منسلک نہیں ہے" FontSize="8" FontWeight="Bold" Foreground="#DC2626" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
 
                             <!-- Right: LET'S RECYCLE Card with Urdu & Minar Motif -->
                             <Border Grid.Column="2" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="10,4">
@@ -875,7 +904,7 @@
                             <MediaElement x:Name="ModernInstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
 
                             <!-- 3. Dynamic Touchless QR Card Overlay (Right Side) -->
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="12" Padding="8,8" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="ModernStartRecycling_Click">
+                            <Border x:Name="ModernStartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="1.8" CornerRadius="12" Padding="8,8" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="ModernQr_Click">
                                 <StackPanel HorizontalAlignment="Center" Width="130">
                                     <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,6" HorizontalAlignment="Center">
                                         <TextBlock Text="TOUCHLESS SCAN TO START" FontSize="8" FontWeight="Black" Foreground="#15803D"/>
@@ -1338,6 +1367,222 @@
             </Grid.ColumnDefinitions>
             <Border x:Name="AdPanel">
                 <MediaElement x:Name="AdvertisementPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" IsMuted="True" Volume="0" MediaEnded="AdvertisementPlayer_MediaEnded"/>
+            </Border>
+        </Grid>
+
+        <!-- ============================================================== -->
+        <!-- 3. FULLSCREEN IDLE ATTRACT SCREEN (TIME-SHARED SIGNAGE & GIANT QR) -->
+        <!-- ============================================================== -->
+        <Grid x:Name="IdleAttractOverlay" Grid.ColumnSpan="2" Background="#021008" Visibility="Visible" Panel.ZIndex="150">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Top Brand Ribbon -->
+                <RowDefinition Height="*"/>    <!-- Left Signage Video (62%) + Right 260px QR Card (38%) -->
+                <RowDefinition Height="Auto"/> <!-- Bottom Badges Ribbon -->
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: Top Brand Bar -->
+            <Border Grid.Row="0" Background="#E6052016" BorderBrush="#15803D" BorderThickness="0,0,0,1.5" Padding="20,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Brand Logo & Title -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="38" Height="38" CornerRadius="19" Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1.5" Margin="0,0,10,0" VerticalAlignment="Center">
+                            <TextBlock Text="♻" FontSize="20" Foreground="#4ADE80" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="PECO DROP" FontSize="20" FontWeight="Black" Foreground="#FFFFFF"/>
+                                <Border Background="#166534" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="SMART RECYCLING KIOSK" FontSize="9" FontWeight="Bold" Foreground="#86EFAC"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="REVERSE VENDING MACHINE • ریورس وینڈنگ مشین" FontFamily="{StaticResource UrduFont}" FontSize="10" Foreground="#86EFAC"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Center: Urdu Motivational Tagline -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="RECYCLE TODAY FOR A CLEANER TOMORROW" FontSize="13" FontWeight="Black" Foreground="#FDE047" HorizontalAlignment="Center"/>
+                        <TextBlock Text="صاف پاکستان ، سرسبز مستقبل • چھوٹا قدم، بڑا بدلاؤ" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#A7F3D0" HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Right: Live Clock & Location -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#064E3B" BorderBrush="#34D399" BorderThickness="1" CornerRadius="6" Padding="10,4" Margin="0,0,8,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="IdleClockDateText" Text="14 May 2026" FontSize="11" FontWeight="SemiBold" Foreground="#A7F3D0" Margin="0,0,6,0"/>
+                                <TextBlock x:Name="IdleClockTimeText" Text="10:30 AM" FontSize="12.5" FontWeight="Bold" Foreground="#FFFFFF"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="#064E3B" BorderBrush="#34D399" BorderThickness="1" CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="7" Height="7" Fill="#34D399" Margin="0,0,4,0"/>
+                                <TextBlock Text="LIVE 🟢" FontSize="9.5" FontWeight="Black" Foreground="#6EE7B7"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Row 1: Split Content: Video Signage (Left 62%) + High-Impact Scannable QR Card (Right 38%) -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="62*"/>
+                    <ColumnDefinition Width="38*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Video Media Player & Fullscreen ESG Signage -->
+                <Border Grid.Column="0" Background="#000000" ClipToBounds="True" Cursor="Hand" MouseLeftButtonUp="IdleAttractOverlay_Click">
+                    <Grid>
+                        <!-- Video Media Element -->
+                        <MediaElement x:Name="IdleVideoPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MediaEnded="IdleVideoPlayer_MediaEnded" MediaFailed="IdleVideoPlayer_MediaFailed"/>
+
+                        <!-- Fallback / Static Poster when video is buffering or absent -->
+                        <Border x:Name="IdleVideoPlaceholder" Background="#021B11" Visibility="Collapsed">
+                            <Image Source="pack://application:,,,/PecoDropDesktopApp;component/Assets/peco_centerpiece_hero.jpg" Stretch="UniformToFill" Opacity="0.95"/>
+                        </Border>
+
+                        <!-- Subtle Touch To Start Banner at the bottom of the video -->
+                        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,16" Background="#E6073B28" BorderBrush="#22C55E" BorderThickness="1.5" CornerRadius="20" Padding="18,8" Effect="{StaticResource GlowShadow}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="👆 " FontSize="16"/>
+                                <TextBlock Text="TAP SCREEN ANYWHERE TO START • " FontSize="12" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <TextBlock Text="شروع کرنے کے لیے اسکرین ٹچ کریں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Bold" Foreground="#FDE047" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- RIGHT: Giant Scannable QR Code & Touchless Onboarding Card -->
+                <Border Grid.Column="1" Background="#071910" BorderBrush="#15803D" BorderThickness="2,0,0,0" Padding="20,14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Card Title & Subtitle -->
+                            <RowDefinition Height="*"/>    <!-- Big QR Code Container -->
+                            <RowDefinition Height="Auto"/> <!-- Big Tap to Start Button -->
+                            <RowDefinition Height="Auto"/> <!-- 3 Simple Step Badges -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 0: Card Header -->
+                        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <Border Background="#14532D" BorderBrush="#4ADE80" BorderThickness="1" CornerRadius="12" Padding="12,4" HorizontalAlignment="Center" Margin="0,0,0,6">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="📱" FontSize="13" Margin="0,0,6,0"/>
+                                    <TextBlock Text="TOUCHLESS MOBILE START" FontSize="10.5" FontWeight="Black" Foreground="#86EFAC"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="SCAN WITH MOBILE CAMERA" FontSize="15" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                            <TextBlock Text="اپنے موبائل کیمرے یا ایپ سے اسکین کریں" FontFamily="{StaticResource UrduFont}" FontSize="13.5" FontWeight="Bold" Foreground="#FDE047" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- Row 1: GIANT 260x260 HIGH-CONTRAST QR CODE -->
+                        <Border Grid.Row="1" Background="#FFFFFF" BorderBrush="#22C55E" BorderThickness="3" CornerRadius="18" Padding="14" HorizontalAlignment="Center" VerticalAlignment="Center" Effect="{StaticResource GlowShadow}" Cursor="Hand" MouseLeftButtonUp="IdleTouchToStart_Click">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Border Background="#FFFFFF" Padding="6" CornerRadius="10">
+                                    <Image x:Name="IdleAttractQrImage" Width="260" Height="260" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                </Border>
+                                <TextBlock Text="PECO DROP TOUCHLESS PASS" FontSize="9" FontWeight="Black" Foreground="#073B28" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Row 2: Big Interactive "TOUCH TO START" Button -->
+                        <Border Grid.Row="2" Background="#16A34A" BorderBrush="#86EFAC" BorderThickness="1.5" CornerRadius="14" Padding="14,10" Margin="0,10,0,10" Cursor="Hand" MouseLeftButtonUp="IdleTouchToStart_Click" Effect="{StaticResource CardShadow}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="👆 " FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock Text="OR TOUCH TO START HERE" FontSize="13" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Text="یا براہ راست اسکرین سے شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#DCFCE7" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Row 3: 3 Quick Pictorial Steps -->
+                        <Grid Grid.Row="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="#0B2618" BorderBrush="#166534" BorderThickness="1" CornerRadius="8" Padding="4,5" Margin="0,0,3,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="1. 📲 SCAN / TAP" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="اسکین کریں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#DCFCE7" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Background="#0B2618" BorderBrush="#166534" BorderThickness="1" CornerRadius="8" Padding="4,5" Margin="2,0,2,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="2. 🧴 INSERT ITEMS" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="اشیاء ڈالیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#DCFCE7" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Background="#0B2618" BorderBrush="#166534" BorderThickness="1" CornerRadius="8" Padding="4,5" Margin="3,0,0,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="3. 🎁 EARN PERKS" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="انعام پائیں" FontFamily="{StaticResource UrduFont}" FontSize="9.5" Foreground="#DCFCE7" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Row 2: Bottom Status & Environmental Metrics Ribbon -->
+            <Border Grid.Row="2" Background="#E603170E" BorderBrush="#15803D" BorderThickness="0,1.5,0,0" Padding="20,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Accepted Materials Aperture Badges -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="ACCEPTED ITEMS: " FontSize="9.5" FontWeight="Black" Foreground="#86EFAC" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                        <Border Background="#14532D" CornerRadius="6" Padding="7,3" Margin="0,0,6,0">
+                            <TextBlock Text="⭕ PLASTIC BOTTLES" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC"/>
+                        </Border>
+                        <Border Background="#14532D" CornerRadius="6" Padding="7,3" Margin="0,0,6,0">
+                            <TextBlock Text="🔺 ALUMINUM CANS" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC"/>
+                        </Border>
+                        <Border Background="#14532D" CornerRadius="6" Padding="7,3">
+                            <TextBlock Text="🟦 OFFICE PAPER" FontSize="8.5" FontWeight="Bold" Foreground="#86EFAC"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Center: Urdu Message -->
+                    <TextBlock Grid.Column="1" Text="صاف اور سرسبز ماحول کے لیے اپنا کردار ادا کریں" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#FDE047" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                    <!-- Right: Location Pin -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📍 " FontSize="11" Foreground="#4ADE80"/>
+                        <TextBlock x:Name="IdleLocationText" Text="PecoDrop Smart Kiosk" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ============================================================== -->
+        <!-- 4. QR CODE FULLSCREEN ZOOM MODAL (TAPPABLE FROM ACTIVE KIOSK) -->
+        <!-- ============================================================== -->
+        <Grid x:Name="QrZoomModalOverlay" Grid.ColumnSpan="2" Background="#E6020E07" Visibility="Collapsed" Panel.ZIndex="200" Cursor="Hand" MouseLeftButtonUp="QrZoomModal_Close_Click">
+            <Border Background="#071910" BorderBrush="#22C55E" BorderThickness="2" CornerRadius="20" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center" Effect="{StaticResource GlowShadow}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="TOUCHLESS MOBILE QR CODE" FontSize="16" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                    <TextBlock Text="اسکین کریں اور سیشن جاری رکھیں" FontFamily="{StaticResource UrduFont}" FontSize="14" FontWeight="Bold" Foreground="#FDE047" HorizontalAlignment="Center" Margin="0,2,0,16"/>
+                    <Border Background="#FFFFFF" Padding="14" CornerRadius="14" HorizontalAlignment="Center">
+                        <Image x:Name="ZoomedQrImage" Width="320" Height="320" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    </Border>
+                    <TextBlock Text="TAP ANYWHERE TO CLOSE" FontSize="11" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                </StackPanel>
             </Border>
         </Grid>
 

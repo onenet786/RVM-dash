@@ -397,7 +397,7 @@ export default function QrCode({ navigation }) {
       return;
     }
 
-    if (/^RVM[-_:]/i.test(rawId)) {
+    if (/^(RVM|PECO)[-_:]/i.test(rawId)) {
       handleStartKiosk('', rawId.toUpperCase());
       return;
     }

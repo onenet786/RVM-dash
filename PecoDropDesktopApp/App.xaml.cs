@@ -65,22 +65,20 @@ public partial class App : Application
 
         var settings = AppSettings.Load();
 
-        // Check if both windows should be explicitly displayed together on Primary (Laptop) display
-        bool showBothOnPrimary = e.Args.Any(a => a.Equals("--both-on-primary", StringComparison.OrdinalIgnoreCase) ||
-                                                 a.Equals("--single-display", StringComparison.OrdinalIgnoreCase)) ||
-                                 settings.DisplayMode.Equals("BothOnPrimary", StringComparison.OrdinalIgnoreCase);
+        // Only split side-by-side if the user explicitly supplies the --both-on-primary CLI flag
+        bool showBothOnPrimary = e.Args.Any(a => a.Equals("--both-on-primary", StringComparison.OrdinalIgnoreCase));
 
         var startupWindow = new LandscapeWindow();
         MainWindow = startupWindow;
 
-        if (showBothOnPrimary)
+        var screens = ScreenHelper.GetScreens();
+        if (showBothOnPrimary && screens.Count <= 1)
         {
-            // Position both windows side-by-side on Primary (Laptop) display
+            // Explicit debug mode: Position both windows side-by-side on Primary display
             double workW = SystemParameters.WorkArea.Width;
             double workH = SystemParameters.WorkArea.Height;
 
-            // 65% for Main Kiosk (instruction/session 50% + leaderboard 50%), 35% for Ad Player.
-            double kioskW = Math.Round(workW * 0.65);
+            double kioskW = Math.Round(workW * 0.60);
             double adW = workW - kioskW;
 
             startupWindow.WindowStartupLocation = WindowStartupLocation.Manual;
@@ -105,10 +103,7 @@ public partial class App : Application
         }
         else
         {
-            // Multi-Display Mode (Default):
-            // Primary Screen 0 (Laptop): Landscape Kiosk Maximized
-            // Secondary Screen 1 (HDMI LED Display): Commercial Advertisements Maximized
-            var screens = ScreenHelper.GetScreens();
+            // Standard Kiosk: Primary screen 0 gets LandscapeWindow (100% full screen maximized)
             var primaryScreen = screens.FirstOrDefault(s => s.IsPrimary) ?? screens.FirstOrDefault();
             if (primaryScreen != null)
             {
@@ -134,7 +129,11 @@ public partial class App : Application
             }
             startupWindow.Show();
 
-            TryLaunchSecondaryDisplay();
+            // Only launch secondary ad window if an actual secondary physical monitor is plugged in
+            if (screens.Count > 1)
+            {
+                TryLaunchSecondaryDisplay();
+            }
         }
 
         // Restore the machine-specific SQL preference after both windows exist.

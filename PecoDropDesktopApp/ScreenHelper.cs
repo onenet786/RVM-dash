@@ -170,74 +170,78 @@ public static class ScreenHelper
                 }
                 else
                 {
-                    // Single display layout (Split screen: 60% Kiosk, 40% Video Ads)
+                    // Single physical display: Main Kiosk takes 100% full screen
+                    bool forceBothOnPrimary = Environment.GetCommandLineArgs().Any(a => a.Equals("--both-on-primary", StringComparison.OrdinalIgnoreCase));
+
                     double workW = SystemParameters.WorkArea.Width;
                     double workH = SystemParameters.WorkArea.Height;
-                    double hwW = Math.Round(workW * 0.60);
-                    double adW = workW - hwW;
 
-                    if (adWindow == null)
+                    if (forceBothOnPrimary)
                     {
-                        adWindow = Application.Current.Windows.OfType<SecondaryAdWindow>().FirstOrDefault();
-                    }
+                        double hwW = Math.Round(workW * 0.60);
+                        double adW = workW - hwW;
 
-                    if (adWindow == null)
-                    {
-                        adWindow = new SecondaryAdWindow();
-                        App.SecondaryDisplayWindow = adWindow;
-                        adWindow.Show();
+                        if (adWindow == null)
+                        {
+                            adWindow = Application.Current.Windows.OfType<SecondaryAdWindow>().FirstOrDefault() ?? new SecondaryAdWindow();
+                            App.SecondaryDisplayWindow = adWindow;
+                        }
+                        if (!adWindow.IsVisible) adWindow.Show();
+
+                        if (order == ScreenLayoutOrder.HardwareLeftVideoRight)
+                        {
+                            if (mainWindow != null)
+                            {
+                                mainWindow.WindowState = WindowState.Normal;
+                                mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+                                mainWindow.Left = 0; mainWindow.Top = 0; mainWindow.Width = hwW; mainWindow.Height = workH;
+                            }
+                            if (adWindow != null)
+                            {
+                                adWindow.WindowState = WindowState.Normal;
+                                adWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+                                adWindow.Left = hwW; adWindow.Top = 0; adWindow.Width = adW; adWindow.Height = workH;
+                            }
+                        }
+                        else
+                        {
+                            if (adWindow != null)
+                            {
+                                adWindow.WindowState = WindowState.Normal;
+                                adWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+                                adWindow.Left = 0; adWindow.Top = 0; adWindow.Width = adW; adWindow.Height = workH;
+                            }
+                            if (mainWindow != null)
+                            {
+                                mainWindow.WindowState = WindowState.Normal;
+                                mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+                                mainWindow.Left = adW; mainWindow.Top = 0; mainWindow.Width = hwW; mainWindow.Height = workH;
+                            }
+                        }
                     }
                     else
                     {
-                        App.SecondaryDisplayWindow = adWindow;
-                        if (!adWindow.IsVisible)
+                        // Default single screen: Kiosk takes 100% width, Secondary Ad window is closed/hidden
+                        if (adWindow != null)
                         {
-                            adWindow.Show();
+                            try { adWindow.Hide(); } catch { }
                         }
-                    }
 
-                    if (order == ScreenLayoutOrder.HardwareLeftVideoRight)
-                    {
-                        // Hardware on Left, Video Signage on Right
+                        var allAds = Application.Current.Windows.OfType<SecondaryAdWindow>().ToList();
+                        foreach (var ad in allAds)
+                        {
+                            try { ad.Hide(); } catch { }
+                        }
+
                         if (mainWindow != null)
                         {
                             mainWindow.WindowState = WindowState.Normal;
                             mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
                             mainWindow.Left = 0;
                             mainWindow.Top = 0;
-                            mainWindow.Width = hwW;
+                            mainWindow.Width = workW;
                             mainWindow.Height = workH;
-                        }
-                        if (adWindow != null)
-                        {
-                            adWindow.WindowState = WindowState.Normal;
-                            adWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-                            adWindow.Left = hwW;
-                            adWindow.Top = 0;
-                            adWindow.Width = adW;
-                            adWindow.Height = workH;
-                        }
-                    }
-                    else
-                    {
-                        // Video Signage on Left, Hardware on Right
-                        if (adWindow != null)
-                        {
-                            adWindow.WindowState = WindowState.Normal;
-                            adWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-                            adWindow.Left = 0;
-                            adWindow.Top = 0;
-                            adWindow.Width = adW;
-                            adWindow.Height = workH;
-                        }
-                        if (mainWindow != null)
-                        {
-                            mainWindow.WindowState = WindowState.Normal;
-                            mainWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-                            mainWindow.Left = adW;
-                            mainWindow.Top = 0;
-                            mainWindow.Width = hwW;
-                            mainWindow.Height = workH;
+                            mainWindow.WindowState = WindowState.Maximized;
                         }
                     }
                 }

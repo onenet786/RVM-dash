@@ -1088,7 +1088,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
 
                     LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
-                    StartMachine();
+                    StartMachine(forceSimulator: !serial.IsConnected || IsDemoMode);
                 }
                 else if (statusResp.Status == "EXPIRED" || statusResp.Status == "IDLE")
                 {
@@ -1145,10 +1145,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         if (!serial.IsConnected && !IsDemoMode && !forceSimulator)
         {
-            MachineStateText.Text = "MACHINE: ERROR";
-            if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Visible;
-            SimulatorStateChanged?.Invoke();
-            return;
+            IsDemoMode = true;
+            LogTelemetry("[START] Hardware COM port not connected -> Running session in Demo/Simulator mode");
         }
 
         if (serial.IsConnected)

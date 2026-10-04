@@ -85,26 +85,123 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         var metalState = compartmentAvailability["METAL"];
         var paperState = compartmentAvailability["PAPER"];
 
+        bool hwConnected = serial.IsConnected;
+        bool isDemo = IsDemoMode;
+
         if (ModernPlasticStatusText != null)
         {
-            ModernPlasticStatusText.Text = plasticState.Available ? "Ready" : (plasticState.BinFull ? "Full" : "Unavailable");
-            ModernPlasticStatusText.Foreground = plasticState.Available ? new SolidColorBrush(Color.FromRgb(4, 120, 87)) : Brushes.Red;
+            if (hwConnected || isDemo)
+            {
+                ModernPlasticStatusText.Text = plasticState.Available ? "Ready" : (plasticState.BinFull ? "Full" : "Unavailable");
+                ModernPlasticStatusText.Foreground = plasticState.Available ? new SolidColorBrush(Color.FromRgb(4, 120, 87)) : Brushes.Red;
+            }
+            else
+            {
+                ModernPlasticStatusText.Text = "Offline";
+                ModernPlasticStatusText.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
         }
         if (ModernMetalStatusText != null)
         {
-            ModernMetalStatusText.Text = metalState.Available ? "Ready" : (metalState.BinFull ? "Full" : "Unavailable");
-            ModernMetalStatusText.Foreground = metalState.Available ? new SolidColorBrush(Color.FromRgb(3, 105, 161)) : Brushes.Red;
+            if (hwConnected || isDemo)
+            {
+                ModernMetalStatusText.Text = metalState.Available ? "Ready" : (metalState.BinFull ? "Full" : "Unavailable");
+                ModernMetalStatusText.Foreground = metalState.Available ? new SolidColorBrush(Color.FromRgb(3, 105, 161)) : Brushes.Red;
+            }
+            else
+            {
+                ModernMetalStatusText.Text = "Offline";
+                ModernMetalStatusText.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
         }
         if (ModernPaperStatusText != null)
         {
-            ModernPaperStatusText.Text = paperState.Available ? "Ready" : (paperState.BinFull ? "Full" : "Unavailable");
-            ModernPaperStatusText.Foreground = paperState.Available ? new SolidColorBrush(Color.FromRgb(180, 83, 9)) : Brushes.Red;
+            if (hwConnected || isDemo)
+            {
+                ModernPaperStatusText.Text = paperState.Available ? "Ready" : (paperState.BinFull ? "Full" : "Unavailable");
+                ModernPaperStatusText.Foreground = paperState.Available ? new SolidColorBrush(Color.FromRgb(180, 83, 9)) : Brushes.Red;
+            }
+            else
+            {
+                ModernPaperStatusText.Text = "Offline";
+                ModernPaperStatusText.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
         }
 
-        bool allOk = plasticState.Available && metalState.Available && paperState.Available;
-        if (ModernMachineStatusText != null)
+        if (isDemo)
         {
-            ModernMachineStatusText.Text = allOk ? "Operational" : "Partial / Warning";
+            if (ModernAllSystemsBorder != null)
+            {
+                ModernAllSystemsBorder.Background = new SolidColorBrush(Color.FromRgb(239, 246, 255));
+                ModernAllSystemsBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(147, 197, 253));
+            }
+            if (ModernAllSystemsIconBorder != null)
+                ModernAllSystemsIconBorder.Background = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            if (ModernAllSystemsIconText != null) ModernAllSystemsIconText.Text = "⚡";
+            if (ModernAllSystemsTitleText != null)
+            {
+                ModernAllSystemsTitleText.Text = "DEMO SIMULATOR";
+                ModernAllSystemsTitleText.Foreground = new SolidColorBrush(Color.FromRgb(30, 64, 175));
+            }
+            if (ModernMachineStatusText != null)
+            {
+                ModernMachineStatusText.Text = "Active (Demo)";
+                ModernMachineStatusText.Foreground = new SolidColorBrush(Color.FromRgb(37, 99, 235));
+            }
+            if (ModernHardwareErrorBanner != null) ModernHardwareErrorBanner.Visibility = Visibility.Collapsed;
+        }
+        else if (hwConnected)
+        {
+            bool allOk = plasticState.Available && metalState.Available && paperState.Available;
+            if (ModernAllSystemsBorder != null)
+            {
+                ModernAllSystemsBorder.Background = allOk ? new SolidColorBrush(Color.FromRgb(220, 252, 231)) : new SolidColorBrush(Color.FromRgb(254, 243, 199));
+                ModernAllSystemsBorder.BorderBrush = allOk ? new SolidColorBrush(Color.FromRgb(134, 239, 172)) : new SolidColorBrush(Color.FromRgb(252, 211, 77));
+            }
+            if (ModernAllSystemsIconBorder != null)
+                ModernAllSystemsIconBorder.Background = allOk ? new SolidColorBrush(Color.FromRgb(22, 163, 74)) : new SolidColorBrush(Color.FromRgb(217, 119, 6));
+            if (ModernAllSystemsIconText != null) ModernAllSystemsIconText.Text = allOk ? "✓" : "!";
+            if (ModernAllSystemsTitleText != null)
+            {
+                ModernAllSystemsTitleText.Text = "ALL SYSTEMS";
+                ModernAllSystemsTitleText.Foreground = allOk ? new SolidColorBrush(Color.FromRgb(22, 101, 52)) : new SolidColorBrush(Color.FromRgb(146, 64, 14));
+            }
+            if (ModernMachineStatusText != null)
+            {
+                ModernMachineStatusText.Text = allOk ? "Operational" : "Partial / Warning";
+                ModernMachineStatusText.Foreground = allOk ? new SolidColorBrush(Color.FromRgb(21, 128, 61)) : new SolidColorBrush(Color.FromRgb(180, 83, 9));
+            }
+            if (ModernHardwareErrorBanner != null) ModernHardwareErrorBanner.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            // Hardware Disconnected and not in Demo Mode
+            if (ModernAllSystemsBorder != null)
+            {
+                ModernAllSystemsBorder.Background = new SolidColorBrush(Color.FromRgb(254, 242, 242));
+                ModernAllSystemsBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(254, 202, 202));
+            }
+            if (ModernAllSystemsIconBorder != null)
+                ModernAllSystemsIconBorder.Background = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            if (ModernAllSystemsIconText != null) ModernAllSystemsIconText.Text = "✕";
+            if (ModernAllSystemsTitleText != null)
+            {
+                ModernAllSystemsTitleText.Text = "ALL SYSTEMS";
+                ModernAllSystemsTitleText.Foreground = new SolidColorBrush(Color.FromRgb(153, 27, 27));
+            }
+            if (ModernMachineStatusText != null)
+            {
+                ModernMachineStatusText.Text = "Offline";
+                ModernMachineStatusText.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
+            }
+            if (ModernHardwareErrorBanner != null)
+            {
+                ModernHardwareErrorBanner.Visibility = Visibility.Visible;
+                if (ModernHardwareErrorText != null)
+                {
+                    ModernHardwareErrorText.Text = $"HARDWARE OFFLINE: Arduino Disconnected ({settings.ArduinoPort}) • ہارڈویئر منسلک نہیں ہے";
+                }
+            }
         }
 
         if (pendingBottleResult is not null && !compartmentAvailability.CanAccept(pendingBottleResult.Material))
@@ -211,6 +308,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         hardwareWatchdogTimer.Tick += HardwareWatchdogTimer_Tick;
 
         TelemetryList.ItemsSource = telemetryLog;
+
+        _idleAttractTimer.Interval = TimeSpan.FromSeconds(1);
+        _idleAttractTimer.Tick += IdleAttractTimer_Tick;
+        _idleAttractTimer.Start();
     }
 
     private readonly DispatcherTimer clockTimer = new();
@@ -240,9 +341,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         try
         {
-            var initQr = QrCodeGenerator.GenerateQrCode($"https://isprvm.binishaqsoft.com/kiosk/start/{settings.MachineId}", 6);
+            var initQr = QrCodeGenerator.GenerateQrCode($"https://isprvm.binishaqsoft.com/claim?m={settings.MachineId}", 6);
             if (ModernStartQrImage != null) ModernStartQrImage.Source = initQr;
             if (StartQrImage != null) StartQrImage.Source = initQr;
+            if (IdleAttractQrImage != null) IdleAttractQrImage.Source = initQr;
+            if (ZoomedQrImage != null) ZoomedQrImage.Source = initQr;
         }
         catch { }
 
@@ -253,6 +356,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         StartInstructionVideo();
         StartAdvertisement();
+        EnterIdleMode();
         CheckDatabase();
         ConnectArduino();
         _ = CheckCentralApiConnectionAsync();
@@ -424,7 +528,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape || e.Key == Key.Back)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -433,17 +537,73 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 return;
             }
 
+            if (QrZoomModalOverlay != null && QrZoomModalOverlay.Visibility == Visibility.Visible)
+            {
+                QrZoomModalOverlay.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+                return;
+            }
+
+            if (!_isIdleMode)
+            {
+                LogTelemetry("[NAV] Returning to Fullscreen Attract Screen via Escape/Back key");
+                if (totalItems > 0)
+                {
+                    CompleteSessionToWallet();
+                }
+                else
+                {
+                    ResetSession();
+                }
+                EnterIdleMode();
+                e.Handled = true;
+                return;
+            }
+
+            // In Idle Attract Mode: Ctrl+Escape exits application
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+                try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                try { HeartbeatService.Stop(); } catch { }
+                try { Application.Current?.Shutdown(); } catch { }
+                Environment.Exit(0);
+                return;
+            }
+        }
+
+        if (e.Key == Key.I && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            if (_isIdleMode) EnterActiveMode(); else EnterIdleMode();
             e.Handled = true;
-            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
-            try { DemoTestingWindow.CloseIfOpen(); } catch { }
-            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
-            try { HeartbeatService.Stop(); } catch { }
-            try { Application.Current?.Shutdown(); } catch { }
-            Environment.Exit(0);
             return;
         }
 
+        if (_isIdleMode)
+        {
+            EnterActiveMode();
+        }
+        else
+        {
+            _lastUserActivityTime = DateTime.Now;
+        }
+
         base.OnPreviewKeyDown(e);
+    }
+
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        if (_isIdleMode)
+        {
+            EnterActiveMode();
+        }
+        else
+        {
+            _lastUserActivityTime = DateTime.Now;
+        }
+        base.OnPreviewMouseDown(e);
     }
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -763,14 +923,18 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
             case Key.D0:
             case Key.NumPad0:
-                if (!serial.IsConnected)
+                if (serial.IsConnected)
                 {
-                    IsDemoMode = true;
+                    StartMachine();
+                }
+                else if (IsDemoMode)
+                {
                     StartMachine(forceSimulator: true);
                 }
                 else
                 {
-                    StartMachine();
+                    ShowLayoutToast("Hardware Disconnected. Attach Arduino cable, or press 1122 for Demo Mode.");
+                    LogTelemetry("[KEY 0] Hardware is offline. Kept offline diagnostics (press 1122 for Demo Testing).");
                 }
                 e.Handled = true;
                 break;
@@ -833,6 +997,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (LiveTimeText != null) LiveTimeText.Text = now.ToString("hh:mm tt");
         if (ModernClockDateText != null) ModernClockDateText.Text = now.ToString("dd MMM yyyy");
         if (ModernClockTimeText != null) ModernClockTimeText.Text = now.ToString("hh:mm tt");
+        UpdateIdleClock();
     }
 
     private void UpdateImpactMetrics()
@@ -1344,6 +1509,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             BottleInfoText.Text = autoRecalibrate ? "Arduino reconnected — recalibrating chamber" : "Keep pipe empty";
             MachineStateText.Text = "MACHINE: CALIBRATING";
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
+            RefreshCompartmentCards();
             LogTelemetry($"[HARDWARE] Connected on {targetPort} at {settings.ArduinoBaud} baud");
 
             // Opening the port resets the Mega through DTR/RTS. Firmware setup()
@@ -1368,6 +1534,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                     HardwareErrorText.Text = $"HARDWARE OFFLINE: Check {targetPort} USB cable • ہارڈویئر منسلک نہیں ہے";
                 }
             }
+            RefreshCompartmentCards();
             LogTelemetry($"[HARDWARE] Connection failed: {ex.Message}");
         }
     }
@@ -1610,9 +1777,21 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
                 {
                     ModernStartQrImage.Source = qrBmp;
                 }
+                if (IdleAttractQrImage != null)
+                {
+                    IdleAttractQrImage.Source = qrBmp;
+                }
+                if (ZoomedQrImage != null)
+                {
+                    ZoomedQrImage.Source = qrBmp;
+                }
                 if (StartQrCard != null)
                 {
                     StartQrCard.Visibility = Visibility.Visible;
+                }
+                if (ModernStartQrCard != null)
+                {
+                    ModernStartQrCard.Visibility = Visibility.Visible;
                 }
                 LogTelemetry($"[TOUCHLESS 📱] Dynamic start QR generated for kiosk {settings.MachineId}");
             }
@@ -1631,24 +1810,38 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         if (machineStarted)
         {
-            if (!string.IsNullOrWhiteSpace(activeUserMobile))
+            try
             {
-                try
+                var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
+                if (statusResp != null && statusResp.FinishRequested)
                 {
-                    var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
-                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
+                    _startHandshakeTimer.Stop();
+
+                    if (string.IsNullOrWhiteSpace(activeUserMobile) && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
                     {
-                        _startHandshakeTimer.Stop();
-                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
-                        CompleteSessionToWallet();
-                        return;
+                        activeUserMobile = statusResp.MobileNumber;
                     }
+
+                    if (totalItems > 0)
+                    {
+                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish ({totalItems} items)! Completing session...");
+                        CompleteSessionToWallet(skipRatingModal: true);
+                    }
+                    else
+                    {
+                        LogTelemetry("[TOUCHLESS 📱] Mobile requested session finish (0 items). Closing session cleanly...");
+                        StopMachine();
+                        StatusText.Text = "Session closed from mobile";
+                        StatusText.Foreground = Brushes.SlateGray;
+                        BottleInfoText.Text = "Session ended without any items deposited.";
+                        ResetSession();
+                    }
+                    return;
                 }
-                catch { }
             }
-            else
+            catch (Exception ex)
             {
-                _startHandshakeTimer.Stop();
+                LogTelemetry($"[TOUCHLESS WARN] Poll finish error: {ex.Message}");
             }
             return;
         }
@@ -1664,36 +1857,57 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
             if (statusResp != null && statusResp.Success)
             {
-                if (statusResp.Status == "STARTED" && !string.IsNullOrWhiteSpace(statusResp.MobileNumber))
+                if (statusResp.Status == "STARTED")
                 {
-                    activeUserMobile = statusResp.MobileNumber;
+                    string phone = !string.IsNullOrWhiteSpace(statusResp.MobileNumber)
+                        ? statusResp.MobileNumber
+                        : (!string.IsNullOrWhiteSpace(statusResp.User?.Phone)
+                            ? statusResp.User.Phone
+                            : (!string.IsNullOrWhiteSpace(statusResp.User?.FullName)
+                                ? statusResp.User.FullName
+                                : "Eco Citizen"));
 
-                    string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? "Eco Citizen";
+                    activeUserMobile = phone;
+
+                    string userName = statusResp.User?.FullName ?? statusResp.User?.Username ?? phone;
                     int balance = statusResp.User?.Balance ?? 0;
 
                     if (GreetingUserNameText != null) GreetingUserNameText.Text = userName;
                     if (GreetingPointsBalanceText != null) GreetingPointsBalanceText.Text = $"Balance: {balance} pts";
                     if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Visible;
 
+                    if (ModernGreetingUserNameText != null) ModernGreetingUserNameText.Text = userName;
+                    if (ModernGreetingPointsBalanceText != null) ModernGreetingPointsBalanceText.Text = $"Balance: {balance} pts";
+                    if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Visible;
+
                     LogTelemetry($"[TOUCHLESS 🚀] User {activeUserMobile} ({userName}) authenticated via QR! Starting kiosk...");
-                    StartMachine();
+                    EnterActiveMode(forceSimulator: true);
                 }
-                else if (statusResp.Status == "EXPIRED")
+                else if (statusResp.Status == "EXPIRED" || statusResp.Status == "IDLE")
                 {
+                    // Token expired or cleared on server -> renew active QR immediately
                     await RegisterStartHandshakeAsync();
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Transient network hiccups ignored in poll
+            LogTelemetry($"[HANDSHAKE POLL WARN] {ex.Message}");
         }
     }
 
     // Scanning continues until an explicit finish action (Enter, redeem, or mobile).
     public void StartMachine(bool forceSimulator = false)
     {
-        if (!serial.IsConnected && (IsDemoMode || forceSimulator))
+        if (IdleAttractOverlay != null)
+        {
+            IdleAttractOverlay.Visibility = Visibility.Collapsed;
+        }
+        try { IdleVideoPlayer?.Pause(); } catch { }
+        _isIdleMode = false;
+        _lastUserActivityTime = DateTime.Now;
+
+        if (!serial.IsConnected && IsDemoMode)
         {
             foreach (string compartment in new[] { "PLASTIC", "METAL", "PAPER" })
                 ProcessCompartmentStatus($"COMPARTMENT:{compartment};WORKING:OK;BIN:CLEAR");
@@ -1718,18 +1932,19 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         machineStarted = true;
         scanTimer.Stop();
-        if (string.IsNullOrWhiteSpace(activeUserMobile))
+        if (!_startHandshakeTimer.IsEnabled)
         {
-            _startHandshakeTimer.Stop();
-        }
-        else
-        {
-            if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+            _startHandshakeTimer.Start();
         }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
         if (string.IsNullOrWhiteSpace(activeUserMobile) && UserGreetingBanner != null)
         {
             UserGreetingBanner.Visibility = Visibility.Collapsed;
+        }
+        if (string.IsNullOrWhiteSpace(activeUserMobile) && ModernUserGreetingBanner != null)
+        {
+            ModernUserGreetingBanner.Visibility = Visibility.Collapsed;
         }
 
         StatusText.Text = (IsDemoMode || !serial.IsConnected) ? "Machine Started (Demo Mode)" : "Machine Started";
@@ -1752,12 +1967,15 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         scanTimer.Stop();
         activeUserMobile = null;
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
+        if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Collapsed;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
 
         StatusText.Text = "Ready";
+        EnterIdleMode();
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = "• Insert item";
         MachineStateText.Text = "MACHINE: IDLE";
@@ -2360,7 +2578,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         };
     }
 
-    public void CompleteSessionToWallet()
+    public void CompleteSessionToWallet() => CompleteSessionToWallet(skipRatingModal: false);
+
+    public void CompleteSessionToWallet(bool skipRatingModal = false)
     {
         _startHandshakeTimer.Stop();
 
@@ -2373,9 +2593,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         if (totalItems == 0)
         {
-            StatusText.Text = "No items to credit";
-            StatusText.Foreground = Brushes.OrangeRed;
-            BottleInfoText.Text = "Insert an item before using your wallet";
+            LogTelemetry("[SESSION] Session completed with 0 items. Closing cleanly...");
+            StopMachine();
+            StatusText.Text = "Session ended (0 items)";
+            StatusText.Foreground = Brushes.SlateGray;
+            BottleInfoText.Text = "Session ended without claiming points.";
+            ResetSession();
             return;
         }
 
@@ -2419,14 +2642,17 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         {
             // Touchless flow: Citizen scanned QR to authenticate upfront!
             phoneNumber = activeUserMobile;
-            var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
+            if (!skipRatingModal)
             {
-                Owner = this
-            };
-            ratingWindow.ShowDialog();
-            userRating = ratingWindow.Rating;
-            userFeedback = ratingWindow.FeedbackText;
-            feedbackSubmitted = ratingWindow.FeedbackSubmitted;
+                var ratingWindow = new RatingFeedbackWindow(phoneNumber, currentTotalPoints, currentTotalItems)
+                {
+                    Owner = this
+                };
+                ratingWindow.ShowDialog();
+                userRating = ratingWindow.Rating;
+                userFeedback = ratingWindow.FeedbackText;
+                feedbackSubmitted = ratingWindow.FeedbackSubmitted;
+            }
             LogTelemetry($"[TOUCHLESS 🚀] Auto-claiming session for QR user: {phoneNumber} (+{currentTotalPoints} pts)");
         }
         else
@@ -2561,6 +2787,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     {
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
+        if (ModernUserGreetingBanner != null) ModernUserGreetingBanner.Visibility = Visibility.Collapsed;
+        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
         if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
@@ -2578,10 +2807,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         PaperWeightText.Text = PaperTotalWeightText.Text = "0.000";
         UpdateImpactMetrics();
         SimulatorStateChanged?.Invoke();
+        EnterIdleMode();
     }
 
     private void IncrementMaterialSizeCounter(string material, string size, double weightKg)
     {
+        _lastUserActivityTime = DateTime.Now;
         if (material.Equals("PLASTIC", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") PlasticSmallCountText.Text = (++plasticSmallCount).ToString();
@@ -2780,6 +3011,228 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         else
         {
             ShowLayoutToast("Please insert containers into the illuminated apertures: ⭕ Plastic, 🔺 Metal, 🟦 Paper");
+        }
+    }
+
+    // ==============================================================
+    // TIME-SHARED IDLE ATTRACT SCREEN & LARGE QR CODE ENGINE
+    // ==============================================================
+    private readonly DispatcherTimer _idleAttractTimer = new();
+    private DateTime _lastUserActivityTime = DateTime.Now;
+    private bool _isIdleMode = true;
+    private readonly List<string> _idleVideoPlaylist = [];
+    private int _idleVideoIndex = 0;
+
+    public void EnterIdleMode()
+    {
+        // On dual displays, Screen 1 already plays 24/7 video ads, so do not block Screen 0 with IdleAttractOverlay
+        var screens = ScreenHelper.GetScreens();
+        if (screens.Count > 1)
+        {
+            if (IdleAttractOverlay != null) IdleAttractOverlay.Visibility = Visibility.Collapsed;
+            try { IdleVideoPlayer?.Stop(); } catch { }
+            return;
+        }
+
+        _isIdleMode = true;
+        machineStarted = false;
+        if (!_startHandshakeTimer.IsEnabled) _startHandshakeTimer.Start();
+
+        if (IdleAttractOverlay != null)
+        {
+            IdleAttractOverlay.Visibility = Visibility.Visible;
+        }
+
+        StartIdleVideo();
+        UpdateIdleQrCode();
+        UpdateIdleClock();
+        _ = RegisterStartHandshakeAsync();
+        LogTelemetry("[IDLE MODE] Attract Screen active: Video Signage playing + 260px QR Code ready.");
+    }
+
+    public void EnterActiveMode(bool forceSimulator = false)
+    {
+        _isIdleMode = false;
+        _lastUserActivityTime = DateTime.Now;
+
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (IdleAttractOverlay != null)
+            {
+                IdleAttractOverlay.Visibility = Visibility.Collapsed;
+            }
+        });
+
+        try { IdleVideoPlayer?.Pause(); } catch { }
+
+        // Start machine session ONLY IF mobile authenticated OR in explicit demo mode OR hardware is connected
+        if (!machineStarted)
+        {
+            if (forceSimulator && !string.IsNullOrWhiteSpace(activeUserMobile))
+            {
+                // Touchless mobile app user scanned QR code!
+                StartMachine(forceSimulator: true);
+            }
+            else if (IsDemoMode)
+            {
+                StartMachine(forceSimulator: true);
+            }
+            else if (serial.IsConnected)
+            {
+                StartMachine();
+            }
+            else
+            {
+                // Hardware is offline: do NOT start machine session; keep floating QR card visible and active!
+                if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
+                if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+                RefreshCompartmentCards();
+            }
+        }
+
+        LogTelemetry("[ACTIVE MODE] User interacted. Kiosk active at 100% full screen.");
+    }
+
+    private void StartIdleVideo()
+    {
+        try
+        {
+            _idleVideoPlaylist.Clear();
+            var adFiles = FindVideoFiles(settings.AdvertisementVideoFolder)
+                .Where(f => !Path.GetFileName(f).ToLowerInvariant().Contains("instruct"))
+                .OrderBy(f => f)
+                .ToList();
+            if (adFiles.Count > 0)
+            {
+                _idleVideoPlaylist.AddRange(adFiles);
+            }
+            else
+            {
+                var fallbackFiles = FindVideoFiles(settings.InstructionVideoFolder);
+                if (fallbackFiles.Length > 0) _idleVideoPlaylist.AddRange(fallbackFiles);
+            }
+
+            if (_idleVideoPlaylist.Count == 0)
+            {
+                if (IdleVideoPlaceholder != null) IdleVideoPlaceholder.Visibility = Visibility.Visible;
+                if (IdleVideoPlayer != null) IdleVideoPlayer.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            _idleVideoIndex = 0;
+            PlayCurrentIdleVideo();
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[IDLE VIDEO ERROR] {ex.Message}");
+            if (IdleVideoPlaceholder != null) IdleVideoPlaceholder.Visibility = Visibility.Visible;
+            if (IdleVideoPlayer != null) IdleVideoPlayer.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void PlayCurrentIdleVideo()
+    {
+        if (_idleVideoPlaylist.Count == 0 || IdleVideoPlayer == null) return;
+        if (_idleVideoIndex >= _idleVideoPlaylist.Count) _idleVideoIndex = 0;
+
+        string videoPath = _idleVideoPlaylist[_idleVideoIndex];
+        if (!File.Exists(videoPath)) return;
+
+        IdleVideoPlayer.Source = new Uri(Path.GetFullPath(videoPath));
+        if (IdleVideoPlaceholder != null) IdleVideoPlaceholder.Visibility = Visibility.Collapsed;
+        IdleVideoPlayer.Visibility = Visibility.Visible;
+        IdleVideoPlayer.Play();
+        LogTelemetry($"[IDLE VIDEO] Playing attract signage: {Path.GetFileName(videoPath)}");
+    }
+
+    private void IdleVideoPlayer_MediaEnded(object sender, RoutedEventArgs e)
+    {
+        _idleVideoIndex++;
+        if (_idleVideoIndex >= _idleVideoPlaylist.Count) _idleVideoIndex = 0;
+        PlayCurrentIdleVideo();
+    }
+
+    private void IdleVideoPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
+    {
+        LogTelemetry($"[IDLE VIDEO FAILED] {e.ErrorException?.Message}");
+        if (IdleVideoPlaceholder != null) IdleVideoPlaceholder.Visibility = Visibility.Visible;
+        if (IdleVideoPlayer != null) IdleVideoPlayer.Visibility = Visibility.Collapsed;
+    }
+
+    private void IdleAttractOverlay_Click(object sender, MouseButtonEventArgs e)
+    {
+        EnterActiveMode(forceSimulator: false);
+    }
+
+    private void IdleTouchToStart_Click(object sender, MouseButtonEventArgs e)
+    {
+        EnterActiveMode(forceSimulator: false);
+    }
+
+    private void ModernReturnToIdle_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Return to Home / Attract Screen clicked");
+        if (totalItems > 0)
+        {
+            CompleteSessionToWallet();
+        }
+        else
+        {
+            ResetSession();
+        }
+        EnterIdleMode();
+    }
+
+    private void ModernQr_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (ZoomedQrImage != null && (ModernStartQrImage?.Source != null || IdleAttractQrImage?.Source != null || StartQrImage?.Source != null))
+        {
+            ZoomedQrImage.Source = ModernStartQrImage?.Source ?? IdleAttractQrImage?.Source ?? StartQrImage?.Source;
+            if (QrZoomModalOverlay != null) QrZoomModalOverlay.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void QrZoomModal_Close_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (QrZoomModalOverlay != null) QrZoomModalOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void UpdateIdleClock()
+    {
+        DateTime now = DateTime.Now;
+        if (IdleClockDateText != null) IdleClockDateText.Text = now.ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        if (IdleClockTimeText != null) IdleClockTimeText.Text = now.ToString("hh:mm tt", System.Globalization.CultureInfo.InvariantCulture);
+        if (IdleLocationText != null) IdleLocationText.Text = string.IsNullOrWhiteSpace(settings.Location) ? settings.MachineId : settings.Location;
+    }
+
+    private void UpdateIdleQrCode(ImageSource? qrSource = null)
+    {
+        var src = qrSource ?? ModernStartQrImage?.Source ?? StartQrImage?.Source;
+        if (src != null)
+        {
+            if (IdleAttractQrImage != null) IdleAttractQrImage.Source = src;
+            if (ZoomedQrImage != null) ZoomedQrImage.Source = src;
+        }
+    }
+
+    private void IdleAttractTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_isIdleMode) return;
+
+        // In active mode: check inactivity timeout (25s if untouched without items, 60s if active items)
+        double timeoutSec = (totalItems == 0 && string.IsNullOrWhiteSpace(activeUserMobile)) ? 25.0 : 60.0;
+        if ((DateTime.Now - _lastUserActivityTime).TotalSeconds >= timeoutSec)
+        {
+            LogTelemetry($"[INACTIVITY] No user interaction for {timeoutSec}s. Returning to Idle Attract Screen.");
+            if (totalItems > 0)
+            {
+                CompleteSessionToWallet();
+            }
+            else
+            {
+                ResetSession();
+            }
+            EnterIdleMode();
         }
     }
 }
