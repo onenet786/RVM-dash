@@ -222,9 +222,10 @@ $possibleConfigs = @(
 )
 foreach ($cfg in $possibleConfigs) {
     if (Test-Path $cfg) {
-        Get-Content $cfg | ForEach-Object {
-            if ($_ -match "^\s*DisplayLayout\s*=\s*(.+)$") {
+        foreach ($line in (Get-Content $cfg)) {
+            if ($line -match "^\s*DisplayLayout\s*=\s*(.+)$") {
                 $displayLayout = $matches[1].Trim()
+                break
             }
         }
         break
