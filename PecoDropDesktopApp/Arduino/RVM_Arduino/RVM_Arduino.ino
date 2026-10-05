@@ -85,9 +85,12 @@ const unsigned long IRIS_MIN_OPEN_MS = 1000UL;
 const unsigned long ENTRANCE_CLEAR_MS = 400UL;
 const byte SIZE_READING_SAMPLES = 3;
 const byte REQUIRED_SIZE_CHANGES = 2;
-// The metal middle transducer uses the same robust threshold as the other sizing levels.
-const int METAL_MIDDLE_DETECTION_CHANGE_MM = DETECTION_CHANGE_MM;
-const byte METAL_MIDDLE_REQUIRED_SIZE_CHANGES = REQUIRED_SIZE_CHANGES;
+// Sizing detection thresholds:
+// Bottom transducer requires 25mm intrusion.
+// Upper transducers (Middle & Top) require 35mm intrusion to prevent 15-deg beam cone spread
+// from grazing the top/cap of a small container standing in the lower chamber.
+const int SIZING_BOTTOM_DETECTION_CHANGE_MM = 25;
+const int SIZING_UPPER_DETECTION_CHANGE_MM = 35;
 const unsigned long ARRIVAL_TIMEOUT_MS = 5000UL;
 // Snappy bottle settling time: reduced from 2000ms down to 650ms for instant sizing
 const unsigned long BOTTLE_SETTLE_MS = 650UL;
@@ -657,13 +660,15 @@ void processSizedItem(Compartment& c) {
   c.irisServo->write(irisClosedAngle(c));
   if (!waitActive(100)) return;
   c.bottomGateServo->write(dropOpenAngle(c));
-  if (!waitActive(500)) return;
-  bool cleared = waitForSizingClear(c);
+  // 600ms hold ensures container falls clear through open aperture under gravity
+  if (!waitActive(600)) return;
   c.bottomGateServo->write(dropClosedAngle(c));
   // Allow full return transit time (450ms) for the 160-degree sweep under load
   if (!waitActive(450)) return;
   // Detach bottom gate servo to match calibration behavior and eliminate motor strain/buzz
   c.bottomGateServo->detach();
+  // Verify chamber is clear with gate resting closed at its calibrated baseline
+  bool cleared = waitForSizingClear(c);
   if (cleared && cycleRunning()) {
     Serial.print(F("BOTTLE:CLEARED;COMPARTMENT:")); Serial.println(c.name);
   }
@@ -796,11 +801,11 @@ void autoRecover(Compartment& c) {
 int readSizeLevel(Compartment& c, const char* level, byte trigPin,
                   byte echoPin, int emptyMm, bool previouslyActive) {
   byte occupied = 0, clear = 0, missing = 0;
-  const bool isMetalMiddle = &c == &metal && strcmp(level, "MIDDLE") == 0;
-  const int detectionChangeMm = isMetalMiddle
-    ? METAL_MIDDLE_DETECTION_CHANGE_MM : DETECTION_CHANGE_MM;
-  const byte requiredOccupied = isMetalMiddle
-    ? METAL_MIDDLE_REQUIRED_SIZE_CHANGES : REQUIRED_SIZE_CHANGES;
+  bool isUpper = strcmp(level, "MIDDLE") == 0 || strcmp(level, "TOP") == 0;
+  // Upper transducers (middle & top) require 35mm intrusion to prevent 15-deg beam cone spread
+  // from grazing the top/cap of a small container sitting in bottom chamber.
+  int detectionChangeMm = isUpper ? SIZING_UPPER_DETECTION_CHANGE_MM : SIZING_BOTTOM_DETECTION_CHANGE_MM;
+  const byte requiredOccupied = REQUIRED_SIZE_CHANGES; // Require 2 consistent samples out of 3
   Serial.print(F("SIZING:")); Serial.print(c.name);
   Serial.print(F(";LEVEL:")); Serial.print(level);
   Serial.print(F(";EMPTY_CM:")); printDistanceCm(emptyMm);
@@ -810,15 +815,13 @@ int readSizeLevel(Compartment& c, const char* level, byte trigPin,
     if (sample > 0) Serial.print(',');
     printDistanceCm(distance);
     if (distance > 0 && emptyMm > 0) {
-      if (abs(emptyMm - distance) >= detectionChangeMm) occupied++;
-      else if (abs(emptyMm - distance) <= ENTRANCE_CLEAR_TOLERANCE_MM) clear++;
+      int delta = emptyMm - distance;
+      // Object MUST be closer than empty wall by at least detectionChangeMm
+      if (delta >= detectionChangeMm) occupied++;
+      else if (abs(delta) <= ENTRANCE_CLEAR_TOLERANCE_MM) clear++;
     }
     if (distance <= 0) missing++;
-    // The metal middle level uses its own smaller threshold, so read all
-    // samples; a later valid active echo must not be skipped after two clear
-    // echoes.
-    if (!isMetalMiddle &&
-        (occupied >= REQUIRED_SIZE_CHANGES || clear >= REQUIRED_SIZE_CHANGES)) break;
+    if (occupied >= requiredOccupied || clear >= REQUIRED_SIZE_CHANGES) break;
   }
   int state = occupied >= requiredOccupied ? 1 :
               (clear >= REQUIRED_SIZE_CHANGES ? 0 : -1);
@@ -847,6 +850,22 @@ const char* calculateSize(Compartment& c) {
     if (middle >= 0) middleActive = middle == 1;
     if (top >= 0) topActive = top == 1;
 
+    if (&c == &metal) {
+      // Industrial height profile for aluminum beverage cans:
+      // Immune to whether physical middle and top transducers are inverted in wiring:
+      // 1. If BOTH upper sensors are triggered -> LARGE (500ml tall can / energy drink)
+      // 2. If EXACTLY ONE upper sensor is triggered -> MEDIUM (330ml / 355ml standard can)
+      // 3. If NEITHER upper sensor is triggered -> SMALL (250ml slim / small can)
+      byte upperActive = (middle == 1 ? 1 : 0) + (top == 1 ? 1 : 0);
+      if (upperActive >= 2) {
+        return "LARGE";
+      } else if (upperActive == 1) {
+        return "MEDIUM";
+      } else {
+        return "SMALL";
+      }
+    }
+
     if (bottom == 1 && middle == -1 && top == 1) {
       if (++largeFallbackScans >= 2) {
         Serial.print(F("SIZING:")); Serial.print(c.name);
@@ -859,24 +878,18 @@ const char* calculateSize(Compartment& c) {
     const char* size = "INVALID";
     if (bottom == 1 && middle == 1 && top == 1) size = "LARGE";
     else if (bottom == 1 && middle == 1 && top == 0) size = "MEDIUM";
-    else if (bottom == 1 && middle == 0 && top == 0) size = "SMALL";
-    // Metal accepts the readings that are valid even when another sizing
-    // sensor is unreliable or makes a non-continuous pattern.  The highest
-    // valid active level determines the size; invalid levels are skipped.
-    if (&c == &metal && strcmp(size, "INVALID") == 0) {
-      if (top == 1) size = "LARGE";
-      else if (middle == 1) size = "MEDIUM";
-      else if (bottom == 1) size = "SMALL";
-    }
+    else if (bottom == 1 && middle == 0 && top == 0) return "SMALL"; // Immediate return for unambiguous small
+
     if (strcmp(size, "INVALID") != 0 && strcmp(size, previous) == 0) return size;
     previous = size;
   }
-  return "INVALID";
+  return (&c == &metal) ? "SMALL" : "INVALID";
 }
 
 bool waitForSizingItem(Compartment& c) {
   unsigned long started = millis();
   byte bottomChangeCount = 0;
+  const byte required = (&c == &metal) ? 2 : REQUIRED_DETECTIONS;
   while (millis() - started < ARRIVAL_TIMEOUT_MS) {
     wdt_reset();
     handleSerial();
@@ -891,7 +904,7 @@ bool waitForSizingItem(Compartment& c) {
                                        c.bottomSizeEmptyMm);
     }
     if (bottomOccupied) {
-      if (++bottomChangeCount >= REQUIRED_DETECTIONS) return true;
+      if (++bottomChangeCount >= required) return true;
     } else {
       bottomChangeCount = 0;
     }
@@ -914,7 +927,7 @@ bool waitForSizingClear(Compartment& c) {
                                   c.topSizeEchoPin, c.topSizeEmptyMm) == 0;
     bool clear = bottomClear && middleClear && topClear;
     clearCount = clear ? clearCount + 1 : 0;
-    if (clearCount >= 3) return true;
+    if (clearCount >= 2) return true;
     delay(10);
   }
   return false;
@@ -971,11 +984,11 @@ void processPaper() {
   Serial.println(grams / 1000.0f, 3);
   if (!waitActive(100)) return;
   paper.bottomGateServo->write(dropOpenAngle(paper));
-  if (!waitActive(500)) return;
-  bool cleared = waitForPaperClear();
+  if (!waitActive(600)) return;
   paper.bottomGateServo->write(dropClosedAngle(paper));
   if (!waitActive(450)) return;
   paper.bottomGateServo->detach();
+  bool cleared = waitForPaperClear();
   if (cleared && cycleRunning()) {
     Serial.println(F("BOTTLE:CLEARED;COMPARTMENT:PAPER"));
   }
