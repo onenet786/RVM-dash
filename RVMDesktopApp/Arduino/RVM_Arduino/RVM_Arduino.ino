@@ -311,7 +311,62 @@ void handleSerialCommand()
 
 void executeCommand(String command)
 {
-  if (command == "START" || command == "0")
+  if (command == "PROTO?")
+  {
+    Serial.println(F("PROTO:RVM:2;FW:2.0;CAPS:SNAPSHOT,SENSORS,2_SERVOS,SELF_TEST"));
+  }
+  else if (command == "DIAG:SNAPSHOT" || command == "DIAG:SELF_TEST")
+  {
+    int chamberCm = readDistanceCM();
+    int entranceCm = readEntranceDistanceCM();
+    Serial.print(F("DIAG:RVM;MODE:")); Serial.print(machineStarted ? F("RUNNING") : F("SAFE"));
+    Serial.print(F(";CALIBRATED:")); Serial.print(calibrated ? 1 : 0);
+    Serial.print(F(";IR_BOTTOM_RAW:")); Serial.print(digitalRead(irBottomPin));
+    Serial.print(F(";IR_MIDDLE_RAW:")); Serial.print(digitalRead(irMiddlePin));
+    Serial.print(F(";IR_TOP_RAW:")); Serial.print(digitalRead(irTopPin));
+    Serial.print(F(";CHAMBER_CM:")); Serial.print(chamberCm);
+    Serial.print(F(";CHAMBER_OK:")); Serial.print(chamberCm > 0 ? 1 : 0);
+    Serial.print(F(";ENTRANCE_CM:")); Serial.print(entranceCm);
+    Serial.print(F(";ENTRANCE_OK:")); Serial.print(entranceCm > 0 ? 1 : 0);
+    Serial.print(F(";METAL_RAW:")); Serial.print(digitalRead(metalSensorPin));
+    Serial.print(F(";UBC_RAW:")); Serial.print(digitalRead(tetraPakSensorPin));
+    Serial.print(F(";BIN_RAW:")); Serial.print(digitalRead(binSensorPin));
+    Serial.print(F(";BIN_BLOCKED:")); Serial.print(isBinBlocked() ? 1 : 0);
+    Serial.print(F(";MAIN_GATE:")); Serial.print(mainGateCurrentlyOpen ? F("OPEN") : F("CLOSED"));
+    Serial.print(F(";ENTRANCE_GATE:")); Serial.print(entranceGateCurrentlyOpen ? F("OPEN") : F("CLOSED"));
+    Serial.print(F(";UPTIME_MS:")); Serial.println(millis());
+  }
+  else if (command == "DIAG:ENTER")
+  {
+    machineStarted = false; closeGate(); closeEntranceGate();
+    Serial.println(F("DIAG:ENTERED;MODE:MANUAL_TEST;ACTUATORS:CLOSED"));
+  }
+  else if (command == "DIAG:EXIT")
+  {
+    machineStarted = false; closeGate(); closeEntranceGate();
+    Serial.println(F("DIAG:EXITED;MODE:SAFE;ACTUATORS:CLOSED"));
+  }
+  else if (command == "DIAG:GATE:OPEN")
+  {
+    machineStarted = false; closeEntranceGate(); openGate();
+    Serial.println(F("DIAG:ACTUATOR:MAIN_GATE:COMMANDED_OPEN"));
+    delay(3000); closeGate(); Serial.println(F("DIAG:ACTUATOR:MAIN_GATE:AUTO_CLOSED"));
+  }
+  else if (command == "DIAG:GATE:CLOSE")
+  {
+    machineStarted = false; closeGate(); Serial.println(F("DIAG:ACTUATOR:MAIN_GATE:COMMANDED_CLOSED"));
+  }
+  else if (command == "DIAG:ENTRANCE:OPEN")
+  {
+    machineStarted = false; closeGate(); openEntranceGate();
+    Serial.println(F("DIAG:ACTUATOR:ENTRANCE_GATE:COMMANDED_OPEN"));
+    delay(3000); closeEntranceGate(); Serial.println(F("DIAG:ACTUATOR:ENTRANCE_GATE:AUTO_CLOSED"));
+  }
+  else if (command == "DIAG:ENTRANCE:CLOSE")
+  {
+    machineStarted = false; closeEntranceGate(); Serial.println(F("DIAG:ACTUATOR:ENTRANCE_GATE:COMMANDED_CLOSED"));
+  }
+  else if (command == "START" || command == "0")
   {
     waitingForStuckBottleRemoval = false;
 

@@ -224,7 +224,7 @@ public partial class SecondaryAdWindow : Window
             .FirstOrDefault(window => window.IsVisible);
         if (walletWindow != null)
         {
-            bool handledByWallet = walletWindow.TryHandleKioskNumpadKey(e.Key);
+            bool handledByWallet = walletWindow.TryHandleKioskNumpadKey(e);
             walletWindow.RestoreKioskInputFocus();
             if (handledByWallet)
             {
@@ -243,7 +243,8 @@ public partial class SecondaryAdWindow : Window
             return;
         }
 
-        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        Key normKey = KioskNumpadHelper.NormalizeKey(e);
+        if (KioskNumpadHelper.IsBackKey(normKey))
         {
             if (_demoSecretSequence.Length > 0)
             {
@@ -253,20 +254,7 @@ public partial class SecondaryAdWindow : Window
             return;
         }
 
-        char digit = e.Key switch
-        {
-            Key.D0 or Key.NumPad0 => '0',
-            Key.D1 or Key.NumPad1 => '1',
-            Key.D2 or Key.NumPad2 => '2',
-            Key.D3 or Key.NumPad3 => '3',
-            Key.D4 or Key.NumPad4 => '4',
-            Key.D5 or Key.NumPad5 => '5',
-            Key.D6 or Key.NumPad6 => '6',
-            Key.D7 or Key.NumPad7 => '7',
-            Key.D8 or Key.NumPad8 => '8',
-            Key.D9 or Key.NumPad9 => '9',
-            _ => '\0'
-        };
+        KioskNumpadHelper.TryResolveDigit(e, out char digit);
 
         if (digit != '\0')
         {
@@ -353,7 +341,7 @@ public partial class SecondaryAdWindow : Window
             }
         }
 
-        if (e.Key == Key.Enter)
+        if (KioskNumpadHelper.IsEnterKey(normKey))
         {
             (Application.Current?.MainWindow as IKioskSimulatorTarget)?.CompleteSessionToWallet();
             ReturnFocusToHardwareScreen();

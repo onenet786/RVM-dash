@@ -10,8 +10,18 @@ using System.Windows.Threading;
 
 namespace RVMDesktopApp;
 
-public partial class LandscapeWindow : Window, IKioskSimulatorTarget
+public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareDiagnosticsHost
 {
+    public event Action<string>? HardwareDiagnosticMessage;
+    public bool IsHardwareConnected => serial.IsConnected;
+
+    public bool SendAdminHardwareCommand(string command)
+    {
+        if (!serial.IsConnected || string.IsNullOrWhiteSpace(command)) return false;
+        serial.SendCommand(command);
+        HardwareDiagnosticMessage?.Invoke($"TX:{command}");
+        return true;
+    }
     public Window AsWindow => this;
     public bool IsMachineStarted => machineStarted;
     public bool IsDemoMode { get; set; } = false;
@@ -1302,6 +1312,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void Serial_DataReceived(string message)
     {
+        HardwareDiagnosticMessage?.Invoke($"RX:{message}");
         Dispatcher.InvokeAsync(() =>
         {
             if (IsLoaded)

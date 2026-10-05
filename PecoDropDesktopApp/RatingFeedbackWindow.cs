@@ -272,40 +272,27 @@ public sealed class RatingFeedbackWindow : Window
 
     private void RatingFeedbackWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.D1 || e.Key == Key.NumPad1)
+        Key normKey = KioskNumpadHelper.NormalizeKey(e);
+
+        if (KioskNumpadHelper.TryResolveDigit(e, out char digit) && digit >= '1' && digit <= '5')
         {
-            SetRating(1);
+            SetRating(digit - '0');
             e.Handled = true;
+            return;
         }
-        else if (e.Key == Key.D2 || e.Key == Key.NumPad2)
-        {
-            SetRating(2);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.D3 || e.Key == Key.NumPad3)
-        {
-            SetRating(3);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.D4 || e.Key == Key.NumPad4)
-        {
-            SetRating(4);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.D5 || e.Key == Key.NumPad5)
-        {
-            SetRating(5);
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Enter)
+
+        if (KioskNumpadHelper.IsEnterKey(normKey))
         {
             Submit();
             e.Handled = true;
+            return;
         }
-        else if (e.Key == Key.Escape)
+
+        if (normKey == Key.Escape)
         {
             Skip();
             e.Handled = true;
+            return;
         }
     }
 
@@ -421,8 +408,12 @@ public sealed class RatingFeedbackWindow : Window
         base.OnClosed(e);
     }
 
+    private bool _isClosing = false;
+
     private void Skip()
     {
+        if (_isClosing) return;
+        _isClosing = true;
         StopCountdownTimer();
         FeedbackSubmitted = false;
         SafeSetDialogResult(true);
@@ -430,6 +421,8 @@ public sealed class RatingFeedbackWindow : Window
 
     private void Submit()
     {
+        if (_isClosing) return;
+        _isClosing = true;
         StopCountdownTimer();
         FeedbackSubmitted = true;
         SafeSetDialogResult(true);

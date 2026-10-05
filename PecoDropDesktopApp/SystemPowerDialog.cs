@@ -177,12 +177,29 @@ public sealed class SystemPowerDialog : Window
         // Key interception: 1 for Yes, 0 for No
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key == Key.D1 || e.Key == Key.NumPad1 || e.Key == Key.Y)
+            Key normKey = KioskNumpadHelper.NormalizeKey(e);
+            if (KioskNumpadHelper.TryResolveDigit(e, out char digit))
+            {
+                if (digit == '1')
+                {
+                    e.Handled = true;
+                    CloseWithChoice(true);
+                    return;
+                }
+                if (digit == '0')
+                {
+                    e.Handled = true;
+                    CloseWithChoice(false);
+                    return;
+                }
+            }
+
+            if (normKey == Key.Y)
             {
                 e.Handled = true;
                 CloseWithChoice(true);
             }
-            else if (e.Key == Key.D0 || e.Key == Key.NumPad0 || e.Key == Key.Escape || e.Key == Key.N)
+            else if (normKey == Key.Escape || normKey == Key.N)
             {
                 e.Handled = true;
                 CloseWithChoice(false);

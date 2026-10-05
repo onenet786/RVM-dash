@@ -400,7 +400,22 @@
                                                     <TextBox x:Name="CfgCameraBaud" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                                 </StackPanel>
                                             </Grid>
-                                            <Button Content="⚡ Re-initialize Arduino Board" Click="ReinitializeArduino_Click" Height="34" Margin="0,8,0,0" Style="{StaticResource ModernButton}"/>
+                                            <TextBlock x:Name="TxtHardwareStatus" Text="Hardware: waiting" Foreground="#FBBF24" Margin="0,8,0,4" FontWeight="Bold"/>
+                                            <WrapPanel>
+                                                <Button Content="Refresh All" Tag="DIAG:SNAPSHOT" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Safe Self-Test" Tag="DIAG:SELF_TEST" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Calibrate" Tag="CALIBRATE" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Safe Stop" Tag="DIAG:EXIT" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                            </WrapPanel>
+                                            <TextBlock Text="MANUAL ACTUATOR TESTS — intake stops; gates auto-close" Foreground="#FBBF24" Margin="0,8,0,3"/>
+                                            <WrapPanel>
+                                                <Button Content="Entrance Open" Tag="DIAG:ENTRANCE:OPEN" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Entrance Close" Tag="DIAG:ENTRANCE:CLOSE" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Drop Open" Tag="DIAG:GATE:OPEN" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Drop Close" Tag="DIAG:GATE:CLOSE" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                            </WrapPanel>
+                                            <TextBox x:Name="TxtHardwareDiagnostics" Height="150" Margin="0,8,0,0" Padding="6" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#020617" Foreground="#86EFAC" FontFamily="Consolas" FontSize="11"/>
+                                            <Button Content="Reconnect / Re-initialize via Active Connection" Click="ReinitializeArduino_Click" Height="34" Margin="0,8,0,0" Style="{StaticResource ModernButton}"/>
                                         </StackPanel>
                                     </Border>
 

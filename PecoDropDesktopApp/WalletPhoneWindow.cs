@@ -155,6 +155,11 @@ public sealed class WalletPhoneWindow : Window
         }
     }
 
+    public bool TryHandleKioskNumpadKey(KeyEventArgs e)
+    {
+        return TryHandleKioskNumpadKey(KioskNumpadHelper.NormalizeKey(e));
+    }
+
     public bool TryHandleKioskNumpadKey(Key key)
     {
         RestoreKioskInputFocus();
@@ -168,7 +173,7 @@ public sealed class WalletPhoneWindow : Window
             return true;
         }
 
-        if (key == Key.Back || key == Key.Subtract || key == Key.OemMinus)
+        if (KioskNumpadHelper.IsBackKey(key))
         {
             if (_phoneTextBox.SelectionLength > 0)
             {
@@ -190,7 +195,7 @@ public sealed class WalletPhoneWindow : Window
             return true;
         }
 
-        if (key == Key.Enter || key == Key.Return)
+        if (KioskNumpadHelper.IsEnterKey(key))
         {
             SubmitPhone();
             return true;
@@ -201,27 +206,11 @@ public sealed class WalletPhoneWindow : Window
 
     private static int GetNumpadDigit(Key key)
     {
-        if (key >= Key.NumPad0 && key <= Key.NumPad9)
+        if (KioskNumpadHelper.TryResolveDigit(key, out char digit))
         {
-            return key - Key.NumPad0;
+            return digit - '0';
         }
-
-        if (Keyboard.IsKeyToggled(Key.NumLock)) return -1;
-
-        return key switch
-        {
-            Key.Insert => 0,
-            Key.End => 1,
-            Key.Down => 2,
-            Key.PageDown => 3,
-            Key.Left => 4,
-            Key.Clear => 5,
-            Key.Right => 6,
-            Key.Home => 7,
-            Key.Up => 8,
-            Key.PageUp => 9,
-            _ => -1
-        };
+        return -1;
     }
 
     private void InsertPhoneDigit(char digit)
@@ -885,14 +874,15 @@ public sealed class WalletPhoneWindow : Window
 
     private void PhoneTextBox_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        Key key = KioskNumpadHelper.NormalizeKey(e);
+        if (KioskNumpadHelper.IsBackKey(key))
         {
             TryHandleKioskNumpadKey(Key.Back);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Enter)
+        if (KioskNumpadHelper.IsEnterKey(key))
         {
             SubmitPhone();
             e.Handled = true;
@@ -901,7 +891,7 @@ public sealed class WalletPhoneWindow : Window
 
     private void WalletPhoneWindow_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (_currentStep == WindowStep.PhoneInput && TryHandleKioskNumpadKey(e.Key))
+        if (_currentStep == WindowStep.PhoneInput && TryHandleKioskNumpadKey(e))
         {
             e.Handled = true;
             return;
@@ -925,40 +915,23 @@ public sealed class WalletPhoneWindow : Window
 
         if (_currentStep == WindowStep.Rating)
         {
-            if (e.Key == Key.D1 || e.Key == Key.NumPad1)
+            if (KioskNumpadHelper.TryResolveDigit(e, out char digit) && digit >= '1' && digit <= '5')
             {
-                SetRating(1);
+                SetRating(digit - '0');
                 e.Handled = true;
+                return;
             }
-            else if (e.Key == Key.D2 || e.Key == Key.NumPad2)
-            {
-                SetRating(2);
-                e.Handled = true;
-            }
-            else if (e.Key == Key.D3 || e.Key == Key.NumPad3)
-            {
-                SetRating(3);
-                e.Handled = true;
-            }
-            else if (e.Key == Key.D4 || e.Key == Key.NumPad4)
-            {
-                SetRating(4);
-                e.Handled = true;
-            }
-            else if (e.Key == Key.D5 || e.Key == Key.NumPad5)
-            {
-                SetRating(5);
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Enter)
+            if (KioskNumpadHelper.IsEnterKey(KioskNumpadHelper.NormalizeKey(e)))
             {
                 SubmitRating();
                 e.Handled = true;
+                return;
             }
-            else if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape)
             {
                 SkipRating();
                 e.Handled = true;
+                return;
             }
         }
     }

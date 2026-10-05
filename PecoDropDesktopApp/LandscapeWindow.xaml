@@ -75,10 +75,10 @@
         <Grid x:Name="ClassicScreenLayout" Visibility="Collapsed">
 
         <Grid.ColumnDefinitions>
-            <!-- LEFT: INSTRUCTIONAL VIDEO & LIVE SESSION DETAILS (50%) -->
-            <ColumnDefinition Width="*"/>
-            <!-- RIGHT: LEADERBOARD (50%) -->
-            <ColumnDefinition Width="*"/>
+            <!-- LEFT: INSTRUCTIONAL VIDEO & LIVE SESSION DETAILS (60%) -->
+            <ColumnDefinition Width="6*"/>
+            <!-- RIGHT: LEADERBOARD (40%) -->
+            <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ============================================================== -->
@@ -721,10 +721,10 @@
         <!-- ============================================================== -->
         <Grid x:Name="ModernScreenLayout" Visibility="Visible">
             <Grid.ColumnDefinitions>
-                <!-- LEFT: ECO KIOSK INTERACTIVE DETAILS (50%) -->
-                <ColumnDefinition Width="*"/>
-                <!-- RIGHT: HIGH-TECH LEADERBOARD & RECENT ACTIVITY (50%) -->
-                <ColumnDefinition Width="*"/>
+                <!-- LEFT: ECO KIOSK INTERACTIVE DETAILS (60%) -->
+                <ColumnDefinition Width="6*"/>
+                <!-- RIGHT: HIGH-TECH LEADERBOARD & RECENT ACTIVITY (40%) -->
+                <ColumnDefinition Width="4*"/>
             </Grid.ColumnDefinitions>
 
             <!-- ============================================================== -->

@@ -13,8 +13,10 @@ using System.Windows.Threading;
 
 namespace PecoDropDesktopApp;
 
-public partial class LandscapeWindow : Window, IKioskSimulatorTarget
+public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareDiagnosticsHost
 {
+    public event Action<string>? HardwareDiagnosticMessage;
+    public bool IsHardwareConnected => serial.IsConnected;
     public Window AsWindow => this;
     public bool IsMachineStarted => machineStarted;
     public bool IsDemoMode { get; set; } = false;
@@ -152,6 +154,13 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private string? _currentStartToken;
     private DateTime _startTokenExpiresAt = DateTime.MinValue;
     private bool _isRegisteringHandshake = false;
+    private bool _isPlayingAcceptedVideo;
+    private readonly DispatcherTimer _acceptedVideoTimer = new();
+    private readonly DispatcherTimer _sessionInactivityTimer = new();
+    private int _secondsSinceLastDeposit = 0;
+    private const int InactivityWarningSeconds = 30;
+    private const int InactivityTotalSeconds = 40;
+    private bool _isCompletingSession = false;
 
     public LandscapeWindow()
     {
@@ -227,6 +236,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void LandscapeWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        KioskNumpadHelper.EnsureNumLockOn();
         UpdateClockDisplay();
         clockTimer.Start();
         hardwareWatchdogTimer.Start();
@@ -261,10 +271,78 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         apiCheckTimer.Tick += async (s, args) => await CheckCentralApiConnectionAsync();
         apiCheckTimer.Start();
 
+        machineStarted = false;
+        MachineStateText.Text = "MACHINE: IDLE";
+        StatusText.Text = "Ready";
+        StatusText.Foreground = Brushes.LimeGreen;
+        BottleInfoText.Text = "• Insert container";
+        if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+        if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
+
         _startHandshakeTimer.Interval = TimeSpan.FromMilliseconds(1500);
         _startHandshakeTimer.Tick += StartHandshakeTimer_Tick;
-        _startHandshakeTimer.Start();
+        _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
         _ = RegisterStartHandshakeAsync();
+        _startHandshakeTimer.Start();
+        _acceptedVideoTimer.Interval = TimeSpan.FromSeconds(5.5);
+        _acceptedVideoTimer.Tick += (s, args) =>
+        {
+            _acceptedVideoTimer.Stop();
+            if (_isPlayingAcceptedVideo)
+            {
+                _isPlayingAcceptedVideo = false;
+                StartInstructionVideo();
+            }
+        };
+
+        _sessionInactivityTimer.Interval = TimeSpan.FromSeconds(1);
+        _sessionInactivityTimer.Tick += SessionInactivityTimer_Tick;
+    }
+
+    private void SessionInactivityTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!machineStarted || totalItems <= 0)
+        {
+            _secondsSinceLastDeposit = 0;
+            _sessionInactivityTimer.Stop();
+            return;
+        }
+
+        _secondsSinceLastDeposit++;
+
+        if (_secondsSinceLastDeposit >= InactivityWarningSeconds)
+        {
+            int remainingSeconds = Math.Max(0, InactivityTotalSeconds - _secondsSinceLastDeposit);
+            if (remainingSeconds > 0)
+            {
+                StatusText.Text = $"Session Closing in {remainingSeconds}s • سیشن بند ہو رہا ہے";
+                StatusText.Foreground = Brushes.Gold;
+                BottleInfoText.Text = !string.IsNullOrWhiteSpace(activeUserMobile)
+                    ? $"Auto-crediting {totalPoints} pts to {activeUserMobile} in {remainingSeconds}s"
+                    : $"Press [REDEEM] to claim {totalPoints} pts or session will end in {remainingSeconds}s";
+            }
+            else
+            {
+                _sessionInactivityTimer.Stop();
+                _secondsSinceLastDeposit = 0;
+                LogTelemetry($"[INACTIVITY TIMEOUT ⏳] 40s reached with {totalItems} items ({totalPoints} pts).");
+
+                if (!string.IsNullOrWhiteSpace(activeUserMobile))
+                {
+                    LogTelemetry($"[AUTO-CREDIT 📱] Auto-finalizing session for {activeUserMobile} with {totalPoints} pts...");
+                    CompleteSessionToWallet();
+                }
+                else
+                {
+                    LogTelemetry("[AUTO-CLOSE] Anonymous session expired without claim. Resetting kiosk...");
+                    StopMachine();
+                    StatusText.Text = "Session Expired • سیشن ختم ہو گیا";
+                    StatusText.Foreground = Brushes.SlateGray;
+                    BottleInfoText.Text = "• Insert container or scan QR to start";
+                    ResetSession();
+                }
+            }
+        }
     }
 
     private void OnNetworkStatusChanged(NetworkStatus status, string? error)
@@ -424,6 +502,20 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        var walletWindow = Application.Current?.Windows
+            .OfType<WalletPhoneWindow>()
+            .FirstOrDefault(window => window.IsVisible);
+        if (walletWindow != null)
+        {
+            bool handledByWallet = walletWindow.TryHandleKioskNumpadKey(e);
+            walletWindow.RestoreKioskInputFocus();
+            if (handledByWallet)
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (e.Key == Key.Escape)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
@@ -448,7 +540,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
+        Key normKey = KioskNumpadHelper.NormalizeKey(e);
+
+        if (KioskNumpadHelper.IsBackKey(normKey))
         {
             if (_demoSecretSequence.Length > 0)
             {
@@ -458,21 +552,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        // Secret code 1122 to open Demo Testing simulator
-        char digit = e.Key switch
-        {
-            Key.D0 or Key.NumPad0 => '0',
-            Key.D1 or Key.NumPad1 => '1',
-            Key.D2 or Key.NumPad2 => '2',
-            Key.D3 or Key.NumPad3 => '3',
-            Key.D4 or Key.NumPad4 => '4',
-            Key.D5 or Key.NumPad5 => '5',
-            Key.D6 or Key.NumPad6 => '6',
-            Key.D7 or Key.NumPad7 => '7',
-            Key.D8 or Key.NumPad8 => '8',
-            Key.D9 or Key.NumPad9 => '9',
-            _ => '\0'
-        };
+        // Universal digit resolution: works with numpads, digital console keypads, navigation keys (NumLock OFF)
+        bool hasDigit = KioskNumpadHelper.TryResolveDigit(e, out char digit);
 
         if (digit != '\0')
         {
@@ -655,7 +736,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             }
         }
 
-        if (e.Key == Key.D1 || e.Key == Key.NumPad1)
+        if (hasDigit && digit == '1')
         {
             DateTime now = DateTime.Now;
             if ((now - lastDigit1PressTime).TotalMilliseconds <= 1500)
@@ -684,7 +765,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             digit1PressCount = 0;
         }
 
-        if (e.Key == Key.D5 || e.Key == Key.NumPad5)
+        if (hasDigit && digit == '5')
         {
             DateTime now = DateTime.Now;
             if ((now - lastDigit5PressTime).TotalMilliseconds <= 1500)
@@ -714,7 +795,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             digit5PressCount = 0;
         }
 
-        if (e.Key == Key.D3 || e.Key == Key.NumPad3)
+        if (hasDigit && digit == '3')
         {
             DateTime now = DateTime.Now;
             if ((now - lastDigit3PressTime).TotalMilliseconds <= 1500)
@@ -728,7 +809,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             lastDigit3PressTime = now;
         }
 
-        if (e.Key == Key.Escape)
+        if (normKey == Key.Escape)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -747,34 +828,37 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        if (e.Key == Key.F2 || (e.Key == Key.D && (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers == ModifierKeys.None)))
+        if (normKey == Key.F2 || (normKey == Key.D && (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers == ModifierKeys.None)))
         {
             DemoTestingWindow.OpenOrBringToFront(this);
             e.Handled = true;
             return;
         }
 
-        switch (e.Key)
+        if (KioskNumpadHelper.IsEnterKey(normKey))
         {
-            case Key.Enter:
-                CompleteSessionToWallet();
-                e.Handled = true;
-                break;
+            CompleteSessionToWallet();
+            e.Handled = true;
+            return;
+        }
 
-            case Key.D0:
-            case Key.NumPad0:
-                if (!serial.IsConnected)
-                {
-                    IsDemoMode = true;
-                    StartMachine(forceSimulator: true);
-                }
-                else
-                {
-                    StartMachine();
-                }
-                e.Handled = true;
-                break;
+        if (hasDigit && digit == '0')
+        {
+            if (!serial.IsConnected)
+            {
+                IsDemoMode = true;
+                StartMachine(forceSimulator: true);
+            }
+            else
+            {
+                StartMachine();
+            }
+            e.Handled = true;
+            return;
+        }
 
+        switch (normKey)
+        {
             case Key.S:
                 StopMachine();
                 break;
@@ -874,6 +958,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         if (IsDemoMode || !serial.IsConnected || string.IsNullOrWhiteSpace(command)) return false;
         serial.SendCommand("HOST:ALIVE");
         serial.SendCommand(command);
+        HardwareDiagnosticMessage?.Invoke($"TX:{command}");
         LogTelemetry($"[ADMIN CMD] {command}");
         return true;
     }
@@ -1046,8 +1131,83 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         }
     }
 
+    private void PlayAcceptedVideo(string material)
+    {
+        string mat = (material ?? "").Trim().ToUpperInvariant();
+        string fileName;
+        if (mat.Contains("CAN") || mat.Contains("METAL") || mat.Contains("ALUMINIUM"))
+        {
+            fileName = "DancingCan.mp4";
+            string xnPath = Path.Combine(AppContext.BaseDirectory, "Assets", "DancingXN.mp4");
+            if (File.Exists(xnPath)) fileName = "DancingXN.mp4";
+        }
+        else if (mat.Contains("TETRA") || mat.Contains("PAPER") || mat.Contains("CARTON") || mat.Contains("CUP"))
+        {
+            fileName = "DancingTetra.mp4";
+        }
+        else
+        {
+            fileName = "DancingPlastic.mp4";
+        }
+
+        string path = Path.Combine(AppContext.BaseDirectory, "Assets", fileName);
+        if (!File.Exists(path))
+        {
+            path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Assets", fileName);
+        }
+        if (!File.Exists(path))
+        {
+            path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "PecoDropDesktopApp", "Assets", fileName);
+        }
+
+        if (!File.Exists(path))
+        {
+            LogTelemetry($"[ACCEPTED VIDEO] Celebration video not found: {fileName}");
+            return;
+        }
+
+        try
+        {
+            _isPlayingAcceptedVideo = true;
+            var vidUri = new Uri(Path.GetFullPath(path));
+
+            InstructionPlayer.Source = vidUri;
+            InstructionPlaceholder.Visibility = Visibility.Collapsed;
+            InstructionPlayer.Visibility = Visibility.Visible;
+            InstructionPlayer.Position = TimeSpan.Zero;
+            InstructionPlayer.Play();
+
+            if (ModernInstructionPlayer != null)
+            {
+                ModernInstructionPlayer.Source = vidUri;
+                ModernInstructionPlayer.Visibility = Visibility.Visible;
+                ModernInstructionPlayer.Position = TimeSpan.Zero;
+                ModernInstructionPlayer.Play();
+            }
+
+            _acceptedVideoTimer.Stop();
+            _acceptedVideoTimer.Interval = TimeSpan.FromSeconds(5.5);
+            _acceptedVideoTimer.Start();
+
+            LogTelemetry($"[ACCEPTED VIDEO] Playing {fileName} for accepted {material} in instructional video player");
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[ACCEPTED VIDEO ERROR] {ex.Message}");
+            _isPlayingAcceptedVideo = false;
+        }
+    }
+
     private void InstructionPlayer_MediaEnded(object sender, RoutedEventArgs e)
     {
+        if (_isPlayingAcceptedVideo)
+        {
+            _isPlayingAcceptedVideo = false;
+            _acceptedVideoTimer.Stop();
+            StartInstructionVideo();
+            return;
+        }
+
         if (sender is MediaElement me)
         {
             me.Position = TimeSpan.Zero;
@@ -1068,6 +1228,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
     private void InstructionPlayer_MediaFailed(object? sender, ExceptionRoutedEventArgs e)
     {
         LogTelemetry($"[INSTRUCTION VIDEO FAILED] {e.ErrorException?.Message}");
+        if (_isPlayingAcceptedVideo)
+        {
+            _isPlayingAcceptedVideo = false;
+            _acceptedVideoTimer.Stop();
+            StartInstructionVideo();
+            return;
+        }
+
         if (sender == ModernInstructionPlayer)
         {
             if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
@@ -1746,8 +1914,26 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         SimulatorStateChanged?.Invoke();
     }
 
-    public void StopMachine()
+    public void StopMachine() => StopMachine(false);
+
+    public void StopMachine(bool skipAutoCredit)
     {
+        _sessionInactivityTimer.Stop();
+        _secondsSinceLastDeposit = 0;
+
+        if (!skipAutoCredit && !_isCompletingSession && totalItems > 0)
+        {
+            if (!string.IsNullOrWhiteSpace(activeUserMobile))
+            {
+                CompleteSessionToWallet();
+                return;
+            }
+            else
+            {
+                ResetSession();
+            }
+        }
+
         if (serial.IsConnected)
         {
             serial.SendCommand("STOP");
@@ -1756,6 +1942,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
         machineStarted = false;
         scanTimer.Stop();
         activeUserMobile = null;
+        if (_isPlayingAcceptedVideo)
+        {
+            _isPlayingAcceptedVideo = false;
+            _acceptedVideoTimer.Stop();
+            StartInstructionVideo();
+        }
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
         if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
@@ -1843,7 +2035,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
-        AcceptedItemVideoWindow.ShowFor(this, result.Material);
+        PlayAcceptedVideo(result.Material);
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
 
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
@@ -1895,6 +2088,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void Serial_DataReceived(string message)
     {
+        HardwareDiagnosticMessage?.Invoke($"RX:{message}");
         Dispatcher.InvokeAsync(() =>
         {
             if (IsLoaded)
@@ -2014,12 +2208,29 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             return;
         }
 
-        if (message == "MACHINE:STOPPED")
+        if (message == "MACHINE:STOPPED" || message == "MACHINE:IDLE")
         {
+            _sessionInactivityTimer.Stop();
+            _secondsSinceLastDeposit = 0;
+            if (totalItems > 0)
+            {
+                if (!string.IsNullOrWhiteSpace(activeUserMobile))
+                {
+                    CompleteSessionToWallet();
+                    return;
+                }
+                else
+                {
+                    ResetSession();
+                }
+            }
             machineStarted = false;
-            StatusText.Text = "Machine Stopped";
-            StatusText.Foreground = Brushes.OrangeRed;
+            StatusText.Text = "Ready";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "• Insert container";
             MachineStateText.Text = "MACHINE: IDLE";
+            if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+            if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
             return;
         }
 
@@ -2276,7 +2487,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
         LogTelemetry($"[ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
-        AcceptedItemVideoWindow.ShowFor(this, result.Material);
+        PlayAcceptedVideo(result.Material);
+        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
 
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
@@ -2368,7 +2580,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     public void CompleteSessionToWallet()
     {
-        _startHandshakeTimer.Stop();
+        if (_isCompletingSession) return;
+        _isCompletingSession = true;
+
+        try
+        {
+            _startHandshakeTimer.Stop();
 
         if (!machineStarted)
         {
@@ -2453,7 +2670,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
             if (walletWindow.ShowDialog() is not true || string.IsNullOrWhiteSpace(walletWindow.PhoneNumber))
             {
-                StopMachine();
+                ResetSession();
+                StopMachine(skipAutoCredit: true);
                 StatusText.Text = "Session closed without claiming";
                 StatusText.Foreground = Brushes.SlateGray;
                 BottleInfoText.Text = "Session ended without claiming points.";
@@ -2553,18 +2771,25 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
             }
         });
 
-        StopMachine();
+        StopMachine(skipAutoCredit: true);
+        ResetSession();
         StatusText.Text = "Wallet credited & session completed";
         StatusText.Foreground = Brushes.LimeGreen;
         BottleInfoText.Text = feedbackSubmitted
             ? $"{currentTotalPoints} pts credited to {phoneNumber} · Rated {userRating}★ ({userFeedback})"
             : $"{currentTotalPoints} points sent to wallet {phoneNumber}";
-        ResetSession();
         SimulatorStateChanged?.Invoke();
+        }
+        finally
+        {
+            _isCompletingSession = false;
+        }
     }
 
     public void ResetSession()
     {
+        _sessionInactivityTimer.Stop();
+        _secondsSinceLastDeposit = 0;
         activeUserMobile = null;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
         _ = CentralSyncService.ResetKioskStartHandshakeAsync(settings.MachineId);
@@ -2588,6 +2813,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget
 
     private void IncrementMaterialSizeCounter(string material, string size, double weightKg)
     {
+        _secondsSinceLastDeposit = 0;
+        if (!_sessionInactivityTimer.IsEnabled) _sessionInactivityTimer.Start();
+
         if (material.Equals("PLASTIC", StringComparison.OrdinalIgnoreCase))
         {
             if (size == "SMALL") PlasticSmallCountText.Text = (++plasticSmallCount).ToString();

@@ -954,11 +954,13 @@ public sealed class DemoTestingWindow : Window
 
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        Key normKey = KioskNumpadHelper.NormalizeKey(e);
+        bool hasDigit = KioskNumpadHelper.TryResolveDigit(e, out char digit);
+
         // Zero remains the global Start command while idle, including when the
         // paper scale owns keyboard focus. Once running, zero behaves as a
         // normal digit so operators can type weights such as 500 g.
-        if (_paperGramsInput.IsKeyboardFocusWithin && !_target.IsMachineStarted &&
-            (e.Key == Key.D0 || e.Key == Key.NumPad0))
+        if (_paperGramsInput.IsKeyboardFocusWithin && !_target.IsMachineStarted && hasDigit && digit == '0')
         {
             _target.StartMachine(forceSimulator: true);
             Log("[KEYPAD] '0' pressed -> Session Started (paper scale remained active).");
@@ -970,55 +972,61 @@ public sealed class DemoTestingWindow : Window
         // Let the calibrated scale input receive digits and editing keys without
         // triggering the kiosk-wide numeric material aliases.
         if (_paperGramsInput.IsKeyboardFocusWithin &&
-            (e.Key is >= Key.D0 and <= Key.D9 || e.Key is >= Key.NumPad0 and <= Key.NumPad9 ||
-             e.Key == Key.Back || e.Key == Key.Delete || e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Tab))
+            (hasDigit || KioskNumpadHelper.IsBackKey(normKey) || normKey == Key.Left || normKey == Key.Right || normKey == Key.Tab))
         {
             return;
         }
 
-        switch (e.Key)
+        if (hasDigit && digit == '0')
         {
-            case Key.D0:
-            case Key.NumPad0:
-                if (!_target.IsMachineStarted)
-                {
-                    _target.StartMachine(forceSimulator: true);
-                    Log("[KEYPAD] '0' pressed -> Session Started.");
-                    UpdateDisplayState();
-                    e.Handled = true;
-                }
-                break;
-
-            case Key.B:
-            case Key.D1:
-            case Key.NumPad1:
-                _selectedMaterial = "PLASTIC";
-                RefreshMaterialCardsVisual();
-                Log("[KEY] 'B' / '1' -> Selected Bottle (Plastic)");
+            if (!_target.IsMachineStarted)
+            {
+                _target.StartMachine(forceSimulator: true);
+                Log("[KEYPAD] '0' pressed -> Session Started.");
+                UpdateDisplayState();
                 e.Handled = true;
-                break;
+            }
+            return;
+        }
 
-            case Key.C:
-            case Key.D2:
-            case Key.NumPad2:
-                _selectedMaterial = "CAN";
-                RefreshMaterialCardsVisual();
-                Log("[KEY] 'C' / '2' -> Selected Can (Metal)");
-                e.Handled = true;
-                break;
+        if (normKey == Key.B || (hasDigit && digit == '1'))
+        {
+            _selectedMaterial = "PLASTIC";
+            RefreshMaterialCardsVisual();
+            Log("[KEY] 'B' / '1' -> Selected Bottle (Plastic)");
+            e.Handled = true;
+            return;
+        }
 
-            case Key.P:
-            case Key.U: // Backwards-compatible alias for older operator muscle memory.
-            case Key.D3:
-            case Key.NumPad3:
-                _selectedMaterial = "PAPER";
-                RefreshMaterialCardsVisual();
-                _paperGramsInput.Focus();
-                _paperGramsInput.SelectAll();
-                Log("[KEY] 'P' / 'U' / '3' -> Selected Office Paper (weight entry)");
-                e.Handled = true;
-                break;
+        if (normKey == Key.C || (hasDigit && digit == '2'))
+        {
+            _selectedMaterial = "CAN";
+            RefreshMaterialCardsVisual();
+            Log("[KEY] 'C' / '2' -> Selected Can (Metal)");
+            e.Handled = true;
+            return;
+        }
 
+        if (normKey == Key.P || normKey == Key.U || (hasDigit && digit == '3'))
+        {
+            _selectedMaterial = "PAPER";
+            RefreshMaterialCardsVisual();
+            _paperGramsInput.Focus();
+            _paperGramsInput.SelectAll();
+            Log("[KEY] 'P' / 'U' / '3' -> Selected Office Paper (weight entry)");
+            e.Handled = true;
+            return;
+        }
+
+        if (KioskNumpadHelper.IsEnterKey(normKey))
+        {
+            OnFinishClicked(sender, e);
+            e.Handled = true;
+            return;
+        }
+
+        switch (normKey)
+        {
             case Key.S:
                 if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
                 {
@@ -1059,11 +1067,6 @@ public sealed class DemoTestingWindow : Window
 
             case Key.R:
                 SimulateDrop(accept: false);
-                e.Handled = true;
-                break;
-
-            case Key.Enter:
-                OnFinishClicked(sender, e);
                 e.Handled = true;
                 break;
 

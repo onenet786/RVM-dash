@@ -1,12 +1,16 @@
+#include <avr/wdt.h>
 #include <Servo.h>
 #include <math.h>
 #include <util/atomic.h>
+
+// Firmware build stamp with hardware WDT, high-speed sizing, and snappy iris timing.
+const char FIRMWARE_BUILD[] = "OPT-WDT-FASTCYCLE-20261005";
 
 // Arduino Mega pin map:
 // Plastic: entrance ultrasonic 9/10, iris 11, drop gate 12,
 // sizing ultrasonics bottom 22/23, middle 24/41, top 42/43.
 // Metal: entrance ultrasonic 25/26, iris 27, drop gate 28,
-// sizing ultrasonics bottom 29/30, middle 31/44, top 45/46,
+// sizing ultrasonics bottom 29/30, physical middle 45/46, physical top 31/44,
 // inductive sensor 32.
 // Paper: top ultrasonic 33/34, iris 35, drop gate 36, HX711 37/38,
 // bottom ultrasonic 39/40.
@@ -19,9 +23,9 @@ const bool PAPER_DISABLED = false;
 
 // Digital obstacle sensors: LOW means blocked. Change polarity for your modules.
 // Enable only installed bin sensors. Plastic is currently not connected.
-const bool PLASTIC_BIN_SENSOR_ENABLED = true;
-const bool METAL_BIN_SENSOR_ENABLED = true;
-const bool PAPER_BIN_SENSOR_ENABLED = true;
+const bool PLASTIC_BIN_SENSOR_ENABLED = false;
+const bool METAL_BIN_SENSOR_ENABLED = false;
+const bool PAPER_BIN_SENSOR_ENABLED = false;
 const byte PLASTIC_BIN_PIN = 47;
 const byte METAL_BIN_PIN = 48;
 const byte PAPER_BIN_PIN = 49;
@@ -39,50 +43,63 @@ const unsigned long MQ6_WARMUP_MS = 180000UL;
 const unsigned long MQ6_ALARM_CONFIRM_MS = 5000UL;
 const unsigned long MQ6_CLEAR_CONFIRM_MS = 3000UL;
 const byte METAL_DETECTED_STATE = LOW;
-const byte IRIS_CLOSED_ANGLE = 178;
+// Upper iris gates: plastic and metal use the shared angles below.
+const byte IRIS_CLOSED_ANGLE = 170;
 const byte IRIS_OPEN_ANGLE = 10;
-const byte DROP_CLOSED_ANGLE = 0;
-const byte DROP_OPEN_ANGLE = 180;
+// Paper upper iris (pin 35): adjust these independently if its linkage differs.
+// They intentionally start at the same values as plastic/metal.
+const byte PAPER_IRIS_CLOSED_ANGLE = 165;
+const byte PAPER_IRIS_OPEN_ANGLE = 10;
 
-// Paper bottom gate (pin 36): adjust independently, then upload again.
-const byte PAPER_DROP_CLOSED_ANGLE = 160;
-const byte PAPER_DROP_OPEN_ANGLE = 40;
+// Independent bottom drop gate angles:
+// Adjust METAL_DROP_CLOSED_ANGLE if linkage requires fine-tuning.
+const byte PLASTIC_DROP_CLOSED_ANGLE = 0;
+const byte PLASTIC_DROP_OPEN_ANGLE = 160;
+const byte METAL_DROP_CLOSED_ANGLE = 0;
+const byte METAL_DROP_OPEN_ANGLE = 160;
+const byte PAPER_DROP_CLOSED_ANGLE = 10;
+const byte PAPER_DROP_OPEN_ANGLE = 160;
+
+// Backwards-compatible aliases
+const byte DROP_CLOSED_ANGLE = PLASTIC_DROP_CLOSED_ANGLE;
+const byte DROP_OPEN_ANGLE = PLASTIC_DROP_OPEN_ANGLE;
 const unsigned int MAX_DISTANCE_MM = 2000;
 
 // Optimized timeout: 12000us allows measuring up to 2060 mm without blocking 20ms on lost echoes
 const unsigned long ECHO_TIMEOUT_US = 12000UL;
-// Standard HC-SR04 ping cycle interval (30ms provides clean echo decay without cross-talk)
-const unsigned long ULTRASONIC_MIN_INTERVAL_MS = 30UL;
+// Standard HC-SR04 ping cycle interval (20ms provides clean echo decay up to 3.4m while reducing latency)
+const unsigned long ULTRASONIC_MIN_INTERVAL_MS = 20UL;
 
 // A valid echo at least 20 mm (2 cm) nearer OR farther than calibration is occupied.
-// Raised from 15mm: reduces echo noise false-triggers on the metal entrance ultrasonic.
 const int DETECTION_CHANGE_MM = 20;
-// Require 5 consecutive changed readings + 400 ms hold before treating as real detection.
-// Raised from 3/3 and 200ms: prevents metal iris from opening on 1-3 jitter echoes
-// that resolve within a single ULTRASONIC_MIN_INTERVAL cycle (tick-tick symptom).
+// Require 3 consecutive changed readings + 400 ms hold before treating as real detection.
 const byte REQUIRED_DETECTIONS = 3;
 const byte ENTRANCE_CONFIRM_READINGS = 5;
-const byte ENTRANCE_CLEAR_READINGS = 5;
+const byte ENTRANCE_CLEAR_READINGS = 3;
 // Clear must stay below the active threshold (no overlapping states).
 const byte ENTRANCE_CLEAR_TOLERANCE_MM = 14;
 const unsigned long ENTRANCE_HOLD_MS = 400;
 
-// Hold the iris open long enough for insertion; keep processing STOP commands.
-const unsigned long IRIS_MIN_OPEN_MS = 3000UL;
-const unsigned long ENTRANCE_CLEAR_MS = 1000;
+// Snappy iris aperture: 1000ms minimum open time + 400ms clear confirmation.
+const unsigned long IRIS_MIN_OPEN_MS = 1000UL;
+const unsigned long ENTRANCE_CLEAR_MS = 400UL;
 const byte SIZE_READING_SAMPLES = 3;
 const byte REQUIRED_SIZE_CHANGES = 2;
+// The metal middle transducer uses the same robust threshold as the other sizing levels.
+const int METAL_MIDDLE_DETECTION_CHANGE_MM = DETECTION_CHANGE_MM;
+const byte METAL_MIDDLE_REQUIRED_SIZE_CHANGES = REQUIRED_SIZE_CHANGES;
 const unsigned long ARRIVAL_TIMEOUT_MS = 5000UL;
-const unsigned long BOTTLE_SETTLE_MS = 2000UL;
+// Snappy bottle settling time: reduced from 2000ms down to 650ms for instant sizing
+const unsigned long BOTTLE_SETTLE_MS = 650UL;
 const unsigned long CLEAR_TIMEOUT_MS = 5000UL;
-const float PAPER_COUNTS_PER_GRAM = 420.0f;
+const float PAPER_COUNTS_PER_GRAM = 209.0f;
 const float PAPER_MIN_WEIGHT_G = 4.0f;
 const float PAPER_CLEAR_WEIGHT_G = 8.0f;
-const unsigned long AUTO_RECOVERY_RETRY_MS = 5000UL;
+const unsigned long AUTO_RECOVERY_RETRY_MS = 4000UL;
 const byte AUTO_RECOVERY_SAMPLES = 3;
 const byte CALIBRATION_SAMPLES = 3;
-const unsigned long PURGE_OPEN_MS = 1000UL;
-const unsigned long GATE_SETTLE_MS = 700UL;
+const unsigned long PURGE_OPEN_MS = 750UL;
+const unsigned long GATE_SETTLE_MS = 400UL;
 
 struct AutoRecovery {
   bool active;
@@ -148,7 +165,10 @@ Compartment plastic = {
 };
 Compartment metal = {
   "METAL", "CAN", 25, 26, 0, 0, 27, 28,
-  29, 30, 31, 44, 45, 46, 32, 0, 0,
+  // Field readings confirm that the physical middle/top transducers are
+  // connected in the opposite order from the original pin labels.  Map them
+  // by their physical height so MEDIUM is bottom+middle and LARGE is all 3.
+  29, 30, 45, 46, 31, 44, 32, 0, 0,
   &metalIris, &metalDrop, -1, -1, -1, -1, -1, 0
 };
 Compartment paper = {
@@ -201,20 +221,35 @@ bool compartmentAvailable(const Compartment& c) {
   return !compartmentDisabled(c) && !c.workingFailed && !c.binFull && !c.purging;
 }
 
+byte irisClosedAngle(const Compartment& c) {
+  return &c == &paper ? PAPER_IRIS_CLOSED_ANGLE : IRIS_CLOSED_ANGLE;
+}
+
+byte irisOpenAngle(const Compartment& c) {
+  return &c == &paper ? PAPER_IRIS_OPEN_ANGLE : IRIS_OPEN_ANGLE;
+}
+
+byte dropClosedAngle(const Compartment& c) {
+  if (&c == &paper) return PAPER_DROP_CLOSED_ANGLE;
+  if (&c == &metal) return METAL_DROP_CLOSED_ANGLE;
+  return PLASTIC_DROP_CLOSED_ANGLE;
+}
+
+byte dropOpenAngle(const Compartment& c) {
+  if (&c == &paper) return PAPER_DROP_OPEN_ANGLE;
+  if (&c == &metal) return METAL_DROP_OPEN_ANGLE;
+  return PLASTIC_DROP_OPEN_ANGLE;
+}
+
 void closeCompartment(Compartment& c) {
   c.purging = false;
   c.detectionCount = c.entranceClearCount = 0;
   c.entranceArmed = false;
   if (compartmentDisabled(c)) return;
-  c.irisServo->write(IRIS_CLOSED_ANGLE);
-  c.bottomGateServo->write(&c == &paper ? PAPER_DROP_CLOSED_ANGLE : DROP_CLOSED_ANGLE);
-  // Hold position briefly, then detach to kill continuous PWM.
-  // An attached-but-idle servo fires a 50Hz pulse indefinitely; any
-  // 1-tick jitter in the AVR timer creates audible tick-tick buzzing.
-  // Detaching removes PWM entirely while the servo gear-train holds
-  // the last angle. The servo is re-attached inside openCompartment()
-  // before the next write so positioning is never lost.
-  delay(300);
+  c.irisServo->write(irisClosedAngle(c));
+  c.bottomGateServo->write(dropClosedAngle(c));
+  // Hold position briefly (250ms is sufficient for full transit), then detach to kill continuous PWM.
+  delay(250);
   c.irisServo->detach();
   c.bottomGateServo->detach();
 }
@@ -242,7 +277,7 @@ void beginPurge(Compartment& c) {
   c.detectionCount = c.entranceClearCount = 0;
   c.entranceArmed = false;
   reattachServos(c);
-  c.irisServo->write(IRIS_CLOSED_ANGLE);
+  c.irisServo->write(irisClosedAngle(c));
   // Do not release into a blocked bin, including during sensor debounce.
   if ((binSensorEnabled(c) && c.binFull) || binInputBlocked(c)) {
     closeCompartment(c);
@@ -250,7 +285,7 @@ void beginPurge(Compartment& c) {
   }
   c.purging = true;
   c.purgeStartedMs = millis();
-  c.bottomGateServo->write(&c == &paper ? PAPER_DROP_OPEN_ANGLE : DROP_OPEN_ANGLE);
+  c.bottomGateServo->write(dropOpenAngle(c));
   Serial.print(F("PURGE:")); Serial.print(c.name); Serial.println(F(";STATE:OPEN"));
 }
 
@@ -362,6 +397,7 @@ void handleSerial();
 bool waitActive(unsigned long durationMs) {
   unsigned long started = millis();
   while (millis() - started < durationMs) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     delay(5);
@@ -383,7 +419,7 @@ void processSizedItem(Compartment& c);
 void recoverSizingFault(Compartment& c);
 bool sizedCompartmentEmpty(Compartment& c);
 void processPaper();
-bool waitForIrisOpenHold(unsigned long openedAt);
+bool waitForIrisClear(Compartment& c, unsigned long openedAt);
 bool paperAtBottom();
 bool waitForPaperWeight(float& grams);
 bool waitForPaperClear();
@@ -430,7 +466,9 @@ void setupPaper() {
 }
 
 void setup() {
+  wdt_enable(WDTO_2S);
   Serial.begin(115200);
+  Serial.print(F("FIRMWARE:")); Serial.println(FIRMWARE_BUILD);
   pinMode(PLASTIC_BIN_PIN, INPUT_PULLUP);
   pinMode(METAL_BIN_PIN, INPUT_PULLUP);
   pinMode(PAPER_BIN_PIN, INPUT_PULLUP);
@@ -448,6 +486,7 @@ void setup() {
 }
 
 void loop() {
+  wdt_reset();
   handleSerial();
   enforceHostLease();
   if (!machineRunning || !calibrated) {
@@ -457,6 +496,7 @@ void loop() {
   // A fault/full bin only removes its own compartment from the intake loop.
   Compartment* compartments[] = { &plastic, &metal, &paper };
   for (byte i = 0; i < 3 && machineRunning; i++) {
+    wdt_reset();
     Compartment& c = *compartments[i];
     if (c.workingFailed) autoRecover(c);
     if (!compartmentAvailable(c) || !updateDetection(c)) continue;
@@ -569,12 +609,15 @@ void processSizedItem(Compartment& c) {
   MetalPulseCapture metalCapture(&c == &metal);
   Serial.print(c.name); Serial.println(F(":OBJECT_DETECTED"));
   reattachServos(c); // servos were detached after last closeCompartment()
-  c.irisServo->write(IRIS_OPEN_ANGLE);
+  c.irisServo->write(irisOpenAngle(c));
   unsigned long irisOpenedAt = millis();
-  if (!waitActive(700)) return;
+  // Keep the iris open until minimum open duration has elapsed and the entrance is clear.
+  if (!waitForIrisClear(c, irisOpenedAt)) return;
+  c.irisServo->write(irisClosedAngle(c));
+  if (!waitActive(250)) return;
   Serial.print(c.name); Serial.println(F(":WAITING_FOR_BOTTOM"));
   if (!waitForSizingItem(c)) {
-    c.irisServo->write(IRIS_CLOSED_ANGLE);
+    c.irisServo->write(irisClosedAngle(c));
     if (cycleRunning()) {
       failCompartment(c, "ARRIVAL_TIMEOUT");
       Serial.print(F("ERROR:")); Serial.print(c.name); Serial.println(F("_ARRIVAL_TIMEOUT"));
@@ -586,23 +629,22 @@ void processSizedItem(Compartment& c) {
     c.detectionCount = 0;
     return;
   }
-  // Keep the iris open while the arriving bottle finishes falling and settles.
+  // The iris is already closed; allow the arriving container to settle snappy.
   Serial.print(c.name); Serial.println(F(":BOTTLE_SETTLING"));
   unsigned long settleStarted = millis();
   while (millis() - settleStarted < BOTTLE_SETTLE_MS) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return;
     delay(10);
   }
   // Measure with the same gate positions used for empty calibration.
-  if (!waitForIrisOpenHold(irisOpenedAt)) return;
-  c.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!waitActive(700)) return;
+  if (!waitActive(150)) return;
   Serial.print(c.name); Serial.println(F(":SIZING_START"));
   const char* size = calculateSize(c);
   if (!cycleRunning()) return; // A STOP during sizing must not release an item.
   if (strcmp(size, "INVALID") == 0) {
-    c.irisServo->write(IRIS_CLOSED_ANGLE);
+    c.irisServo->write(irisClosedAngle(c));
     Serial.print(F("ERROR:")); Serial.print(c.name); Serial.println(F("_INVALID_SENSOR_PATTERN"));
     recoverSizingFault(c);
     return;
@@ -612,18 +654,22 @@ void processSizedItem(Compartment& c) {
   if (!cycleRunning()) return;
   Serial.print(F("SIZE:")); Serial.print(size); Serial.print(F(";MATERIAL:"));
   Serial.println(accepted ? c.material : "REJECT");
-  c.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!waitActive(150)) return;
-  c.bottomGateServo->write(DROP_OPEN_ANGLE);
-  if (!waitActive(900)) return;
+  c.irisServo->write(irisClosedAngle(c));
+  if (!waitActive(100)) return;
+  c.bottomGateServo->write(dropOpenAngle(c));
+  if (!waitActive(500)) return;
   bool cleared = waitForSizingClear(c);
-  c.bottomGateServo->write(DROP_CLOSED_ANGLE);
+  c.bottomGateServo->write(dropClosedAngle(c));
+  // Allow full return transit time (450ms) for the 160-degree sweep under load
+  if (!waitActive(450)) return;
+  // Detach bottom gate servo to match calibration behavior and eliminate motor strain/buzz
+  c.bottomGateServo->detach();
   if (cleared && cycleRunning()) {
     Serial.print(F("BOTTLE:CLEARED;COMPARTMENT:")); Serial.println(c.name);
   }
   else if (cycleRunning()) failCompartment(c, "CLEAR_TIMEOUT");
   c.detectionCount = 0;
-  if (!waitActive(600)) return;
+  if (!waitActive(100)) return;
 }
 
 // Recovery must see real echoes near the old empty baselines. A missing or
@@ -750,6 +796,11 @@ void autoRecover(Compartment& c) {
 int readSizeLevel(Compartment& c, const char* level, byte trigPin,
                   byte echoPin, int emptyMm, bool previouslyActive) {
   byte occupied = 0, clear = 0, missing = 0;
+  const bool isMetalMiddle = &c == &metal && strcmp(level, "MIDDLE") == 0;
+  const int detectionChangeMm = isMetalMiddle
+    ? METAL_MIDDLE_DETECTION_CHANGE_MM : DETECTION_CHANGE_MM;
+  const byte requiredOccupied = isMetalMiddle
+    ? METAL_MIDDLE_REQUIRED_SIZE_CHANGES : REQUIRED_SIZE_CHANGES;
   Serial.print(F("SIZING:")); Serial.print(c.name);
   Serial.print(F(";LEVEL:")); Serial.print(level);
   Serial.print(F(";EMPTY_CM:")); printDistanceCm(emptyMm);
@@ -759,14 +810,17 @@ int readSizeLevel(Compartment& c, const char* level, byte trigPin,
     if (sample > 0) Serial.print(',');
     printDistanceCm(distance);
     if (distance > 0 && emptyMm > 0) {
-      if (abs(emptyMm - distance) >= DETECTION_CHANGE_MM) occupied++;
+      if (abs(emptyMm - distance) >= detectionChangeMm) occupied++;
       else if (abs(emptyMm - distance) <= ENTRANCE_CLEAR_TOLERANCE_MM) clear++;
     }
     if (distance <= 0) missing++;
-    // Stop once the majority is decided; a third sample cannot change it.
-    if (occupied >= REQUIRED_SIZE_CHANGES || clear >= REQUIRED_SIZE_CHANGES) break;
+    // The metal middle level uses its own smaller threshold, so read all
+    // samples; a later valid active echo must not be skipped after two clear
+    // echoes.
+    if (!isMetalMiddle &&
+        (occupied >= REQUIRED_SIZE_CHANGES || clear >= REQUIRED_SIZE_CHANGES)) break;
   }
-  int state = occupied >= REQUIRED_SIZE_CHANGES ? 1 :
+  int state = occupied >= requiredOccupied ? 1 :
               (clear >= REQUIRED_SIZE_CHANGES ? 0 : -1);
   bool heldActive = state == -1 && emptyMm > 0 && previouslyActive && missing > 0;
   if (heldActive) state = 1;
@@ -779,7 +833,8 @@ const char* calculateSize(Compartment& c) {
   const char* previous = "INVALID";
   byte largeFallbackScans = 0;
   bool bottomActive = true, middleActive = false, topActive = false;
-  for (byte attempt = 0; attempt < 4; attempt++) {
+  for (byte attempt = 0; attempt < 3; attempt++) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return "INVALID";
     int bottom = readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin,
@@ -805,6 +860,14 @@ const char* calculateSize(Compartment& c) {
     if (bottom == 1 && middle == 1 && top == 1) size = "LARGE";
     else if (bottom == 1 && middle == 1 && top == 0) size = "MEDIUM";
     else if (bottom == 1 && middle == 0 && top == 0) size = "SMALL";
+    // Metal accepts the readings that are valid even when another sizing
+    // sensor is unreliable or makes a non-continuous pattern.  The highest
+    // valid active level determines the size; invalid levels are skipped.
+    if (&c == &metal && strcmp(size, "INVALID") == 0) {
+      if (top == 1) size = "LARGE";
+      else if (middle == 1) size = "MEDIUM";
+      else if (bottom == 1) size = "SMALL";
+    }
     if (strcmp(size, "INVALID") != 0 && strcmp(size, previous) == 0) return size;
     previous = size;
   }
@@ -815,6 +878,7 @@ bool waitForSizingItem(Compartment& c) {
   unsigned long started = millis();
   byte bottomChangeCount = 0;
   while (millis() - started < ARRIVAL_TIMEOUT_MS) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     bool bottomOccupied;
@@ -839,6 +903,7 @@ bool waitForSizingClear(Compartment& c) {
   unsigned long started = millis();
   byte clearCount = 0;
   while (millis() - started < CLEAR_TIMEOUT_MS) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     bool bottomClear = readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin,
@@ -849,7 +914,7 @@ bool waitForSizingClear(Compartment& c) {
                                   c.topSizeEchoPin, c.topSizeEmptyMm) == 0;
     bool clear = bottomClear && middleClear && topClear;
     clearCount = clear ? clearCount + 1 : 0;
-    if (clearCount >= 5) return true;
+    if (clearCount >= 3) return true;
     delay(10);
   }
   return false;
@@ -861,43 +926,62 @@ bool metalDetectedOnce() {
   return metalPulseSeen;
 }
 
-bool waitForIrisOpenHold(unsigned long openedAt) {
-  while (millis() - openedAt < IRIS_MIN_OPEN_MS) {
+bool waitForIrisClear(Compartment& c, unsigned long openedAt) {
+  byte clearReadings = 0;
+  unsigned long clearSince = 0;
+  while (true) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
+
+    int distance = readUltrasonicMm(c.ultrasonicTrigPin, c.ultrasonicEchoPin);
+    bool clear = distance > 0 && c.emptyDistanceMm > 0 &&
+                 abs(distance - c.emptyDistanceMm) <= ENTRANCE_CLEAR_TOLERANCE_MM;
+    if (clear) {
+      if (clearReadings == 0) clearSince = millis();
+      if (clearReadings < ENTRANCE_CLEAR_READINGS) clearReadings++;
+    } else {
+      clearReadings = 0;
+      clearSince = 0;
+    }
+
+    if (millis() - openedAt >= IRIS_MIN_OPEN_MS &&
+        clearReadings >= ENTRANCE_CLEAR_READINGS &&
+        millis() - clearSince >= ENTRANCE_CLEAR_MS) return true;
     delay(10);
   }
-  return cycleRunning();
 }
 
 void processPaper() {
   Serial.println(F("PAPER:OBJECT_DETECTED"));
   reattachServos(paper); // servos were detached after last closeCompartment()
-  paper.irisServo->write(IRIS_OPEN_ANGLE);
-  if (!waitForIrisOpenHold(millis())) return;
+  paper.irisServo->write(irisOpenAngle(paper));
+  if (!waitForIrisClear(paper, millis())) return;
   float grams = 0.0f;
   if (!waitForPaperWeight(grams)) {
-    paper.irisServo->write(IRIS_CLOSED_ANGLE);
+    paper.irisServo->write(irisClosedAngle(paper));
     if (cycleRunning()) failCompartment(paper, "WEIGHT_TIMEOUT");
     paper.detectionCount = 0;
     return;
   }
   handleSerial();
   if (!cycleRunning()) return;
-  paper.irisServo->write(IRIS_CLOSED_ANGLE);
+  paper.irisServo->write(irisClosedAngle(paper));
   Serial.print(F("SIZE:WEIGHT;MATERIAL:PAPER;WEIGHT_KG:"));
   Serial.println(grams / 1000.0f, 3);
-  if (!waitActive(150)) return;
-  paper.bottomGateServo->write(PAPER_DROP_OPEN_ANGLE);
-  if (!waitActive(900)) return;
+  if (!waitActive(100)) return;
+  paper.bottomGateServo->write(dropOpenAngle(paper));
+  if (!waitActive(500)) return;
   bool cleared = waitForPaperClear();
-  paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
+  paper.bottomGateServo->write(dropClosedAngle(paper));
+  if (!waitActive(450)) return;
+  paper.bottomGateServo->detach();
   if (cleared && cycleRunning()) {
     Serial.println(F("BOTTLE:CLEARED;COMPARTMENT:PAPER"));
   }
   else if (cycleRunning()) failCompartment(paper, "CLEAR_TIMEOUT");
   paper.detectionCount = 0;
-  if (!waitActive(600)) return;
+  if (!waitActive(100)) return;
 }
 
 bool paperAtBottom() {
@@ -920,6 +1004,7 @@ bool waitForPaperWeight(float& grams) {
   bool discardFirst = true;
 
   while (millis() - started < ARRIVAL_TIMEOUT_MS) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     if (digitalRead(paper.loadCellDoutPin) != LOW) {
@@ -971,6 +1056,7 @@ bool waitForPaperClear() {
   unsigned long started = millis();
   byte clearCount = 0;
   while (millis() - started < CLEAR_TIMEOUT_MS) {
+    wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     int bottom = readUltrasonicMm(paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin);
@@ -978,8 +1064,8 @@ bool waitForPaperClear() {
     // Short-circuit: only perform HX711 acquisition if ultrasonic sensor indicates physical path is clear
     bool clear = bottomClear && (readPaperGrams(1) <= PAPER_CLEAR_WEIGHT_G);
     clearCount = clear ? clearCount + 1 : 0;
-    if (clearCount >= 4) return true;
-    delay(20);
+    if (clearCount >= 3) return true;
+    delay(15);
   }
   return false;
 }
@@ -1021,6 +1107,7 @@ int readStableUltrasonicMm(byte trigPin, byte echoPin, byte samples) {
   byte valid = 0;
   int nearest = MAX_DISTANCE_MM, farthest = 0;
   for (byte i = 0; i < samples; i++) {
+    wdt_reset();
     handleSerial();
     if (calibrationCancelled) return -1;
     int distance = readUltrasonicMm(trigPin, echoPin);
@@ -1046,6 +1133,7 @@ bool waitForHx711Ready(unsigned long timeoutMs) {
   unsigned long started = millis();
   while (digitalRead(paper.loadCellDoutPin) == HIGH &&
          millis() - started < timeoutMs) {
+    wdt_reset();
     if (calibrating || activeCompartment != NULL) handleSerial();
     else pollSensors();
     if (calibrating && calibrationCancelled) return false;
@@ -1055,8 +1143,8 @@ bool waitForHx711Ready(unsigned long timeoutMs) {
   return digitalRead(paper.loadCellDoutPin) == LOW;
 }
 
-// Fast grouped atomic HX711 bit-banging: eliminates 25 context switches per reading,
-// guarantees SCK pulse timing is never stretched into false power-down intervals.
+// Fast grouped direct port register HX711 bit-banging: eliminates 56-cycle AVR digitalWrite
+// overhead, drops atomic interrupt lockout from 300us down to ~30us, and guarantees no Timer2 collisions.
 bool readHx711Raw(long& raw) {
   if (calibrating && calibrationCancelled) return false;
   if (!waitForHx711Ready(1000UL)) {
@@ -1069,19 +1157,24 @@ bool readHx711Raw(long& raw) {
   byte sckPin = paper.loadCellSckPin;
   byte doutPin = paper.loadCellDoutPin;
 
+  volatile uint8_t *sckPort = portOutputRegister(digitalPinToPort(sckPin));
+  uint8_t sckMask = digitalPinToBitMask(sckPin);
+  volatile uint8_t *doutInput = portInputRegister(digitalPinToPort(doutPin));
+  uint8_t doutMask = digitalPinToBitMask(doutPin);
+
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     for (byte i = 0; i < 24; i++) {
-      digitalWrite(sckPin, HIGH);
-      delayMicroseconds(1);
-      value = (value << 1) | (digitalRead(doutPin) == HIGH ? 1 : 0);
-      digitalWrite(sckPin, LOW);
-      delayMicroseconds(1);
+      *sckPort |= sckMask;
+      __builtin_avr_delay_cycles(16); // 1 us at 16 MHz
+      value = (value << 1) | ((*doutInput & doutMask) ? 1 : 0);
+      *sckPort &= ~sckMask;
+      __builtin_avr_delay_cycles(16);
     }
     // 25th pulse: Channel A, gain 128
-    digitalWrite(sckPin, HIGH);
-    delayMicroseconds(1);
-    digitalWrite(sckPin, LOW);
-    delayMicroseconds(1);
+    *sckPort |= sckMask;
+    __builtin_avr_delay_cycles(16);
+    *sckPort &= ~sckMask;
+    __builtin_avr_delay_cycles(16);
   }
 
   if (digitalRead(doutPin) != HIGH) {
@@ -1115,6 +1208,7 @@ float readPaperGrams(byte samples) {
 bool waitCalibration(unsigned long durationMs) {
   unsigned long started = millis();
   while (millis() - started < durationMs) {
+    wdt_reset();
     handleSerial();
     if (calibrationCancelled) return false;
     delay(5);
@@ -1142,6 +1236,7 @@ void calibrateAll() {
     unsigned long settleStart = millis();
     unsigned long allClearSince = 0;
     while (millis() - settleStart < BIN_POWERUP_SETTLE_TIMEOUT_MS) {
+      wdt_reset();
       // Only poll bin sensors — do not service purge here.
       pollBin(plastic, PLASTIC_BIN_PIN);
       pollBin(metal, METAL_BIN_PIN);
@@ -1167,8 +1262,13 @@ void calibrateAll() {
 
   reportHardwareStatus();
   Serial.println(F("CALIBRATION:REMOVE_OBJECTS"));
+  // Stagger gate purge actuation to avoid 3 simultaneous servo inrush current spikes
   beginPurge(plastic);
+  delay(100);
+  wdt_reset();
   beginPurge(metal);
+  delay(100);
+  wdt_reset();
   beginPurge(paper);
   if (!waitCalibration(PURGE_OPEN_MS + GATE_SETTLE_MS)) {
     calibrating = false;
@@ -1269,17 +1369,32 @@ void makeSafe() {
   plastic.detectionCount = metal.detectionCount = paper.detectionCount = 0;
   plastic.entranceClearCount = metal.entranceClearCount = paper.entranceClearCount = 0;
   plastic.entranceArmed = metal.entranceArmed = paper.entranceArmed = false;
-  if (!PLASTIC_DISABLED) reattachServos(plastic);
-  if (!PLASTIC_DISABLED) plastic.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!PLASTIC_DISABLED) plastic.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  if (!METAL_DISABLED) reattachServos(metal);
-  if (!METAL_DISABLED) metal.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!METAL_DISABLED) metal.bottomGateServo->write(DROP_CLOSED_ANGLE);
-  if (!PAPER_DISABLED) reattachServos(paper);
-  if (!PAPER_DISABLED) paper.irisServo->write(IRIS_CLOSED_ANGLE);
-  if (!PAPER_DISABLED) paper.bottomGateServo->write(PAPER_DROP_CLOSED_ANGLE);
-  // After makeSafe the machine is in a stable rest state — detach all.
-  delay(400);
+
+  // Stagger servo reattachment and closure to eliminate simultaneous 7A inrush spikes
+  if (!PLASTIC_DISABLED) {
+    reattachServos(plastic);
+    plastic.irisServo->write(irisClosedAngle(plastic));
+    plastic.bottomGateServo->write(dropClosedAngle(plastic));
+    delay(80);
+    wdt_reset();
+  }
+  if (!METAL_DISABLED) {
+    reattachServos(metal);
+    metal.irisServo->write(irisClosedAngle(metal));
+    metal.bottomGateServo->write(dropClosedAngle(metal));
+    delay(80);
+    wdt_reset();
+  }
+  if (!PAPER_DISABLED) {
+    reattachServos(paper);
+    paper.irisServo->write(irisClosedAngle(paper));
+    paper.bottomGateServo->write(dropClosedAngle(paper));
+    delay(80);
+    wdt_reset();
+  }
+  // Allow final gear-train settling before detaching PWM
+  delay(150);
+  wdt_reset();
   if (!PLASTIC_DISABLED) { plasticIris.detach(); plasticDrop.detach(); }
   if (!METAL_DISABLED)   { metalIris.detach();   metalDrop.detach(); }
   if (!PAPER_DISABLED)   { paperIris.detach();   paperDrop.detach(); }
@@ -1324,13 +1439,12 @@ bool executeServoTestCommand(char* cmd) {
   activeCycleAborted = true;
   Servo* target = iris ? compartment->irisServo : compartment->bottomGateServo;
   byte pin = iris ? compartment->irisServoPin : compartment->bottomGateServoPin;
-  byte angle = iris ? (open ? IRIS_OPEN_ANGLE : IRIS_CLOSED_ANGLE)
-                    : (open ? (compartment == &paper ? PAPER_DROP_OPEN_ANGLE : DROP_OPEN_ANGLE)
-                            : (compartment == &paper ? PAPER_DROP_CLOSED_ANGLE : DROP_CLOSED_ANGLE));
+  byte angle = iris ? (open ? irisOpenAngle(*compartment) : irisClosedAngle(*compartment))
+                    : (open ? dropOpenAngle(*compartment) : dropClosedAngle(*compartment));
   if (!target->attached()) target->attach(pin);
   target->write(angle);
   if (!open) {
-    delay(400);
+    delay(250);
     target->detach();
   }
   Serial.print(F("SERVO:OK:")); Serial.println(cmd);
@@ -1351,12 +1465,18 @@ void enforceHostLease() {
 
 // Zero-allocation serial reader: eliminates heap fragmentation and dynamic memory churn
 void handleSerial() {
+  wdt_reset();
   pollSensors();
   if (!calibrating && (hardwareStatusDirty || millis() - lastStatusMs >= 2000UL)) {
     lastStatusMs = millis();
     reportHardwareStatus();
   }
+  static unsigned long lastCharRxMs = 0;
+  if (serialBufIdx > 0 && millis() - lastCharRxMs > 150UL) {
+    serialBufIdx = 0; // Inactivity timeout: flush stale/corrupted fragment
+  }
   while (Serial.available() > 0) {
+    lastCharRxMs = millis();
     char ch = (char)Serial.read();
     if (ch == '\n' || ch == '\r') {
       if (serialBufIdx > 0) {

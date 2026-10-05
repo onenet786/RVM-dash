@@ -13,12 +13,14 @@ public partial class AdminWindow : Window
 {
     private readonly AppSettings settings = AppSettings.Load();
     private bool servoTestActive;
+    private IHardwareDiagnosticsHost? hardwareHost;
 
     public AdminWindow()
     {
         InitializeComponent();
         Closed += AdminWindow_Closed;
         Loaded += async (sender, e) => {
+            AttachHardwareDiagnostics();
             TxtServerUrl.Text = settings.CentralApiUrl;
             TxtMachineId.Text = settings.MachineId;
             Load();
@@ -29,6 +31,32 @@ public partial class AdminWindow : Window
             await CheckCentralConnectionAsync();
             await RefreshComparisonDataAsync();
         };
+    }
+
+    private void AttachHardwareDiagnostics()
+    {
+        hardwareHost = Owner as IHardwareDiagnosticsHost ?? Application.Current.MainWindow as IHardwareDiagnosticsHost;
+        if (hardwareHost != null) hardwareHost.HardwareDiagnosticMessage += HardwareDiagnosticMessage;
+        TxtHardwareStatus.Text = hardwareHost?.IsHardwareConnected == true ? "Hardware: connected / host lease active" : "Hardware: offline / demo mode";
+        TxtHardwareStatus.Foreground = hardwareHost?.IsHardwareConnected == true
+            ? System.Windows.Media.Brushes.LightGreen : System.Windows.Media.Brushes.OrangeRed;
+    }
+
+    private void HardwareDiagnosticMessage(string message)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            TxtHardwareDiagnostics.AppendText($"[{DateTime.Now:HH:mm:ss.fff}] {message}\n");
+            TxtHardwareDiagnostics.ScrollToEnd();
+            TxtHardwareStatus.Text = "Hardware: connected — last response " + DateTime.Now.ToString("HH:mm:ss");
+            TxtHardwareStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+        });
+    }
+
+    private void HardwareCommand_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string command } || hardwareHost?.SendAdminHardwareCommand(command) != true)
+            RvmMessageDialog.ShowWarning("Hardware Diagnostics", "Arduino is offline or Demo Mode is active.", this);
     }
 
     private void ServoTest_Click(object sender, RoutedEventArgs e)
@@ -55,9 +83,8 @@ public partial class AdminWindow : Window
 
     private void AdminWindow_Closed(object? sender, EventArgs e)
     {
-        if (!servoTestActive) return;
-        if (Owner is MainWindow main) main.SendAdminHardwareCommand("SERVO:ALL:CLOSE");
-        else if (Owner is LandscapeWindow landscape) landscape.SendAdminHardwareCommand("SERVO:ALL:CLOSE");
+        if (servoTestActive) hardwareHost?.SendAdminHardwareCommand("SERVO:ALL:CLOSE");
+        if (hardwareHost != null) hardwareHost.HardwareDiagnosticMessage -= HardwareDiagnosticMessage;
     }
 
     private void OpenSimulator_Click(object sender, RoutedEventArgs e)
@@ -201,37 +228,13 @@ public partial class AdminWindow : Window
 
     private void ReinitializeArduino_Click(object sender, RoutedEventArgs e)
     {
-        try
+        if (hardwareHost?.SendAdminHardwareCommand("RESET") == true)
         {
-            string port = CfgArduinoPort.Text.Trim();
-            int baud = int.TryParse(CfgArduinoBaud.Text.Trim(), out int b) ? b : 115200;
-
-            if (Application.Current.MainWindow is MainWindow mainWin)
-            {
-                mainWin.DisconnectHardwareOnExit();
-                System.Threading.Thread.Sleep(300);
-            }
-            else if (Application.Current.MainWindow is LandscapeWindow landWin)
-            {
-                landWin.DisconnectHardwareOnExit();
-                System.Threading.Thread.Sleep(300);
-            }
-
-            using var serial = new SerialManager();
-            serial.Connect(port, baud);
-            serial.SendCommand("RESET");
-            serial.SendCommand("STATUS");
-            System.Threading.Thread.Sleep(300);
-            serial.Disconnect();
-
-            RvmMessageDialog.ShowSuccess("Arduino Re-initialized", $"Arduino board on {port} (Baud: {baud}) successfully re-initialized with hardware DTR reset and soft reset!", this);
-            LogConsole($"[Hardware Reset] Arduino on {port} re-initialized cleanly.");
+            hardwareHost.SendAdminHardwareCommand("HOST:ALIVE");
+            hardwareHost.SendAdminHardwareCommand("DIAG:SNAPSHOT");
+            LogConsole("[Hardware Reset] Reset and snapshot sent through active kiosk connection.");
         }
-        catch (Exception ex)
-        {
-            RvmMessageDialog.ShowError("Arduino Reset Error", $"Failed to re-initialize Arduino: {ex.Message}", this);
-            LogConsole($"[Hardware Reset Error] {ex.Message}");
-        }
+        else RvmMessageDialog.ShowWarning("Arduino Offline", "The active PecoDrop Arduino connection is unavailable. Restart the kiosk to reconnect.", this);
     }
 
     private void Load()

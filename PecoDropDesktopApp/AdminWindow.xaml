@@ -406,7 +406,16 @@
                                                     <TextBox x:Name="CfgCameraBaud" Height="32" Padding="8,4" Background="#0F172A" Foreground="White" BorderBrush="#334155" VerticalContentAlignment="Center"/>
                                                 </StackPanel>
                                             </Grid>
-                                            <Button Content="⚡ Re-initialize Arduino Board" Click="ReinitializeArduino_Click" Height="34" Margin="0,8,0,0" Style="{StaticResource ModernButton}"/>
+                                            <TextBlock x:Name="TxtHardwareStatus" Text="Hardware: waiting" Foreground="#FBBF24" Margin="0,8,0,4" FontWeight="Bold"/>
+                                            <WrapPanel>
+                                                <Button Content="Refresh All Sensors" Tag="DIAG:SNAPSHOT" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Safe Self-Test" Tag="DIAG:SELF_TEST" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Scale Read" Tag="SCALE" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="Calibrate All" Tag="CALIBRATE" Click="HardwareCommand_Click" Margin="2" Style="{StaticResource ModernButton}"/>
+                                                <Button Content="CLOSE ALL / SAFE STOP" Tag="SERVO:ALL:CLOSE" Click="HardwareCommand_Click" Margin="2" Background="#991B1B" Foreground="White"/>
+                                            </WrapPanel>
+                                            <TextBox x:Name="TxtHardwareDiagnostics" Height="180" Margin="0,8,0,0" Padding="6" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#020617" Foreground="#86EFAC" FontFamily="Consolas" FontSize="11"/>
+                                            <Button Content="Reconnect / Re-initialize via Active Connection" Click="ReinitializeArduino_Click" Height="34" Margin="0,8,0,0" Style="{StaticResource ModernButton}"/>
                                             <Border Margin="0,12,0,0" Padding="10" Background="#07111F" BorderBrush="#334155" BorderThickness="1" CornerRadius="6">
                                                 <StackPanel>
                                                     <TextBlock Text="INDIVIDUAL SERVO TESTING" FontWeight="Bold" Foreground="#FBBF24"/>

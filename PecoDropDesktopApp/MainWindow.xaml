@@ -295,9 +295,9 @@
                     <!-- ROW 3: CENTER SECTION (LEFT: INSERT BOTTLE + LIVE BREAKDOWN; RIGHT: HOW-TO + TOP 5 RECYCLERS) -->
                     <Grid Grid.Row="3" Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/> <!-- Left: Insert Bottle + Live Container Breakdown -->
+                            <ColumnDefinition Width="6*"/> <!-- Left: Insert Bottle + Live Container Breakdown (60%) -->
                             <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/> <!-- Right: Bilingual How-To Guide + Top 5 Leaderboard -->
+                            <ColumnDefinition Width="4*"/> <!-- Right: Bilingual How-To Guide + Top 5 Leaderboard (40%) -->
                         </Grid.ColumnDefinitions>
 
                         <!-- LEFT COLUMN: INSERT BOTTLE CIRCLE + LIVE SESSION CONTAINER BREAKDOWN -->
