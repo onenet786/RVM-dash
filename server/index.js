@@ -71,6 +71,7 @@ if (fs.existsSync(envPath)) {
 dotenv.config({ override: true });
 
 const app = express();
+app.set('trust proxy', 1); // Enable proxy header resolution (NGINX / Cloudflare)
 const PORT = process.env.PORT || 5009;
 const JWT_SECRET = process.env.JWT_SECRET || 'rvm-isp-production-secret-key-2026-aapanel';
 
@@ -93,9 +94,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Security Hardening: Rate Limiting
+const isLoopbackIp = (ip) => {
+  if (!ip || typeof ip !== 'string') return false;
+  const cleanIp = ip.split(',')[0].trim();
+  return cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === '::ffff:127.0.0.1' || cleanIp.startsWith('127.');
+};
+
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 15,
+  max: 30,
+  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
   message: { error: 'Too many login attempts from this IP. Please try again after 5 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -103,7 +111,8 @@ const loginLimiter = rateLimit({
 
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 10,
+  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
   message: { success: false, message: 'Too many OTP requests from this IP. Please wait 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -112,6 +121,7 @@ const otpLimiter = rateLimit({
 const databaseResetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
+  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
   message: { error: 'Too many database reset authorization attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
