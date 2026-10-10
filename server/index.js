@@ -152,7 +152,7 @@ function verifyTokenWithAnySecret(token) {
   for (const secret of KNOWN_JWT_SECRETS) {
     try {
       return jwt.verify(token, secret);
-    } catch (e) {}
+    } catch (e) { }
   }
   return null;
 }
@@ -461,7 +461,7 @@ async function closePgPool() {
   if (pgPoolInstance) {
     try {
       await pgPoolInstance.end();
-    } catch (e) {}
+    } catch (e) { }
     pgPoolInstance = null;
   }
 }
@@ -525,7 +525,7 @@ async function initProductionPostgresSchemas() {
          OR (plastic_bin_fill = 58 AND metal_bin_fill = 42 AND paper_bin_fill_kg = 11.40)
          OR (plastic_bin_fill = 65 AND metal_bin_fill = 50 AND paper_bin_fill_kg = 14.80)
          OR (plastic_bin_fill = 85 AND pulse_count = 1420);
-    `).catch(() => {});
+    `).catch(() => { });
 
     // Ensure organizations table has personalized dashboard and machine fields
     await pool.query(`
@@ -534,7 +534,7 @@ async function initProductionPostgresSchemas() {
       ALTER TABLE organizations ADD COLUMN IF NOT EXISTS dashboard_title VARCHAR(255);
       ALTER TABLE organizations ADD COLUMN IF NOT EXISTS primary_color VARCHAR(50) DEFAULT '#0B5D3B';
       ALTER TABLE organizations ADD COLUMN IF NOT EXISTS assigned_machines TEXT[] DEFAULT '{}';
-    `).catch(() => {});
+    `).catch(() => { });
 
     // 2. Typed Hardware Ingestion Tables (RVM Old, RVM New, PecoDrop)
     await pool.query(`
@@ -1057,7 +1057,7 @@ async function initProductionPostgresSchemas() {
     try {
       // Refresh Materialized View if exists
       await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY vw_cumulative_recycling_fleet;').catch(async () => {
-        await pool.query('REFRESH MATERIALIZED VIEW vw_cumulative_recycling_fleet;').catch(() => {});
+        await pool.query('REFRESH MATERIALIZED VIEW vw_cumulative_recycling_fleet;').catch(() => { });
       });
     } catch (e) {
       // Ignore if view does not exist yet
@@ -1122,12 +1122,12 @@ async function connectDB(forceReconnect = false) {
     dns.setDefaultResultOrder('ipv4first');
     try {
       dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
-    } catch (e) {}
+    } catch (e) { }
 
     if (dbClient && forceReconnect) {
       try {
         await dbClient.close(true);
-      } catch (e) {}
+      } catch (e) { }
       dbClient = null;
       db = null;
     }
@@ -1187,7 +1187,7 @@ async function getMongoDBServerLocation(targetDb) {
     const primaryHost = (hello.me || hello.primary || '').split(':')[0];
     const regionTag = hello.tags?.region || '';
     const providerTag = hello.tags?.provider || '';
-    
+
     let locationStr = '';
     if (providerTag && regionTag) {
       locationStr = `${providerTag} (${regionTag})`;
@@ -1241,7 +1241,7 @@ app.get('/api/health', async (req, res) => {
         FROM information_schema.tables 
         WHERE table_schema='public' AND table_type='BASE TABLE';
       `);
-      
+
       const collectionsWithStats = [];
       for (const row of tablesRes.rows) {
         const tName = row.table_name;
@@ -1249,7 +1249,7 @@ app.get('/api/health', async (req, res) => {
         try {
           const countRes = await client.query(`SELECT COUNT(*) FROM "${tName}";`);
           count = parseInt(countRes.rows[0].count || '0');
-        } catch (cErr) {}
+        } catch (cErr) { }
 
         collectionsWithStats.push({
           name: tName,
@@ -1276,7 +1276,7 @@ app.get('/api/health', async (req, res) => {
     const ping = await admin.ping();
     const collections = await db.listCollections().toArray();
     const location = await getMongoDBServerLocation(db);
-    
+
     const collectionsWithStats = await Promise.all(
       collections.map(async (col) => {
         const count = await db.collection(col.name).countDocuments();
@@ -1296,11 +1296,11 @@ app.get('/api/health', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (err) {
-    res.status(500).json({ 
-      status: 'error', 
-      error: err.message, 
-      database: currentDbName, 
-      serverHost: getSanitizedHost(currentUri) 
+    res.status(500).json({
+      status: 'error',
+      error: err.message,
+      database: currentDbName,
+      serverHost: getSanitizedHost(currentUri)
     });
   }
 });
@@ -1499,7 +1499,7 @@ app.post('/api/admin/sync-databases', async (req, res) => {
       if (syncMode === 'replace') {
         try {
           await targetCol.deleteMany({});
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Prepare documents with ObjectId handling
@@ -1508,7 +1508,7 @@ app.post('/api/admin/sync-databases', async (req, res) => {
         if (docCopy._id && typeof docCopy._id === 'string' && docCopy._id.length === 24) {
           try {
             docCopy._id = new ObjectId(docCopy._id);
-          } catch (e) {}
+          } catch (e) { }
         }
         return docCopy;
       });
@@ -1574,10 +1574,10 @@ app.post('/api/admin/sync-databases', async (req, res) => {
     res.status(500).json({ error: 'One-way database sync failed', details: err.message });
   } finally {
     if (sourceClient) {
-      try { await sourceClient.close(true); } catch (e) {}
+      try { await sourceClient.close(true); } catch (e) { }
     }
     if (targetClient) {
-      try { await targetClient.close(true); } catch (e) {}
+      try { await targetClient.close(true); } catch (e) { }
     }
   }
 });
@@ -1643,10 +1643,10 @@ function getAssignedMachinesList(req) {
 async function resolveScopeContext(req, pool) {
   const userRole = String(req?.user?.roleId || '').toLowerCase();
   const isSuper = userRole === 'super_admin' || userRole === 'superadmin' || String(req?.user?.username || '').toLowerCase() === 'onenet' || String(req?.user?.username || '').toLowerCase() === 'bilalaaqueel';
-  
+
   const authenticatedOrgId = (!isSuper && req?.user?.orgId) ? String(req.user.orgId).trim().toUpperCase() : '';
   const requestedClientId = String(req?.query?.clientId || req?.query?.orgId || '').trim().toUpperCase();
-  
+
   let effectiveOrgId = '';
   if (authenticatedOrgId) {
     effectiveOrgId = authenticatedOrgId;
@@ -1662,7 +1662,7 @@ async function resolveScopeContext(req, pool) {
     try {
       const mRes = await pool.query('SELECT machine_id, name, location, machine_type, client_id, client_name, status, plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg, scale_status, pulse_count, offline_backlog_count, last_ping_at FROM machines');
       machines = mRes.rows;
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 2. If client scoped, resolve all machine IDs bound to this client
@@ -1901,7 +1901,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
         const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
         const cCount = parseInt(s.cups || s.totalCups || 0);
-        
+
         totalBottles += bCount;
         totalCups += cCount;
         totalPoints += pCount;
@@ -1959,7 +1959,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
 
       // Sub-Tabs Heterogeneous Streams Architecture
       const totalSessCount = filteredSessions.length;
-      
+
       // Calculate machine-specific metrics from filteredSessions
       let rvmNewBottles = 0, rvmNewCans = 0, rvmNewCartons = 0, rvmNewPoints = 0, rvmNewSessions = 0;
       let rvmOldBottles = 0, rvmOldPoints = 0, rvmOldSessions = 0, rvmOldPulses = 0;
@@ -2073,14 +2073,14 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
         const mId = (s.machineId || s.machine_id || 'RVM-001').toUpperCase();
         const mInfo = machineMap[mId] || { machine_type: mId.includes('PECO') ? 'PECODROP' : mId.includes('OLD') ? 'RVM_OLD' : 'RVM_NEW' };
         const machineType = mInfo.machine_type || 'RVM_NEW';
-        
+
         let hardwareBadge = `[${mId} | RVM-NEW]`;
         if (machineType === 'PECODROP') hardwareBadge = `[${mId} | PECODROP]`;
         if (machineType === 'RVM_OLD') hardwareBadge = `[${mId} | RVM-LEGACY]`;
 
         const isPaperWeight = (s.paper_weight_grams > 0 || (s.material && s.material.toUpperCase() === 'PAPER'));
-        const verifiedWeightText = isPaperWeight 
-          ? `+${s.paper_weight_grams}g | +${s.points || s.pointsEarned || 0} pts` 
+        const verifiedWeightText = isPaperWeight
+          ? `+${s.paper_weight_grams}g | +${s.points || s.pointsEarned || 0} pts`
           : null;
 
         return {
@@ -2194,7 +2194,7 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
       const bCount = parseInt(s.bottles || s.totalBottles || (parseInt(s.plasticCount || s.plastic_count || 0) + parseInt(s.aluminiumCount || s.aluminium_count || 0) + parseInt(s.paperCardboardCount || s.paper_cardboard_count || 0)) || 0);
       const pCount = parseInt(s.points || s.totalPoints || s.pointsEarned || s.points_earned || 0);
       const cCount = parseInt(s.cups || s.totalCups || 0);
-      
+
       totalBottles += bCount;
       totalCups += cCount;
       totalPoints += pCount;
@@ -2699,7 +2699,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         if (tc === 'citizens') {
           leaderboard = leaderboard.filter(u => u.userType === 'CITIZEN' && (!u.orgId || u.clientName === 'Public Citizen'));
         } else {
-          leaderboard = leaderboard.filter(u => 
+          leaderboard = leaderboard.filter(u =>
             (u.orgId && u.orgId.toLowerCase() === tc) ||
             (u.clientName && u.clientName.toLowerCase().includes(tc))
           );
@@ -2708,7 +2708,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
 
       // Filter by search query if passed to API
       if (searchQuery) {
-        leaderboard = leaderboard.filter(u => 
+        leaderboard = leaderboard.filter(u =>
           (u.registeredName && u.registeredName.toLowerCase().includes(searchQuery)) ||
           (u.userName && u.userName.toLowerCase().includes(searchQuery)) ||
           (u.mobile && u.mobile.toLowerCase().includes(searchQuery)) ||
@@ -2721,8 +2721,8 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
         .sort((a, b) => b.totalPoints - a.totalPoints)
         .slice(0, 50)
         .map((u, idx) => {
-          const availablePts = u.explicitBalance !== null && u.explicitBalance !== undefined 
-            ? Math.max(0, u.explicitBalance) 
+          const availablePts = u.explicitBalance !== null && u.explicitBalance !== undefined
+            ? Math.max(0, u.explicitBalance)
             : Math.max(0, u.totalPoints - (u.pointsRedeemed || 0));
           return {
             ...u,
@@ -2773,28 +2773,28 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
 // Issue Voucher & Mobile Wallet Payout Reward Endpoint (EasyPaisa, JazzCash, Mobile Load, Raast, Vouchers)
 app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
   try {
-    const { 
-      targetUserId, 
-      recipientPhone, 
-      recipientName, 
-      payoutMethod = 'easypaisa', 
-      amountPkr, 
-      voucherTitle, 
+    const {
+      targetUserId,
+      recipientPhone,
+      recipientName,
+      payoutMethod = 'easypaisa',
+      amountPkr,
+      voucherTitle,
       note,
       allowOverdraft = false
     } = req.body;
-    
+
     const pool = getPgPool();
     const cleanAmount = parseInt(amountPkr || 1000);
     const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1 (1 pt = Rs. 0.20)
     const phone = (recipientPhone || targetUserId || '03000000000').trim();
     const userLabel = recipientName || targetUserId || 'Leaderboard Champion';
-    
+
     // Channel-specific reference prefix and display name
     let prefix = 'EP';
     let methodLabel = 'EasyPaisa Wallet';
     let category = 'easypaisa';
-    
+
     if (payoutMethod === 'jazzcash') {
       prefix = 'JC';
       methodLabel = 'JazzCash Wallet';
@@ -2876,7 +2876,7 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', $9, NOW())
         ON CONFLICT (redemption_id) DO NOTHING;
       `, [
-        redemptionId, 
+        redemptionId,
         targetUserId || phone || 'CHAMPION',
         userLabel,
         phone,
@@ -3043,7 +3043,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
                      scale_status = 'Ready' 
                  WHERE machine_id = $1`,
                 [r.machine_id]
-              ).catch(() => {});
+              ).catch(() => { });
             }
 
             const plasticBinFill = isMockDefault ? 0 : (r.plastic_bin_fill != null ? parseInt(r.plastic_bin_fill) : 0);
@@ -3399,7 +3399,7 @@ app.get('/api/analytics/machines/summary', optionalAuth, async (req, res) => {
             badge: 'Corporate Client'
           });
         });
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -3420,11 +3420,11 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
   try {
     const pool = getPgPool();
     let dynamicClients = [
-      { 
-        id: 'ALL', 
-        name: 'ISP Environmental Master (All Sites)', 
+      {
+        id: 'ALL',
+        name: 'ISP Environmental Master (All Sites)',
         rawName: 'ISP Environmental Master',
-        badge: 'Master Nationwide', 
+        badge: 'Master Nationwide',
         address: 'Nationwide Public Network',
         domain: 'isprvm.binishaqsoft.com',
         machineCount: 0
@@ -3485,7 +3485,7 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
             dynamicClients.push(formatOrgDetails(r, parseInt(r.machine_count) || 0, r.locations));
           });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (dynamicClients.length <= 1 && Array.isArray(inMemoryOrganizations)) {
@@ -3555,10 +3555,10 @@ app.get('/api/reporting/audits', optionalAuth, async (req, res) => {
 // Add or Register RVM Machine Name & Location
 app.post('/api/machines', async (req, res) => {
   try {
-    const { 
-      machineId, 
-      name, 
-      location, 
+    const {
+      machineId,
+      name,
+      location,
       latitude,
       longitude,
       status,
@@ -3582,7 +3582,7 @@ app.post('/api/machines', async (req, res) => {
     let mType = machineType;
     if (!mType) {
       mType = (upperMId.includes('PECO') || upperMName.includes('PECO')) ? 'PECODROP' :
-              (upperMId.includes('OLD') || upperMName.includes('OLD')) ? 'RVM_OLD' : 'RVM_NEW';
+        (upperMId.includes('OLD') || upperMName.includes('OLD')) ? 'RVM_OLD' : 'RVM_NEW';
     }
     let cId = clientId;
     let cName = clientName;
@@ -3606,7 +3606,7 @@ app.post('/api/machines', async (req, res) => {
             const orgTitle = oRes.rows[0].name;
             cName = orgTitle.replace(/^(Client:\s*)+/i, '').trim();
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!cName) {
         cName = cId === 'ISP_MASTER' ? 'ISP Environmental Master (All Sites)' : cId;
@@ -3623,12 +3623,12 @@ app.post('/api/machines', async (req, res) => {
       try {
         const checkRes = await pool.query(`SELECT machine_id FROM machines WHERE machine_id = $1`, [cleanId]);
         if (checkRes.rows && checkRes.rows.length > 0) isExisting = true;
-      } catch (e) {}
+      } catch (e) { }
     } else if (db) {
       try {
         const checkMongo = await db.collection('machines').findOne({ machineId: cleanId });
         if (checkMongo) isExisting = true;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Comprehensive Super Admin Verification (Handles Proxies/Nginx Header Stripping)
@@ -3665,7 +3665,7 @@ app.post('/api/machines', async (req, res) => {
               isSuperAdmin = true;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       } else if (db) {
         try {
           const uDoc = await db.collection('adminaccounts').findOne({
@@ -3674,20 +3674,20 @@ app.post('/api/machines', async (req, res) => {
           if (
             uDoc &&
             (uDoc.roleId === 'super_admin' ||
-             uDoc.roleId === 'admin' ||
-             String(uDoc.roleName || '').toLowerCase().includes('super admin') ||
-             (Array.isArray(uDoc.assignedMachines) && uDoc.assignedMachines.includes('*')))
+              uDoc.roleId === 'admin' ||
+              String(uDoc.roleName || '').toLowerCase().includes('super admin') ||
+              (Array.isArray(uDoc.assignedMachines) && uDoc.assignedMachines.includes('*')))
           ) {
             isSuperAdmin = true;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
     // Role Permission Restriction: Cannot create new RVM except Super Admin
     if (!isExisting && !isSuperAdmin) {
-      return res.status(403).json({ 
-        error: 'Permission Denied: Only Super Admin accounts can register or create new RVM machines.' 
+      return res.status(403).json({
+        error: 'Permission Denied: Only Super Admin accounts can register or create new RVM machines.'
       });
     }
 
@@ -3709,7 +3709,7 @@ app.post('/api/machines', async (req, res) => {
 
     let savedMachine;
     try {
-        await pool.query(`
+      await pool.query(`
           CREATE TABLE IF NOT EXISTS machines (
             machine_id VARCHAR(100) PRIMARY KEY,
             name VARCHAR(255),
@@ -3721,17 +3721,17 @@ app.post('/api/machines', async (req, res) => {
           )
         `);
 
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS name VARCHAR(255);`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ONLINE';`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(50) DEFAULT 'RVM_NEW';`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';`);
-        await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS name VARCHAR(255);`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'ONLINE';`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS last_ping_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(50) DEFAULT 'RVM_NEW';`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_id VARCHAR(50) DEFAULT 'ISP_MASTER';`);
+      await pool.query(`ALTER TABLE machines ADD COLUMN IF NOT EXISTS client_name VARCHAR(100) DEFAULT 'ISP Environmental Master (All Sites)';`);
 
-        const upsertResult = await pool.query(`
+      const upsertResult = await pool.query(`
           INSERT INTO machines (machine_id, name, location, latitude, longitude, status, machine_type, client_id, client_name, last_ping_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
           ON CONFLICT (machine_id)
@@ -3746,10 +3746,10 @@ app.post('/api/machines', async (req, res) => {
                         last_ping_at = NOW()
           RETURNING machine_id, name, location, latitude, longitude, status, machine_type, client_id, client_name
         `, [cleanId, machineName, machineLocation, parsedLat, parsedLng, machineStatus, mType, cId, cName]);
-        savedMachine = upsertResult.rows[0];
-        if (!savedMachine) throw new Error('PostgreSQL did not return the saved machine row.');
+      savedMachine = upsertResult.rows[0];
+      if (!savedMachine) throw new Error('PostgreSQL did not return the saved machine row.');
 
-        await pool.query(`
+      await pool.query(`
           INSERT INTO machine_configs (machine_id, config_version, points_per_plastic, points_per_aluminium, points_per_paper_kg, updated_at)
           VALUES ($1, 1, $2, $3, $4, NOW())
           ON CONFLICT (machine_id) DO UPDATE SET
@@ -3759,14 +3759,14 @@ app.post('/api/machines', async (req, res) => {
             points_per_paper_kg = EXCLUDED.points_per_paper_kg,
             updated_at = NOW();
         `, [cleanId, parseInt(pointsPerPlasticBottle), parseInt(pointsPerAluminiumCan), parseInt(pointsPerPaperKg)]).catch((configErr) => {
-          console.error('[POST /api/machines] Machine config save failed:', configErr.message);
-        });
+        console.error('[POST /api/machines] Machine config save failed:', configErr.message);
+      });
 
-        // Automatically synchronize Kiosk-Organization bindings and client admin fleets
-        const cleanUpperId = String(machineId).trim().toUpperCase();
-        if (cId && cId !== 'ISP_MASTER' && cId !== 'ALL') {
-          try {
-            await pool.query(`
+      // Automatically synchronize Kiosk-Organization bindings and client admin fleets
+      const cleanUpperId = String(machineId).trim().toUpperCase();
+      if (cId && cId !== 'ISP_MASTER' && cId !== 'ALL') {
+        try {
+          await pool.query(`
               CREATE TABLE IF NOT EXISTS kiosk_org_bindings (
                 machine_id VARCHAR(50) PRIMARY KEY,
                 org_id VARCHAR(50) NOT NULL,
@@ -3774,42 +3774,42 @@ app.post('/api/machines', async (req, res) => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               );
             `);
-            await pool.query(`
+          await pool.query(`
               INSERT INTO kiosk_org_bindings (machine_id, org_id, location_note)
               VALUES ($1, $2, $3)
               ON CONFLICT (machine_id) DO UPDATE SET org_id = EXCLUDED.org_id, location_note = EXCLUDED.location_note;
             `, [cleanUpperId, cId, `Assigned to ${cName}`]);
 
-            const orgRes = await pool.query('SELECT assigned_machines FROM organizations WHERE org_id = $1', [cId]);
-            if (orgRes.rows.length > 0) {
-              let currentArr = orgRes.rows[0].assigned_machines || [];
-              if (!Array.isArray(currentArr)) {
-                try { currentArr = JSON.parse(currentArr || '[]'); } catch(e) { currentArr = []; }
-              }
-              if (!currentArr.includes(cleanUpperId)) {
-                currentArr.push(cleanUpperId);
-                await pool.query('UPDATE organizations SET assigned_machines = $1 WHERE org_id = $2', [currentArr, cId]);
-              }
+          const orgRes = await pool.query('SELECT assigned_machines FROM organizations WHERE org_id = $1', [cId]);
+          if (orgRes.rows.length > 0) {
+            let currentArr = orgRes.rows[0].assigned_machines || [];
+            if (!Array.isArray(currentArr)) {
+              try { currentArr = JSON.parse(currentArr || '[]'); } catch (e) { currentArr = []; }
             }
-
-            const allUsers = await fetchCollectionDocs('adminaccounts');
-            const clientAdmins = allUsers.filter(u => (u.orgId === cId || u.org_id === cId) && u.roleId === 'client_admin');
-            for (const ca of clientAdmins) {
-              const existingMachines = Array.isArray(ca.assignedMachines) ? ca.assignedMachines : [];
-              if (!existingMachines.includes(cleanUpperId)) {
-                await updateDocInEngine('adminaccounts', 'username', ca.username, {
-                  assignedMachines: [...existingMachines, cleanUpperId]
-                });
-              }
+            if (!currentArr.includes(cleanUpperId)) {
+              currentArr.push(cleanUpperId);
+              await pool.query('UPDATE organizations SET assigned_machines = $1 WHERE org_id = $2', [currentArr, cId]);
             }
-          } catch (bindErr) {
-            console.error('[POST /api/machines] Kiosk org binding notice:', bindErr.message);
           }
-        } else if (cId === 'ISP_MASTER') {
-          try {
-            await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(machine_id) = $1', [cleanUpperId]);
-          } catch (e) {}
+
+          const allUsers = await fetchCollectionDocs('adminaccounts');
+          const clientAdmins = allUsers.filter(u => (u.orgId === cId || u.org_id === cId) && u.roleId === 'client_admin');
+          for (const ca of clientAdmins) {
+            const existingMachines = Array.isArray(ca.assignedMachines) ? ca.assignedMachines : [];
+            if (!existingMachines.includes(cleanUpperId)) {
+              await updateDocInEngine('adminaccounts', 'username', ca.username, {
+                assignedMachines: [...existingMachines, cleanUpperId]
+              });
+            }
+          }
+        } catch (bindErr) {
+          console.error('[POST /api/machines] Kiosk org binding notice:', bindErr.message);
         }
+      } else if (cId === 'ISP_MASTER') {
+        try {
+          await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(machine_id) = $1', [cleanUpperId]);
+        } catch (e) { }
+      }
     } catch (pgErr) {
       console.error('[POST /api/machines] PostgreSQL machine upsert failed:', pgErr.message);
       return res.status(500).json({
@@ -3818,8 +3818,8 @@ app.post('/api/machines', async (req, res) => {
       });
     }
 
-    res.json({ 
-      message: 'Machine registered successfully', 
+    res.json({
+      message: 'Machine registered successfully',
       machineId: savedMachine.machine_id,
       name: savedMachine.name,
       location: savedMachine.location,
@@ -3937,14 +3937,14 @@ app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) =>
       count = sessions.length;
       sessions.forEach(s => {
         const plastic = parseInt(s.plasticCount ?? s.plastic_count ?? s.bottles ?? s.totalBottles ?? 0) +
-                        parseInt(s.plasticSmallCount || s.plastic_small_count || 0) +
-                        parseInt(s.plasticMediumCount || s.plastic_medium_count || 0) +
-                        parseInt(s.plasticLargeCount || s.plastic_large_count || 0);
+          parseInt(s.plasticSmallCount || s.plastic_small_count || 0) +
+          parseInt(s.plasticMediumCount || s.plastic_medium_count || 0) +
+          parseInt(s.plasticLargeCount || s.plastic_large_count || 0);
 
         const aluminium = parseInt(s.aluminiumCount || s.aluminium_count || s.cups || s.totalCups || 0) +
-                          parseInt(s.canSmallCount || s.can_small_count || 0) +
-                          parseInt(s.canMediumCount || s.can_medium_count || 0) +
-                          parseInt(s.canLargeCount || s.can_large_count || 0);
+          parseInt(s.canSmallCount || s.can_small_count || 0) +
+          parseInt(s.canMediumCount || s.can_medium_count || 0) +
+          parseInt(s.canLargeCount || s.can_large_count || 0);
 
         const paperGrams = parseFloat(s.paper_weight_grams || s.paperWeightGrams || 0)
           + (parseFloat(s.paper_weight_kg || s.paperWeightKg || 0) * 1000);
@@ -4314,7 +4314,7 @@ app.post('/api/db/reset-data', databaseResetLimiter, authenticateToken, requireS
     await client.query('COMMIT');
     res.json({ success: true, database: 'rvmpg', clearedTables: targetTables });
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch(() => { });
     console.error('[Database Operational Reset Error]', err.message);
     res.status(500).json({ error: 'PostgreSQL operational-data reset failed safely; no partial reset was committed.' });
   } finally {
@@ -4739,8 +4739,8 @@ app.post('/api/admin/sync-postgres', optionalAuth, requireAdmin, async (req, res
       syncedTables
     });
   } catch (err) {
-    if (sourceClient) try { await sourceClient.close(true); } catch(e){}
-    try { await client.end(); } catch(e){}
+    if (sourceClient) try { await sourceClient.close(true); } catch (e) { }
+    try { await client.end(); } catch (e) { }
     console.error('[PostgreSQL Sync Error]', err);
     res.status(500).json({
       success: false,
@@ -4827,7 +4827,7 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
         if (docCopy._id && typeof docCopy._id === 'string' && docCopy._id.length === 24) {
           try {
             docCopy._id = new ObjectId(docCopy._id);
-          } catch (e) {}
+          } catch (e) { }
         }
         return docCopy;
       });
@@ -5086,7 +5086,7 @@ async function fetchCollectionDocs(colName) {
             created_at: r.created_at
           }));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // 8. General Tables (Inspect column structure: JSONB vs Relational)
@@ -5519,13 +5519,13 @@ app.post('/api/security/roles', authenticateToken, requireAdmin, enforceReadOnly
 
     const cleanRoleId = roleId.trim();
     const targetLookup = (originalRoleId && originalRoleId.trim()) || cleanRoleId;
-    const roleDoc = { 
-      roleId: cleanRoleId, 
-      name: name.trim(), 
-      color: color || 'cyan', 
-      description: description ? description.trim() : '', 
-      modules: Array.isArray(modules) ? modules : [], 
-      permissions: permissions || {} 
+    const roleDoc = {
+      roleId: cleanRoleId,
+      name: name.trim(),
+      color: color || 'cyan',
+      description: description ? description.trim() : '',
+      modules: Array.isArray(modules) ? modules : [],
+      permissions: permissions || {}
     };
 
     if (activeDbType === 'postgres' && activePgConfig) {
@@ -5705,8 +5705,8 @@ app.delete('/api/security/users/:id', authenticateToken, requireAdmin, enforceRe
   try {
     const { id } = req.params;
     if (String(id).toLowerCase() === 'onenet') {
-      return res.status(403).json({ 
-        error: 'CRITICAL SECURITY VIOLATION: Master developer account "onenet" is an indestructible super-admin and CANNOT be dropped or deleted under any circumstances.' 
+      return res.status(403).json({
+        error: 'CRITICAL SECURITY VIOLATION: Master developer account "onenet" is an indestructible super-admin and CANNOT be dropped or deleted under any circumstances.'
       });
     }
     await deleteDocFromEngine('adminaccounts', 'username', id);
@@ -5770,8 +5770,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       }
 
       if (foundUser.status === 'pending_approval' || foundUser.status === 'pending') {
-        return res.status(403).json({ 
-          error: 'Your Corporate Client account is pending approval from ISP Environmental Solutions. Please contact ISP administration for authorization.' 
+        return res.status(403).json({
+          error: 'Your Corporate Client account is pending approval from ISP Environmental Solutions. Please contact ISP administration for authorization.'
         });
       }
 
@@ -5814,13 +5814,13 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
               const boundIds = bRes.rows.map(r => r.machine_id);
               let orgMachines = orgDoc.assigned_machines || [];
               if (!Array.isArray(orgMachines)) {
-                try { orgMachines = JSON.parse(orgMachines || '[]'); } catch(e) { orgMachines = []; }
+                try { orgMachines = JSON.parse(orgMachines || '[]'); } catch (e) { orgMachines = []; }
               }
               const unionFleet = Array.from(new Set([...boundIds, ...orgMachines]));
               user.assignedMachines = unionFleet;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
@@ -6062,14 +6062,14 @@ async function handleGoogleInitiate2FA(req, res) {
           "UPDATE users SET otp = $1, otp_expiry = NOW() + INTERVAL '10 minutes' WHERE LOWER(email) = $2",
           [code, email]
         );
-      } catch (dbErr) {}
+      } catch (dbErr) { }
     }
 
     const emailResult = await sendGoogle2FAEmail(email, code, name);
 
     const parts = email.split('@');
-    const maskedUser = parts[0].length > 2 
-      ? parts[0][0] + '*'.repeat(Math.max(1, parts[0].length - 2)) + parts[0][parts[0].length - 1] 
+    const maskedUser = parts[0].length > 2
+      ? parts[0][0] + '*'.repeat(Math.max(1, parts[0].length - 2)) + parts[0][parts[0].length - 1]
       : parts[0][0] + '*';
     const maskedEmail = `${maskedUser}@${parts[1]}`;
 
@@ -6131,13 +6131,13 @@ async function handleGoogleVerify2FA(req, res) {
             };
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!isValid) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid or expired verification code. Please check your Gmail or request a new code.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code. Please check your Gmail or request a new code.'
       });
     }
 
@@ -6156,7 +6156,7 @@ async function handleGoogleVerify2FA(req, res) {
           [domain, 'active']
         );
         if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-      } catch {}
+      } catch { }
     }
 
     let deptId = null;
@@ -6170,7 +6170,7 @@ async function handleGoogleVerify2FA(req, res) {
             deptId = deptRes.rows[0].dept_id;
             deptName = deptRes.rows[0].name;
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -6259,7 +6259,7 @@ async function handleGoogleVerify2FA(req, res) {
           totalSessions = parseInt(s.session_count || 0);
           earnedPoints = parseInt(s.total_earned_points || 0);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const token = jwt.sign(
@@ -6345,7 +6345,7 @@ async function handleGoogleResend2FA(req, res) {
           "UPDATE users SET otp = $1, otp_expiry = NOW() + INTERVAL '10 minutes' WHERE LOWER(email) = $2",
           [code, email]
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const name = existingData.googleUser?.name || email.split('@')[0];
@@ -6409,7 +6409,7 @@ async function handleSendSsoCode(req, res) {
             if (oR.rows.length > 0) orgName = oR.rows[0].name;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Auto-detect corporate domain
@@ -6423,7 +6423,7 @@ async function handleSendSsoCode(req, res) {
         try {
           const orgRes = await pool.query('SELECT name FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
           if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-        } catch {}
+        } catch { }
       }
       if (matchedOrg) {
         corporateDetected = true;
@@ -6482,7 +6482,7 @@ async function handleVerifySsoCode(req, res) {
             isValid = true;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!isValid) {
@@ -6502,7 +6502,7 @@ async function handleVerifySsoCode(req, res) {
         try {
           const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
           if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-        } catch {}
+        } catch { }
       }
       if (matchedOrg) {
         finalUserType = 'ENTERPRISE';
@@ -6516,7 +6516,7 @@ async function handleVerifySsoCode(req, res) {
         try {
           const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1 LIMIT 1', [finalOrgId]);
           if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-        } catch {}
+        } catch { }
       }
     }
 
@@ -6575,7 +6575,7 @@ async function handleVerifySsoCode(req, res) {
 
     res.json({
       success: true,
-      message: isNewUser 
+      message: isNewUser
         ? `Welcome to PecoDrop! Enrolled as ${matchedOrg ? matchedOrg.name : 'Eco Member'}.`
         : `Welcome back, ${user.full_name || user.username}!`,
       token,
@@ -6782,9 +6782,9 @@ app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, r
       );
       const displacedOwners = normalizedMachineIds.length > 0
         ? await client.query(
-            'SELECT DISTINCT org_id FROM kiosk_org_bindings WHERE UPPER(machine_id) = ANY($1::text[]) AND org_id <> $2',
-            [normalizedMachineIds, orgId]
-          )
+          'SELECT DISTINCT org_id FROM kiosk_org_bindings WHERE UPPER(machine_id) = ANY($1::text[]) AND org_id <> $2',
+          [normalizedMachineIds, orgId]
+        )
         : { rows: [] };
       const removedIds = previous.rows
         .map(row => String(row.machine_id).trim().toUpperCase())
@@ -6994,7 +6994,7 @@ app.get('/api/enterprise/pending-approvals', optionalAuth, async (req, res) => {
         oRes.rows.forEach(r => {
           orgsMap[r.org_id] = r;
         });
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const enriched = pendingUsers.map(u => {
@@ -7051,7 +7051,7 @@ app.post('/api/enterprise/approve-client/:username', optionalAuth, async (req, r
           }
         }
         fleetMachines = Array.from(new Set([...boundIds, ...orgArr]));
-      } catch (e) {}
+      } catch (e) { }
     }
 
     await updateDocInEngine('adminaccounts', 'username', targetUsername, {
@@ -7103,8 +7103,8 @@ app.get('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
     const isClientAdmin = req.user?.roleId === 'client_admin';
     if (isClientAdmin && req.user?.orgId) {
       const myOrg = req.user.orgId;
-      subUsers = subUsers.filter(u => 
-        (u.orgId === myOrg || u.org_id === myOrg) || 
+      subUsers = subUsers.filter(u =>
+        (u.orgId === myOrg || u.org_id === myOrg) ||
         u.parentUserId === req.user.username
       );
     } else if (req.query.orgId) {
@@ -7155,9 +7155,9 @@ app.post('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
         .map(m => String(m).trim().toUpperCase());
 
       if (requestedMachines.includes('*')) {
-        return res.status(403).json({ 
-          success: false, 
-          error: 'Security Policy: Sub-users cannot be assigned wildcard (*) access. Please select specific authorized machines.' 
+        return res.status(403).json({
+          success: false,
+          error: 'Security Policy: Sub-users cannot be assigned wildcard (*) access. Please select specific authorized machines.'
         });
       }
 
@@ -7361,13 +7361,13 @@ app.delete('/api/enterprise/organizations/:orgId', optionalAuth, async (req, res
     const pool = getPgPool();
     if (pool) {
       // Unbind any assigned kiosks from this organization
-      await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => {});
+      await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => { });
       // Reset machines belonging to this client back to ISP_MASTER
-      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE UPPER(client_id) = UPPER($1)`, [orgId]).catch(() => {});
+      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE UPPER(client_id) = UPPER($1)`, [orgId]).catch(() => { });
       // Delete organization departments
-      await pool.query('DELETE FROM departments WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => {});
+      await pool.query('DELETE FROM departments WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => { });
       // Delete the organization
-      await pool.query('DELETE FROM organizations WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => {});
+      await pool.query('DELETE FROM organizations WHERE UPPER(org_id) = UPPER($1)', [orgId]).catch(() => { });
     }
 
     // Clean up associated client admin and sub-users
@@ -7375,10 +7375,10 @@ app.delete('/api/enterprise/organizations/:orgId', optionalAuth, async (req, res
       const allAccounts = await fetchCollectionDocs('adminaccounts');
       for (const acc of allAccounts) {
         if (String(acc.orgId || acc.org_id || '').toUpperCase() === String(orgId).toUpperCase()) {
-          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => {});
+          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => { });
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     inMemoryOrganizations = inMemoryOrganizations.filter(o => String(o.org_id || '').toUpperCase() !== String(orgId).toUpperCase());
     res.json({ success: true, message: `Organization ${orgId} and associated bindings deleted successfully.` });
@@ -7402,10 +7402,10 @@ app.post('/api/enterprise/organizations/bulk-delete', optionalAuth, async (req, 
     const upperOrgIds = orgIds.map(id => String(id).toUpperCase());
     const pool = getPgPool();
     if (pool) {
-      await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => {});
-      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE UPPER(client_id) = ANY($1::text[])`, [upperOrgIds]).catch(() => {});
-      await pool.query('DELETE FROM departments WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => {});
-      await pool.query('DELETE FROM organizations WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => {});
+      await pool.query('DELETE FROM kiosk_org_bindings WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => { });
+      await pool.query(`UPDATE machines SET client_id = 'ISP_MASTER', client_name = 'ISP Environmental Master (All Sites)' WHERE UPPER(client_id) = ANY($1::text[])`, [upperOrgIds]).catch(() => { });
+      await pool.query('DELETE FROM departments WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => { });
+      await pool.query('DELETE FROM organizations WHERE UPPER(org_id) = ANY($1::text[])', [upperOrgIds]).catch(() => { });
     }
 
     try {
@@ -7413,10 +7413,10 @@ app.post('/api/enterprise/organizations/bulk-delete', optionalAuth, async (req, 
       for (const acc of allAccounts) {
         const accOrg = String(acc.orgId || acc.org_id || '').toUpperCase();
         if (upperOrgIds.includes(accOrg)) {
-          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => {});
+          await deleteDocFromEngine('adminaccounts', 'username', acc.username).catch(() => { });
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     inMemoryOrganizations = inMemoryOrganizations.filter(o => !upperOrgIds.includes(String(o.org_id || '').toUpperCase()));
     res.json({
@@ -7892,9 +7892,9 @@ async function handleMobileLogin(req, res) {
 
     // Strictly check PostgreSQL password
     if (!user.password || user.password.trim() === '') {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Account password not set in PostgreSQL database. Please use "Forgot Password" or Register.' 
+      return res.status(401).json({
+        success: false,
+        message: 'Account password not set in PostgreSQL database. Please use "Forgot Password" or Register.'
       });
     }
 
@@ -8007,7 +8007,7 @@ async function handleMobileLogin(req, res) {
             latestRecycle = jr.last_recycled_at;
             if (earnedPoints === 0) earnedPoints = parseInt(jr.total_earned_points || 0);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       userRedemptions = [];
@@ -8022,7 +8022,7 @@ async function handleMobileLogin(req, res) {
           userRedemptions = redRes.rows;
           redeemedPoints = redRes.rows.reduce((sum, r) => sum + parseInt(r.points_redeemed || 0), 0);
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const recentRes = await pool.query(`
         SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -8060,88 +8060,88 @@ async function handleMobileLogin(req, res) {
               };
             });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
     let token = '';
+    try {
+      token = jwt.sign(
+        { userId: user.user_id, username: user.username, mobile: user.mobile },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+    } catch (tokenErr) {
+      console.warn('[JWT Sign Warning]', tokenErr.message);
+      token = `token_${user.user_id || user.username}_${Date.now()}`;
+    }
+
+    const totalRecovered = bottles + cups + glass + paper;
+
+    const isBirthday = checkIsBirthday(user.dob);
+
+    let orgName = null;
+    if (user.org_id) {
+      const org = inMemoryOrganizations.find(o => o.org_id === user.org_id);
+      if (org) orgName = org.name;
+      else if (pool) {
         try {
-          token = jwt.sign(
-            { userId: user.user_id, username: user.username, mobile: user.mobile },
-            JWT_SECRET,
-            { expiresIn: '30d' }
-          );
-        } catch (tokenErr) {
-          console.warn('[JWT Sign Warning]', tokenErr.message);
-          token = `token_${user.user_id || user.username}_${Date.now()}`;
-        }
+          const oR = await pool.query('SELECT name FROM organizations WHERE org_id = $1 LIMIT 1', [user.org_id]);
+          if (oR.rows.length > 0) orgName = oR.rows[0].name;
+        } catch { }
+      }
+    }
 
-        const totalRecovered = bottles + cups + glass + paper;
-
-        const isBirthday = checkIsBirthday(user.dob);
-
-        let orgName = null;
-        if (user.org_id) {
-          const org = inMemoryOrganizations.find(o => o.org_id === user.org_id);
-          if (org) orgName = org.name;
-          else if (pool) {
-            try {
-              const oR = await pool.query('SELECT name FROM organizations WHERE org_id = $1 LIMIT 1', [user.org_id]);
-              if (oR.rows.length > 0) orgName = oR.rows[0].name;
-            } catch {}
-          }
-        }
-
-        return res.json({
-          success: true,
-          message: 'Login successful',
-          token,
-          user: {
-            id: user.user_id,
-            username: user.username,
-            fullName: user.full_name || user.username,
-            email: user.email,
-            mobile: user.mobile || identifier,
-            age: user.age || 20,
-            dob: user.dob || '',
-            profileImage: user.profile_image || '',
-            nic: user.nic || '',
-            gender: user.gender || 'male',
-            points,
-            isBirthday,
-            userType: user.user_type || (user.org_id ? 'ENTERPRISE' : 'CITIZEN'),
-            orgId: user.org_id || null,
-            orgName,
-            employeeId: user.employee_id || null
-          },
-          hasRecycleHistory: {
-            points,
-            currentBalance: points,
-            earnedPoints,
-            totalEarnedPoints: earnedPoints,
-            redeemedPoints,
-            totalRedeemedPoints: redeemedPoints,
-            bottles,
-            plasticCount: bottles,
-            cups,
-            aluminiumCount: cups,
-            glassCount: glass,
-            paperCount: paper,
-            totalItems: totalRecovered,
-            totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
-            co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
-            totalSessions,
-            variants: {
-              petPlastic: bottles,
-              aluminiumCans: cups,
-              glassBottles: glass,
-              paperCartons: paper
-            },
-            recentSessions,
-            redemptions: userRedemptions,
-            recycledAt: latestRecycle || new Date().toISOString()
-          }
-        });
+    return res.json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.user_id,
+        username: user.username,
+        fullName: user.full_name || user.username,
+        email: user.email,
+        mobile: user.mobile || identifier,
+        age: user.age || 20,
+        dob: user.dob || '',
+        profileImage: user.profile_image || '',
+        nic: user.nic || '',
+        gender: user.gender || 'male',
+        points,
+        isBirthday,
+        userType: user.user_type || (user.org_id ? 'ENTERPRISE' : 'CITIZEN'),
+        orgId: user.org_id || null,
+        orgName,
+        employeeId: user.employee_id || null
+      },
+      hasRecycleHistory: {
+        points,
+        currentBalance: points,
+        earnedPoints,
+        totalEarnedPoints: earnedPoints,
+        redeemedPoints,
+        totalRedeemedPoints: redeemedPoints,
+        bottles,
+        plasticCount: bottles,
+        cups,
+        aluminiumCount: cups,
+        glassCount: glass,
+        paperCount: paper,
+        totalItems: totalRecovered,
+        totalWeightKg: totalWeightKg > 0 ? parseFloat(totalWeightKg.toFixed(2)) : parseFloat((bottles * 0.025 + cups * 0.015 + glass * 0.2 + paper * 0.03).toFixed(2)),
+        co2AvoidedKg: totalCo2Kg > 0 ? parseFloat(totalCo2Kg.toFixed(2)) : parseFloat((bottles * 0.08 + cups * 0.15 + glass * 0.12 + paper * 0.05).toFixed(2)),
+        totalSessions,
+        variants: {
+          petPlastic: bottles,
+          aluminiumCans: cups,
+          glassBottles: glass,
+          paperCartons: paper
+        },
+        recentSessions,
+        redemptions: userRedemptions,
+        recycledAt: latestRecycle || new Date().toISOString()
+      }
+    });
   } catch (err) {
     console.error('[Mobile Login Error]', err);
     res.status(500).json({ success: false, message: err.message });
@@ -8202,7 +8202,7 @@ async function handleMobileRegister(req, res) {
         try {
           const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 AND status = $2 LIMIT 1', [domain, 'active']);
           if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-        } catch {}
+        } catch { }
       }
       if (matchedOrg) {
         userType = 'ENTERPRISE';
@@ -8219,7 +8219,7 @@ async function handleMobileRegister(req, res) {
           try {
             const orgRes = await pool.query('SELECT * FROM organizations WHERE org_id = $1 AND status = $2 LIMIT 1', [orgId, 'active']);
             if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-          } catch {}
+          } catch { }
         }
       }
       if (!matchedOrg && companyCode) {
@@ -8228,7 +8228,7 @@ async function handleMobileRegister(req, res) {
           try {
             const orgRes = await pool.query('SELECT * FROM organizations WHERE UPPER(org_id) LIKE $1 OR UPPER(domain) LIKE $1 LIMIT 1', [`%${companyCode}%`]);
             if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-          } catch {}
+          } catch { }
         }
       }
       if (matchedOrg) {
@@ -8254,7 +8254,7 @@ async function handleMobileRegister(req, res) {
           const oMatch = inMemoryOrganizations.find(o => o.org_id === orgId);
           if (oMatch) matchedOrg = oMatch;
         }
-      } catch {}
+      } catch { }
     }
 
     if (userType === 'ENTERPRISE' && !employeeId) {
@@ -8286,7 +8286,7 @@ async function handleMobileRegister(req, res) {
 
     res.status(201).json({
       success: true,
-      message: userType === 'ENTERPRISE' 
+      message: userType === 'ENTERPRISE'
         ? `Registration successful! Enrolled as ${matchedOrg ? matchedOrg.name : 'Enterprise Staff'}.`
         : 'User registered successfully as Eco Citizen.',
       user: {
@@ -8335,7 +8335,7 @@ async function handleUpdateProfile(req, res) {
           ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT;
           ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255);
           ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP;
-        `).catch(() => {});
+        `).catch(() => { });
 
         const uRes = await pool.query(`
           SELECT user_id, username, full_name, email, mobile, age, nic, gender, dob, profile_image, points_balance
@@ -8366,7 +8366,7 @@ async function handleUpdateProfile(req, res) {
           try {
             const parsedAge = Math.floor((new Date() - new Date(newDob)) / (365.25 * 24 * 60 * 60 * 1000));
             if (parsedAge > 0) newAge = parsedAge;
-          } catch(e) {}
+          } catch (e) { }
         }
 
         await pool.query(`
@@ -8425,7 +8425,7 @@ async function handleGetPublicOrganizations(req, res) {
       // 1. Proactively auto-heal column if missing
       try {
         await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS company_code VARCHAR(100);");
-      } catch (_) {}
+      } catch (_) { }
 
       // 2. Query with fallback so it never fails even if column is temporarily missing
       let orgRows = [];
@@ -8498,7 +8498,7 @@ async function handleLinkCorporate(req, res) {
     if (pool) {
       try {
         await pool.query("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS company_code VARCHAR(100);");
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 1. Locate Organization (defensive query)
@@ -8887,7 +8887,7 @@ async function handleMobileGetPoints(req, res) {
             lastRecycled = jr.last_recycled_at;
             if (earnedPoints === 0) earnedPoints = parseInt(jr.total_earned_points || 0);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       userRedemptions = [];
@@ -8902,7 +8902,7 @@ async function handleMobileGetPoints(req, res) {
           userRedemptions = redRes.rows;
           redeemedPoints = redRes.rows.reduce((sum, r) => sum + parseInt(r.points_redeemed || 0), 0);
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const recentRes = await pool.query(`
         SELECT session_id, machine_id, plastic_count, aluminium_count, glass_count, paper_cardboard_count,
@@ -8940,7 +8940,7 @@ async function handleMobileGetPoints(req, res) {
               };
             });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
@@ -9229,7 +9229,7 @@ async function handleMobileGetRecycle(req, res) {
             });
           });
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // 5. Query citizen redemptions exclusively from PostgreSQL. A corporate
       // portal can see them only for a recycler with activity in its fleet.
@@ -9237,7 +9237,7 @@ async function handleMobileGetRecycle(req, res) {
         if (isCorporatePortal && history.length === 0) {
           redemptionsList = [];
         } else {
-        const redRes = await pool.query(`
+          const redRes = await pool.query(`
           SELECT 
             redemption_id, user_id, username, mobile, item_name, points_redeemed, voucher_code, note, status, category, created_at
           FROM redemptions
@@ -9249,24 +9249,24 @@ async function handleMobileGetRecycle(req, res) {
           ORDER BY created_at DESC;
         `, [validUserIds, validCore10.length > 0 ? validCore10 : validUserIds]).catch(() => ({ rows: [] }));
 
-        redemptionsList = redRes.rows.map(r => ({
-          redemption_id: r.redemption_id || `RED-${r.id}`,
-          id: r.id,
-          user_id: r.user_id,
-          mobile: r.mobile || r.user_id,
-          username: r.username,
-          item_name: r.item_name || 'Reward Voucher',
-          points_redeemed: parseInt(r.points_redeemed || 0),
-          points: parseInt(r.points_redeemed || 0),
-          voucher_code: r.voucher_code || '-',
-          note: r.note || '',
-          status: r.status || 'completed',
-          category: r.category || 'voucher',
-          created_at: r.created_at,
-          redeemedAt: r.created_at
-        }));
+          redemptionsList = redRes.rows.map(r => ({
+            redemption_id: r.redemption_id || `RED-${r.id}`,
+            id: r.id,
+            user_id: r.user_id,
+            mobile: r.mobile || r.user_id,
+            username: r.username,
+            item_name: r.item_name || 'Reward Voucher',
+            points_redeemed: parseInt(r.points_redeemed || 0),
+            points: parseInt(r.points_redeemed || 0),
+            voucher_code: r.voucher_code || '-',
+            note: r.note || '',
+            status: r.status || 'completed',
+            category: r.category || 'voucher',
+            created_at: r.created_at,
+            redeemedAt: r.created_at
+          }));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const totalRedeemedPoints = redemptionsList.reduce((acc, r) => acc + (r.points_redeemed || 0), 0);
@@ -9519,7 +9519,7 @@ async function handleSsoCodeRequest(req, res) {
       try {
         const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 LIMIT 1', [domain]);
         if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
-      } catch {}
+      } catch { }
     }
 
     const code = crypto.randomInt(100000, 999999).toString();
@@ -9592,7 +9592,7 @@ async function handleVerifySso(req, res) {
       try {
         const orgRes = await pool.query('SELECT * FROM organizations WHERE LOWER(domain) = $1 LIMIT 1', [domain]);
         if (orgRes.rows.length > 0) detectedOrg = orgRes.rows[0];
-      } catch {}
+      } catch { }
     }
 
     const finalUserType = (accountType === 'ENTERPRISE' || detectedOrg) ? 'ENTERPRISE' : 'CITIZEN';
@@ -9663,7 +9663,7 @@ async function handleVerifySso(req, res) {
           bottles = parseInt(statsRes.rows[0].total_bottles || 0);
           cups = parseInt(statsRes.rows[0].total_cups || 0);
         }
-      } catch {}
+      } catch { }
     }
 
     let orgName = null;
@@ -10083,7 +10083,7 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
         const effectivePoints = Math.max(parseInt(u.points_balance || 0), userSessionPoints);
 
         // Check matching roster entry if available
-        const matchedRoster = rosterEmployees.find(r => 
+        const matchedRoster = rosterEmployees.find(r =>
           (u.employee_id && String(r.employee_id).toUpperCase() === String(u.employee_id).toUpperCase()) ||
           (u.email && String(r.official_email).toLowerCase() === String(u.email).toLowerCase()) ||
           (r.claimed_by_user_id === u.user_id)
@@ -10251,9 +10251,9 @@ app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-po
     const user = uRes.rows[0];
     const currentBal = parseInt(user.points_balance || 0);
     if (currentBal < pts) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Insufficient points balance. Citizen has ${currentBal} pts available, but ${pts} pts required.` 
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient points balance. Citizen has ${currentBal} pts available, but ${pts} pts required.`
       });
     }
 
@@ -10810,10 +10810,10 @@ function getClientIpInfo(req) {
 // Upstream Telemetry Heartbeat & Bin Level Alerts
 app.post('/api/machine/heartbeat', async (req, res) => {
   try {
-    const { 
-      machineId, 
-      binFillPercentage = 0, 
-      status = 'active', 
+    const {
+      machineId,
+      binFillPercentage = 0,
+      status = 'active',
       temperatureCelsius,
       location,
       latitude,
@@ -10842,7 +10842,7 @@ app.post('/api/machine/heartbeat', async (req, res) => {
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS address TEXT;
-      `).catch(() => {});
+      `).catch(() => { });
 
       await pool.query(`
         INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip, location, latitude, longitude)
@@ -10927,7 +10927,7 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
             status = 'active',
             public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
             local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip);
-        `, [machineId, publicIp, localIp]).catch(() => {});
+        `, [machineId, publicIp, localIp]).catch(() => { });
 
         const result = await pool.query(
           `SELECT c.*, m.name, m.location 
@@ -11020,12 +11020,12 @@ app.get('/api/machine/config/:machineId', async (req, res) => {
 const handleSaveMachineConfig = async (req, res) => {
   try {
     const machineId = req.params.machineId || req.body.targetMachine || req.body.machineId;
-    const { 
-      pointsPerPlasticBottle = 10, 
+    const {
+      pointsPerPlasticBottle = 10,
       pointsPlasticSmall = 5,
       pointsPlasticMedium = 10,
       pointsPlasticLarge = 15,
-      pointsPerAluminiumCan = 20, 
+      pointsPerAluminiumCan = 20,
       pointsCanSmall = 10,
       pointsCanMedium = 15,
       pointsCanLarge = 20,
@@ -11280,7 +11280,7 @@ app.post('/api/machine/point-settings', async (req, res) => {
             mRes.rows.forEach(r => {
               if (r.machine_id) targetMachinesToUpdate.push(r.machine_id);
             });
-          } catch (e) {}
+          } catch (e) { }
         }
 
         const uniqueTargets = Array.from(new Set(targetMachinesToUpdate));
@@ -11335,7 +11335,7 @@ app.post('/api/machine/point-settings', async (req, res) => {
               points_glass_medium = EXCLUDED.points_glass_medium,
               points_glass_large = EXCLUDED.points_glass_large,
               updated_at = NOW();
-          `, [scope, pSmall, pMed, pLg, cSmall, cMed, cLg, gSmall, gMed, gLg]).catch(() => {});
+          `, [scope, pSmall, pMed, pLg, cSmall, cMed, cLg, gSmall, gMed, gLg]).catch(() => { });
         }
       } catch (pgErr) {
         console.error('[POST /api/machine/point-settings] PG error:', pgErr.message);
@@ -11459,7 +11459,7 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
 
         queryText += ` ORDER BY display_order ASC, created_at DESC; `;
         const result = await pool.query(queryText, queryParams);
-        
+
         const isPeco = machineId && machineId.toUpperCase().startsWith('PECO');
         const isRvm = machineId && (machineId.toUpperCase().startsWith('RVM') || machineId.toUpperCase().includes('CENTRAL'));
 
@@ -11473,25 +11473,25 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
           if (Array.isArray(r.destinations)) {
             destList = r.destinations;
           } else if (typeof r.destinations === 'string') {
-            try { destList = JSON.parse(r.destinations); } catch (e) {}
+            try { destList = JSON.parse(r.destinations); } catch (e) { }
           }
 
           // If requesting for a specific machine kiosk, check targeting:
           if (!isFleetQuery) {
-            const hasAllScreens = destList.some(d => 
-              d.id === 'ALL' || d.id === 'GLOBAL-01' || d.id === 'ALL_SCREENS' || 
+            const hasAllScreens = destList.some(d =>
+              d.id === 'ALL' || d.id === 'GLOBAL-01' || d.id === 'ALL_SCREENS' ||
               d.label?.toLowerCase().includes('all screen') || d.label?.toLowerCase().includes('all fleet')
             ) || (destList.length === 0 && (r.machine_id === '*' || r.machine_id === 'ALL'));
 
-            const hasAllPeco = isPeco && destList.some(d => 
+            const hasAllPeco = isPeco && destList.some(d =>
               d.id === 'ALL_PECO' || d.label?.toLowerCase().includes('all pecodrop') || d.label?.toLowerCase().includes('all peco')
             );
 
-            const hasAllRvm = isRvm && destList.some(d => 
+            const hasAllRvm = isRvm && destList.some(d =>
               d.id === 'ALL_RVM' || d.label?.toLowerCase().includes('all public rvm') || d.label?.toLowerCase().includes('all rvm')
             );
 
-            const hasSpecificMatch = (r.machine_id && r.machine_id !== '*' && r.machine_id !== 'ALL' && r.machine_id.toUpperCase() === machineId.toUpperCase()) || 
+            const hasSpecificMatch = (r.machine_id && r.machine_id !== '*' && r.machine_id !== 'ALL' && r.machine_id.toUpperCase() === machineId.toUpperCase()) ||
               destList.some(d => d.id && d.id.toUpperCase() === machineId.toUpperCase());
 
             if (!hasAllScreens && !hasAllPeco && !hasAllRvm && !hasSpecificMatch) {
@@ -11561,7 +11561,7 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
               };
             });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -11629,7 +11629,7 @@ app.post('/api/machine/ads', optionalAuth, async (req, res) => {
         if (oldAd.file_name && oldAd.file_name !== fileName) {
           const oldFilePath = path.join(ADS_UPLOAD_DIR, oldAd.file_name);
           if (fs.existsSync(oldFilePath)) {
-            try { fs.unlinkSync(oldFilePath); } catch (e) {}
+            try { fs.unlinkSync(oldFilePath); } catch (e) { }
           }
         }
       }
@@ -11878,7 +11878,7 @@ app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
             if (ad.file_name) {
               const localFilePath = path.join(ADS_UPLOAD_DIR, ad.file_name);
               if (fs.existsSync(localFilePath)) {
-                try { fs.unlinkSync(localFilePath); } catch (e) {}
+                try { fs.unlinkSync(localFilePath); } catch (e) { }
               }
             }
           }
@@ -11893,18 +11893,18 @@ app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
       try {
         const files = fs.readdirSync(ADS_UPLOAD_DIR);
         for (const f of files) {
-          const shouldDelete = f === rawId || 
-                               (fileName && f === fileName) ||
-                               (rawId && rawId.length > 5 && f.includes(rawId)) ||
-                               (deletedTitle && deletedTitle.length > 5 && f.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
+          const shouldDelete = f === rawId ||
+            (fileName && f === fileName) ||
+            (rawId && rawId.length > 5 && f.includes(rawId)) ||
+            (deletedTitle && deletedTitle.length > 5 && f.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
           if (shouldDelete) {
             try {
               fs.unlinkSync(path.join(ADS_UPLOAD_DIR, f));
               deletedCount++;
-            } catch (e) {}
+            } catch (e) { }
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Also purge matching files from local kiosk sync folders (PecoDrop & RVM desktop apps)
@@ -11932,10 +11932,10 @@ app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
                   fs.unlinkSync(path.join(mFolder, mf));
                   purgedMachineFiles.push(path.join(mFolder, mf));
                   deletedCount++;
-                } catch (e) {}
+                } catch (e) { }
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     }
@@ -12242,9 +12242,9 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
     const qrUrl = `${baseUrl}/claim?startToken=${encodeURIComponent(startToken)}&m=${encodeURIComponent(cleanMachineId)}`;
 
     const prevHandshake = activeStartHandshakes.get(cleanMachineId);
-    const lastCompleted = prevHandshake?.completedSession 
-      || prevHandshake?.lastCompletedSession 
-      || lastCompletedSessionsByMachine.get(cleanMachineId) 
+    const lastCompleted = prevHandshake?.completedSession
+      || prevHandshake?.lastCompletedSession
+      || lastCompletedSessionsByMachine.get(cleanMachineId)
       || null;
 
     const handshakeData = {
@@ -12437,7 +12437,7 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
           cleanName = row.full_name || row.username || cleanName;
           currentBalance = Number(row.points_balance) || 0;
         }
-      } catch (dbErr) {}
+      } catch (dbErr) { }
     }
 
     targetHandshake.status = 'STARTED';
@@ -12484,8 +12484,8 @@ app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
       targetHandshake = activeStartHandshakes.get(machineId);
     } else {
       for (const [mId, h] of activeStartHandshakes.entries()) {
-        if ((startToken && h.startToken === startToken) || 
-            (mobileNumber && h.user && h.user.phone === String(mobileNumber).trim())) {
+        if ((startToken && h.startToken === startToken) ||
+          (mobileNumber && h.user && h.user.phone === String(mobileNumber).trim())) {
           targetHandshake = h;
           break;
         }
@@ -12564,10 +12564,10 @@ app.post('/api/session/create-claim', async (req, res) => {
       explicitMaterialTotal > 0 ? parseInt(plasticCount) || 0 : parseInt(totalBottles) || 0
     ), 500);
 
-    const sessionId = localSessionId 
-      ? `${machineId}_${localSessionId}` 
+    const sessionId = localSessionId
+      ? `${machineId}_${localSessionId}`
       : `session_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
-    
+
     // Cryptographically random claim token
     const claimToken = crypto.randomBytes(6).toString('hex');
     const expiresAt = Date.now() + (90 * 1000); // 90-second lifespan
@@ -12934,12 +12934,34 @@ app.get('/claim', (req, res) => {
     </div>
 
     <div id="successSection" class="success-panel">
-      <div class="success-icon">${isStartMode ? '♻️' : '🎉'}</div>
-      <div class="success-title">${isStartMode ? 'Kiosk Started!' : 'Points Claimed!'}</div>
+      <div id="successIcon" class="success-icon">${isStartMode ? '♻️' : '🎉'}</div>
+      <div id="successTitle" class="success-title">${isStartMode ? 'Kiosk Started!' : 'Points Claimed!'}</div>
       <p id="successMsg" class="success-msg">${isStartMode ? 'The machine intake door is now open. Drop your bottles and cans!' : 'Your eco wallet has been credited.'}</p>
       <div class="reward-box" style="margin-bottom: 16px;">
         <div id="creditedPts" class="points-val">${isStartMode ? 'ACTIVE' : '+' + points}</div>
-        <div class="points-lbl">${isStartMode ? 'INSERT CONTAINERS NOW' : 'ADDED TO YOUR WALLET'}</div>
+        <div id="creditedLbl" class="points-lbl">${isStartMode ? 'INSERT CONTAINERS NOW' : 'ADDED TO YOUR WALLET'}</div>
+      </div>
+
+      <!-- Live Session Counters & Remote Finish Button for Phone Browser -->
+      <div id="activeSessionLiveBanner" style="${isStartMode ? 'display: block;' : 'display: none;'} background: #064E3B; border-radius: 14px; padding: 14px; color: white; margin-bottom: 16px; border: 1.5px solid #10B981;">
+        <div style="font-size: 11px; font-weight: 800; color: #A7F3D0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+          🟢 Live Kiosk Session Progress
+        </div>
+        <div style="display: flex; justify-content: space-around; align-items: center; background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px; margin-bottom: 12px; border: 1px solid rgba(52,211,153,0.3);">
+          <div>
+            <div style="font-size: 10px; color: #A7F3D0; font-weight: 700;">CONTAINERS</div>
+            <div id="webLiveItems" style="font-size: 18px; font-weight: 900; color: white;">0 🍾</div>
+          </div>
+          <div style="width: 1px; height: 24px; background: rgba(52,211,153,0.3);"></div>
+          <div>
+            <div style="font-size: 10px; color: #A7F3D0; font-weight: 700;">EARNED</div>
+            <div id="webLivePoints" style="font-size: 18px; font-weight: 900; color: #FDE047;">+0 PTS ⭐</div>
+          </div>
+        </div>
+
+        <button type="button" id="webFinishSessionBtn" onclick="submitFinishRequest()" style="width: 100%; height: 48px; background: #10B981; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>FINISH & CLAIM POINTS • سیشن مکمل کریں</span>
+        </button>
       </div>
     </div>
 
@@ -13044,7 +13066,103 @@ app.get('/claim', (req, res) => {
       if (pEl) pEl.value = savedPhone;
     }
 
+    let pollInterval = null;
+
     renderSavedVouchers();
+
+    if (isStartMode && machine) {
+      startLiveSessionPolling(machine);
+    }
+
+    function startLiveSessionPolling(machineId) {
+      if (pollInterval) clearInterval(pollInterval);
+      const banner = document.getElementById('activeSessionLiveBanner');
+      if (banner) banner.style.display = 'block';
+
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/session/kiosk-handshake/status/' + encodeURIComponent(machineId));
+          const data = await res.json();
+          if (!data || !data.success) return;
+
+          if (data.status === 'STARTED') {
+            const livePts = data.livePoints || 0;
+            const liveItems = data.liveItems || 0;
+            const elItems = document.getElementById('webLiveItems');
+            const elPts = document.getElementById('webLivePoints');
+            if (elItems) elItems.innerText = liveItems + ' 🍾';
+            if (elPts) elPts.innerText = '+' + livePts + ' PTS ⭐';
+          } else if (data.completedSession || data.status === 'COMPLETED' || data.status === 'IDLE') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            const earned = (data.completedSession && data.completedSession.pointsEarned) ? data.completedSession.pointsEarned : (data.livePoints || 0);
+            showSessionFinishedSuccess(earned, data.message || 'Session completed successfully!');
+          }
+        } catch (e) {
+          console.warn('Live session status check err:', e);
+        }
+      }, 1500);
+    }
+
+    async function submitFinishRequest() {
+      const btn = document.getElementById('webFinishSessionBtn');
+      const targetUser = currentGoogleUser ? currentGoogleUser.email : (document.getElementById('phoneInput') ? document.getElementById('phoneInput').value.trim() : '');
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Finishing Session & Crediting Points...';
+      }
+
+      try {
+        const resp = await fetch('/api/session/kiosk-handshake/request-finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ machineId: machine, mobileNumber: targetUser })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          const pts = data.points || 0;
+          showSessionFinishedSuccess(pts, 'Kiosk session finished! Points credited to your wallet.');
+        } else {
+          alert('Error finishing session: ' + (data.error || 'Machine did not respond'));
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'FINISH & CLAIM POINTS • سیشن مکمل کریں';
+          }
+        }
+      } catch (err) {
+        alert('Connection error: ' + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'FINISH & CLAIM POINTS • سیشن مکمل کریں';
+        }
+      }
+    }
+
+    function showSessionFinishedSuccess(earnedPoints, msg) {
+      if (pollInterval) clearInterval(pollInterval);
+      document.getElementById('claimFormSection').style.display = 'none';
+      document.getElementById('successSection').style.display = 'block';
+      const banner = document.getElementById('activeSessionLiveBanner');
+      if (banner) banner.style.display = 'none';
+
+      const icon = document.getElementById('successIcon');
+      const title = document.getElementById('successTitle');
+      const msgEl = document.getElementById('successMsg');
+      const ptsVal = document.getElementById('creditedPts');
+      const ptsLbl = document.getElementById('creditedLbl');
+
+      if (icon) icon.innerText = '🎉';
+      if (title) title.innerText = 'Points Claimed!';
+      if (msgEl) msgEl.innerText = msg || 'Your eco wallet has been credited successfully.';
+      if (ptsVal) ptsVal.innerText = earnedPoints > 0 ? '+' + earnedPoints + ' PTS' : '0 PTS';
+      if (ptsLbl) ptsLbl.innerText = 'ADDED TO YOUR ECO WALLET';
+
+      const targetUser = currentGoogleUser ? currentGoogleUser.email : (document.getElementById('phoneInput') ? document.getElementById('phoneInput').value.trim() : '');
+      if (targetUser) {
+        fetchLiveUserBalance(targetUser);
+      }
+    }
 
     async function fetchLiveUserBalance(identifier) {
       if (!identifier) return;
@@ -13237,6 +13355,7 @@ app.get('/claim', (req, res) => {
           document.getElementById('claimFormSection').style.display = 'none';
           document.getElementById('successSection').style.display = 'block';
           document.getElementById('successMsg').innerText = data.message || 'Kiosk started! Please insert your containers.';
+          startLiveSessionPolling(machine);
         } else {
           alert('Error: ' + (data.error || 'Could not start kiosk session.'));
           btn.disabled = false;
@@ -13446,7 +13565,7 @@ if (fs.existsSync(DIST_DIR)) {
 app.listen(PORT, async () => {
   console.log(`[RVM Master Dashboard Backend] Running on http://localhost:${PORT}`);
   if (activeDbType === 'postgres') {
-    await ensurePostgresDatabase(activePgConfig).catch(() => {});
+    await ensurePostgresDatabase(activePgConfig).catch(() => { });
     await initProductionPostgresSchemas();
   }
 });
