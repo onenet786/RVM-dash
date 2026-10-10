@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Touchless Mobile Web Portal - Specification & Workflow Document</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+    
+    @page {
+      size: A4 portrait;
+      margin: 12mm 15mm;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: #F8FAFC;
+      color: #0F172A;
+      line-height: 1.5;
+      font-size: 13px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      padding: 32px 36px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border-radius: 16px;
+    }
+
+    /* HEADER & BRANDING */
+    .brand-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2.5px solid #064E3B;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+    }
+
+    .brand-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #064E3B 0%, #059669 100%);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 28px;
+      box-shadow: 0 4px 12px rgba(6, 78, 59, 0.25);
+    }
+
+    .brand-titles h1 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #064E3B;
+      letter-spacing: -0.3px;
+      line-height: 1.1;
+    }
+
+    .brand-titles p {
+      font-size: 12px;
+      color: #059669;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .doc-meta {
+      text-align: right;
+    }
+
+    .doc-meta .badge-version {
+      background: #DCFCE7;
+      color: #166534;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #BBF7D0;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+
+    .doc-meta p {
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    /* SECTION STYLES */
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #064E3B;
+      margin: 24px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-left: 4px solid #10B981;
+      padding-left: 10px;
+    }
+
+    .overview-card {
+      background: linear-gradient(135deg, #064E3B 0%, #047857 100%);
+      color: #FFFFFF;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 18px rgba(6, 78, 59, 0.15);
+    }
+
+    .overview-card h2 {
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #34D399;
+    }
+
+    .overview-card p {
+      font-size: 12.5px;
+      color: #ECFDF5;
+      line-height: 1.5;
+    }
+
+    /* WORKFLOW GRID */
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .step-card {
+      background: #F1F5F9;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 14px;
+      position: relative;
+    }
+
+    .step-number {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-weight: 900;
+      font-size: 18px;
+      color: #CBD5E1;
+    }
+
+    .step-card h3 {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-bottom: 4px;
+    }
+
+    .step-card p {
+      font-size: 11.5px;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    /* SCREENSHOTS SECTION */
+    .screenshots-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0 28px 0;
+    }
+
+    .screenshot-container {
+      background: #F8FAFC;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .screenshot-container h4 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #064E3B;
+      margin-bottom: 4px;
+    }
+
+    .screenshot-container p.desc {
+      font-size: 11px;
+      color: #64748B;
+      margin-bottom: 12px;
+    }
+
+    .screenshot-img {
+      width: 100%;
+      max-width: 270px;
+      height: auto;
+      border-radius: 12px;
+      border: 2px solid #CBD5E1;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+
+    /* FEATURE HIGHLIGHTS */
+    .feature-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .feature-item {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .feature-icon {
+      font-size: 18px;
+    }
+
+    .feature-item h4 {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .feature-item p {
+      font-size: 11px;
+      color: #64748B;
+      line-height: 1.3;
+    }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1.5px solid #E2E8F0;
+      padding-top: 14px;
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #94A3B8;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="brand-header">
+      <div class="brand-logo-group">
+        <div class="logo-icon">♻️</div>
+        <div class="brand-titles">
+          <h1>ISP Environmental Solutions</h1>
+          <p>PECODROP & RVM MASTER CONTROL SYSTEM</p>
+        </div>
+      </div>
+      <div class="doc-meta">
+        <span class="badge-version">v2.5 PRODUCTION SPEC</span>
+        <p>Document ID: DOC-PECO-TOUCHLESS-2026</p>
+        <p>Date: October 11, 2026</p>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="overview-card">
+      <h2>PecoDrop Touchless Web Portal Architecture</h2>
+      <p>
+        The Touchless Web Portal enables corporate employees and public citizens to operate Reverse Vending Machines (RVM) and PecoDrop kiosks directly from their smartphone browser—eliminating physical touch requirements on kiosk screens or keypads while ensuring real-time container tracking, instant point rewards, and touchless perk redemptions.
+      </p>
+    </div>
+
+    <!-- WORKFLOW STEPS -->
+    <div class="section-title">📍 End-to-End Operational Workflow</div>
+    <div class="workflow-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <h3>QR Handshake</h3>
+        <p>Kiosk display generates a dynamic encrypted QR code containing machine ID and session start token.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <h3>Mobile Activation</h3>
+        <p>User scans QR code with mobile camera. Touchless portal activates instantly on phone browser.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <h3>Identity Auth</h3>
+        <p>Auto-detects corporate domain emails (e.g., <code>@engro.com</code>) or verified phone numbers.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <h3>Intake Unlocking</h3>
+        <p>Kiosk unlocks physical apertures (⭕ Plastic, 🔺 Cans, 🟦 Paper load cell) and enters active mode.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">05</div>
+        <h3>Live Telemetry</h3>
+        <p>Web portal polls status every 1.5s, displaying real-time items deposited and points earned.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">06</div>
+        <h3>Remote Finish</h3>
+        <p>User taps <i>FINISH & CLAIM POINTS</i> on phone or keypad. Session completes & credits PostgreSQL.</p>
+      </div>
+    </div>
+
+    <!-- SCREENSHOTS PAGE SECTION -->
+    <div class="section-title">📱 Touchless Web Interface & Screenshot Artifacts</div>
+    <p style="color: #64748B; font-size: 11.5px; margin-bottom: 14px;">
+      Live production interface captured during active session initiation and instant point claiming:
+    </p>
+
+    <div class="screenshots-row">
+      <!-- SCREENSHOT 1 -->
+      <div class="screenshot-container">
+        <h4>Screen 1: Kiosk Session Active Mode</h4>
+        <p class="desc">Apertures unlocked • Live container deposit active</p>
+        <img class="screenshot-img" src="kiosk_started_screenshot.jpg" alt="Kiosk Started Screenshot" />
+      </div>
+
+      <!-- SCREENSHOT 2 -->
+      <div class="screenshot-container">
+        <h4>Screen 2: Points Claimed & Eco Wallet</h4>
+        <p class="desc">Transaction saved to PostgreSQL • Rewards active</p>
+        <img class="screenshot-img" src="points_claimed_screenshot.jpg" alt="Points Claimed Screenshot" />
+      </div>
+    </div>
+
+    <!-- KEY TECHNICAL FEATURES -->
+    <div class="section-title">⚡ Key Technical System Capabilities</div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🛡️</div>
+        <div>
+          <h4>Single-Session Lock & Auto URL Cleanup</h4>
+          <p>Executes <code>window.history.replaceState</code> to strip tokens post-completion, preventing stale browser locks upon re-opening tabs.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🏢</div>
+        <div>
+          <h4>Corporate SSO & Domain Matching</h4>
+          <p>Automatically matches work domains (e.g. Bank Alfalah, Engro, UCP) to assign enterprise employee perks and department metrics.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div>
+          <h4>Real-time Telemetry Polling (1.5s)</h4>
+          <p>Polls live telemetry to update deposited container counts and live points.</p>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🎟️</div>
+        <div>
+          <h4>Touchless Voucher Store</h4>
+          <p>Instant point redemption for Cafeteria Coffee, Mobile Load (EasyPaisa/JazzCash), and Shopping Vouchers right from the mobile portal.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div>© 2026 ISP Environmental Solutions • Confidential Technical Specification</div>
+      <div>Master Control System</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

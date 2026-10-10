@@ -1808,11 +1808,20 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 try
                 {
                     var statusResp = await CentralSyncService.CheckKioskStartStatusAsync(settings.MachineId);
-                    if (statusResp != null && statusResp.FinishRequested && totalItems > 0)
+                    if (statusResp != null && statusResp.FinishRequested)
                     {
                         _startHandshakeTimer.Stop();
-                        LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
-                        CompleteSessionToWallet();
+                        if (totalItems > 0)
+                        {
+                            LogTelemetry($"[TOUCHLESS 📱] Mobile {activeUserMobile} requested session finish! Completing session...");
+                            CompleteSessionToWallet();
+                        }
+                        else
+                        {
+                            LogTelemetry("[TOUCHLESS 📱] Mobile requested session finish (0 items). Resetting kiosk session...");
+                            StopMachine();
+                            ResetSession();
+                        }
                         return;
                     }
                 }
