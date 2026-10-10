@@ -12963,6 +12963,11 @@ app.get('/claim', (req, res) => {
           <span>FINISH & CLAIM POINTS • سیشن مکمل کریں</span>
         </button>
       </div>
+
+      <!-- Start Another Session Button (Shown after session completes) -->
+      <button type="button" id="startAnotherBtn" onclick="resetWebSessionView()" style="display: none; width: 100%; height: 48px; background: #0284C7; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 12px; box-shadow: 0 4px 12px rgba(2,132,199,0.3); align-items: center; justify-content: center; gap: 8px;">
+        <span>♻️ START ANOTHER SESSION • نیا سیشن شروع کریں</span>
+      </button>
     </div>
 
     <!-- TOUCHLESS REWARDS & VOUCHER REDEMPTION STORE -->
@@ -13092,7 +13097,7 @@ app.get('/claim', (req, res) => {
             const elPts = document.getElementById('webLivePoints');
             if (elItems) elItems.innerText = liveItems + ' 🍾';
             if (elPts) elPts.innerText = '+' + livePts + ' PTS ⭐';
-          } else if (data.completedSession || data.status === 'COMPLETED' || data.status === 'IDLE') {
+          } else if (data.completedSession || data.status === 'COMPLETED') {
             clearInterval(pollInterval);
             pollInterval = null;
             const earned = (data.completedSession && data.completedSession.pointsEarned) ? data.completedSession.pointsEarned : (data.livePoints || 0);
@@ -13151,16 +13156,46 @@ app.get('/claim', (req, res) => {
       const msgEl = document.getElementById('successMsg');
       const ptsVal = document.getElementById('creditedPts');
       const ptsLbl = document.getElementById('creditedLbl');
+      const resetBtn = document.getElementById('startAnotherBtn');
 
       if (icon) icon.innerText = '🎉';
       if (title) title.innerText = 'Points Claimed!';
       if (msgEl) msgEl.innerText = msg || 'Your eco wallet has been credited successfully.';
       if (ptsVal) ptsVal.innerText = earnedPoints > 0 ? '+' + earnedPoints + ' PTS' : '0 PTS';
       if (ptsLbl) ptsLbl.innerText = 'ADDED TO YOUR ECO WALLET';
+      if (resetBtn) resetBtn.style.display = 'flex';
+
+      // Clean browser URL query string so closing/reopening browser won't keep reloading old completed startToken
+      try {
+        const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?m=' + encodeURIComponent(machine || 'PECO-LHR-01');
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+      } catch(e){}
 
       const targetUser = currentGoogleUser ? currentGoogleUser.email : (document.getElementById('phoneInput') ? document.getElementById('phoneInput').value.trim() : '');
       if (targetUser) {
         fetchLiveUserBalance(targetUser);
+      }
+    }
+
+    function resetWebSessionView() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      try {
+        const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname + '?m=' + encodeURIComponent(machine || 'PECO-LHR-01');
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+      } catch(e){}
+
+      document.getElementById('successSection').style.display = 'none';
+      document.getElementById('claimFormSection').style.display = 'block';
+      const resetBtn = document.getElementById('startAnotherBtn');
+      if (resetBtn) resetBtn.style.display = 'none';
+
+      const btn = document.getElementById('claimBtn');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = 'START KIOSK NOW • مشین شروع کریں';
       }
     }
 
