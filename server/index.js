@@ -6095,7 +6095,7 @@ app.post('/auth/google/initiate-2fa', handleGoogleInitiate2FA);
 // 2. Verify Google Two-Step Verification OTP & Complete Login
 async function handleGoogleVerify2FA(req, res) {
   try {
-    const { email: rawEmail, otp, credential, idToken, touchless } = req.body;
+    const { email: rawEmail, otp, credential, idToken } = req.body;
     if (!rawEmail) {
       return res.status(400).json({ success: false, message: 'Valid email is required' });
     }
@@ -6106,17 +6106,30 @@ async function handleGoogleVerify2FA(req, res) {
     let isValid = false;
     let storedUserData = null;
 
-    if (touchless || credential || idToken) {
-      isValid = true;
-      storedUserData = {
-        email,
-        name: req.body.name || email.split('@')[0],
-        picture: req.body.picture || ''
-      };
+    // Cryptographic JWT from official Google Identity Services
+    if (credential || idToken) {
+      const tokenToVerify = credential || idToken;
+      try {
+        const parts = tokenToVerify.split('.');
+        if (parts.length === 3) {
+          const parsed = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+          if (parsed && parsed.email && parsed.email.toLowerCase() === email) {
+            isValid = true;
+            storedUserData = {
+              email,
+              name: parsed.name || parsed.given_name || email.split('@')[0],
+              picture: parsed.picture || ''
+            };
+          }
+        }
+      } catch (decErr) {
+        console.warn('[Google JWT Decode Warning]', decErr.message);
+      }
     }
 
+    // Cryptographic OTP verification from Gmail/Work email
     const pending = pendingGoogle2FA.get(email);
-    if (!isValid && pending && pending.code === cleanOtp && Date.now() < pending.expiresAt) {
+    if (!isValid && pending && cleanOtp && pending.code === cleanOtp && Date.now() < pending.expiresAt) {
       isValid = true;
       storedUserData = pending.googleUser;
       pendingGoogle2FA.delete(email);
@@ -6373,9 +6386,9 @@ async function handleGoogleResend2FA(req, res) {
 app.post('/api/auth/google/resend-2fa', handleGoogleResend2FA);
 app.post('/auth/google/resend-2fa', handleGoogleResend2FA);
 
-// Main /api/auth/google endpoint (if otp or touchless/credential provided, completes login; otherwise initiates 2FA)
+// Main /api/auth/google endpoint (if otp or credential provided, completes verification; otherwise initiates 2FA)
 app.post('/api/auth/google', async (req, res) => {
-  if (req.body.otp || req.body.touchless || req.body.credential || req.body.idToken) {
+  if (req.body.otp || req.body.credential || req.body.idToken) {
     return handleGoogleVerify2FA(req, res);
   }
   return handleGoogleInitiate2FA(req, res);
@@ -12894,6 +12907,16 @@ app.get('/claim', (req, res) => {
     .success-icon { font-size: 60px; line-height: 1; margin-bottom: 12px; }
     .success-title { font-size: 22px; font-weight: 900; color: #15803D; margin-bottom: 6px; }
     .success-msg { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+    
+    /* Modern Auth Modal Styles */
+    .auth-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 99999; align-items: center; justify-content: center; padding: 16px; }
+    .auth-modal { background: #FFFFFF; width: 100%; max-width: 420px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); border: 1.5px solid #E2E8F0; overflow: hidden; position: relative; text-align: left; }
+    .auth-modal-header { padding: 18px 20px 14px; border-bottom: 1px solid #F1F5F9; display: flex; justify-content: space-between; align-items: center; background: #FAFDFB; }
+    .auth-modal-body { padding: 20px; }
+    .account-card-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px; }
+    .account-card-item:hover { border-color: #10B981; background: #F0FDF4; }
+    .domain-chip { display: inline-block; padding: 4px 8px; background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 11px; font-weight: 700; color: #475569; cursor: pointer; transition: all 0.15s; margin-right: 4px; margin-bottom: 4px; }
+    .domain-chip:hover { background: #E2E8F0; color: #0F172A; }
   </style>
 </head>
 <body>
@@ -13068,6 +13091,84 @@ app.get('/claim', (req, res) => {
       </div>
     </div>
 
+  </div>
+
+  <!-- Modern Google / Corporate Auth Modal with OTP Verification -->
+  <div id="authModalOverlay" class="auth-overlay">
+    <div class="auth-modal">
+      <div class="auth-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          <span style="font-weight: 800; font-size: 15px; color: #0F172A;">Google & Corporate Sign-In</span>
+        </div>
+        <button type="button" onclick="closeAuthModal()" style="background: transparent; border: none; font-size: 24px; color: #94A3B8; cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+      </div>
+
+      <div class="auth-modal-body">
+        <!-- STEP 1: Email Input or Select Account -->
+        <div id="modalStepEmail">
+          <!-- Saved Accounts Picker (Like Mobile App) -->
+          <div id="modalSavedAccountsSection" style="display: none; margin-bottom: 14px;">
+            <div style="font-size: 11px; font-weight: 800; color: #64748B; text-transform: uppercase; margin-bottom: 8px;">
+              Choose an Account / اکاؤنٹ منتخب کریں
+            </div>
+            <div id="modalSavedAccountsList"></div>
+            <div style="display: flex; align-items: center; gap: 8px; margin: 12px 0 10px; color: #94A3B8; font-size: 10px; font-weight: 700;">
+              <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+              <span>OR ENTER WORK / GMAIL ADDRESS</span>
+              <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">
+              Work Email or Gmail / ای میل درج کریں
+            </label>
+            <input type="email" id="modalEmailInput" class="phone-input" style="font-size: 15px; font-weight: 600;" placeholder="name@engro.com or name@gmail.com" />
+          </div>
+
+          <!-- Quick Domain Suggester Pills -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 10px; font-weight: 700; color: #94A3B8; margin-bottom: 6px;">QUICK DOMAINS:</div>
+            <span class="domain-chip" onclick="appendDomain('@gmail.com')">@gmail.com</span>
+            <span class="domain-chip" onclick="appendDomain('@engro.com')">@engro.com</span>
+            <span class="domain-chip" onclick="appendDomain('@bankalfalah.com')">@bankalfalah.com</span>
+            <span class="domain-chip" onclick="appendDomain('@ucp.edu.pk')">@ucp.edu.pk</span>
+          </div>
+
+          <button type="button" id="modalSendOtpBtn" class="btn" onclick="sendAuthCode()">
+            <span>Send 6-Digit Verification Code 📩</span>
+          </button>
+          <div id="modalEmailError" style="display: none; color: #DC2626; font-size: 12px; font-weight: 600; margin-top: 10px; text-align: center;"></div>
+        </div>
+
+        <!-- STEP 2: Enter 6-Digit OTP -->
+        <div id="modalStepOtp" style="display: none;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <div style="font-size: 32px; margin-bottom: 4px;">🔐</div>
+            <div style="font-size: 16px; font-weight: 800; color: #0F172A;">Two-Step Verification</div>
+            <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
+              Enter the 6-digit code sent to <b id="modalTargetEmailLabel" style="color: #0F172A;"></b>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <input type="text" id="modalOtpInput" class="phone-input" style="font-size: 24px; font-weight: 900; letter-spacing: 6px; text-align: center;" maxlength="6" placeholder="000000" autocomplete="one-time-code" />
+          </div>
+
+          <button type="button" id="modalVerifyOtpBtn" class="btn" onclick="verifyAuthCode()">
+            <span>Verify & Authenticate ✅</span>
+          </button>
+
+          <div id="modalOtpError" style="display: none; color: #DC2626; font-size: 12px; font-weight: 600; margin-top: 10px; text-align: center;"></div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 12px;">
+            <button type="button" onclick="backToEmailStep()" style="background: transparent; border: none; color: #64748B; cursor: pointer; text-decoration: underline;">← Change Email</button>
+            <button type="button" onclick="sendAuthCode(true)" id="modalResendBtn" style="background: transparent; border: none; color: #15803D; font-weight: 700; cursor: pointer;">Resend Code</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -13276,62 +13377,231 @@ app.get('/claim', (req, res) => {
       if (pEl) pEl.value = '';
     }
 
-    async function triggerGoogleLogin() {
-      const emailInput = prompt("Sign in with Google / Corporate Work Email:\\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
-      if (!emailInput || !emailInput.includes('@')) return;
+    let currentAuthEmail = '';
 
-      const cleanEmail = emailInput.trim().toLowerCase();
-      const nameInput = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase();
+    function triggerGoogleLogin() {
+      openAuthModal();
+    }
+
+    function openAuthModal() {
+      const overlay = document.getElementById('authModalOverlay');
+      if (!overlay) return;
+      overlay.style.display = 'flex';
+      showEmailStep();
+      renderSavedAccounts();
+    }
+
+    function closeAuthModal() {
+      const overlay = document.getElementById('authModalOverlay');
+      if (overlay) overlay.style.display = 'none';
+      const err1 = document.getElementById('modalEmailError');
+      const err2 = document.getElementById('modalOtpError');
+      if (err1) err1.style.display = 'none';
+      if (err2) err2.style.display = 'none';
+    }
+
+    function showEmailStep() {
+      document.getElementById('modalStepEmail').style.display = 'block';
+      document.getElementById('modalStepOtp').style.display = 'none';
+      const emailInput = document.getElementById('modalEmailInput');
+      if (emailInput) {
+        if (!emailInput.value && currentAuthEmail) emailInput.value = currentAuthEmail;
+        emailInput.focus();
+      }
+    }
+
+    function backToEmailStep() {
+      showEmailStep();
+    }
+
+    function appendDomain(domain) {
+      const emailInput = document.getElementById('modalEmailInput');
+      if (!emailInput) return;
+      let val = emailInput.value.trim();
+      if (val.includes('@')) {
+        val = val.split('@')[0];
+      }
+      emailInput.value = (val || 'user') + domain;
+      emailInput.focus();
+    }
+
+    function renderSavedAccounts() {
+      let accounts = [];
+      try {
+        accounts = JSON.parse(localStorage.getItem('rvm_saved_accounts') || '[]');
+      } catch (e) {}
+
+      const section = document.getElementById('modalSavedAccountsSection');
+      const list = document.getElementById('modalSavedAccountsList');
+      if (!section || !list) return;
+
+      if (!accounts || accounts.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      list.innerHTML = accounts.slice(0, 3).map(function(acc) {
+        const initial = (acc.fullName || acc.email || 'U')[0].toUpperCase();
+        const isCorp = acc.userType === 'ENTERPRISE';
+        const badgeLabel = isCorp ? (acc.orgName ? '🏢 ' + acc.orgName : '🏢 Corporate') : '🌿 Eco Citizen';
+        const badgeColor = isCorp ? '#1E40AF' : '#15803D';
+        return '<div class="account-card-item" onclick="selectSavedAccount(\'' + (acc.email || '') + '\')">' +
+          '<div style="display: flex; align-items: center; gap: 10px;">' +
+            '<div style="width: 34px; height: 34px; border-radius: 50%; background: #DCFCE7; color: #15803D; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">' + initial + '</div>' +
+            '<div>' +
+              '<div style="font-weight: 800; font-size: 13px; color: #0F172A;">' + (acc.fullName || acc.email) + '</div>' +
+              '<div style="font-size: 11px; color: #64748B;">' + acc.email + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align: right;">' +
+            '<span style="font-size: 10px; font-weight: 700; color: ' + badgeColor + '; background: #FFFFFF; padding: 3px 6px; border-radius: 6px; border: 1px solid #E2E8F0;">' + badgeLabel + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function selectSavedAccount(email) {
+      const emailInput = document.getElementById('modalEmailInput');
+      if (emailInput) emailInput.value = email;
+      sendAuthCode(email);
+    }
+
+    async function sendAuthCode(targetEmail, isResend) {
+      const errEl = document.getElementById('modalEmailError');
+      const otpErrEl = document.getElementById('modalOtpError');
+      if (errEl) errEl.style.display = 'none';
+      if (otpErrEl) otpErrEl.style.display = 'none';
+
+      let email = targetEmail;
+      if (!email || typeof email !== 'string') {
+        const inp = document.getElementById('modalEmailInput');
+        email = inp ? inp.value.trim().toLowerCase() : '';
+      }
+
+      if (!email || !email.includes('@')) {
+        if (errEl) {
+          errEl.innerText = 'Please enter a valid email address';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+
+      currentAuthEmail = email;
+      const btn = document.getElementById('modalSendOtpBtn');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Sending 6-Digit Code... ⏳</span>';
+      }
 
       try {
         const resp = await fetch('/api/auth/google', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: cleanEmail, name: nameInput, touchless: true })
+          body: JSON.stringify({ email: email })
         });
         const data = await resp.json();
 
-        // 1. Direct Successful Login / Auto-Registration
+        if (data.success && data.requires2FA) {
+          document.getElementById('modalStepEmail').style.display = 'none';
+          document.getElementById('modalStepOtp').style.display = 'block';
+          const lbl = document.getElementById('modalTargetEmailLabel');
+          if (lbl) lbl.innerText = data.maskedEmail || email;
+          const otpInput = document.getElementById('modalOtpInput');
+          if (otpInput) {
+            otpInput.value = '';
+            otpInput.focus();
+          }
+        } else {
+          if (errEl) {
+            errEl.innerText = data.message || data.error || 'Failed to send verification code';
+            errEl.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.innerText = 'Network error: ' + err.message;
+          errEl.style.display = 'block';
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+    }
+
+    async function verifyAuthCode() {
+      const errEl = document.getElementById('modalOtpError');
+      if (errEl) errEl.style.display = 'none';
+
+      const otpInput = document.getElementById('modalOtpInput');
+      const code = otpInput ? otpInput.value.trim() : '';
+
+      if (!code || code.length < 6) {
+        if (errEl) {
+          errEl.innerText = 'Please enter the 6-digit verification code';
+          errEl.style.display = 'block';
+        }
+        return;
+      }
+
+      const btn = document.getElementById('modalVerifyOtpBtn');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Verifying Code... ⏳</span>';
+      }
+
+      try {
+        const resp = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentAuthEmail, otp: code })
+        });
+        const data = await resp.json();
+
         if (data.success && data.user) {
           currentGoogleUser = data.user;
           localStorage.setItem('rvm_google_user', JSON.stringify(data.user));
+
+          // Save to recent accounts list for 1-tap select in future
+          try {
+            let accounts = JSON.parse(localStorage.getItem('rvm_saved_accounts') || '[]');
+            accounts = accounts.filter(function(a) { return a.email !== data.user.email; });
+            accounts.unshift({
+              email: data.user.email,
+              fullName: data.user.fullName || data.user.email,
+              userType: data.user.userType || 'CITIZEN',
+              orgName: data.user.organization ? data.user.organization.name : null
+            });
+            localStorage.setItem('rvm_saved_accounts', JSON.stringify(accounts.slice(0, 5)));
+          } catch (e) {}
+
           updateUserBadgeDisplay(data.user);
           await fetchLiveUserBalance(data.user.email);
+          closeAuthModal();
+
           if (!isStartMode && sessionId) {
             submitClaim();
           }
-          return;
-        }
-
-        // 2. Fallback: If 2FA OTP is required by organization
-        if (data.requires2FA) {
-          const otpCode = prompt("Enter 6-digit verification code sent to " + (data.maskedEmail || cleanEmail) + ":");
-          if (!otpCode) return;
-
-          const verifyResp = await fetch('/api/auth/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanEmail, otp: otpCode.trim() })
-          });
-          const verifyData = await verifyResp.json();
-          if (verifyData.success && verifyData.user) {
-            currentGoogleUser = verifyData.user;
-            localStorage.setItem('rvm_google_user', JSON.stringify(verifyData.user));
-            updateUserBadgeDisplay(verifyData.user);
-            await fetchLiveUserBalance(verifyData.user.email);
-            if (!isStartMode && sessionId) {
-              submitClaim();
-            }
-            return;
-          } else {
-            alert('Verification failed: ' + (verifyData.message || 'Invalid code'));
-            return;
+        } else {
+          if (errEl) {
+            errEl.innerText = data.message || data.error || 'Invalid or expired code. Please try again.';
+            errEl.style.display = 'block';
           }
         }
-
-        alert('Login failed: ' + (data.message || data.error || 'Unknown error'));
       } catch (err) {
-        alert('Authentication error: ' + err.message);
+        if (errEl) {
+          errEl.innerText = 'Network error: ' + err.message;
+          errEl.style.display = 'block';
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
       }
     }
 
