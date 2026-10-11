@@ -13441,12 +13441,20 @@ app.get('/claim', (req, res) => {
       }
 
       section.style.display = 'block';
-      list.innerHTML = accounts.slice(0, 3).map(function(acc) {
+      list.innerHTML = '';
+      accounts.slice(0, 3).forEach(function(acc) {
         const initial = (acc.fullName || acc.email || 'U')[0].toUpperCase();
         const isCorp = acc.userType === 'ENTERPRISE';
         const badgeLabel = isCorp ? (acc.orgName ? '🏢 ' + acc.orgName : '🏢 Corporate') : '🌿 Eco Citizen';
         const badgeColor = isCorp ? '#1E40AF' : '#15803D';
-        return '<div class="account-card-item" onclick="selectSavedAccount(\'' + (acc.email || '') + '\')">' +
+
+        const item = document.createElement('div');
+        item.className = 'account-card-item';
+        item.onclick = function() {
+          selectSavedAccount(acc.email);
+        };
+
+        item.innerHTML = 
           '<div style="display: flex; align-items: center; gap: 10px;">' +
             '<div style="width: 34px; height: 34px; border-radius: 50%; background: #DCFCE7; color: #15803D; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">' + initial + '</div>' +
             '<div>' +
@@ -13456,9 +13464,10 @@ app.get('/claim', (req, res) => {
           '</div>' +
           '<div style="text-align: right;">' +
             '<span style="font-size: 10px; font-weight: 700; color: ' + badgeColor + '; background: #FFFFFF; padding: 3px 6px; border-radius: 6px; border: 1px solid #E2E8F0;">' + badgeLabel + '</span>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+          '</div>';
+
+        list.appendChild(item);
+      });
     }
 
     function selectSavedAccount(email) {
