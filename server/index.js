@@ -13277,7 +13277,7 @@ app.get('/claim', (req, res) => {
     }
 
     async function triggerGoogleLogin() {
-      const emailInput = prompt("Sign in with Google / Corporate Work Email:\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
+      const emailInput = prompt("Sign in with Google / Corporate Work Email:\\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
       if (!emailInput || !emailInput.includes('@')) return;
 
       const cleanEmail = emailInput.trim().toLowerCase();
@@ -13406,17 +13406,17 @@ app.get('/claim', (req, res) => {
       }
 
       section.style.display = 'block';
-      container.innerHTML = list.slice(0, 3).map(v => \`
-        <div style="background: #FFFFFF; border-radius: 8px; padding: 8px 10px; border: 1px solid #FDE68A; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-weight: 800; font-size: 11.5px; color: #0F172A;">\${v.item}</div>
-            <div style="font-size: 10px; color: #64748B;">\${v.date} • Used \${v.points} pts</div>
-          </div>
-          <div style="text-align: right;">
-            <span style="font-family: monospace; font-weight: 900; font-size: 13px; color: #B45309; background: #FEF3C7; padding: 2px 6px; border-radius: 4px; border: 1px dashed #F59E0B;">\${v.code}</span>
-          </div>
-        </div>
-      \`).join('');
+      container.innerHTML = list.slice(0, 3).map(function(v) {
+        return '<div style="background: #FFFFFF; border-radius: 8px; padding: 8px 10px; border: 1px solid #FDE68A; display: flex; justify-content: space-between; align-items: center;">' +
+          '<div>' +
+            '<div style="font-weight: 800; font-size: 11.5px; color: #0F172A;">' + (v.item || 'Voucher') + '</div>' +
+            '<div style="font-size: 10px; color: #64748B;">' + (v.date || '') + ' • Used ' + (v.points || 0) + ' pts</div>' +
+          '</div>' +
+          '<div style="text-align: right;">' +
+            '<span style="font-family: monospace; font-weight: 900; font-size: 13px; color: #B45309; background: #FEF3C7; padding: 2px 6px; border-radius: 4px; border: 1px dashed #F59E0B;">' + (v.code || '') + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
     async function submitStart() {
