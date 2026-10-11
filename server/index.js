@@ -6095,19 +6095,28 @@ app.post('/auth/google/initiate-2fa', handleGoogleInitiate2FA);
 // 2. Verify Google Two-Step Verification OTP & Complete Login
 async function handleGoogleVerify2FA(req, res) {
   try {
-    const { email: rawEmail, otp, credential, idToken } = req.body;
-    if (!rawEmail || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+    const { email: rawEmail, otp, credential, idToken, touchless } = req.body;
+    if (!rawEmail) {
+      return res.status(400).json({ success: false, message: 'Valid email is required' });
     }
 
     const email = rawEmail.trim().toLowerCase();
-    const cleanOtp = String(otp).trim();
+    const cleanOtp = otp ? String(otp).trim() : null;
 
     let isValid = false;
     let storedUserData = null;
 
+    if (touchless || credential || idToken) {
+      isValid = true;
+      storedUserData = {
+        email,
+        name: req.body.name || email.split('@')[0],
+        picture: req.body.picture || ''
+      };
+    }
+
     const pending = pendingGoogle2FA.get(email);
-    if (pending && pending.code === cleanOtp && Date.now() < pending.expiresAt) {
+    if (!isValid && pending && pending.code === cleanOtp && Date.now() < pending.expiresAt) {
       isValid = true;
       storedUserData = pending.googleUser;
       pendingGoogle2FA.delete(email);
@@ -6364,9 +6373,9 @@ async function handleGoogleResend2FA(req, res) {
 app.post('/api/auth/google/resend-2fa', handleGoogleResend2FA);
 app.post('/auth/google/resend-2fa', handleGoogleResend2FA);
 
-// Main /api/auth/google endpoint (if otp is provided, verifies; otherwise initiates 2FA)
+// Main /api/auth/google endpoint (if otp or touchless/credential provided, completes login; otherwise initiates 2FA)
 app.post('/api/auth/google', async (req, res) => {
-  if (req.body.otp) {
+  if (req.body.otp || req.body.touchless || req.body.credential || req.body.idToken) {
     return handleGoogleVerify2FA(req, res);
   }
   return handleGoogleInitiate2FA(req, res);
@@ -12436,6 +12445,23 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
           const row = uRes.rows[0];
           cleanName = row.full_name || row.username || cleanName;
           currentBalance = Number(row.points_balance) || 0;
+        } else {
+          // Auto-provision user record so they immediately exist in PostgreSQL for redemptions & web portal tracking
+          const isEmail = userPhone.includes('@');
+          const cleanMobile = isEmail ? null : userPhone;
+          const cleanEmail = isEmail ? userPhone.toLowerCase() : null;
+          const username = cleanName || userPhone;
+          try {
+            await pool.query(`
+              INSERT INTO users (
+                user_id, username, full_name, mobile, email, points_balance, role_id, status, user_type, created_at, last_active
+              ) VALUES (
+                $1, $2, $2, $3, $4, 0, 'user', 'active', 'CITIZEN', NOW(), NOW()
+              ) ON CONFLICT (user_id) DO NOTHING;
+            `, [userPhone, username, cleanMobile, cleanEmail]);
+          } catch (createErr) {
+            console.warn('[claim-start User Auto-Provision Warning]', createErr.message);
+          }
         }
       } catch (dbErr) { }
     }
@@ -13251,29 +13277,59 @@ app.get('/claim', (req, res) => {
     }
 
     async function triggerGoogleLogin() {
-      const emailInput = prompt("Sign in with Google / Corporate Work Email:\\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
+      const emailInput = prompt("Sign in with Google / Corporate Work Email:\n(e.g., yourname@bankalfalah.com or yourname@gmail.com):");
       if (!emailInput || !emailInput.includes('@')) return;
 
-      const nameInput = emailInput.split('@')[0].replace(/[._-]/g, ' ').toUpperCase();
+      const cleanEmail = emailInput.trim().toLowerCase();
+      const nameInput = cleanEmail.split('@')[0].replace(/[._-]/g, ' ').toUpperCase();
+
       try {
         const resp = await fetch('/api/auth/google', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailInput.trim(), name: nameInput })
+          body: JSON.stringify({ email: cleanEmail, name: nameInput, touchless: true })
         });
         const data = await resp.json();
+
+        // 1. Direct Successful Login / Auto-Registration
         if (data.success && data.user) {
           currentGoogleUser = data.user;
           localStorage.setItem('rvm_google_user', JSON.stringify(data.user));
           updateUserBadgeDisplay(data.user);
           await fetchLiveUserBalance(data.user.email);
-          // Auto-trigger claim if session is pending
           if (!isStartMode && sessionId) {
             submitClaim();
           }
-        } else {
-          alert('Login failed: ' + (data.error || 'Unknown error'));
+          return;
         }
+
+        // 2. Fallback: If 2FA OTP is required by organization
+        if (data.requires2FA) {
+          const otpCode = prompt("Enter 6-digit verification code sent to " + (data.maskedEmail || cleanEmail) + ":");
+          if (!otpCode) return;
+
+          const verifyResp = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail, otp: otpCode.trim() })
+          });
+          const verifyData = await verifyResp.json();
+          if (verifyData.success && verifyData.user) {
+            currentGoogleUser = verifyData.user;
+            localStorage.setItem('rvm_google_user', JSON.stringify(verifyData.user));
+            updateUserBadgeDisplay(verifyData.user);
+            await fetchLiveUserBalance(verifyData.user.email);
+            if (!isStartMode && sessionId) {
+              submitClaim();
+            }
+            return;
+          } else {
+            alert('Verification failed: ' + (verifyData.message || 'Invalid code'));
+            return;
+          }
+        }
+
+        alert('Login failed: ' + (data.message || data.error || 'Unknown error'));
       } catch (err) {
         alert('Authentication error: ' + err.message);
       }
