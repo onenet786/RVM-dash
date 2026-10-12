@@ -67,14 +67,18 @@ export default function ManualIntakeTab({ currentUser, selectedClientId, station
         const data = await res.json();
         const list = data.machines || [];
         setMachinesList(list);
-        if (list.length > 0 && !selectedMachine) {
-          // If current user is assigned to specific machines, pick their first assigned
-          const assigned = currentUser?.assignedMachines;
-          if (Array.isArray(assigned) && assigned.length > 0 && assigned[0] !== '*') {
-            setSelectedMachine(assigned[0]);
-          } else {
-            setSelectedMachine(list[0].machine_id);
-          }
+
+        const userAssigned = currentUser?.assignedMachines;
+        const isSuperAdmin = currentUser?.roleId === 'super_admin' || 
+                             currentUser?.username === 'onenet' || 
+                             currentUser?.username === 'bilalaaqueel' || 
+                             (Array.isArray(userAssigned) && userAssigned.includes('*'));
+        const hasRestrictedScope = !isSuperAdmin && Array.isArray(userAssigned) && userAssigned.length > 0;
+
+        if (hasRestrictedScope) {
+          setSelectedMachine(userAssigned[0]);
+        } else if (list.length > 0 && !selectedMachine) {
+          setSelectedMachine(list[0].machine_id);
         }
       }
     } catch (e) {
@@ -143,6 +147,18 @@ export default function ManualIntakeTab({ currentUser, selectedClientId, station
       return () => clearTimeout(timer);
     }
   }, [mobileInput]);
+
+  // Scope machines strictly to assigned user permissions
+  const userAssigned = currentUser?.assignedMachines;
+  const isSuperAdmin = currentUser?.roleId === 'super_admin' || 
+                       currentUser?.username === 'onenet' || 
+                       currentUser?.username === 'bilalaaqueel' || 
+                       (Array.isArray(userAssigned) && userAssigned.includes('*'));
+  const hasRestrictedScope = !isSuperAdmin && Array.isArray(userAssigned) && userAssigned.length > 0;
+
+  const displayedMachines = hasRestrictedScope
+    ? machinesList.filter(m => userAssigned.includes(m.machine_id))
+    : machinesList;
 
   // Aggregate items
   const totalPlasticCount = plasticSmall + plasticMedium + plasticLarge;
@@ -449,22 +465,43 @@ export default function ManualIntakeTab({ currentUser, selectedClientId, station
             {/* Target Machine & Intake Reason */}
             <div className="space-y-4 pt-3 border-t t-border">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold t-text-secondary flex items-center gap-1.5">
-                  <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-                  Target Machine / Kiosk Unit
+                <label className="text-xs font-semibold t-text-secondary flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                    Target Machine / Kiosk Unit
+                  </span>
+                  {hasRestrictedScope && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      Assigned Unit ({displayedMachines.length})
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={selectedMachine}
-                  onChange={(e) => setSelectedMachine(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-black/30 border t-border t-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                >
-                  {machinesList.map((m) => (
-                    <option key={m.machine_id} value={m.machine_id}>
-                      {m.machine_id} — {m.name} ({m.status || 'ONLINE'})
-                    </option>
-                  ))}
-                  <option value="MANUAL-DESK-COUNTER">MANUAL-DESK-COUNTER (Reception / Main Desk)</option>
-                </select>
+                {hasRestrictedScope && displayedMachines.length <= 1 ? (
+                  <div className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl bg-black/40 border border-emerald-500/40 text-emerald-300 flex items-center justify-between shadow-inner">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      {displayedMachines[0]?.machine_id || userAssigned?.[0] || 'Assigned Kiosk'} — {displayedMachines[0]?.name || 'PecoDrop Smart Kiosk'}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      Exclusive Scope
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedMachine}
+                    onChange={(e) => setSelectedMachine(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-black/30 border t-border t-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  >
+                    {displayedMachines.map((m) => (
+                      <option key={m.machine_id} value={m.machine_id}>
+                        {m.machine_id} — {m.name} ({m.status || 'ONLINE'})
+                      </option>
+                    ))}
+                    {!hasRestrictedScope && (
+                      <option value="MANUAL-DESK-COUNTER">MANUAL-DESK-COUNTER (Reception / Main Desk)</option>
+                    )}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-1.5">

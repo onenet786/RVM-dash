@@ -41,8 +41,12 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
+    if (isSuperAdmin) return ['*'];
+    if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
+      return currentUser.modules;
+    }
     if (currentUser?.roleId === 'desk_operator') {
-      return ['manual_intake', 'overview'];
+      return ['manual_intake'];
     }
     if (isClientAdmin) {
       return ['overview', 'manual_intake', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines', 'advertisements'];
@@ -50,15 +54,11 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
     if (isCorporateSubUser) {
       return ['overview', 'manual_intake', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines'];
     }
-    if (isSuperAdmin) return ['*'];
-    if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
-      return [...currentUser.modules, 'manual_intake'];
-    }
     const roleId = currentUser?.roleId;
     if (roleId === 'fleet_operator') return ['overview', 'manual_intake', 'machines'];
     if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
     if (roleId === 'support_specialist') return ['overview', 'manual_intake', 'mobile_users', 'feedbacks', 'users'];
-    return ['overview', 'manual_intake'];
+    return ['manual_intake'];
   };
 
   const allowedModules = getUserAllowedModules();

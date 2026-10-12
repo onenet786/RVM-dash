@@ -5351,7 +5351,7 @@ const DEFAULT_RBAC_ROLES = [
     name: 'Manual Intake / Desk Operator',
     color: 'emerald',
     description: 'Dedicated operator for manual counter intake: credits bottles, cans, and paper against mobile numbers during kiosk maintenance, bin-full, or assisted drop-offs.',
-    modules: ['manual_intake', 'overview'],
+    modules: ['manual_intake'],
     permissions: { view: true, edit: true, export: false, delete: false, manage_users: false, switch_db: false }
   }
 ];
@@ -5890,7 +5890,9 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
           assignedMachines: user.assignedMachines || orgDoc.assigned_machines || []
         } : null,
         assignedMachines: user.assignedMachines || (user.roleId === 'super_admin' ? ['*'] : []),
-        modules: role.modules || ['overview', 'analytics', 'machines'],
+        modules: (Array.isArray(user.modules) && user.modules.length > 0)
+          ? user.modules
+          : (role.modules || (user.roleId === 'desk_operator' ? ['manual_intake'] : ['overview', 'analytics', 'machines'])),
         permissions: role.permissions || { view: true, edit: true, export: true }
       }
     });
@@ -14001,21 +14003,38 @@ async function ensureManualIntakeSchema(pool) {
   }
 }
 
-// 1. Available Machines List for Desk Operator
+// 1. Available Machines List for Desk Operator (Strictly scoped to assigned machines)
 app.get('/api/manual-intake/machines', optionalAuth, async (req, res) => {
   try {
     const pool = getPgPool();
+    const userAssigned = req.user?.assignedMachines;
+    const isSuperAdmin = req.user?.roleId === 'super_admin' || 
+                         req.user?.username === 'onenet' || 
+                         req.user?.username === 'bilalaaqueel' ||
+                         (Array.isArray(userAssigned) && userAssigned.includes('*'));
+
+    const isRestricted = !isSuperAdmin && Array.isArray(userAssigned) && userAssigned.length > 0;
+
     if (pool) {
-      const q = `
+      let q = `
         SELECT machine_id, name, location, status, client_name, client_id
         FROM machines
-        ORDER BY machine_id ASC;
       `;
-      const result = await pool.query(q);
-      return res.json({ success: true, machines: result.rows });
+      const params = [];
+      if (isRestricted) {
+        q += ` WHERE machine_id = ANY($1)`;
+        params.push(userAssigned);
+      }
+      q += ` ORDER BY machine_id ASC;`;
+
+      const result = await pool.query(q, params);
+      return res.json({ success: true, machines: result.rows, isRestricted, assignedMachines: userAssigned || [] });
     }
     const docs = await fetchCollectionDocs('machines');
-    res.json({ success: true, machines: docs });
+    const filteredDocs = isRestricted 
+      ? docs.filter(m => userAssigned.includes(m.machineId || m.machine_id))
+      : docs;
+    res.json({ success: true, machines: filteredDocs, isRestricted, assignedMachines: userAssigned || [] });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch machines', details: err.message });
   }

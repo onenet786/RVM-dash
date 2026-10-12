@@ -204,7 +204,11 @@ export default function App() {
   const handleLoginSuccess = (user, token) => {
     setCurrentUser(user);
     setIsLoggedOut(false);
-    setActiveTab('overview');
+    const userMods = Array.isArray(user?.modules) ? user.modules : [];
+    const targetTab = (user?.roleId === 'desk_operator' || (userMods.length > 0 && !userMods.includes('overview')))
+      ? (userMods.includes('manual_intake') || user?.roleId === 'desk_operator' ? 'manual_intake' : (userMods[0] || 'manual_intake'))
+      : 'overview';
+    setActiveTab(targetTab);
     if (user?.roleId === 'client_admin' || user?.roleId === 'corporate_sub_user') {
       const clientOrg = user.orgId || user.assignedClient || user.organization?.org_id;
       if (clientOrg) setSelectedClientId(clientOrg);
@@ -241,38 +245,43 @@ export default function App() {
 
     const getUserAllowedModules = () => {
       if (isSuperAdmin) return ['*'];
-      if (isClientAdmin) return ['overview', 'sub_users', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
-      if (isCorporateSubUser) return ['overview', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'machines'];
       if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
         return currentUser.modules;
       }
+      if (currentUser?.roleId === 'desk_operator') {
+        return ['manual_intake'];
+      }
+      if (isClientAdmin) return ['overview', 'manual_intake', 'sub_users', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'advertisements', 'machines'];
+      if (isCorporateSubUser) return ['overview', 'manual_intake', 'mobile_users', 'analytics', 'esg_impact', 'reporting_hub', 'machines'];
       const roleId = currentUser?.roleId;
       if (roleId === 'pecodrop_technician') return ['overview', 'machines', 'reporting_hub'];
       if (roleId === 'rvm_field_technician') return ['overview', 'machines', 'reporting_hub'];
       if (roleId === 'fleet_operator') return ['overview', 'machines'];
       if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
       if (roleId === 'support_specialist') return ['overview', 'mobile_users', 'feedbacks', 'users'];
-      return ['overview'];
+      return ['manual_intake'];
     };
 
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
-      if (tab === 'manual_intake') return true;
+      if (isSuperAdmin) return true;
       if (tab.startsWith('col_') && !['col_machines', 'col_machine_configs', 'col_users'].includes(tab) && !isSuperAdmin) return false;
       if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
       if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
-      if (isSuperAdmin) return true;
       if (userModules.includes('*') || userModules.includes('all')) return true;
       return userModules.includes(tab);
     };
 
     // Block unauthorized users from any un-allowed tabs
     if (!isAllowedTab(activeTab)) {
+      if (userModules.includes('manual_intake')) {
+        return <ManualIntakeTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
+      }
       return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
 
-    if (activeTab === 'manual_intake') {
+    if (activeTab === 'manual_intake' && isAllowedTab('manual_intake')) {
       return <ManualIntakeTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
 
