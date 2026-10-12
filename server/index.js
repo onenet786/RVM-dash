@@ -5361,8 +5361,9 @@ async function seedSecurityDefaults(targetDb) {
   if (activeDbType === 'postgres' && activePgConfig) {
     try {
       const roles = await fetchCollectionDocs('roles');
-      if (roles.length === 0) {
-        for (const r of DEFAULT_RBAC_ROLES) {
+      for (const r of DEFAULT_RBAC_ROLES) {
+        const exists = roles.find(x => (x.roleId === r.roleId || x.id === r.roleId || x._id === r.roleId));
+        if (!exists) {
           await saveDocToEngine('roles', r);
         }
       }

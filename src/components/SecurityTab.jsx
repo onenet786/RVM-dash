@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, UserPlus, Users, KeyRound, Cpu, Eye, Lock, 
+  ClipboardEdit, ShieldCheck, UserPlus, Users, KeyRound, Cpu, Eye, Lock, 
   CheckCircle2, AlertTriangle, RefreshCw, Trash2, Edit3, Check, X, ShieldAlert, Key, Plus,
   FileText, Smartphone, Leaf, Trophy, Tv, ArrowRightLeft, HardDrive, Recycle, Settings, 
   MessageSquare, CheckSquare, Square, Sliders, Layers, LayoutDashboard, Table, Shield, BarChart3, Building2
@@ -12,6 +12,7 @@ export const AVAILABLE_SYSTEM_MENUS = [
     badge: 'Core Operations',
     items: [
       { id: 'overview', label: 'Executive Overview', icon: LayoutDashboard, desc: 'Executive network KPI metrics, material variant breakdown & live drops' },
+      { id: 'manual_intake', label: 'Manual Intake Desk', icon: ClipboardEdit, desc: 'Attendant counter fail-safe: credit bottles, cans, and paper against mobile numbers during kiosk downtime' },
       { id: 'machines', label: 'Machine Health & Operations', icon: Cpu, desc: 'Hardware telemetry, live sensor pings & firmware versions' },
       { id: 'advertisements', label: 'Digital Signage', icon: Tv, desc: 'Digital signage playlists & promotional kiosk video manager' },
     ]
