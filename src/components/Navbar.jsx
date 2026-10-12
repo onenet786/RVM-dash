@@ -82,6 +82,7 @@ export default function Navbar({
 
   const isClientAdmin = currentUser?.roleId === 'client_admin';
   const isCorporateSubUser = currentUser?.roleId === 'corporate_sub_user' || currentUser?.isSubUser === true;
+  const isDeskOperator = currentUser?.roleId === 'desk_operator' || currentUser?.roleName?.toLowerCase()?.includes('desk');
   const isCorporatePortal = isClientAdmin || isCorporateSubUser;
 
   useEffect(() => {
@@ -228,6 +229,21 @@ export default function Navbar({
                   : Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
                     ? currentUser.assignedMachines.join(', ')
                   : 'All Assigned Fleet'}
+              </span>
+            </div>
+          ) : isDeskOperator ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <Building2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-[10px] uppercase text-emerald-700 dark:text-emerald-400 font-extrabold hidden md:inline">
+                Assigned Desk:
+              </span>
+              <span
+                className="text-xs font-black t-text-primary max-w-[260px] truncate"
+                title={Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0 ? currentUser.assignedMachines.join(', ') : 'Assigned Station'}
+              >
+                {Array.isArray(currentUser?.assignedMachines) && currentUser.assignedMachines.length > 0
+                  ? currentUser.assignedMachines.join(', ')
+                  : 'Assigned Station'}
               </span>
             </div>
           ) : (
@@ -444,17 +460,26 @@ export default function Navbar({
             <span className="font-bold">{timeStr}</span>
           </div>
 
-          {/* Theme Selector Dropdown (Resolves QA Issue 1.d: Color switching) */}
-          <div ref={themeMenuRef} className="relative">
-            <button
-              onClick={() => setShowThemeMenu(!showThemeMenu)}
-              className="p-2 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-xs flex items-center gap-1.5"
-              title="Theme Color Palette"
-              aria-expanded={showThemeMenu}
+          {/* Theme Selector Dropdown (Locked to ISP Default & disabled for Desk Operators) */}
+          {isDeskOperator ? (
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1.5 t-bg-sec border t-border rounded-xl text-xs font-bold shadow-xs select-none cursor-default"
+              title="Theme locked to ISP Default (Eco Vanguard) for Desk Operators"
             >
-              <Palette className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-              <span className="hidden xl:inline text-xs font-semibold">{currentThemeObj.label.split(' ')[0]}</span>
-            </button>
+              <Leaf className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300">ISP Default</span>
+            </div>
+          ) : (
+            <div ref={themeMenuRef} className="relative">
+              <button
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                className="p-2 t-bg-sec hover:t-bg-hover border t-border rounded-xl text-xs font-bold t-text-primary transition-all shadow-xs flex items-center gap-1.5"
+                title="Theme Color Palette"
+                aria-expanded={showThemeMenu}
+              >
+                <Palette className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <span className="hidden xl:inline text-xs font-semibold">{currentThemeObj.label.split(' ')[0]}</span>
+              </button>
 
             {showThemeMenu && (
               <div className="absolute right-0 mt-2 w-80 glass-panel border t-border rounded-2xl shadow-2xl p-3 z-50 animate-fade-in backdrop-blur-2xl">
@@ -506,6 +531,7 @@ export default function Navbar({
               </div>
             )}
           </div>
+          )}
 
           {/* User Profile & Logout (Resolves QA Issue 1.b: Remove immutable word) */}
           {currentUser && (

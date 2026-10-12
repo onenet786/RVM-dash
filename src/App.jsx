@@ -96,6 +96,13 @@ export default function App() {
   }); // 'ALL' | 'ISP_MASTER' | 'ORG_UCP' | 'ORG_METRO' | 'ORG_ENGRO' | 'ORG_ALFALAH'
   const [theme, setTheme] = useState(() => {
     try {
+      const savedUser = sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u.roleId === 'desk_operator' || u.roleName?.toLowerCase()?.includes('desk')) {
+          return 'isp-eco';
+        }
+      }
       const explicit = localStorage.getItem('rvm_theme_explicit');
       if (explicit) {
         return localStorage.getItem('rvm_theme') || 'isp-eco';
@@ -129,6 +136,15 @@ export default function App() {
       }
     }
   }, [currentUser]);
+
+  // Enforce ISP Default theme and disable custom theme for desk operators
+  useEffect(() => {
+    if (currentUser?.roleId === 'desk_operator' || currentUser?.roleName?.toLowerCase()?.includes('desk')) {
+      if (theme !== 'isp-eco') {
+        setTheme('isp-eco');
+      }
+    }
+  }, [currentUser, theme]);
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -214,7 +230,13 @@ export default function App() {
       if (clientOrg) setSelectedClientId(clientOrg);
     }
     // Auto-apply corporate organization customized theme if configured
-    if (user?.organization?.theme) {
+    if (user?.roleId === 'desk_operator' || user?.roleName?.toLowerCase()?.includes('desk')) {
+      setTheme('isp-eco');
+      try {
+        localStorage.setItem('rvm_theme', 'isp-eco');
+        localStorage.removeItem('rvm_theme_explicit');
+      } catch (e) { }
+    } else if (user?.organization?.theme) {
       setTheme(user.organization.theme);
     }
   };
