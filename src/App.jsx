@@ -20,6 +20,7 @@ const EnterpriseClientsTab = lazy(() => import('./components/EnterpriseClientsTa
 const DataTable = lazy(() => import('./components/DataTable'));
 const ReportingHubTab = lazy(() => import('./components/ReportingHubTab'));
 const SubUsersTab = lazy(() => import('./components/SubUsersTab'));
+const ManualIntakeTab = lazy(() => import('./components/ManualIntakeTab'));
 
 // Secure Fetch Interceptor: Automatically attaches Authorization: Bearer <token> to /api/ requests
 if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
@@ -68,7 +69,16 @@ if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedUser = sessionStorage.getItem('rvm_auth_user') || localStorage.getItem('rvm_auth_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u.roleId === 'desk_operator') return 'manual_intake';
+      }
+    } catch (e) { }
+    return 'overview';
+  });
   const [health, setHealth] = useState(null);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [stationFilter, setStationFilter] = useState('ALL'); // 'ALL' | 'RVM_OLD' | 'RVM_NEW' | 'PECODROP'
@@ -248,6 +258,7 @@ export default function App() {
     const userModules = getUserAllowedModules();
 
     const isAllowedTab = (tab) => {
+      if (tab === 'manual_intake') return true;
       if (tab.startsWith('col_') && !['col_machines', 'col_machine_configs', 'col_users'].includes(tab) && !isSuperAdmin) return false;
       if (isClientAdmin && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
       if (isCorporateSubUser && ['db_switcher', 'db_backup', 'security', 'enterprise_clients', 'sub_users', 'advertisements', 'col_machines', 'col_machine_configs', 'col_users'].includes(tab)) return false;
@@ -259,6 +270,10 @@ export default function App() {
     // Block unauthorized users from any un-allowed tabs
     if (!isAllowedTab(activeTab)) {
       return <OverviewTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
+    }
+
+    if (activeTab === 'manual_intake') {
+      return <ManualIntakeTab currentUser={currentUser} stationFilter={stationFilter} selectedClientId={selectedClientId} />;
     }
 
     if (activeTab === 'overview') {

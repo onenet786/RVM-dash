@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Database, Trophy, Cpu, Users, Recycle, 
   MessageSquare, AlertTriangle, Shield, Settings, ChevronRight, ChevronDown, 
   HardDrive, ArrowRightLeft, Lock, Leaf, X, Layers, Table, Tv, 
-  BarChart3, ShieldCheck, Building2
+  BarChart3, ShieldCheck, Building2, ClipboardEdit
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, health, currentUser, isMobileOpen, setIsMobileOpen }) {
@@ -41,21 +41,24 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
 
   // Resolve user modules strictly. If not superadmin, compute allowed modules from user/role
   const getUserAllowedModules = () => {
+    if (currentUser?.roleId === 'desk_operator') {
+      return ['manual_intake', 'overview'];
+    }
     if (isClientAdmin) {
-      return ['overview', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines', 'advertisements'];
+      return ['overview', 'manual_intake', 'sub_users', 'security', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines', 'advertisements'];
     }
     if (isCorporateSubUser) {
-      return ['overview', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines'];
+      return ['overview', 'manual_intake', 'reporting_hub', 'esg_impact', 'analytics', 'mobile_users', 'machines'];
     }
     if (isSuperAdmin) return ['*'];
     if (Array.isArray(currentUser?.modules) && currentUser.modules.length > 0) {
-      return currentUser.modules;
+      return [...currentUser.modules, 'manual_intake'];
     }
     const roleId = currentUser?.roleId;
-    if (roleId === 'fleet_operator') return ['overview', 'machines'];
+    if (roleId === 'fleet_operator') return ['overview', 'manual_intake', 'machines'];
     if (roleId === 'analytics_analyst') return ['overview', 'analytics', 'reporting_hub', 'esg_impact'];
-    if (roleId === 'support_specialist') return ['overview', 'mobile_users', 'feedbacks', 'users'];
-    return ['overview'];
+    if (roleId === 'support_specialist') return ['overview', 'manual_intake', 'mobile_users', 'feedbacks', 'users'];
+    return ['overview', 'manual_intake'];
   };
 
   const allowedModules = getUserAllowedModules();
@@ -87,6 +90,7 @@ export default function Sidebar({ activeTab, setActiveTab, health, currentUser, 
       icon: LayoutDashboard,
       items: [
         { id: 'overview', orderNo: 1, label: 'Executive Overview', icon: LayoutDashboard },
+        { id: 'manual_intake', orderNo: 1.5, label: 'Manual Intake Desk', icon: ClipboardEdit },
         { id: 'machines', orderNo: 2, label: 'Machine Health & Operations', icon: Cpu },
         ...(!isCorporateSubUser ? [
           { id: 'advertisements', orderNo: 3, label: 'Digital Signage', icon: Tv }

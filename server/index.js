@@ -5345,6 +5345,14 @@ const DEFAULT_RBAC_ROLES = [
     description: 'Access restricted to User Feedbacks, Eco User Profiles & Redemptions',
     modules: ['feedbacks', 'users'],
     permissions: { view: true, edit: true, export: false, delete: false, manage_users: false, switch_db: false }
+  },
+  {
+    roleId: 'desk_operator',
+    name: 'Manual Intake / Desk Operator',
+    color: 'emerald',
+    description: 'Dedicated operator for manual counter intake: credits bottles, cans, and paper against mobile numbers during kiosk maintenance, bin-full, or assisted drop-offs.',
+    modules: ['manual_intake', 'overview'],
+    permissions: { view: true, edit: true, export: false, delete: false, manage_users: false, switch_db: false }
   }
 ];
 
@@ -13920,6 +13928,486 @@ app.get('/scanner', (req, res) => {
 </body>
 </html>`;
   res.send(html);
+});
+
+// =========================================================================
+// ASSISTED DESK & MANUAL INTAKE SUBSYSTEM (OUT-OF-ORDER KIOSK FAIL-SAFE)
+// =========================================================================
+
+function normalizeMobileForIntake(raw) {
+  if (!raw) return '';
+  let cleaned = String(raw).trim().replace(/[^0-9]/g, '');
+  if (cleaned.startsWith('92') && cleaned.length === 12) {
+    cleaned = '0' + cleaned.substring(2);
+  } else if (!cleaned.startsWith('0') && cleaned.length === 10) {
+    cleaned = '0' + cleaned;
+  }
+  return cleaned;
+}
+
+function getMobileLookupVariants(raw) {
+  const norm = normalizeMobileForIntake(raw);
+  const rawStr = String(raw || '').trim();
+  const set = new Set();
+  if (norm) {
+    set.add(norm);
+    if (norm.startsWith('0')) {
+      set.add(norm.substring(1));
+      set.add('92' + norm.substring(1));
+      set.add('+92' + norm.substring(1));
+    }
+  }
+  if (rawStr) set.add(rawStr);
+  return Array.from(set).filter(Boolean);
+}
+
+async function ensureManualIntakeSchema(pool) {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS manual_intake_logs (
+        log_id VARCHAR(100) PRIMARY KEY,
+        session_id VARCHAR(255) NOT NULL,
+        machine_id VARCHAR(50) NOT NULL,
+        operator_username VARCHAR(100) NOT NULL,
+        user_id VARCHAR(100) NOT NULL,
+        mobile VARCHAR(50) NOT NULL,
+        user_full_name VARCHAR(100),
+        plastic_count INT DEFAULT 0,
+        plastic_small_count INT DEFAULT 0,
+        plastic_medium_count INT DEFAULT 0,
+        plastic_large_count INT DEFAULT 0,
+        aluminium_count INT DEFAULT 0,
+        can_small_count INT DEFAULT 0,
+        can_medium_count INT DEFAULT 0,
+        can_large_count INT DEFAULT 0,
+        paper_weight_grams INT DEFAULT 0,
+        tetrapak_count INT DEFAULT 0,
+        glass_count INT DEFAULT 0,
+        total_weight_kg NUMERIC(8,3) DEFAULT 0,
+        co2_avoided_kg NUMERIC(8,3) DEFAULT 0,
+        points_awarded INT DEFAULT 0,
+        reason VARCHAR(100) DEFAULT 'KIOSK_OUT_OF_ORDER',
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_manual_logs_created_at ON manual_intake_logs (created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_manual_logs_mobile ON manual_intake_logs (mobile);
+      CREATE INDEX IF NOT EXISTS idx_manual_logs_operator ON manual_intake_logs (operator_username);
+    `);
+  } catch (err) {
+    console.warn('[Manual Intake Schema Init Warning]', err.message);
+  }
+}
+
+// 1. Available Machines List for Desk Operator
+app.get('/api/manual-intake/machines', optionalAuth, async (req, res) => {
+  try {
+    const pool = getPgPool();
+    if (pool) {
+      const q = `
+        SELECT machine_id, name, location, status, client_name, client_id
+        FROM machines
+        ORDER BY machine_id ASC;
+      `;
+      const result = await pool.query(q);
+      return res.json({ success: true, machines: result.rows });
+    }
+    const docs = await fetchCollectionDocs('machines');
+    res.json({ success: true, machines: docs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch machines', details: err.message });
+  }
+});
+
+// 2. Real-time Citizen Lookup by Mobile Number
+app.get('/api/manual-intake/lookup', optionalAuth, async (req, res) => {
+  try {
+    const rawMobile = req.query.mobile || req.query.phone || req.query.search;
+    if (!rawMobile || String(rawMobile).trim().length < 3) {
+      return res.status(400).json({ error: 'Mobile number or citizen identifier is required' });
+    }
+
+    const cleanMobile = normalizeMobileForIntake(rawMobile);
+    const variants = getMobileLookupVariants(rawMobile);
+    const pool = getPgPool();
+
+    if (!pool) {
+      return res.status(500).json({ error: 'Database connection unavailable' });
+    }
+
+    const userQuery = `
+      SELECT 
+        user_id, username, full_name, mobile, email, points_balance, 
+        role_id, status, created_at, last_active, profile_image
+      FROM users
+      WHERE mobile = ANY($1) OR user_id = ANY($1) OR username = ANY($1) OR email = ANY($1)
+      LIMIT 1;
+    `;
+    const userResult = await pool.query(userQuery, [variants]);
+
+    if (userResult.rows.length === 0) {
+      return res.json({
+        success: true,
+        exists: false,
+        mobile: cleanMobile || rawMobile,
+        message: 'Citizen not registered yet. Account will be created automatically upon intake.'
+      });
+    }
+
+    const user = userResult.rows[0];
+    const userIds = Array.from(new Set([user.user_id, user.username, user.mobile, ...variants])).filter(Boolean);
+
+    // Fetch user aggregate stats and last 3 sessions
+    const statsQuery = `
+      SELECT 
+        COUNT(*)::int AS total_sessions,
+        COALESCE(SUM(plastic_count), 0)::int AS total_bottles,
+        COALESCE(SUM(aluminium_count), 0)::int AS total_cans,
+        COALESCE(SUM(paper_weight_grams), 0)::int AS total_paper_grams,
+        COALESCE(SUM(points_earned), 0)::int AS total_points_earned
+      FROM recycling_sessions
+      WHERE user_id = ANY($1);
+    `;
+    const statsResult = await pool.query(statsQuery, [userIds]).catch(() => ({ rows: [{}] }));
+
+    const recentSessionsQuery = `
+      SELECT 
+        session_id, machine_id, plastic_count, aluminium_count, 
+        paper_weight_grams, points_earned, created_at
+      FROM recycling_sessions
+      WHERE user_id = ANY($1)
+      ORDER BY created_at DESC
+      LIMIT 3;
+    `;
+    const recentResult = await pool.query(recentSessionsQuery, [userIds]).catch(() => ({ rows: [] }));
+
+    return res.json({
+      success: true,
+      exists: true,
+      user: {
+        userId: user.user_id,
+        fullName: user.full_name,
+        mobile: user.mobile || cleanMobile,
+        email: user.email,
+        pointsBalance: parseInt(user.points_balance || 0),
+        status: user.status,
+        roleId: user.role_id,
+        createdAt: user.created_at,
+        lastActive: user.last_active
+      },
+      stats: {
+        totalSessions: statsResult.rows[0]?.total_sessions || 0,
+        totalBottles: statsResult.rows[0]?.total_bottles || 0,
+        totalCans: statsResult.rows[0]?.total_cans || 0,
+        totalPaperGrams: statsResult.rows[0]?.total_paper_grams || 0,
+        totalPointsEarned: statsResult.rows[0]?.total_points_earned || 0
+      },
+      recentSessions: recentResult.rows
+    });
+  } catch (err) {
+    console.error('[Manual Intake Lookup Error]', err);
+    res.status(500).json({ error: 'Failed to lookup citizen', details: err.message });
+  }
+});
+
+// 3. Submit Manual / Assisted Intake
+app.post('/api/manual-intake/submit', optionalAuth, async (req, res) => {
+  try {
+    const pool = getPgPool();
+    if (!pool) {
+      return res.status(500).json({ error: 'Database connection unavailable' });
+    }
+    await ensureManualIntakeSchema(pool);
+
+    const {
+      mobile,
+      fullName,
+      machineId = 'DESK-COUNTER-01',
+      reason = 'KIOSK_OUT_OF_ORDER',
+      notes = '',
+      plasticCount = 0,
+      plasticSmallCount = 0,
+      plasticMediumCount = 0,
+      plasticLargeCount = 0,
+      aluminiumCount = 0,
+      canSmallCount = 0,
+      canMediumCount = 0,
+      canLargeCount = 0,
+      paperWeightGrams = 0,
+      tetrapakCount = 0,
+      glassCount = 0,
+      customPoints
+    } = req.body;
+
+    const rawMobile = String(mobile || '').trim();
+    if (!rawMobile || rawMobile.length < 3) {
+      return res.status(400).json({ error: 'A valid citizen mobile number is required' });
+    }
+
+    const cleanMobile = normalizeMobileForIntake(rawMobile) || rawMobile;
+    const variants = getMobileLookupVariants(rawMobile);
+
+    const pSmall = Math.max(0, parseInt(plasticSmallCount) || 0);
+    const pMed = Math.max(0, parseInt(plasticMediumCount) || 0);
+    const pLrg = Math.max(0, parseInt(plasticLargeCount) || 0);
+    const plasticTotal = (pSmall + pMed + pLrg) > 0 ? (pSmall + pMed + pLrg) : Math.max(0, parseInt(plasticCount) || 0);
+
+    const cSmall = Math.max(0, parseInt(canSmallCount) || 0);
+    const cMed = Math.max(0, parseInt(canMediumCount) || 0);
+    const cLrg = Math.max(0, parseInt(canLargeCount) || 0);
+    const aluminiumTotal = (cSmall + cMed + cLrg) > 0 ? (cSmall + cMed + cLrg) : Math.max(0, parseInt(aluminiumCount) || 0);
+
+    const paperGrams = Math.max(0, parseInt(paperWeightGrams) || 0);
+    const tetrapakTotal = Math.max(0, parseInt(tetrapakCount) || 0);
+    const glassTotal = Math.max(0, parseInt(glassCount) || 0);
+
+    const totalItemUnits = plasticTotal + aluminiumTotal + (paperGrams > 0 ? 1 : 0) + tetrapakTotal + glassTotal;
+    if (totalItemUnits === 0 && paperGrams === 0) {
+      return res.status(400).json({ error: 'Please enter at least 1 bottle, can, or paper weight' });
+    }
+
+    // Reward Points Calculation
+    // Standard RVM/PecoDrop rates:
+    // Plastic = 10 pts, Can = 20 pts, Paper = 15 pts/kg (rounded), UBC/TetraPak = 10 pts, Glass = 10 pts
+    let pointsEarned = 0;
+    if (customPoints !== undefined && customPoints !== null && customPoints !== '') {
+      pointsEarned = Math.max(0, parseInt(customPoints) || 0);
+    } else {
+      pointsEarned = (plasticTotal * 10) + (aluminiumTotal * 20) +
+        Math.round((paperGrams / 1000) * 15) + (tetrapakTotal * 10) + (glassTotal * 10);
+    }
+
+    // Weight and Environmental Impact
+    const weightKg = parseFloat((
+      (plasticTotal * 0.025) +
+      (aluminiumTotal * 0.015) +
+      (paperGrams / 1000) +
+      (tetrapakTotal * 0.02) +
+      (glassTotal * 0.2)
+    ).toFixed(3));
+
+    const co2AvoidedKg = parseFloat((
+      (plasticTotal * 0.05) +
+      (aluminiumTotal * 0.09) +
+      ((paperGrams / 1000) * 1.3) +
+      (tetrapakTotal * 0.04) +
+      (glassTotal * 0.03)
+    ).toFixed(3));
+
+    const operatorUser = req.user?.username || req.body.operatorUsername || 'attendant';
+
+    // 1. Locate or create citizen in users table
+    const checkUser = await pool.query(
+      `SELECT user_id, full_name, mobile, email, points_balance 
+       FROM users 
+       WHERE mobile = ANY($1) OR user_id = ANY($1) OR username = ANY($1) OR email = ANY($1)
+       LIMIT 1;`,
+      [variants]
+    );
+
+    let activeUser = null;
+    let previousBalance = 0;
+    let newBalance = 0;
+
+    if (checkUser.rows.length > 0) {
+      // Existing User: Update points and last_active
+      const existing = checkUser.rows[0];
+      previousBalance = parseInt(existing.points_balance || 0);
+      newBalance = previousBalance + pointsEarned;
+
+      const updateRes = await pool.query(
+        `UPDATE users 
+         SET points_balance = points_balance + $1, last_active = NOW()
+         WHERE user_id = $2
+         RETURNING user_id, full_name, mobile, email, points_balance;`,
+        [pointsEarned, existing.user_id]
+      );
+      activeUser = updateRes.rows[0];
+    } else {
+      // New Citizen: Create account with mobile number as primary identifier
+      previousBalance = 0;
+      newBalance = pointsEarned;
+      const citizenName = String(fullName || '').trim() || `Eco Citizen (${cleanMobile.slice(-4)})`;
+      const citizenEmail = `${cleanMobile}@rvm-user.com`;
+
+      const insertRes = await pool.query(
+        `INSERT INTO users (
+           user_id, username, full_name, mobile, email, points_balance, role_id, status, created_at, last_active
+         ) VALUES ($1, $1, $2, $1, $3, $4, 'citizen', 'active', NOW(), NOW())
+         ON CONFLICT (user_id) DO UPDATE SET 
+           points_balance = users.points_balance + EXCLUDED.points_balance,
+           last_active = NOW()
+         RETURNING user_id, full_name, mobile, email, points_balance;`,
+        [cleanMobile, citizenName, citizenEmail, pointsEarned]
+      );
+      activeUser = insertRes.rows[0];
+    }
+
+    // 2. Ensure target machine exists in machines table and update its counters
+    const targetMachineId = String(machineId || 'DESK-COUNTER-01').trim();
+    await pool.query(
+      `INSERT INTO machines (machine_id, name, location, status, total_bottles_recycled, total_weight_kg)
+       VALUES ($1, $1, 'Assisted Intake Station', 'active', $2, $3)
+       ON CONFLICT (machine_id) DO UPDATE SET 
+         total_bottles_recycled = machines.total_bottles_recycled + EXCLUDED.total_bottles_recycled,
+         total_weight_kg = machines.total_weight_kg + EXCLUDED.total_weight_kg,
+         last_ping_at = NOW();`,
+      [targetMachineId, plasticTotal + aluminiumTotal, weightKg]
+    );
+
+    // 3. Insert into recycling_sessions table
+    const sessionId = `DESK-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const itemsDescription = [
+      plasticTotal > 0 ? `${plasticTotal}x BOTTLE` : null,
+      aluminiumTotal > 0 ? `${aluminiumTotal}x CAN` : null,
+      paperGrams > 0 ? `${paperGrams}g PAPER` : null,
+      tetrapakTotal > 0 ? `${tetrapakTotal}x UBC` : null,
+      glassTotal > 0 ? `${glassTotal}x GLASS` : null
+    ].filter(Boolean).join(', ') || 'MANUAL RECYCLABLES';
+
+    const itemVariant = `MANUAL DESK (${reason}): ${itemsDescription}`;
+
+    await pool.query(
+      `INSERT INTO recycling_sessions (
+         session_id, machine_id, user_id,
+         plastic_count, aluminium_count, paper_cardboard_count, glass_count,
+         plastic_small_count, plastic_medium_count, plastic_large_count,
+         can_small_count, can_medium_count, can_large_count,
+         paper_weight_grams, tetrapak_weight_grams,
+         glass_small_count, glass_medium_count, glass_large_count,
+         item_variant, bottle_size, total_weight_kg, co2_avoided_kg, points_earned, session_status, created_at
+       ) VALUES (
+         $1, $2, $3,
+         $4, $5, $6, $7,
+         $8, $9, $10,
+         $11, $12, $13,
+         $14, $15,
+         0, 0, 0,
+         $16, 'ASSISTED_DESK', $17, $18, $19, 'completed', NOW()
+       );`,
+      [
+        sessionId, targetMachineId, activeUser.user_id,
+        plasticTotal, aluminiumTotal, (paperGrams > 0 ? 1 : 0), glassTotal,
+        pSmall, pMed, pLrg,
+        cSmall, cMed, cLrg,
+        paperGrams, (tetrapakTotal * 20),
+        itemVariant, weightKg, co2AvoidedKg, pointsEarned
+      ]
+    );
+
+    // 4. Record entry in manual_intake_logs for auditability
+    const logId = `LOG-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    await pool.query(
+      `INSERT INTO manual_intake_logs (
+         log_id, session_id, machine_id, operator_username, user_id, mobile, user_full_name,
+         plastic_count, plastic_small_count, plastic_medium_count, plastic_large_count,
+         aluminium_count, can_small_count, can_medium_count, can_large_count,
+         paper_weight_grams, tetrapak_count, glass_count,
+         total_weight_kg, co2_avoided_kg, points_awarded, reason, notes, created_at
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6, $7,
+         $8, $9, $10, $11,
+         $12, $13, $14, $15,
+         $16, $17, $18,
+         $19, $20, $21, $22, $23, NOW()
+       );`,
+      [
+        logId, sessionId, targetMachineId, operatorUser, activeUser.user_id, cleanMobile, activeUser.full_name,
+        plasticTotal, pSmall, pMed, pLrg,
+        aluminiumTotal, cSmall, cMed, cLrg,
+        paperGrams, tetrapakTotal, glassTotal,
+        weightKg, co2AvoidedKg, pointsEarned, reason, notes
+      ]
+    );
+
+    // 5. Invalidate mobile user cache
+    if (typeof invalidateMobileUserCaches === 'function') {
+      invalidateMobileUserCaches(activeUser.user_id);
+      invalidateMobileUserCaches(cleanMobile);
+    }
+
+    return res.json({
+      success: true,
+      sessionId,
+      logId,
+      pointsEarned,
+      previousBalance,
+      newBalance: parseInt(activeUser.points_balance || newBalance),
+      user: {
+        userId: activeUser.user_id,
+        fullName: activeUser.full_name,
+        mobile: activeUser.mobile,
+        email: activeUser.email
+      },
+      items: {
+        plastic: plasticTotal,
+        cans: aluminiumTotal,
+        paperGrams,
+        tetrapak: tetrapakTotal,
+        glass: glassTotal,
+        totalWeightKg: weightKg,
+        co2AvoidedKg
+      },
+      machineId: targetMachineId,
+      reason,
+      operator: operatorUser,
+      createdAt: new Date().toISOString(),
+      message: `Successfully credited ${pointsEarned} Eco-Points to ${activeUser.full_name} (${cleanMobile})!`
+    });
+  } catch (err) {
+    console.error('[Manual Intake Submit Error]', err);
+    res.status(500).json({ error: 'Failed to record manual intake', details: err.message });
+  }
+});
+
+// 4. Desk Intake History & Today's Summary
+app.get('/api/manual-intake/history', optionalAuth, async (req, res) => {
+  try {
+    const pool = getPgPool();
+    if (!pool) {
+      return res.status(500).json({ error: 'Database connection unavailable' });
+    }
+    await ensureManualIntakeSchema(pool);
+
+    const historyQuery = `
+      SELECT 
+        log_id, session_id, machine_id, operator_username, user_id, mobile, user_full_name,
+        plastic_count, aluminium_count, paper_weight_grams, tetrapak_count, glass_count,
+        total_weight_kg, co2_avoided_kg, points_awarded, reason, notes, created_at
+      FROM manual_intake_logs
+      ORDER BY created_at DESC
+      LIMIT 50;
+    `;
+    const historyResult = await pool.query(historyQuery);
+
+    const summaryQuery = `
+      SELECT 
+        COUNT(*)::int AS count_today,
+        COALESCE(SUM(plastic_count), 0)::int AS bottles_today,
+        COALESCE(SUM(aluminium_count), 0)::int AS cans_today,
+        COALESCE(SUM(paper_weight_grams), 0)::int AS paper_grams_today,
+        COALESCE(SUM(points_awarded), 0)::int AS points_today
+      FROM manual_intake_logs
+      WHERE created_at >= CURRENT_DATE;
+    `;
+    const summaryResult = await pool.query(summaryQuery).catch(() => ({ rows: [{}] }));
+
+    res.json({
+      success: true,
+      history: historyResult.rows,
+      summary: summaryResult.rows[0] || {
+        count_today: 0,
+        bottles_today: 0,
+        cans_today: 0,
+        paper_grams_today: 0,
+        points_today: 0
+      }
+    });
+  } catch (err) {
+    console.error('[Manual Intake History Error]', err);
+    res.status(500).json({ error: 'Failed to fetch intake history', details: err.message });
+  }
 });
 
 if (fs.existsSync(DIST_DIR)) {
