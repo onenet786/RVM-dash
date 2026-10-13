@@ -376,7 +376,18 @@
                                                 <Grid Width="165" Height="165" HorizontalAlignment="Center">
                                                     <Ellipse Width="165" Height="165" Stroke="#E11D48" StrokeThickness="4.5" Fill="#2A0B18"/>
                                                     <Ellipse Width="135" Height="135" Stroke="#FDA4AF" StrokeThickness="2" StrokeDashArray="3 3"/>
-                                                    <TextBlock Text="🧴" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    <Viewbox Width="58" Height="94" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Canvas Width="100" Height="160">
+                                                            <!-- Plastic Water Bottle Cap -->
+                                                            <Rectangle Canvas.Left="34" Canvas.Top="12" Width="32" Height="18" RadiusX="6" RadiusY="6" Stroke="#000000" StrokeThickness="7" Fill="Transparent"/>
+                                                            <!-- Bottle Body Contour -->
+                                                            <Path Data="M 34 31 L 66 31 L 83 53 L 83 133 A 13 13 0 0 1 70 146 L 30 146 A 13 13 0 0 1 17 133 L 17 53 Z" Stroke="#000000" StrokeThickness="7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
+                                                            <!-- Central Label Box -->
+                                                            <Rectangle Canvas.Left="26" Canvas.Top="67" Width="48" Height="42" Stroke="#000000" StrokeThickness="6" StrokeLineJoin="Round" Fill="Transparent"/>
+                                                            <!-- Water Droplet Icon Inside Label -->
+                                                            <Path Data="M 50 77 C 50 77 57.5 88.5 57.5 94.5 A 7.5 7.5 0 1 1 42.5 94.5 C 42.5 88.5 50 77 50 77 Z" Fill="#000000"/>
+                                                        </Canvas>
+                                                    </Viewbox>
                                                 </Grid>
                                                 <TextBlock Text="PLASTIC BOTTLES" FontSize="15" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                                                 <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
@@ -1280,7 +1291,18 @@
                                                     <Grid Width="165" Height="165" HorizontalAlignment="Center">
                                                         <Ellipse Width="165" Height="165" Stroke="#E11D48" StrokeThickness="4.5" Fill="#2A0B18"/>
                                                         <Ellipse Width="135" Height="135" Stroke="#FDA4AF" StrokeThickness="2" StrokeDashArray="3 3"/>
-                                                        <TextBlock Text="🧴" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Viewbox Width="58" Height="94" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Canvas Width="100" Height="160">
+                                                                <!-- Plastic Water Bottle Cap -->
+                                                                <Rectangle Canvas.Left="34" Canvas.Top="12" Width="32" Height="18" RadiusX="6" RadiusY="6" Stroke="#000000" StrokeThickness="7" Fill="Transparent"/>
+                                                                <!-- Bottle Body Contour -->
+                                                                <Path Data="M 34 31 L 66 31 L 83 53 L 83 133 A 13 13 0 0 1 70 146 L 30 146 A 13 13 0 0 1 17 133 L 17 53 Z" Stroke="#000000" StrokeThickness="7" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent"/>
+                                                                <!-- Central Label Box -->
+                                                                <Rectangle Canvas.Left="26" Canvas.Top="67" Width="48" Height="42" Stroke="#000000" StrokeThickness="6" StrokeLineJoin="Round" Fill="Transparent"/>
+                                                                <!-- Water Droplet Icon Inside Label -->
+                                                                <Path Data="M 50 77 C 50 77 57.5 88.5 57.5 94.5 A 7.5 7.5 0 1 1 42.5 94.5 C 42.5 88.5 50 77 50 77 Z" Fill="#000000"/>
+                                                            </Canvas>
+                                                        </Viewbox>
                                                     </Grid>
                                                     <TextBlock Text="PLASTIC BOTTLES" FontSize="15" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                                                     <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
