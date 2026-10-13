@@ -75,6 +75,75 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         return true;
     }
 
+
+    private void SyncTelemetryToHeartbeat(bool immediate = false)
+    {
+        try
+        {
+            var plasticState = compartmentAvailability["PLASTIC"];
+            var metalState = compartmentAvailability["METAL"];
+            var paperState = compartmentAvailability["PAPER"];
+            bool smokeWarning = compartmentAvailability.SmokeWarning;
+
+            bool plasticFull = plasticState.BinFull;
+            bool metalFull = metalState.BinFull;
+            bool paperFull = paperState.BinFull;
+
+            int plasticFill = plasticFull ? 100 : Math.Clamp(totalItems * 2, 0, 95);
+            int metalFill = metalFull ? 100 : Math.Clamp((canSmallCount + canMediumCount + canLargeCount) * 2, 0, 95);
+            double paperKg = paperTotalWeightKg;
+            int paperFill = paperFull ? 100 : Math.Clamp((int)Math.Round((paperKg / 15.0) * 100), 0, 95);
+
+            int overallBinFill = Math.Max(plasticFill, Math.Max(metalFill, paperFill));
+
+            string mStatus = "ONLINE";
+            if (plasticFull || metalFull || paperFull)
+            {
+                mStatus = "BIN_FULL";
+            }
+            else if (smokeWarning)
+            {
+                mStatus = "WARNING";
+            }
+            else if (!serial.IsConnected && !IsDemoMode)
+            {
+                mStatus = "ERROR";
+            }
+            else if (machineStarted)
+            {
+                mStatus = "IN_SESSION";
+            }
+            else
+            {
+                mStatus = "ONLINE";
+            }
+
+            string scaleStatus = _hardwareCalibrating ? "Calibrating" : (paperTotalWeightKg > 0 ? "Weighing" : "Ready");
+
+            HeartbeatService.UpdateTelemetry(
+                machineStatus: mStatus,
+                plasticBinFill: plasticFill,
+                metalBinFill: metalFill,
+                paperBinFillKg: paperKg,
+                binFillPercentage: overallBinFill,
+                plasticBinFull: plasticFull,
+                metalBinFull: metalFull,
+                paperBinFull: paperFull,
+                scaleStatus: scaleStatus,
+                smokeWarning: smokeWarning
+            );
+
+            if (immediate)
+            {
+                HeartbeatService.TriggerImmediateHeartbeat();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[TELEMETRY SYNC ERROR] {ex.Message}");
+        }
+    }
+
     private void RefreshCompartmentCards()
     {
         CompartmentStatusPresenter.UpdateCard(PlasticCompartmentCard, PlasticCompartmentStatus, compartmentAvailability["PLASTIC"], "PLASTIC");
@@ -108,6 +177,9 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             ModernMachineStatusText.Text = allOk ? "Operational" : "Partial / Warning";
         }
+
+        bool hasAnyBinFull = plasticState.BinFull || metalState.BinFull || paperState.BinFull;
+        SyncTelemetryToHeartbeat(immediate: hasAnyBinFull || compartmentAvailability.SmokeWarning);
 
         if (pendingBottleResult is not null && !compartmentAvailability.CanAccept(pendingBottleResult.Material))
         {
@@ -1657,7 +1729,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             if (leaderboardDt.Rows.Count >= 1)
             {
                 var r1 = leaderboardDt.Rows[0];
-                if (ModernPodium1Name != null) ModernPodium1Name.Text = r1["DisplayName"]?.ToString() ?? "MartinM";
+                if (ModernPodium1Name != null) ModernPodium1Name.Text = r1["DisplayName"]?.ToString() ?? "Eco Champion #1";
                 if (ModernPodium1Points != null) ModernPodium1Points.Text = $"{r1["PointsBalance"]} pts";
                 if (ModernPodium1Avatar != null && r1["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r1["AvatarPath"].ToString()))
                 {
@@ -1667,7 +1739,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             if (leaderboardDt.Rows.Count >= 2)
             {
                 var r2 = leaderboardDt.Rows[1];
-                if (ModernPodium2Name != null) ModernPodium2Name.Text = r2["DisplayName"]?.ToString() ?? "AyeshaK";
+                if (ModernPodium2Name != null) ModernPodium2Name.Text = r2["DisplayName"]?.ToString() ?? "Eco Champion #2";
                 if (ModernPodium2Points != null) ModernPodium2Points.Text = $"{r2["PointsBalance"]} pts";
                 if (ModernPodium2Avatar != null && r2["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r2["AvatarPath"].ToString()))
                 {
@@ -1677,7 +1749,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             if (leaderboardDt.Rows.Count >= 3)
             {
                 var r3 = leaderboardDt.Rows[2];
-                if (ModernPodium3Name != null) ModernPodium3Name.Text = r3["DisplayName"]?.ToString() ?? "Rehan";
+                if (ModernPodium3Name != null) ModernPodium3Name.Text = r3["DisplayName"]?.ToString() ?? "Eco Champion #3";
                 if (ModernPodium3Points != null) ModernPodium3Points.Text = $"{r3["PointsBalance"]} pts";
                 if (ModernPodium3Avatar != null && r3["AvatarPath"] != null && !string.IsNullOrWhiteSpace(r3["AvatarPath"].ToString()))
                 {
@@ -1688,7 +1760,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             // Recent activity feed
             if (ModernRecentActivityList != null)
             {
-                ModernRecentActivityList.ItemsSource = DatabaseManager.GetRecentActivities(4);
+                ModernRecentActivityList.ItemsSource = DatabaseManager.GetRecentActivities(2);
             }
 
             var last = DatabaseManager.GetLastRecyclerInfo();
@@ -2132,6 +2204,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         }
 
         machineStarted = true;
+        SyncTelemetryToHeartbeat(immediate: true);
         scanTimer.Stop();
         SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
         if (string.IsNullOrWhiteSpace(activeUserMobile))
@@ -2184,6 +2257,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         }
 
         machineStarted = false;
+        SyncTelemetryToHeartbeat(immediate: true);
         scanTimer.Stop();
         activeUserMobile = null;
         if (_isPlayingAcceptedVideo)

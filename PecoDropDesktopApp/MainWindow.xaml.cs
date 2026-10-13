@@ -70,6 +70,75 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         return true;
     }
 
+
+    private void SyncTelemetryToHeartbeat(bool immediate = false)
+    {
+        try
+        {
+            var plasticState = compartmentAvailability["PLASTIC"];
+            var metalState = compartmentAvailability["METAL"];
+            var paperState = compartmentAvailability["PAPER"];
+            bool smokeWarning = compartmentAvailability.SmokeWarning;
+
+            bool plasticFull = plasticState.BinFull;
+            bool metalFull = metalState.BinFull;
+            bool paperFull = paperState.BinFull;
+
+            int plasticFill = plasticFull ? 100 : Math.Clamp(totalItems * 2, 0, 95);
+            int metalFill = metalFull ? 100 : Math.Clamp((canSmallCount + canMediumCount + canLargeCount) * 2, 0, 95);
+            double paperKg = paperTotalWeightKg;
+            int paperFill = paperFull ? 100 : Math.Clamp((int)Math.Round((paperKg / 15.0) * 100), 0, 95);
+
+            int overallBinFill = Math.Max(plasticFill, Math.Max(metalFill, paperFill));
+
+            string mStatus = "ONLINE";
+            if (plasticFull || metalFull || paperFull)
+            {
+                mStatus = "BIN_FULL";
+            }
+            else if (smokeWarning)
+            {
+                mStatus = "WARNING";
+            }
+            else if (!serial.IsConnected && !IsDemoMode)
+            {
+                mStatus = "ERROR";
+            }
+            else if (machineStarted)
+            {
+                mStatus = "IN_SESSION";
+            }
+            else
+            {
+                mStatus = "ONLINE";
+            }
+
+            string scaleStatus = _hardwareCalibrating ? "Calibrating" : (paperTotalWeightKg > 0 ? "Weighing" : "Ready");
+
+            HeartbeatService.UpdateTelemetry(
+                machineStatus: mStatus,
+                plasticBinFill: plasticFill,
+                metalBinFill: metalFill,
+                paperBinFillKg: paperKg,
+                binFillPercentage: overallBinFill,
+                plasticBinFull: plasticFull,
+                metalBinFull: metalFull,
+                paperBinFull: paperFull,
+                scaleStatus: scaleStatus,
+                smokeWarning: smokeWarning
+            );
+
+            if (immediate)
+            {
+                HeartbeatService.TriggerImmediateHeartbeat();
+            }
+        }
+        catch (Exception ex)
+        {
+            LogTelemetry($"[TELEMETRY SYNC ERROR] {ex.Message}");
+        }
+    }
+
     private void RefreshCompartmentCards()
     {
         CompartmentStatusPresenter.UpdateCard(PlasticCompartmentCard, PlasticCompartmentStatus, compartmentAvailability["PLASTIC"], "PLASTIC");
@@ -87,6 +156,9 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
             scanTimer.Stop();
             activeScanCompartment = null;
         }
+
+        bool hasAnyBinFull = compartmentAvailability["PLASTIC"].BinFull || compartmentAvailability["METAL"].BinFull || compartmentAvailability["PAPER"].BinFull;
+        SyncTelemetryToHeartbeat(immediate: hasAnyBinFull || compartmentAvailability.SmokeWarning);
     }
 
     private readonly DispatcherTimer scanTimer = new();
@@ -1881,6 +1953,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         }
 
         machineStarted = true;
+        SyncTelemetryToHeartbeat(immediate: true);
         scanTimer.Stop();
         SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
         if (string.IsNullOrWhiteSpace(activeUserMobile))

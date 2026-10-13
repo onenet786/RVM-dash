@@ -3116,7 +3116,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
           location: m.location,
           latitude: m.latitude,
           longitude: m.longitude,
-          status: isOnline ? 'ONLINE' : 'OFFLINE',
+          status: isOnline ? (m.status || 'ONLINE') : 'OFFLINE',
           isOnline,
           lastPingAt: m.lastPingAt,
           publicIp: m.publicIp || 'N/A',
@@ -3212,7 +3212,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
         if (sTime > (grouped[mId].lastActive ? new Date(grouped[mId].lastActive).getTime() : 0)) {
           grouped[mId].lastActive = s.recycledAt || s.timestamp;
           const isOnline = (now - sTime <= ONLINE_THRESHOLD_MS);
-          grouped[mId].status = isOnline ? 'ONLINE' : 'OFFLINE';
+          grouped[mId].status = isOnline ? (grouped[mId].status || 'ONLINE') : 'OFFLINE';
           grouped[mId].isOnline = isOnline;
         }
       });
@@ -3221,7 +3221,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
       alerts.forEach(a => {
         const mId = a.machineId || a.machine_id;
         if (!mId) return;
-        if (!alertsMap[mId]) alertsMap[mId] = { alertCount: 0, lastAlert: a.occurredAt };
+        if (!alertsMap[mId]) alertsMap[mId] = { alertCount: 0, lastAlert: a.occurredAt || a.createdAt };
         alertsMap[mId].alertCount += 1;
       });
 
@@ -3344,6 +3344,38 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
     res.json(combined);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Scoped Real-Time Bin Full & Capacity Alerts Feed
+app.get('/api/analytics/bin-notifications', optionalAuth, async (req, res) => {
+  try {
+    const pool = getPgPool();
+    const scopeCtx = await resolveScopeContext(req, pool);
+    const docs = await fetchCollectionDocs('binfullnotifications');
+
+    let scopedAlerts = docs;
+    if (scopeCtx && scopeCtx.scopedMachines && scopeCtx.scopedMachines.length > 0 && !scopeCtx.isSuperAdmin) {
+      const allowed = new Set(scopeCtx.scopedMachines.map(m => String(m.machine_id || m.machineId || '').toUpperCase()));
+      scopedAlerts = scopedAlerts.filter(d => {
+        const mId = String(d.machineId || d.machine_id || '').toUpperCase();
+        return allowed.has(mId);
+      });
+    }
+
+    scopedAlerts.sort((a, b) => {
+      const tA = new Date(a.occurredAt || a.createdAt || 0).getTime();
+      const tB = new Date(b.occurredAt || b.createdAt || 0).getTime();
+      return tB - tA;
+    });
+
+    res.json({
+      success: true,
+      count: scopedAlerts.length,
+      alerts: scopedAlerts.slice(0, 50)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -9342,6 +9374,7 @@ async function handleMobileUsernames(req, res) {
     let usersList = [];
     const pool = getPgPool();
     if (pool) {
+      let orgId = '';
       if (requestedMachineId) {
         const orgRes = await pool.query(`
           SELECT COALESCE(NULLIF(kob.org_id, ''), NULLIF(m.client_id, '')) AS org_id
@@ -9350,16 +9383,56 @@ async function handleMobileUsernames(req, res) {
           WHERE UPPER(m.machine_id) = UPPER($1)
           LIMIT 1;
         `, [requestedMachineId]);
-        const orgId = String(orgRes.rows[0]?.org_id || '').trim();
-        if (!orgId || orgId.toUpperCase() === 'ISP_MASTER') {
-          return res.json({ success: true, organizationId: null, users: [] });
-        }
+        orgId = String(orgRes.rows[0]?.org_id || '').trim();
+      }
 
+      // If machine is bound to an enterprise organization, fetch corporate members & employees first
+      if (orgId && orgId.toUpperCase() !== 'ISP_MASTER') {
         const uRes = await pool.query(`
-          SELECT u.username AS "userName",
-                 GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints",
-                 u.user_id, u.full_name, u.profile_image, u.dob
-          FROM users u
+          SELECT 
+            COALESCE(NULLIF(u.full_name, ''), NULLIF(u.username, ''), 'Employee') AS "displayName",
+            COALESCE(NULLIF(u.username, ''), u.user_id, 'user') AS "userName",
+            GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints",
+            u.user_id, u.full_name, u.profile_image, u.dob
+          FROM (
+            SELECT u.* FROM users u WHERE u.org_id = $1
+            UNION
+            SELECT 
+              'EMP-' || oe.roster_id AS user_id,
+              COALESCE(oe.mobile, oe.official_email) AS username,
+              oe.full_name,
+              oe.official_email AS email,
+              oe.mobile,
+              '' AS password,
+              25 AS age,
+              '' AS nic,
+              'male' AS gender,
+              NULL AS otp,
+              NULL AS otp_expiry,
+              0 AS points_balance,
+              'employee' AS role_id,
+              'ACTIVE' AS status,
+              oe.created_at,
+              NULL AS dob,
+              '' AS profile_image,
+              false AS is_online,
+              NULL AS last_login,
+              NULL AS last_active,
+              NULL AS device_info,
+              'local' AS auth_provider,
+              NULL AS google_id,
+              'ENTERPRISE' AS user_type,
+              oe.org_id,
+              oe.dept_id,
+              oe.employee_id
+            FROM organization_employees oe
+            WHERE oe.org_id = $1 
+              AND NOT EXISTS (
+                SELECT 1 FROM users eu 
+                WHERE eu.org_id = $1 
+                  AND (eu.mobile = oe.mobile OR LOWER(eu.email) = LOWER(oe.official_email))
+              )
+          ) u
           LEFT JOIN (
             SELECT rs.user_id, SUM(rs.points_earned) AS session_pts
             FROM recycling_sessions rs
@@ -9368,55 +9441,74 @@ async function handleMobileUsernames(req, res) {
             WHERE COALESCE(NULLIF(skb.org_id, ''), NULLIF(sm.client_id, '')) = $1
             GROUP BY rs.user_id
           ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
-          WHERE u.org_id = $1 AND COALESCE(u.user_type, 'ENTERPRISE') <> 'CITIZEN'
           ORDER BY "totalPoints" DESC, u.created_at ASC
-          LIMIT 100;
+          LIMIT 50;
         `, [orgId]);
+
         usersList = uRes.rows.map(r => ({
-          userName: r.userName || r.user_id || r.full_name || 'Employee',
-          fullName: r.full_name || r.userName || r.user_id || 'Employee',
-          profileImage: r.profile_image || '', dob: r.dob || '',
-          isBirthday: checkIsBirthday(r.dob), totalPoints: Number(r.totalPoints || 0)
+          userName: r.userName || r.displayName || 'Employee',
+          fullName: r.displayName || r.userName || 'Employee',
+          profileImage: r.profile_image || '',
+          dob: r.dob || '',
+          isBirthday: checkIsBirthday(r.dob),
+          totalPoints: Number(r.totalPoints || 0)
         }));
-        return res.json({ success: true, organizationId: orgId, users: usersList });
       }
 
-      const uRes = await pool.query(`
-        SELECT 
-          u.username AS "userName", 
-          GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints", 
-          u.user_id, 
-          u.full_name, 
-          u.profile_image, 
-          u.dob
-        FROM users u
-        LEFT JOIN (
-          SELECT user_id, SUM(points_earned) AS session_pts
-          FROM recycling_sessions
-          WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
-          GROUP BY user_id
-        ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
-        ORDER BY "totalPoints" DESC, u.created_at ASC
-        LIMIT 100;
-      `);
-      usersList = uRes.rows.map(r => ({
-        userName: r.userName || r.full_name || 'Eco User',
-        fullName: r.full_name || r.userName || 'Eco User',
-        profileImage: r.profile_image || '',
-        dob: r.dob || '',
-        isBirthday: checkIsBirthday(r.dob),
-        totalPoints: Number(r.totalPoints || 0)
-      }));
+      // If org has fewer than 25 users or machine has no specific org / is ISP_MASTER,
+      // load top recyclers from users table so the kiosk ALWAYS displays a full real leaderboard!
+      if (usersList.length < 25) {
+        const existingUsernames = new Set(usersList.map(u => String(u.userName).toLowerCase()));
+        const globalRes = await pool.query(`
+          SELECT 
+            u.username AS "userName", 
+            GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints", 
+            u.user_id, 
+            u.full_name, 
+            u.profile_image, 
+            u.dob
+          FROM users u
+          LEFT JOIN (
+            SELECT user_id, SUM(points_earned) AS session_pts
+            FROM recycling_sessions
+            WHERE user_id IS NOT NULL AND user_id NOT IN ('anonymous', '', 'null')
+            GROUP BY user_id
+          ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
+          WHERE u.username IS NOT NULL AND u.username NOT IN ('anonymous', '', 'null')
+          ORDER BY "totalPoints" DESC, u.created_at ASC
+          LIMIT 100;
+        `);
+
+        for (const r of globalRes.rows) {
+          const uname = String(r.userName || r.user_id || '').trim();
+          if (!existingUsernames.has(uname.toLowerCase())) {
+            existingUsernames.add(uname.toLowerCase());
+            usersList.push({
+              userName: uname || r.full_name || 'Eco Hero',
+              fullName: r.full_name || uname || 'Eco Hero',
+              profileImage: r.profile_image || '',
+              dob: r.dob || '',
+              isBirthday: checkIsBirthday(r.dob),
+              totalPoints: Number(r.totalPoints || 0)
+            });
+            if (usersList.length >= 50) break;
+          }
+        }
+      }
     }
+
+    // Sort by points descending
+    usersList.sort((a, b) => b.totalPoints - a.totalPoints);
 
     const payload = {
       success: true,
+      organizationId: orgId || null,
       users: usersList
     };
 
     if (!requestedMachineId) {
       cachedLeaderboardPayload = payload;
-      cachedLeaderboardExpiresAt = now + (30 * 1000); // 30s cache
+      cachedLeaderboardExpiresAt = now + (6 * 1000); // 6s cache for real-time responsiveness
     }
 
     res.json(payload);
@@ -10840,13 +10932,25 @@ function getClientIpInfo(req) {
   return { publicIp, localIp };
 }
 
-// Upstream Telemetry Heartbeat & Bin Level Alerts
+// Upstream Telemetry Heartbeat & Bin Level Alerts (PecoDrop & Smart RVMs)
+const binAlertDebounceMap = new Map(); // key: `${machineId}_${alertType}`, value: Date.now()
+
 app.post('/api/machine/heartbeat', async (req, res) => {
   try {
     const {
       machineId,
       binFillPercentage = 0,
-      status = 'active',
+      status = 'ONLINE',
+      plasticBinFill,
+      metalBinFill,
+      paperBinFillKg,
+      plasticBinFull = false,
+      metalBinFull = false,
+      paperBinFull = false,
+      scaleStatus,
+      smokeDetected = false,
+      antiCheatTrips,
+      opticalStatus,
       temperatureCelsius,
       location,
       latitude,
@@ -10869,44 +10973,182 @@ app.post('/api/machine/heartbeat', async (req, res) => {
     if (isNaN(parsedLng)) parsedLng = null;
     const cleanLocation = (location && String(location).trim()) ? String(location).trim() : null;
 
+    // Granular 3-Bin calculations (PecoDrop ⭕ Plastic, 🔺 Metal/Can, 🟦 Paper)
+    const parsedPlasticFill = (plasticBinFill !== undefined && plasticBinFill !== null)
+      ? parseInt(plasticBinFill)
+      : (plasticBinFull ? 100 : 0);
+    const parsedMetalFill = (metalBinFill !== undefined && metalBinFill !== null)
+      ? parseInt(metalBinFill)
+      : (metalBinFull ? 100 : 0);
+    const parsedPaperKg = (paperBinFillKg !== undefined && paperBinFillKg !== null)
+      ? parseFloat(paperBinFillKg)
+      : 0.0;
+    const paperCapacityKg = 15.0; // 15kg load limit
+    const parsedPaperFill = paperBinFull
+      ? 100
+      : Math.min(100, Math.round((parsedPaperKg / paperCapacityKg) * 100));
+
+    const effectiveBinFill = Math.max(
+      parseInt(binFillPercentage) || 0,
+      parsedPlasticFill,
+      parsedMetalFill,
+      parsedPaperFill
+    );
+
+    const isAnyBinFull = Boolean(plasticBinFull || metalBinFull || paperBinFull || effectiveBinFill >= 100);
+
+    let rawStatus = String(status || 'ONLINE').trim().toUpperCase();
+    let effectiveStatus = rawStatus;
+    if (isAnyBinFull) {
+      effectiveStatus = 'BIN_FULL';
+    } else if (smokeDetected) {
+      effectiveStatus = 'WARNING';
+    } else if (rawStatus === 'ACTIVE') {
+      effectiveStatus = 'ONLINE';
+    }
+
     if (pool) {
       await pool.query(`
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
         ALTER TABLE machines ADD COLUMN IF NOT EXISTS address TEXT;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS plastic_bin_fill INTEGER DEFAULT 0;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS metal_bin_fill INTEGER DEFAULT 0;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS paper_bin_fill_kg NUMERIC DEFAULT 0.00;
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS scale_status VARCHAR(50) DEFAULT 'Ready';
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS optical_status VARCHAR(50) DEFAULT '60 FPS';
+        ALTER TABLE machines ADD COLUMN IF NOT EXISTS anti_cheat_trips INTEGER DEFAULT 0;
       `).catch(() => { });
 
       await pool.query(`
-        INSERT INTO machines (machine_id, name, status, bin_fill_percentage, last_ping_at, public_ip, local_ip, location, latitude, longitude)
-        VALUES ($1, $1, $2, $3, NOW(), $4, $5, $6, $7, $8)
+        INSERT INTO machines (
+          machine_id, name, status, bin_fill_percentage,
+          plastic_bin_fill, metal_bin_fill, paper_bin_fill_kg,
+          scale_status, optical_status, anti_cheat_trips,
+          last_ping_at, public_ip, local_ip, location, latitude, longitude
+        )
+        VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, $12, $13, $14)
         ON CONFLICT (machine_id) DO UPDATE 
         SET status = EXCLUDED.status, 
             bin_fill_percentage = EXCLUDED.bin_fill_percentage, 
+            plastic_bin_fill = COALESCE(EXCLUDED.plastic_bin_fill, machines.plastic_bin_fill),
+            metal_bin_fill = COALESCE(EXCLUDED.metal_bin_fill, machines.metal_bin_fill),
+            paper_bin_fill_kg = COALESCE(EXCLUDED.paper_bin_fill_kg, machines.paper_bin_fill_kg),
+            scale_status = COALESCE(NULLIF(EXCLUDED.scale_status, ''), machines.scale_status),
+            optical_status = COALESCE(NULLIF(EXCLUDED.optical_status, ''), machines.optical_status),
+            anti_cheat_trips = COALESCE(EXCLUDED.anti_cheat_trips, machines.anti_cheat_trips),
             last_ping_at = NOW(),
             public_ip = COALESCE(NULLIF(EXCLUDED.public_ip, ''), machines.public_ip),
             local_ip = COALESCE(NULLIF(EXCLUDED.local_ip, ''), machines.local_ip),
             location = COALESCE(NULLIF(EXCLUDED.location, ''), machines.location),
             latitude = COALESCE(EXCLUDED.latitude, machines.latitude),
             longitude = COALESCE(EXCLUDED.longitude, machines.longitude);
-      `, [machineId, status, binFillPercentage, publicIp, localIp, cleanLocation, parsedLat, parsedLng]);
+      `, [
+        machineId,
+        effectiveStatus,
+        effectiveBinFill,
+        parsedPlasticFill,
+        parsedMetalFill,
+        parsedPaperKg,
+        scaleStatus || 'Ready',
+        opticalStatus || '60 FPS',
+        antiCheatTrips != null ? parseInt(antiCheatTrips) : 0,
+        publicIp,
+        localIp,
+        cleanLocation,
+        parsedLat,
+        parsedLng
+      ]);
     }
 
-    if (binFillPercentage >= 80) {
-      await saveDocToEngine('binfullnotifications', {
-        _id: `alert_${machineId}_${Date.now()}`,
-        machineId,
-        binFillPercentage,
-        alertType: binFillPercentage >= 95 ? 'CRITICAL_BIN_FULL' : 'HIGH_BIN_FILL',
-        createdAt: new Date().toISOString()
+    // Evaluate Bin Full Alerts & Dispatch Events
+    const alertsToEmit = [];
+    const nowMs = Date.now();
+    const DEBOUNCE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes debounce per alert type
+
+    if (plasticBinFull) {
+      alertsToEmit.push({
+        alertType: 'PLASTIC_BIN_FULL',
+        binType: 'PLASTIC',
+        trigger: 'Plastic PET Bottle bin is FULL (Optical aperture blocked)',
+        severity: 'CRITICAL',
+        binFillPercentage: Math.max(parsedPlasticFill, 100)
       });
+    }
+    if (metalBinFull) {
+      alertsToEmit.push({
+        alertType: 'METAL_BIN_FULL',
+        binType: 'METAL',
+        trigger: 'Aluminum Beverage Can bin is FULL (Chamber blocked)',
+        severity: 'CRITICAL',
+        binFillPercentage: Math.max(parsedMetalFill, 100)
+      });
+    }
+    if (paperBinFull || parsedPaperKg >= 15.0) {
+      alertsToEmit.push({
+        alertType: 'PAPER_BIN_FULL',
+        binType: 'PAPER',
+        trigger: `Paper compartment limit exceeded (${parsedPaperKg.toFixed(2)} kg load)`,
+        severity: 'CRITICAL',
+        binFillPercentage: Math.max(parsedPaperFill, 100),
+        weightKg: parsedPaperKg
+      });
+    }
+    if (smokeDetected) {
+      alertsToEmit.push({
+        alertType: 'SAFETY_HAZARD',
+        binType: 'SAFETY',
+        trigger: 'MQ6 Sensor Alarm: Smoke / Gas detected inside kiosk',
+        severity: 'EMERGENCY',
+        binFillPercentage: effectiveBinFill
+      });
+    }
+    if (effectiveBinFill >= 80 && alertsToEmit.length === 0) {
+      alertsToEmit.push({
+        alertType: effectiveBinFill >= 95 ? 'CRITICAL_BIN_FULL' : 'HIGH_BIN_FILL',
+        binType: 'GENERAL',
+        trigger: `Kiosk collection bin reached ${effectiveBinFill}% capacity`,
+        severity: effectiveBinFill >= 95 ? 'CRITICAL' : 'WARNING',
+        binFillPercentage: effectiveBinFill
+      });
+    }
+
+    for (const alert of alertsToEmit) {
+      const debounceKey = `${machineId}_${alert.alertType}`;
+      const lastSent = binAlertDebounceMap.get(debounceKey) || 0;
+      if (nowMs - lastSent >= DEBOUNCE_WINDOW_MS) {
+        binAlertDebounceMap.set(debounceKey, nowMs);
+        await saveDocToEngine('binfullnotifications', {
+          _id: `alert_${machineId}_${alert.alertType.toLowerCase()}_${nowMs}`,
+          machineId,
+          location: cleanLocation || 'Campus Kiosk Station',
+          binType: alert.binType,
+          trigger: alert.trigger,
+          triggerType: alert.severity === 'CRITICAL' || alert.severity === 'EMERGENCY' ? 'warning' : 'alert',
+          binFillPercentage: alert.binFillPercentage,
+          plasticBinFill: parsedPlasticFill,
+          metalBinFill: parsedMetalFill,
+          paperBinFillKg: parsedPaperKg,
+          alertType: alert.alertType,
+          severity: alert.severity,
+          status: 'Pending Emptying',
+          occurredAt: new Date(nowMs).toISOString(),
+          createdAt: new Date(nowMs).toISOString()
+        });
+      }
     }
 
     res.json({
       success: true,
       machineId,
-      binFillPercentage,
-      status,
+      binFillPercentage: effectiveBinFill,
+      status: effectiveStatus,
+      plasticBinFill: parsedPlasticFill,
+      metalBinFill: parsedMetalFill,
+      paperBinFillKg: parsedPaperKg,
+      scaleStatus: scaleStatus || 'Ready',
+      alertsTriggered: alertsToEmit.map(a => a.alertType),
       publicIp,
       localIp,
       location: cleanLocation,

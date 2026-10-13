@@ -405,7 +405,22 @@ public static class CentralSyncService
     /// <summary>
     /// Sends RVM Machine Heartbeat & Bin Level Status to Master Dashboard.
     /// </summary>
-    public static async Task<bool> SendHeartbeatAsync(string machineId, int binFillPercentage, string status = "active", string? location = null, double? latitude = null, double? longitude = null)
+    public static async Task<bool> SendHeartbeatAsync(
+        string machineId,
+        int binFillPercentage,
+        string status = "active",
+        int plasticBinFill = 0,
+        int metalBinFill = 0,
+        double paperBinFillKg = 0.0,
+        bool plasticBinFull = false,
+        bool metalBinFull = false,
+        bool paperBinFull = false,
+        string scaleStatus = "Ready",
+        bool smokeDetected = false,
+        int antiCheatTrips = 0,
+        string? location = null,
+        double? latitude = null,
+        double? longitude = null)
     {
         try
         {
@@ -414,6 +429,15 @@ public static class CentralSyncService
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 binFillPercentage = binFillPercentage,
                 status = status,
+                plasticBinFill = plasticBinFill,
+                metalBinFill = metalBinFill,
+                paperBinFillKg = paperBinFillKg,
+                plasticBinFull = plasticBinFull,
+                metalBinFull = metalBinFull,
+                paperBinFull = paperBinFull,
+                scaleStatus = scaleStatus,
+                smokeDetected = smokeDetected,
+                antiCheatTrips = antiCheatTrips,
                 localIp = HeartbeatService.GetLocalIpAddress(),
                 location = location,
                 latitude = latitude,
@@ -698,17 +722,32 @@ public static class CentralSyncService
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(machineId))
-                throw new InvalidOperationException("PecoDrop MachineId is required for organization leaderboard sync.");
+            string url = !string.IsNullOrWhiteSpace(machineId)
+                ? $"{CentralApiUrl.TrimEnd('/')}/api/usernames?machineId={Uri.EscapeDataString(machineId.Trim())}"
+                : $"{CentralApiUrl.TrimEnd('/')}/api/usernames";
 
-            DatabaseManager.ClearEnterpriseLeaderboardCache();
-            string url = $"{CentralApiUrl.TrimEnd('/')}/api/usernames?machineId={Uri.EscapeDataString(machineId.Trim())}";
             string json = await _httpClient.GetStringAsync(url);
             using var doc = System.Text.Json.JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("users", out var usersArr))
             {
-                DatabaseManager.UpdateLeaderboardUsers(usersArr);
-                logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {usersArr.GetArrayLength()} top recyclers with profile images from central master.");
+                if (usersArr.GetArrayLength() == 0 && !string.IsNullOrWhiteSpace(machineId))
+                {
+                    string fallbackUrl = $"{CentralApiUrl.TrimEnd('/')}/api/usernames";
+                    string fbJson = await _httpClient.GetStringAsync(fallbackUrl);
+                    using var fbDoc = System.Text.Json.JsonDocument.Parse(fbJson);
+                    if (fbDoc.RootElement.TryGetProperty("users", out var fbUsers) && fbUsers.GetArrayLength() > 0)
+                    {
+                        DatabaseManager.UpdateLeaderboardUsers(fbUsers);
+                        logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {fbUsers.GetArrayLength()} real recyclers from central master.");
+                        return;
+                    }
+                }
+
+                if (usersArr.GetArrayLength() > 0)
+                {
+                    DatabaseManager.UpdateLeaderboardUsers(usersArr);
+                    logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {usersArr.GetArrayLength()} top recyclers with profile images from central master.");
+                }
             }
         }
         catch (Exception ex)

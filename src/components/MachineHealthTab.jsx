@@ -136,9 +136,10 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       if (selectedClientId && selectedClientId !== 'ALL') params.append('clientId', selectedClientId);
       
       const queryParam = params.toString() ? `?${params.toString()}` : '';
-      const [mRes, cRes] = await Promise.all([
+      const [mRes, cRes, aRes] = await Promise.all([
         fetch(`/api/analytics/machines${queryParam}`),
-        fetch('/api/clients')
+        fetch('/api/clients'),
+        fetch('/api/analytics/bin-notifications')
       ]);
       if (mRes.ok) {
         const data = await mRes.json();
@@ -150,6 +151,24 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       if (cRes.ok) {
         const cData = await cRes.json();
         setClientsList(cData.clients || []);
+      }
+      if (aRes.ok) {
+        const aData = await aRes.json();
+        const realAlerts = (aData.alerts || []).map(a => ({
+          id: a._id || a.id || `EVT-${Math.floor(10000 + Math.random() * 90000)}`,
+          machineId: a.machineId || a.machine_id || 'UNKNOWN',
+          location: a.location || 'Campus Station',
+          trigger: a.trigger || (a.alertType ? a.alertType.replace(/_/g, ' ') : 'Bin Alert'),
+          triggerType: a.triggerType || (a.severity === 'CRITICAL' || a.severity === 'EMERGENCY' ? 'warning' : 'alert'),
+          timestamp: a.occurredAt || a.createdAt ? new Date(a.occurredAt || a.createdAt).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'Recent',
+          status: a.status || 'Pending Emptying',
+          statusType: (a.status && a.status.toLowerCase().includes('empty')) ? 'pending' : 'resolved'
+        }));
+        setServiceLogs(prev => {
+          const existingIds = new Set(realAlerts.map(l => l.id));
+          const clientDispatches = prev.filter(p => !existingIds.has(p.id) && p.status === 'Tech Dispatched');
+          return [...clientDispatches, ...realAlerts];
+        });
       }
     } catch (err) {
       console.error(err);
@@ -773,11 +792,29 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                     <div className="flex flex-col items-end gap-1 shrink-0 max-w-full">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                         isOnline 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30' 
+                          ? (m.status === 'BIN_FULL'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300'
+                              : m.status === 'IN_SESSION'
+                              ? 'bg-blue-100 text-blue-900 border border-blue-300 dark:bg-blue-950/60 dark:text-blue-300'
+                              : m.status === 'ERROR'
+                              ? 'bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30')
                           : 'bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
                       }`}>
-                        {isOnline && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                        {isOnline ? 'Online' : 'Offline'}
+                        {isOnline && (
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                            m.status === 'BIN_FULL'
+                              ? 'bg-amber-500'
+                              : m.status === 'IN_SESSION'
+                              ? 'bg-blue-500'
+                              : m.status === 'ERROR'
+                              ? 'bg-rose-500'
+                              : 'bg-emerald-500'
+                          }`} />
+                        )}
+                        {isOnline 
+                          ? (m.status === 'BIN_FULL' ? 'Bin Full' : m.status === 'IN_SESSION' ? 'In Session' : m.status === 'ERROR' ? 'Fault' : 'Online') 
+                          : 'Offline'}
                       </span>
                       {hasAlerts && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-300">
@@ -859,10 +896,12 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                   )}
 
                   {/* Action Banner if Bin is Full */}
-                  {(m.plasticBinFill >= 85 || hasAlerts) && (
+                  {(m.plasticBinFill >= 85 || m.metalBinFill >= 85 || (m.paperBinFillKg && parseFloat(m.paperBinFillKg) >= 12.0) || m.status === 'BIN_FULL' || hasAlerts) && (
                     <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 mb-4">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-bold text-amber-900 dark:text-amber-300">Plastic Bin Overfilling</span>
+                        <span className="font-bold text-amber-900 dark:text-amber-300">
+                          {m.status === 'BIN_FULL' ? '⚠️ Collection Bin Full Alert' : 'Bin Overfilling'}
+                        </span>
                         <button 
                           onClick={() => handleOpenDispatch(m.machineId)}
                           className="px-2 py-0.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold rounded shadow-xs"
@@ -871,7 +910,10 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
                         </button>
                       </div>
                       <div className="text-[11px] text-amber-800/90 dark:text-amber-300/90">
-                        Chamber reached {m.plasticBinFill || 85}% physical capacity
+                        {m.plasticBinFill >= 85 ? `Plastic chamber at ${m.plasticBinFill}% capacity. ` : ''}
+                        {m.metalBinFill >= 85 ? `Metal/Can chamber at ${m.metalBinFill}% capacity. ` : ''}
+                        {m.paperBinFillKg && parseFloat(m.paperBinFillKg) >= 12.0 ? `Paper compartment at ${parseFloat(m.paperBinFillKg).toFixed(1)} kg. ` : ''}
+                        {m.status === 'BIN_FULL' && m.plasticBinFill < 85 && m.metalBinFill < 85 ? 'One or more intake compartments are full or blocked. Requires technician emptying.' : ''}
                       </div>
                     </div>
                   )}

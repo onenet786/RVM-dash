@@ -24,6 +24,18 @@ public static class HeartbeatService
     private static double? _longitude = 74.3276;
     private static bool _geoAttempted;
 
+    private static string _machineStatus = "ONLINE";
+    private static int _plasticBinFill = 0;
+    private static int _metalBinFill = 0;
+    private static double _paperBinFillKg = 0.0;
+    private static int _binFillPercentage = 0;
+    private static bool _plasticBinFull = false;
+    private static bool _metalBinFull = false;
+    private static bool _paperBinFull = false;
+    private static string _scaleStatus = "Ready";
+    private static bool _smokeWarning = false;
+    private static int _antiCheatTrips = 0;
+
     public static NetworkStatus CurrentStatus { get; private set; } = NetworkStatus.Checking;
     public static string? LastError { get; private set; }
     public static event Action<NetworkStatus, string?>? StatusChanged;
@@ -58,6 +70,37 @@ public static class HeartbeatService
         _timer?.Dispose();
         // Fire immediately (0 ms), then repeat every 15 seconds (15000 ms)
         _timer = new Timer(async _ => await SendHeartbeatAsync(), null, 0, 15000);
+    }
+
+    public static void UpdateTelemetry(
+        string machineStatus,
+        int plasticBinFill,
+        int metalBinFill,
+        double paperBinFillKg,
+        int binFillPercentage,
+        bool plasticBinFull = false,
+        bool metalBinFull = false,
+        bool paperBinFull = false,
+        string scaleStatus = "Ready",
+        bool smokeWarning = false,
+        int antiCheatTrips = 0)
+    {
+        if (!string.IsNullOrWhiteSpace(machineStatus)) _machineStatus = machineStatus.Trim().ToUpperInvariant();
+        _plasticBinFill = Math.Clamp(plasticBinFill, 0, 100);
+        _metalBinFill = Math.Clamp(metalBinFill, 0, 100);
+        _paperBinFillKg = Math.Max(0.0, paperBinFillKg);
+        _binFillPercentage = Math.Clamp(binFillPercentage, 0, 100);
+        _plasticBinFull = plasticBinFull;
+        _metalBinFull = metalBinFull;
+        _paperBinFull = paperBinFull;
+        if (!string.IsNullOrWhiteSpace(scaleStatus)) _scaleStatus = scaleStatus.Trim();
+        _smokeWarning = smokeWarning;
+        _antiCheatTrips = antiCheatTrips;
+    }
+
+    public static void TriggerImmediateHeartbeat()
+    {
+        _ = Task.Run(async () => await SendHeartbeatAsync());
     }
 
     public static void UpdateLocation(string location, double? latitude, double? longitude)
@@ -112,12 +155,21 @@ public static class HeartbeatService
             string localIp = GetLocalIpAddress();
             client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
 
-            // 1. Post telemetry heartbeat with Local IP, Status, and Location Coordinates
+            // 1. Post telemetry heartbeat with full machine status, 3-bin levels, and alert flags
             var heartbeatObj = new 
             { 
                 machineId = _machineId, 
-                status = "active", 
-                binFillPercentage = 0, 
+                status = _machineStatus, 
+                binFillPercentage = _binFillPercentage,
+                plasticBinFill = _plasticBinFill,
+                metalBinFill = _metalBinFill,
+                paperBinFillKg = _paperBinFillKg,
+                plasticBinFull = _plasticBinFull,
+                metalBinFull = _metalBinFull,
+                paperBinFull = _paperBinFull,
+                scaleStatus = _scaleStatus,
+                smokeDetected = _smokeWarning,
+                antiCheatTrips = _antiCheatTrips,
                 localIp,
                 location = _location,
                 latitude = _latitude,

@@ -521,7 +521,17 @@ public partial class AdminWindow : Window
         LogConsole($"--------------------------------------------------");
         LogConsole($"📡 Sending Telemetry Heartbeat Ping (Machine: {machineId}, Bin Fill: 85%)...");
 
-        bool hbSuccess = await CentralSyncService.SendHeartbeatAsync(machineId, 85, "active");
+        bool hbSuccess = await CentralSyncService.SendHeartbeatAsync(
+            machineId: machineId,
+            binFillPercentage: 85,
+            status: "BIN_FULL",
+            plasticBinFill: 90,
+            metalBinFill: 30,
+            paperBinFillKg: 12.5,
+            plasticBinFull: true,
+            metalBinFull: false,
+            paperBinFull: false,
+            scaleStatus: "Ready");
         if (hbSuccess)
         {
             LogConsole($"Heartbeat Sent 🟢 (Fill: 85% Triggered Bin Alert on Master Dashboard!)");

@@ -954,11 +954,57 @@ public static class DatabaseManager
                         IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
                         SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
 
-                SELECT TOP 5 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
+                SELECT TOP 30 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
                 FROM dbo.EnterpriseLeaderboardCache ORDER BY Rank;
                 """);
         }
         catch { }
+
+        // If cache is empty, fallback to local WalletAccounts (real live ledger)
+        if (dt == null || dt.Rows.Count == 0)
+        {
+            try
+            {
+                dt = Get(
+                    """
+                    SELECT TOP 30 
+                        ROW_NUMBER() OVER (ORDER BY PointsBalance DESC) AS Rank,
+                        COALESCE(NULLIF(FullName, ''), NULLIF(UserName, ''), PhoneNumber) AS DisplayName,
+                        PhoneNumber,
+                        ProfileImage,
+                        0 AS IsBirthday,
+                        PointsBalance
+                    FROM dbo.WalletAccounts
+                    WHERE PointsBalance > 0 AND PhoneNumber NOT IN ('000000000', 'anonymous')
+                    ORDER BY PointsBalance DESC;
+                    """);
+            }
+            catch { }
+        }
+
+        // If WalletAccounts is also empty, query local BottleTransactions
+        if (dt == null || dt.Rows.Count == 0)
+        {
+            try
+            {
+                dt = Get(
+                    """
+                    SELECT TOP 30 
+                        ROW_NUMBER() OVER (ORDER BY SUM(PointsAwarded) DESC) AS Rank,
+                        ISNULL(NULLIF(MobileNumber, ''), 'Eco Citizen') AS DisplayName,
+                        ISNULL(MobileNumber, '') AS PhoneNumber,
+                        'male' AS ProfileImage,
+                        0 AS IsBirthday,
+                        SUM(PointsAwarded) AS PointsBalance
+                    FROM dbo.BottleTransactions
+                    WHERE (IsAccepted = 1 OR IsAccepted IS NULL) 
+                      AND MobileNumber IS NOT NULL AND MobileNumber <> '' AND MobileNumber <> '000000000'
+                    GROUP BY MobileNumber
+                    ORDER BY PointsBalance DESC;
+                    """);
+            }
+            catch { }
+        }
 
         if (dt == null)
         {
@@ -969,15 +1015,6 @@ public static class DatabaseManager
             dt.Columns.Add("ProfileImage", typeof(string));
             dt.Columns.Add("IsBirthday", typeof(int));
             dt.Columns.Add("PointsBalance", typeof(int));
-        }
-
-        if (dt.Rows.Count == 0)
-        {
-            dt.Rows.Add(1, "MartinM", "03001234567", "male", 0, 244);
-            dt.Rows.Add(2, "AyeshaK", "03007654321", "female", 0, 76);
-            dt.Rows.Add(3, "Rehan", "03009876543", "male", 0, 38);
-            dt.Rows.Add(4, "Karim", "03001122334", "male", 0, 133);
-            dt.Rows.Add(5, "Farhan", "03005566778", "male", 0, 18);
         }
 
         if (!dt.Columns.Contains("AvatarPath")) dt.Columns.Add("AvatarPath", typeof(string));
@@ -1003,13 +1040,23 @@ public static class DatabaseManager
             int rank = row["Rank"] != DBNull.Value ? Convert.ToInt32(row["Rank"]) : (index + 1);
             double pts = row["PointsBalance"] != DBNull.Value ? Convert.ToDouble(row["PointsBalance"]) : 0;
 
+            // Clean format display name
+            string rawName = row["DisplayName"]?.ToString() ?? "Eco Hero";
+            if (rawName.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+                rawName = rawName[..^10];
+            else if (rawName.Contains("@"))
+                rawName = rawName.Split('@')[0];
+            if (rawName.Length == 11 && rawName.StartsWith("03"))
+                rawName = $"{rawName[..4]}****{rawName[^3..]}";
+            row["DisplayName"] = rawName;
+
             int avatarIdx = (rank >= 1 && rank <= 5) ? rank : ((index % 5) + 1);
             string avatarFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Avatars", $"avatar{avatarIdx}.png");
             row["AvatarPath"] = File.Exists(avatarFile) ? avatarFile : $"pack://application:,,,/PecoDropDesktopApp;component/Assets/Avatars/avatar{avatarIdx}.png";
 
-            double pct = maxPoints > 0 ? (pts / maxPoints) * 85.0 + 8.0 : (90.0 - (rank * 14.0));
-            if (pct < 20.0) pct = 20.0;
-            if (pct > 92.0) pct = 92.0;
+            double pct = maxPoints > 0 ? (pts / maxPoints) * 85.0 + 8.0 : (90.0 - (rank * 2.0));
+            if (pct < 15.0) pct = 15.0;
+            if (pct > 95.0) pct = 95.0;
             row["ProgressPercent"] = pct;
 
             switch (rank)
@@ -1023,26 +1070,27 @@ public static class DatabaseManager
                 case 2:
                     row["RankColor"] = "#38BDF8";   // Electric Cyan
                     row["BarColor"] = "#86EFAC";    // Pale Mint
-                    row["PointsColor"] = "#FFFFFF"; // Clean White
+                    row["PointsColor"] = "#38BDF8"; // Clean Cyan
                     row["RingColor"] = "#38BDF8";
                     break;
                 case 3:
                     row["RankColor"] = "#FB923C";   // Bronze / Tangerine
-                    row["BarColor"] = "#38BDF8";    // Cyan Blue
-                    row["PointsColor"] = "#FFFFFF"; // Clean White
+                    row["BarColor"] = "#FDBA74";    // Tangerine
+                    row["PointsColor"] = "#FB923C"; // Bronze
                     row["RingColor"] = "#FB923C";
                     break;
                 case 4:
+                case 5:
                     row["RankColor"] = "#E2E8F0";   // White / Silver
-                    row["BarColor"] = "#FB923C";    // Amber Orange
-                    row["PointsColor"] = "#FB923C"; // Amber
-                    row["RingColor"] = "#475569";
+                    row["BarColor"] = "#38BDF8";    // Cyan
+                    row["PointsColor"] = "#E2E8F0"; // Silver
+                    row["RingColor"] = "#64748B";
                     break;
                 default:
-                    row["RankColor"] = "#CBD5E1";   // White / Silver
-                    row["BarColor"] = "#FB923C";    // Amber Orange
-                    row["PointsColor"] = "#FB923C"; // Amber
-                    row["RingColor"] = "#475569";
+                    row["RankColor"] = "#94A3B8";   // Muted Slate
+                    row["BarColor"] = "#22C55E";    // Emerald
+                    row["PointsColor"] = "#CBD5E1"; // Slate
+                    row["RingColor"] = "#334155";
                     break;
             }
             index++;
