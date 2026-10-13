@@ -284,7 +284,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         if (digit != '\0')
         {
             DateTime nowSeq = DateTime.Now;
-            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 2500)
+            if ((nowSeq - _lastDemoSecretTime).TotalMilliseconds > 4000)
             {
                 _demoSecretSequence = "";
             }
