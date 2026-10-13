@@ -985,12 +985,12 @@
                                 </Grid>
                             </Border>
 
-                            <!-- TOP 5 RECYCLERS (DARK SLEEK GAME STYLE) -->
+                            <!-- TOP 10 RECYCLERS LEADERBOARD (DARK SLEEK GAME STYLE) -->
                             <Border Grid.Row="2" Background="#12151E" CornerRadius="14" Padding="12,7" BorderBrush="#252E40" BorderThickness="1.2" Effect="{StaticResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/> <!-- Header -->
-                                        <RowDefinition Height="*"/>    <!-- Top 5 Cards List -->
+                                        <RowDefinition Height="*"/>    <!-- Top 10 Cards List -->
                                         <RowDefinition Height="Auto"/> <!-- Flashing Last Recycler Card -->
                                     </Grid.RowDefinitions>
 
@@ -998,7 +998,7 @@
                                     <Grid Grid.Row="0" Margin="2,1,2,6">
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <TextBlock Text="🏆 " FontSize="14" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Leaderboard" FontSize="14" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock Text="Leaderboard (Top 10)" FontSize="14" FontWeight="Black" Foreground="#FFFFFF" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBlock Text="• لیڈر بورڈ" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center"/>
                                         </StackPanel>
                                         <Border Background="#14532D" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -1009,53 +1009,56 @@
                                         </Border>
                                     </Grid>
 
-                                    <!-- User Cards List -->
-                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
-                                        <ItemsControl x:Name="LeaderboardList">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Background="#0DFFFFFF" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="6" Padding="8,2.5" Margin="0,1,0,1" MinHeight="32">
-                                                        <Grid VerticalAlignment="Center">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="28"/>
-                                                                <ColumnDefinition Width="32"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
+                                    <!-- User Cards List (Top 10 Users Uniformly Filling Height - No Space Left) -->
+                                    <ItemsControl Grid.Row="1" x:Name="LeaderboardList">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="1" Rows="10"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#0DFFFFFF" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,1.5" VerticalAlignment="Stretch">
+                                                    <Grid VerticalAlignment="Center">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="28"/>
+                                                            <ColumnDefinition Width="32"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
 
-                                                            <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="13" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="13.5" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                                                            <Border Grid.Column="1" Width="24" Height="24" CornerRadius="12" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                                <Border.Background>
-                                                                    <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
-                                                                </Border.Background>
-                                                            </Border>
+                                                        <Border Grid.Column="1" Width="26" Height="26" CornerRadius="13" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Border.Background>
+                                                                <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
+                                                            </Border.Background>
+                                                        </Border>
 
-                                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,8,0">
-                                                                <TextBlock Text="{Binding DisplayName}" FontSize="11.5" FontWeight="Bold" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
-                                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3" Background="#242D3D" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2,0,0">
-                                                                    <ProgressBar.Template>
-                                                                        <ControlTemplate TargetType="ProgressBar">
-                                                                            <Border Background="{TemplateBinding Background}" CornerRadius="1.5" ClipToBounds="True">
-                                                                                <Grid x:Name="PART_Track">
-                                                                                    <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="1.5"/>
-                                                                                </Grid>
-                                                                            </Border>
-                                                                        </ControlTemplate>
-                                                                    </ProgressBar.Template>
-                                                                </ProgressBar>
-                                                            </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,8,0">
+                                                            <TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3.5" Background="#242D3D" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2.5,0,0">
+                                                                <ProgressBar.Template>
+                                                                    <ControlTemplate TargetType="ProgressBar">
+                                                                        <Border Background="{TemplateBinding Background}" CornerRadius="1.75" ClipToBounds="True">
+                                                                            <Grid x:Name="PART_Track">
+                                                                                <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="1.75"/>
+                                                                            </Grid>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </ProgressBar.Template>
+                                                            </ProgressBar>
+                                                        </StackPanel>
 
-                                                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
-                                                                <TextBlock Text="{Binding PointsBalance}" FontSize="11" FontWeight="Black" Foreground="{Binding PointsColor}" VerticalAlignment="Center"/>
-                                                                <TextBlock Text=" pts" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,1,0,0"/>
-                                                            </StackPanel>
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </ScrollViewer>
+                                                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                                                            <TextBlock Text="{Binding PointsBalance}" FontSize="12" FontWeight="Black" Foreground="{Binding PointsColor}" VerticalAlignment="Center"/>
+                                                            <TextBlock Text=" pts" FontSize="9.5" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" Margin="2,1,0,0"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
 
                                     <!-- FLASHING LAST RECYCLER FOOTER CARD -->
                                     <Border Grid.Row="2" Margin="0,4,0,0" CornerRadius="8" Padding="10,5.5" MinHeight="50" Background="#141D1B" BorderBrush="#047857" BorderThickness="1">

@@ -690,7 +690,7 @@ public static class DatabaseManager
                 IF COL_LENGTH('dbo.WalletAccounts', 'DOB') IS NULL
                     ALTER TABLE dbo.WalletAccounts ADD DOB NVARCHAR(50) NULL;
 
-                SELECT TOP 5
+                SELECT TOP 10
                     ROW_NUMBER() OVER (ORDER BY wallet.PointsBalance DESC, wallet.LastUpdated ASC) AS Rank,
                     COALESCE(wallet.FullName, wallet.UserName,
                         CASE
@@ -723,13 +723,46 @@ public static class DatabaseManager
             dt.Columns.Add("PointsBalance", typeof(int));
         }
 
-        if (dt.Rows.Count == 0)
+        var defaultPublicUsers = new (string Name, string Phone, string Img, int Pts)[]
         {
-            dt.Rows.Add(1, "abiddut12", "03001234567", "male", 0, 71295);
-            dt.Rows.Add(2, "03009482110", "03009482110", "female", 0, 11019);
-            dt.Rows.Add(3, "Muhammad Hassan Tahir", "03009876543", "male", 0, 6617);
-            dt.Rows.Add(4, "Muhammad Hassan", "03001122334", "male", 0, 6617);
-            dt.Rows.Add(5, "Aqeel Ur Rehman", "03005566778", "male", 0, 6327);
+            ("abiddut12", "03001234567", "male", 71295),
+            ("03009482110", "03009482110", "female", 11019),
+            ("Muhammad Hassan Tahir", "03009876543", "male", 6617),
+            ("Muhammad Hassan", "03001122334", "male", 5430),
+            ("Aqeel Ur Rehman", "03005566778", "male", 4820),
+            ("Zeeshan Ali", "03004455667", "male", 3910),
+            ("Fatima Zahra", "03007788990", "female", 3250),
+            ("Usman Tariq", "03002233445", "male", 2740),
+            ("Ayesha Khan", "03006677889", "female", 2180),
+            ("Bilal Ahmed", "03003344556", "male", 1650)
+        };
+
+        while (dt.Rows.Count < 10)
+        {
+            int nextRank = dt.Rows.Count + 1;
+            int defIdx = (nextRank - 1) % defaultPublicUsers.Length;
+            var def = defaultPublicUsers[defIdx];
+            var newRow = dt.NewRow();
+            newRow["Rank"] = nextRank;
+            newRow["DisplayName"] = def.Name;
+            newRow["PhoneNumber"] = def.Phone;
+            newRow["ProfileImage"] = def.Img;
+            newRow["IsBirthday"] = 0;
+            int prevPoints = dt.Rows.Count > 0 && dt.Rows[dt.Rows.Count - 1]["PointsBalance"] != DBNull.Value 
+                ? Convert.ToInt32(dt.Rows[dt.Rows.Count - 1]["PointsBalance"]) 
+                : 2000;
+            newRow["PointsBalance"] = Math.Max(100, Math.Min(def.Pts, prevPoints - 80));
+            dt.Rows.Add(newRow);
+        }
+
+        if (dt.Rows.Count > 10)
+        {
+            dt = dt.AsEnumerable().Take(10).CopyToDataTable();
+        }
+
+        for (int i = 0; i < dt.Rows.Count; i++)
+        {
+            dt.Rows[i]["Rank"] = i + 1;
         }
 
         if (!dt.Columns.Contains("AvatarPath")) dt.Columns.Add("AvatarPath", typeof(string));

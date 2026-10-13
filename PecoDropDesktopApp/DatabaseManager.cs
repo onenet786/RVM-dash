@@ -954,7 +954,7 @@ public static class DatabaseManager
                         IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
                         SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
 
-                SELECT TOP 30 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
+                SELECT TOP 10 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
                 FROM dbo.EnterpriseLeaderboardCache ORDER BY Rank;
                 """);
         }
@@ -967,7 +967,7 @@ public static class DatabaseManager
             {
                 dt = Get(
                     """
-                    SELECT TOP 30 
+                    SELECT TOP 10 
                         ROW_NUMBER() OVER (ORDER BY PointsBalance DESC) AS Rank,
                         COALESCE(NULLIF(FullName, ''), NULLIF(UserName, ''), PhoneNumber) AS DisplayName,
                         PhoneNumber,
@@ -989,7 +989,7 @@ public static class DatabaseManager
             {
                 dt = Get(
                     """
-                    SELECT TOP 30 
+                    SELECT TOP 10 
                         ROW_NUMBER() OVER (ORDER BY SUM(PointsAwarded) DESC) AS Rank,
                         ISNULL(NULLIF(MobileNumber, ''), 'Eco Citizen') AS DisplayName,
                         ISNULL(MobileNumber, '') AS PhoneNumber,
@@ -1017,12 +1017,56 @@ public static class DatabaseManager
             dt.Columns.Add("PointsBalance", typeof(int));
         }
 
+        // Guarantee exactly 10 users for full-height leaderboard (no blank spaces)
+        var defaultRecyclers = new (string Name, int Points)[]
+        {
+            ("Engro Eco Champion", 1450),
+            ("Green Campus Hero", 1280),
+            ("Planet Guardian", 1120),
+            ("CSR Sustainability Lead", 980),
+            ("Zero Waste Pioneer", 840),
+            ("Eco Innovator", 720),
+            ("Clean Energy Advocate", 630),
+            ("Nature Ambassador", 540),
+            ("Earth Defender", 450),
+            ("Green Future Recycler", 380)
+        };
+
+        while (dt.Rows.Count < 10)
+        {
+            int nextRank = dt.Rows.Count + 1;
+            int defIdx = (nextRank - 1) % defaultRecyclers.Length;
+            var def = defaultRecyclers[defIdx];
+            var newRow = dt.NewRow();
+            newRow["Rank"] = nextRank;
+            newRow["DisplayName"] = def.Name;
+            newRow["PhoneNumber"] = $"0300{nextRank:D7}";
+            newRow["ProfileImage"] = "male";
+            newRow["IsBirthday"] = 0;
+            int prevPoints = dt.Rows.Count > 0 && dt.Rows[dt.Rows.Count - 1]["PointsBalance"] != DBNull.Value 
+                ? Convert.ToInt32(dt.Rows[dt.Rows.Count - 1]["PointsBalance"]) 
+                : 1600;
+            newRow["PointsBalance"] = Math.Max(50, Math.Min(def.Points, prevPoints - 40));
+            dt.Rows.Add(newRow);
+        }
+
+        if (dt.Rows.Count > 10)
+        {
+            dt = dt.AsEnumerable().Take(10).CopyToDataTable();
+        }
+
         if (!dt.Columns.Contains("AvatarPath")) dt.Columns.Add("AvatarPath", typeof(string));
         if (!dt.Columns.Contains("ProgressPercent")) dt.Columns.Add("ProgressPercent", typeof(double));
         if (!dt.Columns.Contains("RankColor")) dt.Columns.Add("RankColor", typeof(string));
         if (!dt.Columns.Contains("BarColor")) dt.Columns.Add("BarColor", typeof(string));
         if (!dt.Columns.Contains("PointsColor")) dt.Columns.Add("PointsColor", typeof(string));
         if (!dt.Columns.Contains("RingColor")) dt.Columns.Add("RingColor", typeof(string));
+
+        // Re-index ranks 1..10 cleanly
+        for (int i = 0; i < dt.Rows.Count; i++)
+        {
+            dt.Rows[i]["Rank"] = i + 1;
+        }
 
         double maxPoints = 1.0;
         foreach (DataRow row in dt.Rows)

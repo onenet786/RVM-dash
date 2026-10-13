@@ -924,58 +924,61 @@
                             </Grid>
                         </Border>
 
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl x:Name="LeaderboardList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#0DFFFFFF" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="6" Padding="8,2.5" Margin="0,1,0,1" MinHeight="32">
-                                            <Grid VerticalAlignment="Center">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="28"/>
-                                                    <ColumnDefinition Width="32"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                </Grid.ColumnDefinitions>
+                        <ItemsControl Grid.Row="1" x:Name="LeaderboardList">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="1" Rows="10"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0DFFFFFF" BorderBrush="#1F283B" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,1.5" VerticalAlignment="Stretch">
+                                        <Grid VerticalAlignment="Center">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="32"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                                <!-- Rank Number -->
-                                                <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="13" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <!-- Rank Number -->
+                                            <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="13" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                                                <!-- Avatar with Colored Ring -->
-                                                <Border Grid.Column="1" Width="24" Height="24" CornerRadius="12" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <Border.Background>
-                                                        <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
-                                                    </Border.Background>
-                                                </Border>
+                                            <!-- Avatar with Colored Ring -->
+                                            <Border Grid.Column="1" Width="26" Height="26" CornerRadius="13" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border.Background>
+                                                    <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
+                                                </Border.Background>
+                                            </Border>
 
-                                                <!-- Name & Progress Bar -->
-                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,8,0">
-                                                    <TextBlock Text="{Binding DisplayName}" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
-                                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3" Background="#242D3D" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2,0,0">
-                                                        <ProgressBar.Template>
-                                                            <ControlTemplate TargetType="ProgressBar">
-                                                                <Border Background="{TemplateBinding Background}" CornerRadius="1.5" ClipToBounds="True">
-                                                                    <Grid x:Name="PART_Track">
-                                                                        <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="1.5"/>
-                                                                    </Grid>
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </ProgressBar.Template>
-                                                    </ProgressBar>
+                                            <!-- Name & Progress Bar -->
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,8,0">
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3.5" Background="#242D3D" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2.5,0,0">
+                                                    <ProgressBar.Template>
+                                                        <ControlTemplate TargetType="ProgressBar">
+                                                            <Border Background="{TemplateBinding Background}" CornerRadius="1.5" ClipToBounds="True">
+                                                                <Grid x:Name="PART_Track">
+                                                                    <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="1.5"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </ProgressBar.Template>
+                                                </ProgressBar>
+                                            </StackPanel>
+
+                                            <!-- Points Balance -->
+                                            <Border Grid.Column="3" Background="#161F2E" BorderBrush="{Binding RingColor}" BorderThickness="1" CornerRadius="5" Padding="7,2.5" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding PointsBalance}" FontSize="11" FontWeight="Black" Foreground="{Binding PointsColor}"/>
+                                                    <TextBlock Text=" pts" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" Margin="2,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-
-                                                <!-- Points Balance -->
-                                                <Border Grid.Column="3" Background="#161F2E" BorderBrush="{Binding RingColor}" BorderThickness="1" CornerRadius="5" Padding="7,2" VerticalAlignment="Center">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{Binding PointsBalance}" FontSize="11" FontWeight="Black" Foreground="{Binding PointsColor}"/>
-                                                        <TextBlock Text=" pts" FontSize="9" FontWeight="Bold" Foreground="#94A3B8" Margin="2,0,0,0" VerticalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </Grid>
                 </Border>
 
@@ -1758,42 +1761,45 @@
                                 <TextBlock Grid.Column="2" Text="POINTS" FontSize="9" FontWeight="Black" Foreground="#64748B"/>
                             </Grid>
 
-                            <!-- List (No Scroll - Maximum Items Shown) -->
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl x:Name="ModernLeaderboardList">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#0AFFFFFF" BorderBrush="#162032" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,1,0,1" MinHeight="30">
-                                                <Grid VerticalAlignment="Center">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="26"/>
-                                                        <ColumnDefinition Width="28"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
+                            <!-- List (Top 10 Users Uniformly Filling Height - No Space Left) -->
+                            <ItemsControl Grid.Row="1" x:Name="ModernLeaderboardList">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="1" Rows="10"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#0AFFFFFF" BorderBrush="#162032" BorderThickness="1" CornerRadius="6" Padding="8,3" Margin="0,1.5" VerticalAlignment="Stretch">
+                                            <Grid VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
 
-                                                    <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="12.5" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="0" Text="{Binding Rank}" FontSize="13" FontWeight="Black" Foreground="{Binding RankColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                                                    <Border Grid.Column="1" Width="22" Height="22" CornerRadius="11" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Border.Background>
-                                                            <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
-                                                        </Border.Background>
-                                                    </Border>
+                                                <Border Grid.Column="1" Width="26" Height="26" CornerRadius="13" BorderBrush="{Binding RingColor}" BorderThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Border.Background>
+                                                        <ImageBrush ImageSource="{Binding AvatarPath}" Stretch="UniformToFill"/>
+                                                    </Border.Background>
+                                                </Border>
 
-                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="6,0,6,0">
-                                                        <TextBlock Text="{Binding DisplayName}" FontSize="11" FontWeight="Black" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
-                                                        <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3" Background="#1E293B" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2,0,0"/>
-                                                    </StackPanel>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0,8,0">
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="12" FontWeight="Black" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis"/>
+                                                    <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" Height="3.5" Background="#1E293B" Foreground="{Binding BarColor}" BorderThickness="0" Margin="0,2.5,0,0"/>
+                                                </StackPanel>
 
-                                                    <Border Grid.Column="3" Background="#141E33" BorderBrush="{Binding RingColor}" BorderThickness="1" CornerRadius="5" Padding="5,1.5" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding PointsBalance, StringFormat='{}{0} pts'}" FontSize="10" FontWeight="Black" Foreground="{Binding PointsColor}"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                                                <Border Grid.Column="3" Background="#141E33" BorderBrush="{Binding RingColor}" BorderThickness="1" CornerRadius="5" Padding="6,2.5" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding PointsBalance, StringFormat='{}{0} pts'}" FontSize="11" FontWeight="Black" Foreground="{Binding PointsColor}"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </Grid>
                     </Border>
 
