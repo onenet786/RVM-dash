@@ -601,28 +601,33 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             }
         }
 
-        if (e.Key == Key.Escape || e.Key == Key.Multiply)
+        if (KioskNumpadHelper.IsEscapeOrMultiply(e))
         {
+            e.Handled = true;
+
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
                 ToggleTelemetry();
-                e.Handled = true;
                 return;
             }
 
-            if (e.Key == Key.Escape)
+            if (KioskNumpadHelper.TryCloseOpenDialogs(this))
             {
-                e.Handled = true;
-                try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
-                try { DemoTestingWindow.CloseIfOpen(); } catch { }
-                try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
-                try { HeartbeatService.Stop(); } catch { }
-                try { Application.Current?.Shutdown(); } catch { }
-                Environment.Exit(0);
                 return;
             }
 
-            e.Handled = true;
+            if (machineStarted)
+            {
+                StopMachine();
+                return;
+            }
+
+            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+            try { HeartbeatService.Stop(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
             return;
         }
 
@@ -900,28 +905,33 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             lastDigit3PressTime = now;
         }
 
-        if (normKey == Key.Escape || normKey == Key.Multiply)
+        if (KioskNumpadHelper.IsEscapeOrMultiply(normKey) || KioskNumpadHelper.IsEscapeOrMultiply(e))
         {
+            e.Handled = true;
+
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
                 ToggleTelemetry();
-                e.Handled = true;
                 return;
             }
 
-            if (normKey == Key.Escape)
+            if (KioskNumpadHelper.TryCloseOpenDialogs(this))
             {
-                e.Handled = true;
-                try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
-                try { DemoTestingWindow.CloseIfOpen(); } catch { }
-                try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
-                try { HeartbeatService.Stop(); } catch { }
-                try { Application.Current?.Shutdown(); } catch { }
-                Environment.Exit(0);
                 return;
             }
 
-            e.Handled = true;
+            if (machineStarted)
+            {
+                StopMachine();
+                return;
+            }
+
+            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+            try { DemoTestingWindow.CloseIfOpen(); } catch { }
+            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+            try { HeartbeatService.Stop(); } catch { }
+            try { Application.Current?.Shutdown(); } catch { }
+            Environment.Exit(0);
             return;
         }
 

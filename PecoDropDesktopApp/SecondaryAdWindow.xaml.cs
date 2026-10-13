@@ -238,7 +238,7 @@ public partial class SecondaryAdWindow : Window
             }
         }
 
-        if (e.Key == Key.Escape)
+        if (KioskNumpadHelper.IsEscapeOrMultiply(e))
         {
             e.Handled = true;
             try { HeartbeatService.Stop(); } catch { }
@@ -361,7 +361,7 @@ public partial class SecondaryAdWindow : Window
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (KioskNumpadHelper.IsEscapeOrMultiply(e))
         {
             e.Handled = true;
             try { HeartbeatService.Stop(); } catch { }
