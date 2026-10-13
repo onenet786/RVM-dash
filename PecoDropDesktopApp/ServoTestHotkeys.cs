@@ -15,7 +15,15 @@ internal static class ServoTestHotkeys
         ("609", "SERVO:PAPER:IRIS:OPEN"),
         ("610", "SERVO:PAPER:IRIS:CLOSE"),
         ("611", "SERVO:PAPER:DROP:OPEN"),
-        ("612", "SERVO:PAPER:DROP:CLOSE")
+        ("612", "SERVO:PAPER:DROP:CLOSE"),
+        ("620", "IRIS:ALL:ENABLE"),
+        ("621", "IRIS:PLASTIC:ENABLE"),
+        ("622", "IRIS:PLASTIC:DISABLE"),
+        ("623", "IRIS:METAL:ENABLE"),
+        ("624", "IRIS:METAL:DISABLE"),
+        ("625", "IRIS:PAPER:ENABLE"),
+        ("626", "IRIS:PAPER:DISABLE"),
+        ("629", "IRIS:ALL:DISABLE")
     ];
 
     public static bool TryResolve(string buffer, out string code, out string command)

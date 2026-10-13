@@ -160,6 +160,7 @@ struct Compartment {
   AutoRecovery recovery;
   bool purging;
   unsigned long purgeStartedMs;
+  bool irisEnabled = true;
 };
 
 Compartment plastic = {
@@ -222,7 +223,7 @@ bool binSensorEnabled(const Compartment& c) {
 }
 
 bool compartmentAvailable(const Compartment& c) {
-  return !compartmentDisabled(c) && !c.workingFailed && !c.binFull && !c.purging;
+  return !compartmentDisabled(c) && !c.workingFailed && !c.binFull && !c.purging && c.irisEnabled;
 }
 
 byte irisClosedAngle(const Compartment& c) {
@@ -305,7 +306,7 @@ void servicePurge(Compartment& c) {
 void reportCompartment(const Compartment& c) {
   Serial.print(F("COMPARTMENT:")); Serial.print(c.name);
   Serial.print(F(";WORKING:"));
-  Serial.print(compartmentDisabled(c) || c.workingFailed ||
+  Serial.print(compartmentDisabled(c) || c.workingFailed || !c.irisEnabled ||
                !c.hasEmptyCalibration || calibrating ? F("FAILED") : F("OK"));
   Serial.print(F(";BIN:")); Serial.println(c.binFull ? F("FULL") : F("CLEAR"));
 }
@@ -434,6 +435,8 @@ float readPaperGrams(byte samples);
 void calibrateAll();
 void makeSafe();
 bool executeServoTestCommand(char* command);
+void reportIrisStatus();
+bool executeIrisControlCommand(char* command);
 void enforceHostLease();
 void executeCommand(char* command);
 void autoRecover(Compartment& c);
@@ -612,6 +615,7 @@ public:
 };
 
 void processSizedItem(Compartment& c) {
+  if (!c.irisEnabled) return;
   // Scope cleanup also runs on STOP, timeout, and invalid-size returns.
   MetalPulseCapture metalCapture(&c == &metal);
   Serial.print(c.name); Serial.println(F(":OBJECT_DETECTED"));
@@ -969,6 +973,7 @@ bool waitForIrisClear(Compartment& c, unsigned long openedAt) {
 }
 
 void processPaper() {
+  if (!paper.irisEnabled) return;
   Serial.println(F("PAPER:OBJECT_DETECTED"));
   reattachServos(paper); // servos were detached after last closeCompartment()
   paper.irisServo->write(irisOpenAngle(paper));
@@ -1511,6 +1516,90 @@ bool executeServoTestCommand(char* cmd) {
   return true;
 }
 
+void reportIrisStatus() {
+  Serial.print(F("IRIS:STATUS;PLASTIC:"));
+  Serial.print(plastic.irisEnabled ? F("ENABLED") : F("DISABLED"));
+  Serial.print(F(";METAL:"));
+  Serial.print(metal.irisEnabled ? F("ENABLED") : F("DISABLED"));
+  Serial.print(F(";PAPER:"));
+  Serial.print(paper.irisEnabled ? F("ENABLED") : F("DISABLED"));
+  Serial.println();
+}
+
+bool executeIrisControlCommand(char* cmd) {
+  if (strcmp(cmd, "IRIS:PLASTIC:ENABLE") == 0) {
+    plastic.irisEnabled = true;
+    Serial.println(F("IRIS:OK:PLASTIC:ENABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:PLASTIC:DISABLE") == 0) {
+    plastic.irisEnabled = false;
+    closeCompartment(plastic);
+    Serial.println(F("IRIS:OK:PLASTIC:DISABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:METAL:ENABLE") == 0) {
+    metal.irisEnabled = true;
+    Serial.println(F("IRIS:OK:METAL:ENABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:METAL:DISABLE") == 0) {
+    metal.irisEnabled = false;
+    closeCompartment(metal);
+    Serial.println(F("IRIS:OK:METAL:DISABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:PAPER:ENABLE") == 0) {
+    paper.irisEnabled = true;
+    Serial.println(F("IRIS:OK:PAPER:ENABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:PAPER:DISABLE") == 0) {
+    paper.irisEnabled = false;
+    closeCompartment(paper);
+    Serial.println(F("IRIS:OK:PAPER:DISABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:ALL:ENABLE") == 0) {
+    plastic.irisEnabled = true;
+    metal.irisEnabled = true;
+    paper.irisEnabled = true;
+    Serial.println(F("IRIS:OK:ALL:ENABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:ALL:DISABLE") == 0) {
+    plastic.irisEnabled = false;
+    metal.irisEnabled = false;
+    paper.irisEnabled = false;
+    closeCompartment(plastic);
+    closeCompartment(metal);
+    closeCompartment(paper);
+    Serial.println(F("IRIS:OK:ALL:DISABLED"));
+    reportIrisStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "IRIS:STATUS") == 0) {
+    reportIrisStatus();
+    return true;
+  }
+  return false;
+}
+
 void enforceHostLease() {
   if (calibrating) return; // Never abort an active hardware calibration mid-cycle
   if (!hostOnline || millis() - lastHostAliveMs <= HOST_LEASE_TIMEOUT_MS) return;
@@ -1600,6 +1689,7 @@ void executeCommand(char* cmd) {
   }
 
   if (executeServoTestCommand(cmd)) return;
+  if (executeIrisControlCommand(cmd)) return;
 
   if ((calibrating || activeCompartment != NULL) &&
       (strcmp(cmd, "START") == 0 || strcmp(cmd, "CALIBRATE") == 0 || strcmp(cmd, "SCALE") == 0)) {
@@ -1639,6 +1729,7 @@ void executeCommand(char* cmd) {
     calibrateAll();
   } else if (strcmp(cmd, "STATUS") == 0) {
     reportHardwareStatus();
+    reportIrisStatus();
     Serial.print(F("STATUS:"));
     Serial.print(calibrating ? F("CALIBRATING") :
                  (calibrated ? (machineRunning ? F("RUNNING") : F("READY")) : F("NOT_CALIBRATED")));
