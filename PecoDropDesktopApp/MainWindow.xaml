@@ -399,8 +399,8 @@
                                                 <TextBlock Text="Sensors active • Insert items one at a time into the corresponding illuminated aperture" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                             </StackPanel>
 
-                                            <!-- 3 Doubled Illuminated Aperture Cards (Height 480px, Large 165px Icons) -->
-                                            <Grid Grid.Row="1" Margin="6,0" VerticalAlignment="Center" MaxHeight="480">
+                                            <!-- 3 Doubled Illuminated Aperture Cards (Full Height Stretch, Large 165px Icons) -->
+                                            <Grid Grid.Row="1" Margin="6,2">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="14"/>
@@ -410,7 +410,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Aperture 1: PLASTIC BOTTLE (⭕ Circle Style - Magenta Glow) -->
-                                                <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPlasticAperture_Click">
+                                                <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2.5" CornerRadius="16" Padding="12,14" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPlasticAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -418,7 +418,7 @@
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
                                                         <Border Grid.Row="0" Background="#4C0519" BorderBrush="#FDA4AF" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 1 • ⭕ CIRCLE" FontSize="12" FontWeight="Black" Foreground="#FDA4AF"/>
+                                                            <TextBlock Text="⭕ CIRCLE APERTURE 1" FontSize="12" FontWeight="Black" Foreground="#FDA4AF"/>
                                                         </Border>
                                                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
                                                             <Grid Width="165" Height="165" HorizontalAlignment="Center">
@@ -436,7 +436,7 @@
                                                 </Border>
 
                                                 <!-- Aperture 2: CAN / METAL (🔺 Triangle Style - Emerald Glow) -->
-                                                <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitCanAperture_Click">
+                                                <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2.5" CornerRadius="16" Padding="12,14" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitCanAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -444,7 +444,7 @@
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
                                                         <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="12" FontWeight="Black" Foreground="#6EE7B7"/>
+                                                            <TextBlock Text="🔺 TRIANGLE APERTURE 2" FontSize="12" FontWeight="Black" Foreground="#6EE7B7"/>
                                                         </Border>
                                                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
                                                             <Grid Width="165" Height="165" HorizontalAlignment="Center">
@@ -453,7 +453,7 @@
                                                                 <TextBlock Text="🥫" FontSize="68" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,32,0,0"/>
                                                             </Grid>
                                                             <TextBlock Text="BEVERAGE CANS" FontSize="20" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-                                                            <TextBlock Text="کین" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
                                                         </StackPanel>
                                                         <Border Grid.Row="2" Background="#063321" CornerRadius="6" Padding="8,4">
                                                             <TextBlock Text="Aluminum Cans • S / M / L" FontSize="11.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
@@ -462,7 +462,7 @@
                                                 </Border>
 
                                                 <!-- Aperture 3: PAPER & DOCUMENTS (🟦 Square Style - Cyan Glow) -->
-                                                <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPaperAperture_Click">
+                                                <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2.5" CornerRadius="16" Padding="12,14" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPaperAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
@@ -470,7 +470,7 @@
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
                                                         <Border Grid.Row="0" Background="#0C3456" BorderBrush="#7DD3FC" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 3 • 🟦 SQUARE" FontSize="12" FontWeight="Black" Foreground="#7DD3FC"/>
+                                                            <TextBlock Text="🔲 SQUARE APERTURE 3" FontSize="12" FontWeight="Black" Foreground="#7DD3FC"/>
                                                         </Border>
                                                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
                                                             <Grid Width="165" Height="165" HorizontalAlignment="Center">
