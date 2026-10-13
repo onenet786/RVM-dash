@@ -250,6 +250,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
 
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
+        if (KioskNumpadHelper.HandleKioskKey(e, this))
+        {
+            return;
+        }
+
         if (e.Key == Key.Back || e.Key == Key.Subtract || e.Key == Key.OemMinus)
         {
             if (_demoSecretSequence.Length > 0)
@@ -408,7 +413,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             lastDigit3PressTime = now;
         }
 
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape || e.Key == Key.Multiply)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -417,7 +422,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 return;
             }
 
-            Close();
+            if (e.Key == Key.Escape) Close();
             return;
         }
 

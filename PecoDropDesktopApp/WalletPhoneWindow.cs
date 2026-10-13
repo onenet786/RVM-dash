@@ -201,6 +201,21 @@ public sealed class WalletPhoneWindow : Window
             return true;
         }
 
+        if (key == Key.Escape || key == Key.Multiply)
+        {
+            if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))
+            {
+                CompleteAndClose();
+            }
+            else
+            {
+                PhoneNumber = string.Empty;
+                FeedbackSubmitted = false;
+                SafeSetDialogResult(false);
+            }
+            return true;
+        }
+
         return false;
     }
 
@@ -897,7 +912,7 @@ public sealed class WalletPhoneWindow : Window
             return;
         }
 
-        if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
+        if (_currentStep == WindowStep.PhoneInput && (e.Key == Key.Escape || e.Key == Key.Multiply))
         {
             if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))
             {
@@ -927,7 +942,7 @@ public sealed class WalletPhoneWindow : Window
                 e.Handled = true;
                 return;
             }
-            if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape || e.Key == Key.Multiply)
             {
                 SkipRating();
                 e.Handled = true;

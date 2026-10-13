@@ -199,7 +199,7 @@ public sealed class SystemPowerDialog : Window
                 e.Handled = true;
                 CloseWithChoice(true);
             }
-            else if (normKey == Key.Escape || normKey == Key.N)
+            else if (normKey == Key.Escape || normKey == Key.Multiply || normKey == Key.N)
             {
                 e.Handled = true;
                 CloseWithChoice(false);

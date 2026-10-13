@@ -288,7 +288,7 @@ public sealed class RatingFeedbackWindow : Window
             return;
         }
 
-        if (normKey == Key.Escape)
+        if (normKey == Key.Escape || normKey == Key.Multiply)
         {
             Skip();
             e.Handled = true;

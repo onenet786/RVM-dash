@@ -815,7 +815,7 @@ public sealed class WalletPhoneWindow : Window
             return;
         }
 
-        if (_currentStep == WindowStep.PhoneInput && e.Key == Key.Escape)
+        if (_currentStep == WindowStep.PhoneInput && (e.Key == Key.Escape || e.Key == Key.Multiply))
         {
             if (_qrClaimed && !string.IsNullOrWhiteSpace(PhoneNumber))
             {
@@ -863,7 +863,7 @@ public sealed class WalletPhoneWindow : Window
                 SubmitRating();
                 e.Handled = true;
             }
-            else if (e.Key == Key.Escape)
+            else if (e.Key == Key.Escape || e.Key == Key.Multiply)
             {
                 SkipRating();
                 e.Handled = true;

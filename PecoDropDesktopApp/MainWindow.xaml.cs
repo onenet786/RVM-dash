@@ -336,6 +336,11 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        if (KioskNumpadHelper.HandleKioskKey(e, this))
+        {
+            e.Handled = true;
+            return;
+        }
         var walletWindow = Application.Current?.Windows
             .OfType<WalletPhoneWindow>()
             .FirstOrDefault(window => window.IsVisible);
@@ -350,7 +355,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
             }
         }
 
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape || e.Key == Key.Multiply)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -359,13 +364,19 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 return;
             }
 
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
+                try { DemoTestingWindow.CloseIfOpen(); } catch { }
+                try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+                try { HeartbeatService.Stop(); } catch { }
+                try { Application.Current?.Shutdown(); } catch { }
+                Environment.Exit(0);
+                return;
+            }
+
             e.Handled = true;
-            try { App.SecondaryDisplayWindow?.StopAndClose(); } catch { }
-            try { DemoTestingWindow.CloseIfOpen(); } catch { }
-            try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
-            try { HeartbeatService.Stop(); } catch { }
-            try { Application.Current?.Shutdown(); } catch { }
-            Environment.Exit(0);
             return;
         }
 
@@ -641,7 +652,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
             lastDigit3PressTime = now;
         }
 
-        if (normKey == Key.Escape)
+        if (normKey == Key.Escape || normKey == Key.Multiply)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -650,7 +661,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 return;
             }
 
-            Close();
+            if (normKey == Key.Escape) Close();
+            e.Handled = true;
             return;
         }
 

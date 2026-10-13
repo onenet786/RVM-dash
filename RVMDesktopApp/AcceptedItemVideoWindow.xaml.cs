@@ -89,7 +89,7 @@ public partial class AcceptedItemVideoWindow : Window
     private void CelebrationPlayer_MediaEnded(object sender, RoutedEventArgs e) => Close();
     private void CelebrationPlayer_MediaFailed(object sender, ExceptionRoutedEventArgs e) => Close();
     private void SafetyTimer_Tick(object? sender, EventArgs e) => Close();
-    private void Window_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Escape) Close(); }
+    private void Window_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Escape || e.Key == Key.Multiply) Close(); }
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => Close();
 
     private void Window_Closed(object? sender, EventArgs e)

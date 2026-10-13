@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -27,6 +28,14 @@ public sealed class RvmMessageDialog : Window
         ResizeMode = ResizeMode.NoResize;
         WindowStyle = WindowStyle.SingleBorderWindow;
         Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)); // #0F172A Dark Slate
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape || e.Key == Key.Multiply)
+            {
+                e.Handled = true;
+                Close();
+            }
+        };
 
         var rootGrid = new Grid { Margin = new Thickness(0) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(60) });

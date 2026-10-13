@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace RVMDesktopApp;
 
@@ -18,6 +19,14 @@ public partial class AdminWindow : Window
     {
         InitializeComponent();
         Closed += AdminWindow_Closed;
+        PreviewKeyDown += (sender, e) =>
+        {
+            if (e.Key == Key.Escape || e.Key == Key.Multiply)
+            {
+                e.Handled = true;
+                Close();
+            }
+        };
         Loaded += async (sender, e) => {
             AttachHardwareDiagnostics();
             TxtServerUrl.Text = settings.CentralApiUrl;

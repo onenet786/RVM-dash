@@ -348,6 +348,11 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
     {
         RegisterUserActivity();
 
+        if (KioskNumpadHelper.HandleKioskKey(e, this))
+        {
+            return;
+        }
+
         // Testing Hotkey: Ctrl+I triggers idle expanded mode immediately
         if (e.Key == Key.I && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
@@ -537,7 +542,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
             lastDigit3PressTime = now;
         }
 
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape || e.Key == Key.Multiply)
         {
             if (TelemetryPanel.Visibility == Visibility.Visible)
             {
@@ -546,7 +551,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 return;
             }
 
-            Close();
+            if (e.Key == Key.Escape) Close();
             return;
         }
 

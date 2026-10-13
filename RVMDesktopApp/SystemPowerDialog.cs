@@ -182,7 +182,7 @@ public sealed class SystemPowerDialog : Window
                 e.Handled = true;
                 CloseWithChoice(true);
             }
-            else if (e.Key == Key.D0 || e.Key == Key.NumPad0 || e.Key == Key.Escape || e.Key == Key.N)
+            else if (e.Key == Key.D0 || e.Key == Key.NumPad0 || e.Key == Key.Escape || e.Key == Key.Multiply || e.Key == Key.N)
             {
                 e.Handled = true;
                 CloseWithChoice(false);

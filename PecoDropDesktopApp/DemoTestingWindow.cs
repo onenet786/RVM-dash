@@ -1071,6 +1071,7 @@ public sealed class DemoTestingWindow : Window
                 break;
 
             case Key.Escape:
+            case Key.Multiply:
                 Close();
                 e.Handled = true;
                 break;

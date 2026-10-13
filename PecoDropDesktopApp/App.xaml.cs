@@ -59,7 +59,7 @@ public partial class App : Application
         }
 
         base.OnStartup(e);
-        KioskNumpadHelper.EnsureNumLockOn();
+        KioskNumpadHelper.Initialize();
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;

@@ -219,6 +219,11 @@ public partial class SecondaryAdWindow : Window
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
+        if (KioskNumpadHelper.HandleKioskKey(e, this))
+        {
+            e.Handled = true;
+            return;
+        }
         var walletWindow = Application.Current?.Windows
             .OfType<WalletPhoneWindow>()
             .FirstOrDefault(window => window.IsVisible);

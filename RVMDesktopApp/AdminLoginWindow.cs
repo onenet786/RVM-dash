@@ -27,6 +27,15 @@ public sealed class AdminLoginWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A")); // Dark Slate
+        PreviewKeyDown += (sender, e) =>
+        {
+            if (e.Key == Key.Escape || e.Key == Key.Multiply)
+            {
+                e.Handled = true;
+                DialogResult = false;
+                Close();
+            }
+        };
 
         var rootGrid = new Grid { Margin = new Thickness(24) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header

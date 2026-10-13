@@ -302,7 +302,7 @@ public sealed class RatingFeedbackWindow : Window
             Submit();
             e.Handled = true;
         }
-        else if (e.Key == Key.Escape)
+        else if (e.Key == Key.Escape || e.Key == Key.Multiply)
         {
             Skip();
             e.Handled = true;
