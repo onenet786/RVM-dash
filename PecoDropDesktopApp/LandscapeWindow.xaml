@@ -387,7 +387,7 @@
                                         </Grid>
                                     </Border>
 
-                                    <!-- Aperture 2: CAN / METAL (🔺 Emerald Glow) -->
+                                    <!-- Aperture 2: CAN / METAL (🟩 Square Style - Emerald Glow) -->
                                     <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2" CornerRadius="14" Padding="10,10" MaxHeight="390" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernCanAperture_Click">
                                         <Grid>
                                             <Grid.RowDefinitions>
@@ -396,15 +396,16 @@
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1" CornerRadius="8" Padding="10,3" HorizontalAlignment="Center">
-                                                <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="10" FontWeight="Black" Foreground="#6EE7B7"/>
+                                                <TextBlock Text="APERTURE 2 • 🟩 SQUARE" FontSize="10" FontWeight="Black" Foreground="#6EE7B7"/>
                                             </Border>
                                             <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,6,0,6">
                                                 <Grid Width="165" Height="165" HorizontalAlignment="Center">
-                                                    <Border Width="165" Height="165" BorderBrush="#10B981" BorderThickness="4.5" CornerRadius="28" Background="#063321"/>
+                                                    <Rectangle Width="156" Height="156" RadiusX="22" RadiusY="22" Stroke="#10B981" StrokeThickness="4.5" Fill="#063321"/>
+                                                    <Rectangle Width="128" Height="128" RadiusX="14" RadiusY="14" Stroke="#6EE7B7" StrokeThickness="2" StrokeDashArray="3 3" Fill="Transparent"/>
                                                     <TextBlock Text="🥫" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Grid>
                                                 <TextBlock Text="BEVERAGE CANS" FontSize="15" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                                                <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="کین" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
                                             </StackPanel>
                                             <Border Grid.Row="2" Background="#063321" CornerRadius="5" Padding="8,3">
                                                 <TextBlock Text="Aluminum Cans • S / M / L" FontSize="9.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
@@ -676,7 +677,7 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Can (🔺 Triangle Style) -->
+                            <!-- Can (🟩 Square Style) -->
                             <Border x:Name="MetalCompartmentCard" Grid.Column="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1.5" CornerRadius="8" Padding="6,6" MinHeight="128" MaxHeight="144" VerticalAlignment="Top">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -685,15 +686,15 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
-                                    <!-- Header Row: Doubled 🔺 Triangle Icon Badge + Labels -->
+                                    <!-- Header Row: Doubled 🟩 Square Icon Badge + Labels -->
                                     <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,5">
                                         <Grid Width="34" Height="34" Margin="0,0,6,0" VerticalAlignment="Center">
-                                            <Polygon Points="17,2 32,31 2,31" Stroke="#10B981" StrokeThickness="2" Fill="#D1FAE5" StrokeLineJoin="Round"/>
-                                            <TextBlock Text="🥫" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,5,0,0"/>
+                                            <Rectangle Width="32" Height="32" RadiusX="7" RadiusY="7" Stroke="#10B981" StrokeThickness="2" Fill="#D1FAE5"/>
+                                            <TextBlock Text="🥫" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Grid>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="CAN" FontSize="11" FontWeight="Black" Foreground="#0369A1"/>
-                                            <TextBlock Text="🔺 TRIANGLE" FontSize="8.5" FontWeight="Bold" Foreground="#059669"/>
+                                            <TextBlock Text="🟩 SQUARE" FontSize="8.5" FontWeight="Bold" Foreground="#059669"/>
                                         </StackPanel>
                                     </StackPanel>
                                     <!-- S / M / L Counts -->
@@ -1289,7 +1290,7 @@
                                             </Grid>
                                         </Border>
 
-                                        <!-- Aperture 2: CAN / METAL (🔺 Emerald Glow) -->
+                                        <!-- Aperture 2: CAN / METAL (🟩 Square Style - Emerald Glow) -->
                                         <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2" CornerRadius="14" Padding="10,10" MaxHeight="390" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernCanAperture_Click">
                                             <Grid>
                                                 <Grid.RowDefinitions>
@@ -1298,15 +1299,16 @@
                                                 <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1" CornerRadius="8" Padding="10,3" HorizontalAlignment="Center">
-                                                    <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="10" FontWeight="Black" Foreground="#6EE7B7"/>
+                                                    <TextBlock Text="APERTURE 2 • 🟩 SQUARE" FontSize="10" FontWeight="Black" Foreground="#6EE7B7"/>
                                                 </Border>
                                                 <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,6,0,6">
                                                     <Grid Width="165" Height="165" HorizontalAlignment="Center">
-                                                        <Border Width="165" Height="165" BorderBrush="#10B981" BorderThickness="4.5" CornerRadius="28" Background="#063321"/>
+                                                        <Rectangle Width="156" Height="156" RadiusX="22" RadiusY="22" Stroke="#10B981" StrokeThickness="4.5" Fill="#063321"/>
+                                                        <Rectangle Width="128" Height="128" RadiusX="14" RadiusY="14" Stroke="#6EE7B7" StrokeThickness="2" StrokeDashArray="3 3" Fill="Transparent"/>
                                                         <TextBlock Text="🥫" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Grid>
                                                     <TextBlock Text="BEVERAGE CANS" FontSize="15" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                                                    <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="کین" FontFamily="{StaticResource UrduFont}" FontSize="16.5" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
                                                 </StackPanel>
                                                 <Border Grid.Row="2" Background="#063321" CornerRadius="5" Padding="8,3">
                                                     <TextBlock Text="Aluminum Cans • S / M / L" FontSize="9.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
