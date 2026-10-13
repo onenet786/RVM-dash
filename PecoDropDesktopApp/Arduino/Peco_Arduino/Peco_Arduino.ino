@@ -4,7 +4,7 @@
 #include <util/atomic.h>
 
 // Firmware build stamp with hardware WDT, high-speed sizing, and snappy iris timing.
-const char FIRMWARE_BUILD[] = "OPT-WDT-FASTCYCLE-20261005";
+const char FIRMWARE_BUILD[] = "OPT-PECO-CALIB-ROBUST-20261014";
 
 // Arduino Mega pin map:
 // Plastic: entrance ultrasonic 9/10, iris 11, drop gate 12,
@@ -36,7 +36,7 @@ const unsigned long BIN_BLOCK_MS = 500UL;
 const unsigned long BIN_CLEAR_MS = 2000UL;
 const unsigned long BIN_POWERUP_CLEAR_STABLE_MS = 750UL;
 const unsigned long BIN_POWERUP_SETTLE_TIMEOUT_MS = 2500UL;
-const unsigned long HOST_LEASE_TIMEOUT_MS = 5000UL;
+const unsigned long HOST_LEASE_TIMEOUT_MS = 8000UL;
 // MQ6 heater stabilization and filtering. The alarm must remain continuously
 // active before it is reported, preventing boot and electrical transients.
 const unsigned long MQ6_WARMUP_MS = 180000UL;
@@ -91,7 +91,8 @@ const byte REQUIRED_SIZE_CHANGES = 2;
 // from grazing the top/cap of a small container standing in the lower chamber.
 const int SIZING_BOTTOM_DETECTION_CHANGE_MM = 25;
 const int SIZING_UPPER_DETECTION_CHANGE_MM = 35;
-const unsigned long ARRIVAL_TIMEOUT_MS = 5000UL;
+const unsigned long ARRIVAL_TIMEOUT_MS = 2500UL;
+const unsigned long IRIS_MAX_OPEN_MS = 5000UL;
 // Snappy bottle settling time: reduced from 2000ms down to 650ms for instant sizing
 const unsigned long BOTTLE_SETTLE_MS = 650UL;
 const unsigned long CLEAR_TIMEOUT_MS = 5000UL;
@@ -469,7 +470,10 @@ void setupPaper() {
 }
 
 void setup() {
-  wdt_enable(WDTO_2S);
+  MCUSR = 0;
+  wdt_disable();
+  delay(50);
+  wdt_enable(WDTO_8S);
   Serial.begin(115200);
   Serial.print(F("FIRMWARE:")); Serial.println(FIRMWARE_BUILD);
   pinMode(PLASTIC_BIN_PIN, INPUT_PULLUP);
@@ -621,15 +625,13 @@ void processSizedItem(Compartment& c) {
   Serial.print(c.name); Serial.println(F(":WAITING_FOR_BOTTOM"));
   if (!waitForSizingItem(c)) {
     c.irisServo->write(irisClosedAngle(c));
-    if (cycleRunning()) {
-      failCompartment(c, "ARRIVAL_TIMEOUT");
-      Serial.print(F("ERROR:")); Serial.print(c.name); Serial.println(F("_ARRIVAL_TIMEOUT"));
-      Serial.print(c.name); Serial.println(F(":ARRIVAL_SENSOR_SNAPSHOT"));
-      readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin, c.bottomSizeEchoPin, c.bottomSizeEmptyMm);
-      readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin, c.middleSizeEchoPin, c.middleSizeEmptyMm);
-      readSizeLevel(c, "TOP", c.topSizeTrigPin, c.topSizeEchoPin, c.topSizeEmptyMm);
-    }
+    delay(150);
+    c.irisServo->detach();
+    Serial.print(c.name); Serial.println(F(":NO_ITEM_DROPPED"));
+    Serial.print(F("INTAKE:IDLE;COMPARTMENT:")); Serial.println(c.name);
     c.detectionCount = 0;
+    c.entranceClearCount = 0;
+    c.entranceArmed = false;
     return;
   }
   // The iris is already closed; allow the arriving container to settle snappy.
@@ -942,7 +944,7 @@ bool metalDetectedOnce() {
 bool waitForIrisClear(Compartment& c, unsigned long openedAt) {
   byte clearReadings = 0;
   unsigned long clearSince = 0;
-  while (true) {
+  while (millis() - openedAt < IRIS_MAX_OPEN_MS) {
     wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
@@ -963,6 +965,7 @@ bool waitForIrisClear(Compartment& c, unsigned long openedAt) {
         millis() - clearSince >= ENTRANCE_CLEAR_MS) return true;
     delay(10);
   }
+  return true; // Auto-close iris if user holds hand in aperture past max duration
 }
 
 void processPaper() {
@@ -973,8 +976,13 @@ void processPaper() {
   float grams = 0.0f;
   if (!waitForPaperWeight(grams)) {
     paper.irisServo->write(irisClosedAngle(paper));
-    if (cycleRunning()) failCompartment(paper, "WEIGHT_TIMEOUT");
+    delay(150);
+    paper.irisServo->detach();
+    Serial.println(F("PAPER:NO_ITEM_DROPPED"));
+    Serial.println(F("INTAKE:IDLE;COMPARTMENT:PAPER"));
     paper.detectionCount = 0;
+    paper.entranceClearCount = 0;
+    paper.entranceArmed = false;
     return;
   }
   handleSerial();
@@ -1116,30 +1124,66 @@ int readUltrasonicMm(byte trigPin, byte echoPin) {
 }
 
 int readStableUltrasonicMm(byte trigPin, byte echoPin, byte samples) {
-  long total = 0;
+  if (samples < 3) samples = 3;
+  int readings[5];
   byte valid = 0;
-  int nearest = MAX_DISTANCE_MM, farthest = 0;
-  for (byte i = 0; i < samples; i++) {
+  byte attempts = 0;
+  byte maxAttempts = samples + 3;
+
+  while (valid < samples && attempts < maxAttempts) {
     wdt_reset();
     handleSerial();
     if (calibrationCancelled) return -1;
+    attempts++;
     int distance = readUltrasonicMm(trigPin, echoPin);
-    if (distance > 0) {
-      total += distance;
-      valid++;
-      nearest = min(nearest, distance);
-      farthest = max(farthest, distance);
+    if (distance > 0 && distance <= MAX_DISTANCE_MM) {
+      readings[valid++] = distance;
     }
-    if (distance <= 0 || farthest - nearest > 20) {
-      Serial.print(F("ERROR:UNSTABLE_CALIBRATION_TRIG:")); Serial.println(trigPin);
-      return -1;
-    }
+    delay(15);
   }
-  if (samples == 0 || valid != samples || farthest - nearest > 20) {
-    Serial.print(F("ERROR:UNSTABLE_CALIBRATION_TRIG:")); Serial.println(trigPin);
+
+  if (valid < 2) {
+    Serial.print(F("ERROR:NO_ECHO_TRIG:")); Serial.println(trigPin);
     return -1;
   }
-  return (int)(total / valid);
+
+  // Insertion sort to evaluate reading spread and isolate noise spikes
+  for (byte i = 0; i < valid - 1; i++) {
+    for (byte j = i + 1; j < valid; j++) {
+      if (readings[i] > readings[j]) {
+        int temp = readings[i];
+        readings[i] = readings[j];
+        readings[j] = temp;
+      }
+    }
+  }
+
+  int nearest = readings[0];
+  int farthest = readings[valid - 1];
+
+  // 45mm tolerance accommodates acoustic drafts and USB rail ripple without false failure
+  if (farthest - nearest <= 45) {
+    long sum = 0;
+    for (byte i = 0; i < valid; i++) sum += readings[i];
+    return (int)(sum / valid);
+  }
+
+  // If 3+ samples and 1 outlier ping exists, check cluster without outlier
+  if (valid >= 3) {
+    if (readings[valid - 1] - readings[1] <= 35) {
+      long sum = 0;
+      for (byte i = 1; i < valid; i++) sum += readings[i];
+      return (int)(sum / (valid - 1));
+    }
+    if (readings[valid - 2] - readings[0] <= 35) {
+      long sum = 0;
+      for (byte i = 0; i < valid - 1; i++) sum += readings[i];
+      return (int)(sum / (valid - 1));
+    }
+  }
+
+  Serial.print(F("ERROR:UNSTABLE_CALIBRATION_TRIG:")); Serial.println(trigPin);
+  return -1;
 }
 
 bool waitForHx711Ready(unsigned long timeoutMs) {
@@ -1190,6 +1234,7 @@ bool readHx711Raw(long& raw) {
     __builtin_avr_delay_cycles(16);
   }
 
+  delayMicroseconds(10); // Allow DOUT pull-up line to settle after 25th clock pulse
   if (digitalRead(doutPin) != HIGH) {
     Serial.println(F("ERROR:HX711_DOUT_NOT_HIGH_AFTER_READ"));
     return false;
@@ -1236,6 +1281,7 @@ void calibrateAll() {
   calibrated = false;
   paperScaleReady = false;
   plastic.recovery = metal.recovery = paper.recovery = AutoRecovery();
+  lastHostAliveMs = millis();
 
   // Stabilize bin sensor INPUT_PULLUP lines before broadcasting initial status.
   // On hot-plug (cable inserted after software launch), the USB 5V rail and
@@ -1372,6 +1418,7 @@ void calibrateAll() {
   } else {
     Serial.println(F("ERROR:CALIBRATION_FAILED"));
   }
+  lastHostAliveMs = millis();
 }
 
 void makeSafe() {
@@ -1465,6 +1512,7 @@ bool executeServoTestCommand(char* cmd) {
 }
 
 void enforceHostLease() {
+  if (calibrating) return; // Never abort an active hardware calibration mid-cycle
   if (!hostOnline || millis() - lastHostAliveMs <= HOST_LEASE_TIMEOUT_MS) return;
   hostOnline = false;
   machineRunning = false;

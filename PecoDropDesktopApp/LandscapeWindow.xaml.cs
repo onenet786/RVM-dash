@@ -554,21 +554,41 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         Environment.Exit(0);
     }
 
+    private void RestoreAfterEmptyApertureTrigger()
+    {
+        scanTimer.Stop();
+        activeScanCompartment = null;
+        pendingBottleResult = null;
+        pendingBottlePoints = 0;
+
+        if (machineStarted)
+        {
+            SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+            StatusText.Text = "Ready";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "• Please insert Bottle / Can / Paper • آئٹم داخل کریں";
+            MachineStateText.Text = "MACHINE: RUNNING";
+            if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+            if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            SetDepositVisualState(KioskDepositVisualState.IdleVideo);
+            StartInstructionVideo();
+            StatusText.Text = "Ready";
+            StatusText.Foreground = Brushes.LimeGreen;
+            BottleInfoText.Text = "• Press 0 or Scan QR to start";
+            MachineStateText.Text = "MACHINE: IDLE";
+            if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+            if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
+        }
+    }
+
     private void ScanTimer_Tick(object? sender, EventArgs e)
     {
         scanTimer.Stop();
-
-        if (!machineStarted)
-        {
-            return;
-        }
-
-        StatusText.Text = "Scan Timeout";
-        StatusText.Foreground = Brushes.OrangeRed;
-        BottleInfoText.Text = "Remove bottle and try again";
-
-        if (serial.IsConnected)
-            serial.SendCommand("RESET");
+        RestoreAfterEmptyApertureTrigger();
+        LogTelemetry("[SCAN TIMER] Sizing timed out with no item dropped; restored view");
     }
 
     private int digit1PressCount = 0;
@@ -1830,9 +1850,16 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             if (HardwareErrorBanner != null) HardwareErrorBanner.Visibility = Visibility.Collapsed;
             LogTelemetry($"[HARDWARE] Connected on {targetPort} at {settings.ArduinoBaud} baud");
 
-            // Opening the port resets the Mega through DTR/RTS. Firmware setup()
-            // calibrates automatically, so do not race it with another command.
-            LogTelemetry("[HARDWARE] Waiting for automatic startup calibration");
+            // Allow Mega bootloader to finish startup (1.8s), then immediately initialize host lease and calibration
+            Task.Run(async () =>
+            {
+                await Task.Delay(1800);
+                if (serial.IsConnected && _hardwareCalibrating)
+                {
+                    serial.SendCommand("HOST:ALIVE");
+                    serial.SendCommand("HOST:START");
+                }
+            });
         }
         catch (Exception ex)
         {
@@ -1937,14 +1964,26 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
 
     private void TryRequestHardwareCalibration()
     {
-        if (!serial.IsConnected || !_hardwareCalibrating ||
-            _calibrationRequestAttempts >= MaxCalibrationRequestAttempts ||
-            DateTime.Now - _lastCalibrationRequest < CalibrationRetryInterval) return;
+        if (!serial.IsConnected || !_hardwareCalibrating) return;
 
+        var interval = _calibrationRequestAttempts >= MaxCalibrationRequestAttempts
+            ? TimeSpan.FromSeconds(15)
+            : CalibrationRetryInterval;
+
+        if (DateTime.Now - _lastCalibrationRequest < interval) return;
+
+        serial.SendCommand("HOST:ALIVE");
         serial.SendCommand("HOST:START");
         _lastCalibrationRequest = DateTime.Now;
-        _calibrationRequestAttempts++;
-        LogTelemetry($"[HARDWARE] Calibration request {_calibrationRequestAttempts}/{MaxCalibrationRequestAttempts}");
+        if (_calibrationRequestAttempts < MaxCalibrationRequestAttempts)
+        {
+            _calibrationRequestAttempts++;
+            LogTelemetry($"[HARDWARE] Calibration request {_calibrationRequestAttempts}/{MaxCalibrationRequestAttempts}");
+        }
+        else
+        {
+            LogTelemetry("[HARDWARE] Periodic calibration retry (heartbeat active)");
+        }
     }
 
     private void HandleHardwareDisconnected()
@@ -2624,7 +2663,18 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             }
 
             scanTimer.Stop();
+            scanTimer.Interval = TimeSpan.FromSeconds(6);
             scanTimer.Start();
+            return;
+        }
+
+        if (message.EndsWith(":NO_ITEM_DROPPED", StringComparison.OrdinalIgnoreCase) ||
+            message.StartsWith("INTAKE:IDLE", StringComparison.OrdinalIgnoreCase) ||
+            message.EndsWith("_ARRIVAL_TIMEOUT", StringComparison.OrdinalIgnoreCase) ||
+            message.EndsWith("_WEIGHT_TIMEOUT", StringComparison.OrdinalIgnoreCase))
+        {
+            RestoreAfterEmptyApertureTrigger();
+            LogTelemetry($"[INTAKE] Aperture closed with no item deposited: {message}");
             return;
         }
 
