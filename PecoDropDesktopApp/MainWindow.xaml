@@ -399,8 +399,8 @@
                                                 <TextBlock Text="Sensors active • Insert items one at a time into the corresponding illuminated aperture" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                                             </StackPanel>
 
-                                            <!-- 3 Doubled Illuminated Aperture Cards (Compact Height, Large 150px Icons) -->
-                                            <Grid Grid.Row="1" Margin="6,0" VerticalAlignment="Center" MaxHeight="320">
+                                            <!-- 3 Doubled Illuminated Aperture Cards (Height 480px, Large 165px Icons) -->
+                                            <Grid Grid.Row="1" Margin="6,0" VerticalAlignment="Center" MaxHeight="480">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="14"/>
@@ -410,79 +410,79 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Aperture 1: PLASTIC BOTTLE (⭕ Circle Style - Magenta Glow) -->
-                                                <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2.5" CornerRadius="16" Padding="10,8" MaxHeight="320" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPlasticAperture_Click">
+                                                <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPlasticAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
                                                             <RowDefinition Height="*"/>
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
-                                                        <Border Grid.Row="0" Background="#4C0519" BorderBrush="#FDA4AF" BorderThickness="1.5" CornerRadius="10" Padding="8,3" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 1 • ⭕ CIRCLE" FontSize="11" FontWeight="Black" Foreground="#FDA4AF"/>
+                                                        <Border Grid.Row="0" Background="#4C0519" BorderBrush="#FDA4AF" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
+                                                            <TextBlock Text="APERTURE 1 • ⭕ CIRCLE" FontSize="12" FontWeight="Black" Foreground="#FDA4AF"/>
                                                         </Border>
-                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,4">
-                                                            <Grid Width="150" Height="150" HorizontalAlignment="Center">
-                                                                <Ellipse Width="150" Height="150" Stroke="#E11D48" StrokeThickness="4" Fill="#2A0B18"/>
-                                                                <Ellipse Width="122" Height="122" Stroke="#FDA4AF" StrokeThickness="2" StrokeDashArray="3 3"/>
-                                                                <TextBlock Text="🧴" FontSize="66" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
+                                                            <Grid Width="165" Height="165" HorizontalAlignment="Center">
+                                                                <Ellipse Width="165" Height="165" Stroke="#E11D48" StrokeThickness="4.5" Fill="#2A0B18"/>
+                                                                <Ellipse Width="135" Height="135" Stroke="#FDA4AF" StrokeThickness="2" StrokeDashArray="3 3"/>
+                                                                <TextBlock Text="🧴" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Grid>
-                                                            <TextBlock Text="PLASTIC BOTTLES" FontSize="18" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,5,0,0"/>
-                                                            <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="18" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="PLASTIC BOTTLES" FontSize="20" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                            <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <Border Grid.Row="2" Background="#2A0B18" CornerRadius="6" Padding="6,3">
-                                                            <TextBlock Text="PET Bottles • S / M / L" FontSize="10.5" FontWeight="SemiBold" Foreground="#F43F5E" HorizontalAlignment="Center"/>
+                                                        <Border Grid.Row="2" Background="#2A0B18" CornerRadius="6" Padding="8,4">
+                                                            <TextBlock Text="PET Bottles • S / M / L" FontSize="11.5" FontWeight="SemiBold" Foreground="#F43F5E" HorizontalAlignment="Center"/>
                                                         </Border>
                                                     </Grid>
                                                 </Border>
 
                                                 <!-- Aperture 2: CAN / METAL (🔺 Triangle Style - Emerald Glow) -->
-                                                <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2.5" CornerRadius="16" Padding="10,8" MaxHeight="320" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitCanAperture_Click">
+                                                <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitCanAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
                                                             <RowDefinition Height="*"/>
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
-                                                        <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1.5" CornerRadius="10" Padding="8,3" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="11" FontWeight="Black" Foreground="#6EE7B7"/>
+                                                        <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
+                                                            <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="12" FontWeight="Black" Foreground="#6EE7B7"/>
                                                         </Border>
-                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,4">
-                                                            <Grid Width="150" Height="150" HorizontalAlignment="Center">
-                                                                <Polygon Points="75,8 144,142 6,142" Stroke="#10B981" StrokeThickness="4" Fill="#063321" StrokeLineJoin="Round"/>
-                                                                <Polygon Points="75,30 126,132 24,132" Stroke="#6EE7B7" StrokeThickness="2" StrokeDashArray="3 3" StrokeLineJoin="Round" Fill="Transparent"/>
-                                                                <TextBlock Text="🥫" FontSize="62" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,28,0,0"/>
+                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
+                                                            <Grid Width="165" Height="165" HorizontalAlignment="Center">
+                                                                <Polygon Points="82,8 158,156 6,156" Stroke="#10B981" StrokeThickness="4.5" Fill="#063321" StrokeLineJoin="Round"/>
+                                                                <Polygon Points="82,32 138,145 26,145" Stroke="#6EE7B7" StrokeThickness="2" StrokeDashArray="3 3" StrokeLineJoin="Round" Fill="Transparent"/>
+                                                                <TextBlock Text="🥫" FontSize="70" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,32,0,0"/>
                                                             </Grid>
-                                                            <TextBlock Text="BEVERAGE CANS" FontSize="18" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,5,0,0"/>
-                                                            <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="18" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="BEVERAGE CANS" FontSize="20" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                            <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <Border Grid.Row="2" Background="#063321" CornerRadius="6" Padding="6,3">
-                                                            <TextBlock Text="Aluminum Cans • S / M / L" FontSize="10.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                        <Border Grid.Row="2" Background="#063321" CornerRadius="6" Padding="8,4">
+                                                            <TextBlock Text="Aluminum Cans • S / M / L" FontSize="11.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
                                                         </Border>
                                                     </Grid>
                                                 </Border>
 
                                                 <!-- Aperture 3: PAPER & DOCUMENTS (🟦 Square Style - Cyan Glow) -->
-                                                <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2.5" CornerRadius="16" Padding="10,8" MaxHeight="320" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPaperAperture_Click">
+                                                <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2.5" CornerRadius="16" Padding="12,14" MaxHeight="480" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="PortraitPaperAperture_Click">
                                                     <Grid>
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition Height="Auto"/>
                                                             <RowDefinition Height="*"/>
                                                             <RowDefinition Height="Auto"/>
                                                         </Grid.RowDefinitions>
-                                                        <Border Grid.Row="0" Background="#0C3456" BorderBrush="#7DD3FC" BorderThickness="1.5" CornerRadius="10" Padding="8,3" HorizontalAlignment="Center">
-                                                            <TextBlock Text="APERTURE 3 • 🟦 SQUARE" FontSize="11" FontWeight="Black" Foreground="#7DD3FC"/>
+                                                        <Border Grid.Row="0" Background="#0C3456" BorderBrush="#7DD3FC" BorderThickness="1.5" CornerRadius="10" Padding="10,4" HorizontalAlignment="Center">
+                                                            <TextBlock Text="APERTURE 3 • 🟦 SQUARE" FontSize="12" FontWeight="Black" Foreground="#7DD3FC"/>
                                                         </Border>
-                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,4">
-                                                            <Grid Width="150" Height="150" HorizontalAlignment="Center">
-                                                                <Rectangle Width="142" Height="142" RadiusX="18" RadiusY="18" Stroke="#0284C7" StrokeThickness="4" Fill="#07253D"/>
-                                                                <Rectangle Width="116" Height="116" RadiusX="12" RadiusY="12" Stroke="#7DD3FC" StrokeThickness="2" StrokeDashArray="3 3" Fill="Transparent"/>
-                                                                <TextBlock Text="📄" FontSize="66" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,8,0,8">
+                                                            <Grid Width="165" Height="165" HorizontalAlignment="Center">
+                                                                <Rectangle Width="156" Height="156" RadiusX="20" RadiusY="20" Stroke="#0284C7" StrokeThickness="4.5" Fill="#07253D"/>
+                                                                <Rectangle Width="128" Height="128" RadiusX="14" RadiusY="14" Stroke="#7DD3FC" StrokeThickness="2" StrokeDashArray="3 3" Fill="Transparent"/>
+                                                                <TextBlock Text="📄" FontSize="74" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                             </Grid>
-                                                            <TextBlock Text="OFFICE PAPER" FontSize="18" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,5,0,0"/>
-                                                            <TextBlock Text="کاغذ اور دستاویزات" FontFamily="{StaticResource UrduFont}" FontSize="18" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="OFFICE PAPER" FontSize="20" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                                                            <TextBlock Text="کاغذ اور دستاویزات" FontFamily="{StaticResource UrduFont}" FontSize="20" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
                                                         </StackPanel>
-                                                        <Border Grid.Row="2" Background="#07253D" CornerRadius="6" Padding="6,3">
-                                                            <TextBlock Text="Weighed via Scale (Grams)" FontSize="10.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                                        <Border Grid.Row="2" Background="#07253D" CornerRadius="6" Padding="8,4">
+                                                            <TextBlock Text="Weighed via Scale (Grams)" FontSize="11.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
                                                         </Border>
                                                     </Grid>
                                                 </Border>
