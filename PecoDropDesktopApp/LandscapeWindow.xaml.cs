@@ -291,7 +291,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             if (_isPlayingAcceptedVideo)
             {
                 _isPlayingAcceptedVideo = false;
-                StartInstructionVideo();
+                if (machineStarted)
+                {
+                    SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+                }
+                else
+                {
+                    StartInstructionVideo();
+                }
             }
         };
 
@@ -1088,6 +1095,187 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         // No-op in LandscapeWindow; SecondaryAdWindow handles commercial signage loop
     }
 
+    public enum KioskDepositVisualState
+    {
+        IdleVideo,
+        WaitingForItems,
+        SizingContainer,
+        WeighingPaper,
+        AcceptedCelebration
+    }
+
+    private KioskDepositVisualState _currentDepositVisualState = KioskDepositVisualState.IdleVideo;
+
+    public void SetDepositVisualState(KioskDepositVisualState state, string? material = null, string? detail = null)
+    {
+        _currentDepositVisualState = state;
+        Dispatcher.Invoke(() =>
+        {
+            switch (state)
+            {
+                case KioskDepositVisualState.IdleVideo:
+                    if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    if (InstructionPlayer != null) InstructionPlayer.Visibility = Visibility.Visible;
+                    if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                    if (ModernIdleStartOverlay != null) ModernIdleStartOverlay.Visibility = Visibility.Visible;
+                    if (ClassicIdleStartOverlay != null) ClassicIdleStartOverlay.Visibility = Visibility.Visible;
+                    if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
+                    if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
+
+                    if (ModernActiveIntakeOverlay != null) ModernActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicActiveIntakeOverlay != null) ClassicActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernSizingOverlay != null) ModernSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicSizingOverlay != null) ClassicSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernWeighingOverlay != null) ModernWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicWeighingOverlay != null) ClassicWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernCelebrationOverlay != null) ModernCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicCelebrationOverlay != null) ClassicCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    break;
+
+                case KioskDepositVisualState.WaitingForItems:
+                    if (ModernInstructionPlayer != null)
+                    {
+                        ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+                        try { ModernInstructionPlayer.Pause(); } catch { }
+                    }
+                    if (InstructionPlayer != null)
+                    {
+                        InstructionPlayer.Visibility = Visibility.Collapsed;
+                        try { InstructionPlayer.Pause(); } catch { }
+                    }
+                    if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                    if (ModernIdleStartOverlay != null) ModernIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicIdleStartOverlay != null) ClassicIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
+                    if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+
+                    if (ModernActiveIntakeOverlay != null) ModernActiveIntakeOverlay.Visibility = Visibility.Visible;
+                    if (ClassicActiveIntakeOverlay != null) ClassicActiveIntakeOverlay.Visibility = Visibility.Visible;
+                    if (ModernSizingOverlay != null) ModernSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicSizingOverlay != null) ClassicSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernWeighingOverlay != null) ModernWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicWeighingOverlay != null) ClassicWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernCelebrationOverlay != null) ModernCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicCelebrationOverlay != null) ClassicCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    break;
+
+                case KioskDepositVisualState.SizingContainer:
+                    if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+                    if (InstructionPlayer != null) InstructionPlayer.Visibility = Visibility.Collapsed;
+                    if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                    if (ModernIdleStartOverlay != null) ModernIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicIdleStartOverlay != null) ClassicIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
+                    if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+                    if (ModernActiveIntakeOverlay != null) ModernActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicActiveIntakeOverlay != null) ClassicActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+
+                    string matUpper = (material ?? "CONTAINER").ToUpperInvariant();
+                    bool isCan = matUpper.Contains("CAN") || matUpper.Contains("METAL") || matUpper.Contains("ALUMINIUM");
+                    string label = isCan ? "🥫 BEVERAGE CAN DETECTED" : "🧴 PLASTIC BOTTLE DETECTED";
+                    string desc = !string.IsNullOrWhiteSpace(detail) ? detail : isCan ? "Measuring can height, diameter & verifying metal conductivity" : "Measuring bottle dimensions & optical transparency";
+
+                    if (ModernSizingMaterialLabel != null) ModernSizingMaterialLabel.Text = label;
+                    if (ClassicSizingMaterialLabel != null) ClassicSizingMaterialLabel.Text = label;
+                    if (ModernSizingDetailText != null) ModernSizingDetailText.Text = desc;
+                    if (ClassicSizingDetailText != null) ClassicSizingDetailText.Text = desc;
+
+                    if (ModernSizingOverlay != null) ModernSizingOverlay.Visibility = Visibility.Visible;
+                    if (ClassicSizingOverlay != null) ClassicSizingOverlay.Visibility = Visibility.Visible;
+                    if (ModernWeighingOverlay != null) ModernWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicWeighingOverlay != null) ClassicWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernCelebrationOverlay != null) ModernCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicCelebrationOverlay != null) ClassicCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    break;
+
+                case KioskDepositVisualState.WeighingPaper:
+                    if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+                    if (InstructionPlayer != null) InstructionPlayer.Visibility = Visibility.Collapsed;
+                    if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                    if (ModernIdleStartOverlay != null) ModernIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicIdleStartOverlay != null) ClassicIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
+                    if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+                    if (ModernActiveIntakeOverlay != null) ModernActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicActiveIntakeOverlay != null) ClassicActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernSizingOverlay != null) ModernSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicSizingOverlay != null) ClassicSizingOverlay.Visibility = Visibility.Collapsed;
+
+                    string weighDesc = !string.IsNullOrWhiteSpace(detail) ? detail : "HX711 digital load cell measuring paper weight in grams";
+                    if (ModernWeighingDetailText != null) ModernWeighingDetailText.Text = weighDesc;
+                    if (ClassicWeighingDetailText != null) ClassicWeighingDetailText.Text = weighDesc;
+
+                    if (ModernWeighingOverlay != null) ModernWeighingOverlay.Visibility = Visibility.Visible;
+                    if (ClassicWeighingOverlay != null) ClassicWeighingOverlay.Visibility = Visibility.Visible;
+                    if (ModernCelebrationOverlay != null) ModernCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicCelebrationOverlay != null) ClassicCelebrationOverlay.Visibility = Visibility.Collapsed;
+                    break;
+
+                case KioskDepositVisualState.AcceptedCelebration:
+                    if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Visible;
+                    if (InstructionPlayer != null) InstructionPlayer.Visibility = Visibility.Visible;
+                    if (InstructionPlaceholder != null) InstructionPlaceholder.Visibility = Visibility.Collapsed;
+                    if (ModernIdleStartOverlay != null) ModernIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicIdleStartOverlay != null) ClassicIdleStartOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Collapsed;
+                    if (StartQrCard != null) StartQrCard.Visibility = Visibility.Collapsed;
+                    if (ModernActiveIntakeOverlay != null) ModernActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicActiveIntakeOverlay != null) ClassicActiveIntakeOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernSizingOverlay != null) ModernSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicSizingOverlay != null) ClassicSizingOverlay.Visibility = Visibility.Collapsed;
+                    if (ModernWeighingOverlay != null) ModernWeighingOverlay.Visibility = Visibility.Collapsed;
+                    if (ClassicWeighingOverlay != null) ClassicWeighingOverlay.Visibility = Visibility.Collapsed;
+
+                    string celebMat = material ?? "Container";
+                    if (ModernCelebrationSubtext != null) ModernCelebrationSubtext.Text = $"Accepted {celebMat} • Points Credited to Session";
+                    if (ClassicCelebrationSubtext != null) ClassicCelebrationSubtext.Text = $"Accepted {celebMat} • Points Credited to Session";
+
+                    if (ModernCelebrationOverlay != null) ModernCelebrationOverlay.Visibility = Visibility.Visible;
+                    if (ClassicCelebrationOverlay != null) ClassicCelebrationOverlay.Visibility = Visibility.Visible;
+                    break;
+            }
+        });
+    }
+
+    private void ModernPlasticAperture_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Plastic Aperture clicked");
+        if (IsDemoMode)
+        {
+            SimulateItemDeposit("PLASTIC", "MEDIUM", true);
+        }
+        else
+        {
+            ShowLayoutToast("⭕ Aperture 1 active: Please deposit Plastic PET Bottle");
+        }
+    }
+
+    private void ModernCanAperture_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Can Aperture clicked");
+        if (IsDemoMode)
+        {
+            SimulateItemDeposit("CAN", "MEDIUM", true);
+        }
+        else
+        {
+            ShowLayoutToast("🔺 Aperture 2 active: Please deposit Beverage Can");
+        }
+    }
+
+    private void ModernPaperAperture_Click(object sender, MouseButtonEventArgs e)
+    {
+        LogTelemetry("[CLICK] Paper Aperture clicked");
+        if (IsDemoMode)
+        {
+            SimulateItemDeposit("PAPER", "MEDIUM", true, weightKg: 0.150);
+        }
+        else
+        {
+            ShowLayoutToast("🟦 Aperture 3 active: Please place Paper on the load cell");
+        }
+    }
+
     private void StartInstructionVideo()
     {
         try
@@ -1122,6 +1310,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 InstructionPlaceholder.Visibility = Visibility.Visible;
                 InstructionPlayer.Visibility = Visibility.Collapsed;
                 if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+                SetDepositVisualState(KioskDepositVisualState.IdleVideo);
                 return;
             }
 
@@ -1138,6 +1327,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 ModernInstructionPlayer.Play();
             }
 
+            SetDepositVisualState(KioskDepositVisualState.IdleVideo);
             LogTelemetry($"[VIDEO] Instruction video loaded: {Path.GetFileName(path)}");
         }
         catch (Exception ex)
@@ -1146,6 +1336,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             InstructionPlaceholder.Visibility = Visibility.Visible;
             InstructionPlayer.Visibility = Visibility.Collapsed;
             if (ModernInstructionPlayer != null) ModernInstructionPlayer.Visibility = Visibility.Collapsed;
+            SetDepositVisualState(KioskDepositVisualState.IdleVideo);
         }
     }
 
@@ -1181,6 +1372,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         if (!File.Exists(path))
         {
             LogTelemetry($"[ACCEPTED VIDEO] Celebration video not found: {fileName}");
+            SetDepositVisualState(KioskDepositVisualState.AcceptedCelebration, material);
             return;
         }
 
@@ -1203,6 +1395,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 ModernInstructionPlayer.Play();
             }
 
+            SetDepositVisualState(KioskDepositVisualState.AcceptedCelebration, material);
+
             _acceptedVideoTimer.Stop();
             _acceptedVideoTimer.Interval = TimeSpan.FromSeconds(5.5);
             _acceptedVideoTimer.Start();
@@ -1213,6 +1407,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             LogTelemetry($"[ACCEPTED VIDEO ERROR] {ex.Message}");
             _isPlayingAcceptedVideo = false;
+            if (machineStarted)
+            {
+                SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+            }
+            else
+            {
+                StartInstructionVideo();
+            }
         }
     }
 
@@ -1222,7 +1424,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             _isPlayingAcceptedVideo = false;
             _acceptedVideoTimer.Stop();
-            StartInstructionVideo();
+            if (machineStarted)
+            {
+                SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+            }
+            else
+            {
+                StartInstructionVideo();
+            }
             return;
         }
 
@@ -1250,7 +1459,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             _isPlayingAcceptedVideo = false;
             _acceptedVideoTimer.Stop();
-            StartInstructionVideo();
+            if (machineStarted)
+            {
+                SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+            }
+            else
+            {
+                StartInstructionVideo();
+            }
             return;
         }
 
@@ -1917,6 +2133,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
 
         machineStarted = true;
         scanTimer.Stop();
+        SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
         if (string.IsNullOrWhiteSpace(activeUserMobile))
         {
             _startHandshakeTimer.Stop();
@@ -1973,8 +2190,8 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             _isPlayingAcceptedVideo = false;
             _acceptedVideoTimer.Stop();
-            StartInstructionVideo();
         }
+        StartInstructionVideo();
         if (StartQrCard != null) StartQrCard.Visibility = Visibility.Visible;
         if (ModernStartQrCard != null) ModernStartQrCard.Visibility = Visibility.Visible;
         if (UserGreetingBanner != null) UserGreetingBanner.Visibility = Visibility.Collapsed;
@@ -2020,6 +2237,15 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             return false;
         }
 
+        if (matUpper == "PAPER")
+        {
+            SetDepositVisualState(KioskDepositVisualState.WeighingPaper, matUpper);
+        }
+        else
+        {
+            SetDepositVisualState(KioskDepositVisualState.SizingContainer, matUpper);
+        }
+
         if (!accept)
         {
             rejectedCount++;
@@ -2032,6 +2258,17 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             LogTelemetry($"[DEMO REJECT] Size={sizeUpper} Material={matUpper}");
             SaveTransaction(new BottleResult { Material = matUpper, Size = sizeUpper, WeightKg = 0 }, 0, false);
             SimulatorStateChanged?.Invoke();
+
+            _ = Task.Delay(2000).ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (machineStarted && !_isPlayingAcceptedVideo)
+                    {
+                        SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+                    }
+                });
+            });
             return true;
         }
 
@@ -2062,8 +2299,18 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
 
         LogTelemetry($"[DEMO ACCEPT] Size={result.Size} Material={result.Material} Points={points} Total={totalPoints}");
         SaveTransaction(result, points, true);
-        PlayAcceptedVideo(result.Material);
-        try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+
+        var demoCelebrationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(650) };
+        demoCelebrationTimer.Tick += (s, ev) =>
+        {
+            demoCelebrationTimer.Stop();
+            if (machineStarted)
+            {
+                PlayAcceptedVideo(result.Material);
+                try { AcceptedItemVideoWindow.CloseIfOpen(); } catch { }
+            }
+        };
+        demoCelebrationTimer.Start();
 
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
@@ -2232,6 +2479,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             StatusText.Text = "Machine Started";
             StatusText.Foreground = Brushes.LimeGreen;
             MachineStateText.Text = "MACHINE: RUNNING";
+            SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
             return;
         }
 
@@ -2252,6 +2500,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 }
             }
             machineStarted = false;
+            StartInstructionVideo();
             StatusText.Text = "Ready";
             StatusText.Foreground = Brushes.LimeGreen;
             BottleInfoText.Text = "• Insert container";
@@ -2270,11 +2519,26 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             pendingBottlePoints = 0;
             StatusText.Text = "Scanning...";
             StatusText.Foreground = Brushes.Gold;
-            BottleInfoText.Text = message.StartsWith("PAPER:", StringComparison.OrdinalIgnoreCase)
+            bool isPaper = message.StartsWith("PAPER:", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(activeScanCompartment, "PAPER", StringComparison.OrdinalIgnoreCase);
+            bool isMetal = message.StartsWith("METAL:", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(activeScanCompartment, "METAL", StringComparison.OrdinalIgnoreCase);
+
+            BottleInfoText.Text = isPaper
                 ? "Paper detected — preparing scale"
-                : message.StartsWith("METAL:", StringComparison.OrdinalIgnoreCase)
+                : isMetal
                     ? "Can detected — verifying metal"
                     : "Plastic bottle detected";
+
+            if (isPaper)
+            {
+                SetDepositVisualState(KioskDepositVisualState.WeighingPaper, "PAPER");
+            }
+            else
+            {
+                SetDepositVisualState(KioskDepositVisualState.SizingContainer, isMetal ? "CAN" : "PLASTIC");
+            }
+
             scanTimer.Stop();
             scanTimer.Start();
             return;
@@ -2285,6 +2549,14 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             StatusText.Text = "Item held for scan";
             StatusText.Foreground = Brushes.Gold;
             BottleInfoText.Text = "Measuring item";
+            if (string.Equals(activeScanCompartment, "PAPER", StringComparison.OrdinalIgnoreCase))
+            {
+                SetDepositVisualState(KioskDepositVisualState.WeighingPaper, "PAPER");
+            }
+            else
+            {
+                SetDepositVisualState(KioskDepositVisualState.SizingContainer, activeScanCompartment ?? "CONTAINER");
+            }
             scanTimer.Stop();
             scanTimer.Start();
             return;
@@ -2327,6 +2599,10 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
             BottleInfoText.Text = "Insert the next item";
             MachineStateText.Text = "MACHINE: RUNNING";
             LogTelemetry("[SAFETY] Blockage cleared; scanner re-enabled");
+            if (machineStarted && !_isPlayingAcceptedVideo)
+            {
+                SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+            }
             return;
         }
 
@@ -2463,6 +2739,17 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
 
             LogTelemetry($"[REJECT] Size={result.Size} Material={result.Material}");
             SaveTransaction(result, 0, false);
+
+            _ = Task.Delay(2500).ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (machineStarted && !_isPlayingAcceptedVideo)
+                    {
+                        SetDepositVisualState(KioskDepositVisualState.WaitingForItems);
+                    }
+                });
+            });
             return;
         }
 

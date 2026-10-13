@@ -307,6 +307,256 @@
                                 <TextBlock Text="اسکین کریں اور شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="12.5" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Border>
+
+                        <!-- Classic Idle Start Prompt Overlay: "PRESS 0 TO START" -->
+                        <Border x:Name="ClassicIdleStartOverlay" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,14" Background="#DD064E3B" BorderBrush="#34D399" BorderThickness="2" CornerRadius="28" Padding="20,8" Panel.ZIndex="15" Cursor="Hand" MouseLeftButtonUp="StartButton_Click" Effect="{StaticResource CardShadow}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Width="34" Height="34" CornerRadius="17" Background="#10B981" Margin="0,0,12,0" BorderBrush="#FFFFFF" BorderThickness="1.5">
+                                    <TextBlock Text="0" FontSize="17" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="PRESS " FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="[0]" FontSize="14.5" FontWeight="Black" Foreground="#34D399"/>
+                                        <TextBlock Text=" TO START RECYCLING" FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text=" • شروع کرنے کے لیے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="14.5" FontWeight="Bold" Foreground="#86EFAC" Margin="4,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Or touch screen / scan touchless QR to begin session" FontSize="9" FontWeight="SemiBold" Foreground="#D1FAE5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Classic Active Intake Overlay: "PLEASE INSERT BOTTLE / CAN / PAPER" (3 Illuminated Apertures) -->
+                        <Border x:Name="ClassicActiveIntakeOverlay" Visibility="Collapsed" Panel.ZIndex="20" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid Margin="16,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Top Header -->
+                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,6">
+                                    <Border Background="#064E3B" BorderBrush="#34D399" BorderThickness="1.5" CornerRadius="14" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Ellipse Width="7" Height="7" Fill="#4ADE80" Margin="0,0,5,0"/>
+                                            <TextBlock Text="SESSION ACTIVE • INTAKE GATES READY" FontSize="9" FontWeight="Black" Foreground="#86EFAC"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="PLEASE INSERT BOTTLE / CAN / PAPER" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#34D399"/>
+                                        <TextBlock Text="براہ کرم بوتل ، کین ، یا کاغذ داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#34D399"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Sensors active • Insert items one at a time into the corresponding illuminated aperture" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <!-- 3 Illuminated Aperture Cards -->
+                                <Grid Grid.Row="1" Margin="6,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Aperture 1: PLASTIC BOTTLE (⭕ Magenta Glow) -->
+                                    <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernPlasticAperture_Click">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Background="#4C0519" BorderBrush="#FDA4AF" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                <TextBlock Text="APERTURE 1 • ⭕ CIRCLE" FontSize="8" FontWeight="Black" Foreground="#FDA4AF"/>
+                                            </Border>
+                                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Grid HorizontalAlignment="Center">
+                                                    <Ellipse Width="62" Height="62" Stroke="#E11D48" StrokeThickness="3" Fill="#2A0B18"/>
+                                                    <Ellipse Width="50" Height="50" Stroke="#FDA4AF" StrokeThickness="1.2" StrokeDashArray="2 2"/>
+                                                    <TextBlock Text="🧴" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <TextBlock Text="PLASTIC BOTTLES" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <Border Grid.Row="2" Background="#2A0B18" CornerRadius="4" Padding="4,2">
+                                                <TextBlock Text="PET Bottles • S / M / L" FontSize="7.5" FontWeight="SemiBold" Foreground="#F43F5E" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Aperture 2: CAN / METAL (🔺 Emerald Glow) -->
+                                    <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernCanAperture_Click">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="8" FontWeight="Black" Foreground="#6EE7B7"/>
+                                            </Border>
+                                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Grid HorizontalAlignment="Center">
+                                                    <Border Width="62" Height="62" BorderBrush="#10B981" BorderThickness="3" CornerRadius="12" Background="#063321"/>
+                                                    <TextBlock Text="🥫" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <TextBlock Text="BEVERAGE CANS" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <Border Grid.Row="2" Background="#063321" CornerRadius="4" Padding="4,2">
+                                                <TextBlock Text="Aluminum Cans • S / M / L" FontSize="7.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Aperture 3: PAPER & DOCUMENTS (🟦 Cyan Glow) -->
+                                    <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernPaperAperture_Click">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="*"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Border Grid.Row="0" Background="#0C3456" BorderBrush="#7DD3FC" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                <TextBlock Text="APERTURE 3 • 🟦 SQUARE" FontSize="8" FontWeight="Black" Foreground="#7DD3FC"/>
+                                            </Border>
+                                            <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Grid HorizontalAlignment="Center">
+                                                    <Border Width="62" Height="62" BorderBrush="#0284C7" BorderThickness="3" CornerRadius="6" Background="#07253D"/>
+                                                    <TextBlock Text="📄" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                                <TextBlock Text="OFFICE PAPER" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                <TextBlock Text="کاغذ اور دستاویزات" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            <Border Grid.Row="2" Background="#07253D" CornerRadius="4" Padding="4,2">
+                                                <TextBlock Text="Weighed via Scale (Grams)" FontSize="7.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Bottom Guidance Strip -->
+                                <Border Grid.Row="2" Background="#11221B" BorderBrush="#1F3E30" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                    <TextBlock Text="🟢 Intake Apertures Ready • Press [ENTER] to complete session &amp; claim points" FontSize="9" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Classic Sizing Overlay: Shown When Bottle or Can Inserted -->
+                        <Border x:Name="ClassicSizingOverlay" Visibility="Collapsed" Panel.ZIndex="21" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid Margin="18,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,5">
+                                    <Border Background="#78350F" BorderBrush="#FBBF24" BorderThickness="1.5" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="📐" FontSize="11" Margin="0,0,6,0"/>
+                                            <TextBlock Text="OPTICAL SIZING CHAMBER" FontSize="9" FontWeight="Black" Foreground="#FDE68A"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="SIZING CONTAINER IN PROGRESS..." FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#F59E0B"/>
+                                        <TextBlock Text="سائز کی پیمائش جاری ہے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#FBBF24"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ClassicSizingDetailText" Text="Optical laser sensors measuring container dimensions and verifying material" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Background="#0F241C" BorderBrush="#10B981" BorderThickness="1.5" CornerRadius="12" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,12,0">
+                                            <TextBlock Text="▲" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                            <Border Width="2" Height="50" Background="#34D399" HorizontalAlignment="Center" Margin="0,2"/>
+                                            <TextBlock Text="▼" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="HEIGHT" FontSize="7" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border Width="68" Height="68" CornerRadius="34" Background="#064E3B" BorderBrush="#34D399" BorderThickness="2" HorizontalAlignment="Center">
+                                                <TextBlock Text="📐" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock x:Name="ClassicSizingMaterialLabel" Text="CONTAINER DETECTED" FontSize="11.5" FontWeight="Black" Foreground="#FBBF24" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                            <ProgressBar Height="5" Width="160" IsIndeterminate="True" Foreground="#10B981" Background="#064E3B" BorderThickness="0" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Analyzing Small (S) • Medium (M) • Large (L)" FontSize="8" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="12,0,0,0">
+                                            <TextBlock Text="◄" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                            <Border Width="30" Height="2" Background="#34D399" HorizontalAlignment="Center" Margin="0,25"/>
+                                            <TextBlock Text="►" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="DIAMETER" FontSize="7" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Row="2" Background="#11221B" BorderBrush="#1F3E30" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                    <TextBlock Text="⏳ Please keep hands away from the intake aperture while measuring" FontSize="8.5" FontWeight="Bold" Foreground="#FDE68A" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Classic Weighing Overlay: Shown When Paper Inserted -->
+                        <Border x:Name="ClassicWeighingOverlay" Visibility="Collapsed" Panel.ZIndex="21" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                            <Grid Margin="18,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,5">
+                                    <Border Background="#0C3456" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="⚖️" FontSize="11" Margin="0,0,6,0"/>
+                                            <TextBlock Text="LOAD CELL SCALE ACTIVE" FontSize="9" FontWeight="Black" Foreground="#7DD3FC"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="WEIGHING PAPER IN PROGRESS..." FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#38BDF8"/>
+                                        <TextBlock Text="کاغذ کا وزن معلوم کیا جا رہا ہے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#7DD3FC"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ClassicWeighingDetailText" Text="HX711 digital load cell measuring paper mass in grams" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <Border Grid.Row="1" Background="#081826" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="12" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Border Width="68" Height="68" CornerRadius="34" Background="#0C3456" BorderBrush="#38BDF8" BorderThickness="2" HorizontalAlignment="Center">
+                                            <TextBlock Text="⚖️" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock x:Name="ClassicWeighingValueLabel" Text="MEASURING MASS IN GRAMS..." FontSize="11.5" FontWeight="Black" Foreground="#7DD3FC" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                        <ProgressBar Height="5" Width="160" IsIndeterminate="True" Foreground="#38BDF8" Background="#0C3456" BorderThickness="0" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Stabilizing reading • High-Precision Gram Scale" FontSize="8" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Row="2" Background="#0B1A24" BorderBrush="#163248" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                    <TextBlock Text="⏳ Please leave paper on the scale until measurement stabilizes" FontSize="8.5" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <!-- Classic Celebration Video Overlay: Shown Over Celebration Video -->
+                        <Border x:Name="ClassicCelebrationOverlay" Visibility="Collapsed" Panel.ZIndex="22" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,10,0,0" Background="#DD064E3B" BorderBrush="#4ADE80" BorderThickness="2" CornerRadius="18" Padding="16,5" Effect="{StaticResource CardShadow}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🎉" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="ITEM ACCEPTED! • " FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                        <TextBlock Text="آئٹم قبول کر لیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Black" Foreground="#86EFAC"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ClassicCelebrationSubtext" Text="Points credited to your session • Ready for next item" FontSize="8" FontWeight="Bold" Foreground="#D1FAE5"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </Grid>
                 </Border>
 
@@ -874,7 +1124,7 @@
                             <!-- 2. Embedded Video Player: Shows and plays instructional video seamlessly when active -->
                             <MediaElement x:Name="ModernInstructionPlayer" LoadedBehavior="Manual" UnloadedBehavior="Stop" Stretch="Uniform" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Collapsed" MediaEnded="InstructionPlayer_MediaEnded" MediaFailed="InstructionPlayer_MediaFailed"/>
 
-                            <!-- 3. Dynamic Touchless QR Card Overlay (Right Side) -->
+                            <!-- 3. Dynamic Touchless QR Card Overlay (Right Side on Idle) -->
                             <Border x:Name="ModernStartQrCard" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0" Background="#FFFFFF" BorderBrush="#15803D" BorderThickness="2" CornerRadius="14" Padding="10,8" Effect="{StaticResource CardShadow}" Panel.ZIndex="12" Cursor="Hand" MouseLeftButtonUp="ModernStartRecycling_Click">
                                 <StackPanel HorizontalAlignment="Center" Width="190">
                                     <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="6" Padding="6,2" Margin="0,0,0,5" HorizontalAlignment="Center">
@@ -885,6 +1135,256 @@
                                     </Border>
                                     <TextBlock Text="اسکین کریں" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Bold" Foreground="#15803D" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                     <TextBlock Text="اور شروع کریں" FontFamily="{StaticResource UrduFont}" FontSize="11.5" FontWeight="Bold" Foreground="#073B28" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 4. Idle Start Prompt Overlay: "PRESS 0 TO START" -->
+                            <Border x:Name="ModernIdleStartOverlay" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,14" Background="#DD064E3B" BorderBrush="#34D399" BorderThickness="2" CornerRadius="28" Padding="20,8" Panel.ZIndex="15" Cursor="Hand" MouseLeftButtonUp="ModernStartRecycling_Click" Effect="{StaticResource CardShadow}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Width="34" Height="34" CornerRadius="17" Background="#10B981" Margin="0,0,12,0" BorderBrush="#FFFFFF" BorderThickness="1.5">
+                                        <TextBlock Text="0" FontSize="17" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="PRESS " FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text="[0]" FontSize="14.5" FontWeight="Black" Foreground="#34D399"/>
+                                            <TextBlock Text=" TO START RECYCLING" FontSize="13.5" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text=" • شروع کرنے کے لیے 0 دبائیں" FontFamily="{StaticResource UrduFont}" FontSize="14.5" FontWeight="Bold" Foreground="#86EFAC" Margin="4,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Or touch screen / scan touchless QR to begin session" FontSize="9" FontWeight="SemiBold" Foreground="#D1FAE5"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 5. Active Intake Overlay: "PLEASE INSERT BOTTLE / CAN / PAPER" (3 Illuminated Apertures) -->
+                            <Border x:Name="ModernActiveIntakeOverlay" Visibility="Collapsed" Panel.ZIndex="20" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Grid Margin="16,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Top Header -->
+                                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,6">
+                                        <Border Background="#064E3B" BorderBrush="#34D399" BorderThickness="1.5" CornerRadius="14" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="7" Height="7" Fill="#4ADE80" Margin="0,0,5,0"/>
+                                                <TextBlock Text="SESSION ACTIVE • INTAKE GATES READY" FontSize="9" FontWeight="Black" Foreground="#86EFAC"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="PLEASE INSERT BOTTLE / CAN / PAPER" FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#34D399"/>
+                                            <TextBlock Text="براہ کرم بوتل ، کین ، یا کاغذ داخل کریں" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#34D399"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Sensors active • Insert items one at a time into the corresponding illuminated aperture" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- 3 Illuminated Aperture Cards -->
+                                    <Grid Grid.Row="1" Margin="6,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="10"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Aperture 1: PLASTIC BOTTLE (⭕ Magenta Glow) -->
+                                        <Border Grid.Column="0" Background="#180C14" BorderBrush="#E11D48" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernPlasticAperture_Click">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="0" Background="#4C0519" BorderBrush="#FDA4AF" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                    <TextBlock Text="APERTURE 1 • ⭕ CIRCLE" FontSize="8" FontWeight="Black" Foreground="#FDA4AF"/>
+                                                </Border>
+                                                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid HorizontalAlignment="Center">
+                                                        <Ellipse Width="62" Height="62" Stroke="#E11D48" StrokeThickness="3" Fill="#2A0B18"/>
+                                                        <Ellipse Width="50" Height="50" Stroke="#FDA4AF" StrokeThickness="1.2" StrokeDashArray="2 2"/>
+                                                        <TextBlock Text="🧴" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="PLASTIC BOTTLES" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="پلاسٹک کی بوتل" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#FDA4AF" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border Grid.Row="2" Background="#2A0B18" CornerRadius="4" Padding="4,2">
+                                                    <TextBlock Text="PET Bottles • S / M / L" FontSize="7.5" FontWeight="SemiBold" Foreground="#F43F5E" HorizontalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Aperture 2: CAN / METAL (🔺 Emerald Glow) -->
+                                        <Border Grid.Column="2" Background="#0A1D13" BorderBrush="#10B981" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernCanAperture_Click">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="0" Background="#064E3B" BorderBrush="#6EE7B7" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                    <TextBlock Text="APERTURE 2 • 🔺 TRIANGLE" FontSize="8" FontWeight="Black" Foreground="#6EE7B7"/>
+                                                </Border>
+                                                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid HorizontalAlignment="Center">
+                                                        <Border Width="62" Height="62" BorderBrush="#10B981" BorderThickness="3" CornerRadius="12" Background="#063321"/>
+                                                        <TextBlock Text="🥫" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="BEVERAGE CANS" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="دھاتی کین" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#6EE7B7" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border Grid.Row="2" Background="#063321" CornerRadius="4" Padding="4,2">
+                                                    <TextBlock Text="Aluminum Cans • S / M / L" FontSize="7.5" FontWeight="SemiBold" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Aperture 3: PAPER & DOCUMENTS (🟦 Cyan Glow) -->
+                                        <Border Grid.Column="4" Background="#081826" BorderBrush="#0284C7" BorderThickness="2" CornerRadius="12" Padding="8,6" Effect="{StaticResource CardShadow}" Cursor="Hand" MouseLeftButtonUp="ModernPaperAperture_Click">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="0" Background="#0C3456" BorderBrush="#7DD3FC" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                    <TextBlock Text="APERTURE 3 • 🟦 SQUARE" FontSize="8" FontWeight="Black" Foreground="#7DD3FC"/>
+                                                </Border>
+                                                <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <Grid HorizontalAlignment="Center">
+                                                        <Border Width="62" Height="62" BorderBrush="#0284C7" BorderThickness="3" CornerRadius="6" Background="#07253D"/>
+                                                        <TextBlock Text="📄" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <TextBlock Text="OFFICE PAPER" FontSize="11.5" FontWeight="Black" Foreground="#FFFFFF" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                                    <TextBlock Text="کاغذ اور دستاویزات" FontFamily="{StaticResource UrduFont}" FontSize="12" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border Grid.Row="2" Background="#07253D" CornerRadius="4" Padding="4,2">
+                                                    <TextBlock Text="Weighed via Scale (Grams)" FontSize="7.5" FontWeight="SemiBold" Foreground="#38BDF8" HorizontalAlignment="Center"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Bottom Guidance Strip -->
+                                    <Border Grid.Row="2" Background="#11221B" BorderBrush="#1F3E30" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                        <TextBlock Text="🟢 Intake Apertures Ready • Press [ENTER] to complete session &amp; claim points" FontSize="9" FontWeight="Bold" Foreground="#86EFAC" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- 6. Sizing Overlay: Shown When Bottle or Can Inserted -->
+                            <Border x:Name="ModernSizingOverlay" Visibility="Collapsed" Panel.ZIndex="21" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Grid Margin="18,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,5">
+                                        <Border Background="#78350F" BorderBrush="#FBBF24" BorderThickness="1.5" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📐" FontSize="11" Margin="0,0,6,0"/>
+                                                <TextBlock Text="OPTICAL SIZING CHAMBER" FontSize="9" FontWeight="Black" Foreground="#FDE68A"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="SIZING CONTAINER IN PROGRESS..." FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#F59E0B"/>
+                                            <TextBlock Text="سائز کی پیمائش جاری ہے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#FBBF24"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ModernSizingDetailText" Text="Optical laser sensors measuring container dimensions and verifying material" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <Border Grid.Row="1" Background="#0F241C" BorderBrush="#10B981" BorderThickness="1.5" CornerRadius="12" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,0,12,0">
+                                                <TextBlock Text="▲" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                <Border Width="2" Height="50" Background="#34D399" HorizontalAlignment="Center" Margin="0,2"/>
+                                                <TextBlock Text="▼" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="HEIGHT" FontSize="7" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Border Width="68" Height="68" CornerRadius="34" Background="#064E3B" BorderBrush="#34D399" BorderThickness="2" HorizontalAlignment="Center">
+                                                    <TextBlock Text="📐" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock x:Name="ModernSizingMaterialLabel" Text="CONTAINER DETECTED" FontSize="11.5" FontWeight="Black" Foreground="#FBBF24" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                                <ProgressBar Height="5" Width="160" IsIndeterminate="True" Foreground="#10B981" Background="#064E3B" BorderThickness="0" Margin="0,4,0,0"/>
+                                                <TextBlock Text="Analyzing Small (S) • Medium (M) • Large (L)" FontSize="8" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="12,0,0,0">
+                                                <TextBlock Text="◄" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                <Border Width="30" Height="2" Background="#34D399" HorizontalAlignment="Center" Margin="0,25"/>
+                                                <TextBlock Text="►" FontSize="8.5" Foreground="#34D399" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="DIAMETER" FontSize="7" FontWeight="Black" Foreground="#86EFAC" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="2" Background="#11221B" BorderBrush="#1F3E30" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                        <TextBlock Text="⏳ Please keep hands away from the intake aperture while measuring" FontSize="8.5" FontWeight="Bold" Foreground="#FDE68A" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- 7. Weighing Overlay: Shown When Paper Inserted -->
+                            <Border x:Name="ModernWeighingOverlay" Visibility="Collapsed" Panel.ZIndex="21" Background="#0A1813" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                <Grid Margin="18,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,5">
+                                        <Border Background="#0C3456" BorderBrush="#38BDF8" BorderThickness="1.5" CornerRadius="12" Padding="12,3" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="⚖️" FontSize="11" Margin="0,0,6,0"/>
+                                                <TextBlock Text="LOAD CELL SCALE ACTIVE" FontSize="9" FontWeight="Black" Foreground="#7DD3FC"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="WEIGHING PAPER IN PROGRESS..." FontSize="16" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text=" • " FontSize="16" FontWeight="Black" Foreground="#38BDF8"/>
+                                            <TextBlock Text="کاغذ کا وزن معلوم کیا جا رہا ہے" FontFamily="{StaticResource UrduFont}" FontSize="17" FontWeight="Black" Foreground="#7DD3FC"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ModernWeighingDetailText" Text="HX711 digital load cell measuring paper mass in grams" FontSize="9" FontWeight="SemiBold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <Border Grid.Row="1" Background="#081826" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="12" Padding="16,8" HorizontalAlignment="Center" VerticalAlignment="Center" Width="400">
+                                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border Width="68" Height="68" CornerRadius="34" Background="#0C3456" BorderBrush="#38BDF8" BorderThickness="2" HorizontalAlignment="Center">
+                                                <TextBlock Text="⚖️" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock x:Name="ModernWeighingValueLabel" Text="MEASURING MASS IN GRAMS..." FontSize="11.5" FontWeight="Black" Foreground="#7DD3FC" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                            <ProgressBar Height="5" Width="160" IsIndeterminate="True" Foreground="#38BDF8" Background="#0C3456" BorderThickness="0" Margin="0,4,0,0"/>
+                                            <TextBlock Text="Stabilizing reading • High-Precision Gram Scale" FontSize="8" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Grid.Row="2" Background="#0B1A24" BorderBrush="#163248" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,5,0,0">
+                                        <TextBlock Text="⏳ Please leave paper on the scale until measurement stabilizes" FontSize="8.5" FontWeight="Bold" Foreground="#7DD3FC" HorizontalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <!-- 8. Celebration Video Overlay: Shown Over Celebration Video -->
+                            <Border x:Name="ModernCelebrationOverlay" Visibility="Collapsed" Panel.ZIndex="22" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,10,0,0" Background="#DD064E3B" BorderBrush="#4ADE80" BorderThickness="2" CornerRadius="18" Padding="16,5" Effect="{StaticResource CardShadow}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="🎉" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="ITEM ACCEPTED! • " FontSize="12" FontWeight="Black" Foreground="#FFFFFF"/>
+                                            <TextBlock Text="آئٹم قبول کر لیا گیا" FontFamily="{StaticResource UrduFont}" FontSize="13" FontWeight="Black" Foreground="#86EFAC"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ModernCelebrationSubtext" Text="Points credited to your session • Ready for next item" FontSize="8" FontWeight="Bold" Foreground="#D1FAE5"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </Grid>
