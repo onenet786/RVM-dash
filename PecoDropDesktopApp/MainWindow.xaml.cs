@@ -1870,6 +1870,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 if (serial.IsConnected && _hardwareCalibrating)
                 {
                     serial.SendCommand("HOST:ALIVE");
+                    SyncSensorBypassToArduino();
                     serial.SendCommand("HOST:START");
                 }
             });
@@ -1986,6 +1987,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         if (DateTime.Now - _lastCalibrationRequest < interval) return;
 
         serial.SendCommand("HOST:ALIVE");
+        SyncSensorBypassToArduino();
         serial.SendCommand("HOST:START");
         _lastCalibrationRequest = DateTime.Now;
         if (_calibrationRequestAttempts < MaxCalibrationRequestAttempts)
@@ -1997,6 +1999,20 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         {
             LogTelemetry("[HARDWARE] Periodic calibration retry (heartbeat active)");
         }
+    }
+
+    private void SyncSensorBypassToArduino()
+    {
+        try
+        {
+            var s = AppSettings.Load();
+            if (s.BypassPlasticMidSensor) serial.SendCommand("BYPASS:PLASTIC_MID:ENABLE");
+            if (s.BypassPlasticTopSensor) serial.SendCommand("BYPASS:PLASTIC_TOP:ENABLE");
+            if (s.BypassMetalMidSensor) serial.SendCommand("BYPASS:METAL_MID:ENABLE");
+            if (s.BypassMetalTopSensor) serial.SendCommand("BYPASS:METAL_TOP:ENABLE");
+            if (s.BypassBinSensors) serial.SendCommand("BYPASS:BIN:ENABLE");
+        }
+        catch { }
     }
 
     private void HandleHardwareDisconnected()

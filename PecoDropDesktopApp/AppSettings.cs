@@ -23,6 +23,11 @@ public sealed class AppSettings
     public string Location { get; init; } = "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan";
     public double? Latitude { get; init; } = 31.5826;
     public double? Longitude { get; init; } = 74.3276;
+    public bool BypassPlasticMidSensor { get; init; } = false;
+    public bool BypassPlasticTopSensor { get; init; } = false;
+    public bool BypassMetalMidSensor { get; init; } = false;
+    public bool BypassMetalTopSensor { get; init; } = false;
+    public bool BypassBinSensors { get; init; } = false;
 
     public static AppSettings Load()
     {
@@ -54,7 +59,12 @@ public sealed class AppSettings
             CaptureDirectory = Get(values, "CaptureDirectory", "Captures"),
             DisplayMode = Get(values, "DisplayMode", "MultiDisplay"),
             DisplayLayout = Get(values, "DisplayLayout", "0012"),
-            UiTheme = Get(values, "UiTheme", "Modern")
+            UiTheme = Get(values, "UiTheme", "Modern"),
+            BypassPlasticMidSensor = GetBool(values, "BypassPlasticMidSensor", false),
+            BypassPlasticTopSensor = GetBool(values, "BypassPlasticTopSensor", false),
+            BypassMetalMidSensor = GetBool(values, "BypassMetalMidSensor", false),
+            BypassMetalTopSensor = GetBool(values, "BypassMetalTopSensor", false),
+            BypassBinSensors = GetBool(values, "BypassBinSensors", false)
         };
     }
 
@@ -119,6 +129,14 @@ public sealed class AppSettings
         if (configValues.TryGetValue("Longitude", out string? lngVal) && !string.IsNullOrWhiteSpace(lngVal))
             content.AppendLine($"Longitude = {lngVal}");
 
+        content.AppendLine();
+        content.AppendLine("# Hardware Sensor Bypass & Fault Resilience Settings");
+        content.AppendLine($"BypassPlasticMidSensor={configValues.GetValueOrDefault("BypassPlasticMidSensor", "false")}");
+        content.AppendLine($"BypassPlasticTopSensor={configValues.GetValueOrDefault("BypassPlasticTopSensor", "false")}");
+        content.AppendLine($"BypassMetalMidSensor={configValues.GetValueOrDefault("BypassMetalMidSensor", "false")}");
+        content.AppendLine($"BypassMetalTopSensor={configValues.GetValueOrDefault("BypassMetalTopSensor", "false")}");
+        content.AppendLine($"BypassBinSensors={configValues.GetValueOrDefault("BypassBinSensors", "false")}");
+
         string text = content.ToString();
         string baseFile = Path.Combine(AppContext.BaseDirectory, "config.txt");
         File.WriteAllText(baseFile, text);
@@ -133,6 +151,17 @@ public sealed class AppSettings
             }
         }
         catch {}
+    }
+
+    public static void UpdateSensorBypass(string key, bool bypassed)
+    {
+        try
+        {
+            var values = LoadRawConfig();
+            values[key] = bypassed ? "true" : "false";
+            SaveConfigToFile(values);
+        }
+        catch { }
     }
 
     public static void UpdateDisplayLayout(string layout)
@@ -156,6 +185,9 @@ public sealed class AppSettings
         }
         catch { }
     }
+
+    private static bool GetBool(Dictionary<string, string> values, string key, bool fallback = false) =>
+        values.TryGetValue(key, out string? value) && bool.TryParse(value, out bool result) ? result : fallback;
 
     private static double? GetDoubleOrNull(Dictionary<string, string> values, string key)
     {

@@ -28,6 +28,13 @@ const bool PLASTIC_DISABLED = false;
 const bool METAL_DISABLED = false;
 const bool PAPER_DISABLED = false;
 
+// Runtime Hardware Sensor Bypass flags (can be dynamically toggled via Admin Panel & serial commands)
+bool bypassPlasticMid = false;
+bool bypassPlasticTop = false;
+bool bypassMetalMid = false;
+bool bypassMetalTop = false;
+bool bypassBinSensors = false;
+
 // Digital obstacle sensors: LOW means blocked. Change polarity for your modules.
 // Enable only installed bin sensors. Plastic is currently not connected.
 const bool PLASTIC_BIN_SENSOR_ENABLED = false;
@@ -225,6 +232,7 @@ bool compartmentDisabled(const Compartment& c) {
 }
 
 bool binSensorEnabled(const Compartment& c) {
+  if (bypassBinSensors) return false;
   return &c == &plastic ? PLASTIC_BIN_SENSOR_ENABLED :
          (&c == &metal ? METAL_BIN_SENSOR_ENABLED : PAPER_BIN_SENSOR_ENABLED);
 }
@@ -444,6 +452,8 @@ void makeSafe();
 bool executeServoTestCommand(char* command);
 void reportIrisStatus();
 bool executeIrisControlCommand(char* command);
+void reportBypassStatus();
+bool executeSensorBypassCommand(char* command);
 void enforceHostLease();
 void executeCommand(char* command);
 void autoRecover(Compartment& c);
@@ -713,8 +723,10 @@ void processSizedItem(Compartment& c) {
 bool sizedCompartmentEmpty(Compartment& c) {
   int entrance = readUltrasonicMm(c.ultrasonicTrigPin, c.ultrasonicEchoPin);
   int bottom = readUltrasonicMm(c.bottomSizeTrigPin, c.bottomSizeEchoPin);
-  int middle = readUltrasonicMm(c.middleSizeTrigPin, c.middleSizeEchoPin);
-  int top = readUltrasonicMm(c.topSizeTrigPin, c.topSizeEchoPin);
+  bool midBypassed = (&c == &plastic && bypassPlasticMid) || (&c == &metal && bypassMetalMid);
+  bool topBypassed = (&c == &plastic && bypassPlasticTop) || (&c == &metal && bypassMetalTop);
+  int middle = midBypassed ? c.middleSizeEmptyMm : readUltrasonicMm(c.middleSizeTrigPin, c.middleSizeEchoPin);
+  int top = topBypassed ? c.topSizeEmptyMm : readUltrasonicMm(c.topSizeTrigPin, c.topSizeEchoPin);
   return entrance > 0 && bottom > 0 && middle > 0 && top > 0 &&
          c.emptyDistanceMm > 0 && c.bottomSizeEmptyMm > 0 &&
          c.middleSizeEmptyMm > 0 && c.topSizeEmptyMm > 0 &&
@@ -897,6 +909,20 @@ const char* calculateSize(Compartment& c) {
       }
     }
 
+    // 2-Sensor Plastic fallback when Middle transducer is bypassed
+    if (&c == &plastic && bypassPlasticMid) {
+      if (bottom == 1 && top == 1) return "LARGE";
+      if (bottom == 1 && top == 0) return "MEDIUM";
+      if (bottom == 0) return "INVALID";
+    }
+
+    // 2-Sensor Plastic fallback when Top transducer is bypassed
+    if (&c == &plastic && bypassPlasticTop) {
+      if (bottom == 1 && middle == 1) return "LARGE";
+      if (bottom == 1 && middle == 0) return "SMALL";
+      if (bottom == 0) return "INVALID";
+    }
+
     if (bottom == 1 && middle == -1 && top == 1) {
       if (++largeFallbackScans >= 2) {
         Serial.print(F("SIZING:")); Serial.print(c.name);
@@ -946,16 +972,18 @@ bool waitForSizingItem(Compartment& c) {
 bool waitForSizingClear(Compartment& c) {
   unsigned long started = millis();
   byte clearCount = 0;
+  bool midBypassed = (&c == &plastic && bypassPlasticMid) || (&c == &metal && bypassMetalMid);
+  bool topBypassed = (&c == &plastic && bypassPlasticTop) || (&c == &metal && bypassMetalTop);
   while (millis() - started < CLEAR_TIMEOUT_MS) {
     wdt_reset();
     handleSerial();
     if (!cycleRunning()) return false;
     bool bottomClear = readSizeLevel(c, "BOTTOM", c.bottomSizeTrigPin,
                                      c.bottomSizeEchoPin, c.bottomSizeEmptyMm) == 0;
-    bool middleClear = readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin,
-                                     c.middleSizeEchoPin, c.middleSizeEmptyMm) == 0;
-    bool topClear = readSizeLevel(c, "TOP", c.topSizeTrigPin,
-                                  c.topSizeEchoPin, c.topSizeEmptyMm) == 0;
+    bool middleClear = midBypassed || (readSizeLevel(c, "MIDDLE", c.middleSizeTrigPin,
+                                     c.middleSizeEchoPin, c.middleSizeEmptyMm) == 0);
+    bool topClear = topBypassed || (readSizeLevel(c, "TOP", c.topSizeTrigPin,
+                                  c.topSizeEchoPin, c.topSizeEmptyMm) == 0);
     bool clear = bottomClear && middleClear && topClear;
     clearCount = clear ? clearCount + 1 : 0;
     if (clearCount >= 2) return true;
@@ -1383,11 +1411,19 @@ void calibrateAll() {
     plastic.bottomSizeEmptyMm = readStableUltrasonicMm(
       plastic.bottomSizeTrigPin, plastic.bottomSizeEchoPin, CALIBRATION_SAMPLES);
     delay(20);
-    plastic.middleSizeEmptyMm = readStableUltrasonicMm(
-      plastic.middleSizeTrigPin, plastic.middleSizeEchoPin, CALIBRATION_SAMPLES);
-    delay(20);
-    plastic.topSizeEmptyMm = readStableUltrasonicMm(
-      plastic.topSizeTrigPin, plastic.topSizeEchoPin, CALIBRATION_SAMPLES);
+    if (bypassPlasticMid) {
+      plastic.middleSizeEmptyMm = 125; // 12.5cm nominal baseline when bypassed
+    } else {
+      plastic.middleSizeEmptyMm = readStableUltrasonicMm(
+        plastic.middleSizeTrigPin, plastic.middleSizeEchoPin, CALIBRATION_SAMPLES);
+      delay(20);
+    }
+    if (bypassPlasticTop) {
+      plastic.topSizeEmptyMm = 125; // 12.5cm nominal baseline when bypassed
+    } else {
+      plastic.topSizeEmptyMm = readStableUltrasonicMm(
+        plastic.topSizeTrigPin, plastic.topSizeEchoPin, CALIBRATION_SAMPLES);
+    }
   }
   if (!METAL_DISABLED) {
     metal.emptyDistanceMm = readStableUltrasonicMm(
@@ -1396,11 +1432,19 @@ void calibrateAll() {
     metal.bottomSizeEmptyMm = readStableUltrasonicMm(
       metal.bottomSizeTrigPin, metal.bottomSizeEchoPin, CALIBRATION_SAMPLES);
     delay(20);
-    metal.middleSizeEmptyMm = readStableUltrasonicMm(
-      metal.middleSizeTrigPin, metal.middleSizeEchoPin, CALIBRATION_SAMPLES);
-    delay(20);
-    metal.topSizeEmptyMm = readStableUltrasonicMm(
-      metal.topSizeTrigPin, metal.topSizeEchoPin, CALIBRATION_SAMPLES);
+    if (bypassMetalMid) {
+      metal.middleSizeEmptyMm = 125;
+    } else {
+      metal.middleSizeEmptyMm = readStableUltrasonicMm(
+        metal.middleSizeTrigPin, metal.middleSizeEchoPin, CALIBRATION_SAMPLES);
+      delay(20);
+    }
+    if (bypassMetalTop) {
+      metal.topSizeEmptyMm = 125;
+    } else {
+      metal.topSizeEmptyMm = readStableUltrasonicMm(
+        metal.topSizeTrigPin, metal.topSizeEchoPin, CALIBRATION_SAMPLES);
+    }
   }
   if (!PAPER_DISABLED) {
     paper.emptyDistanceMm = readStableUltrasonicMm(
@@ -1420,9 +1464,13 @@ void calibrateAll() {
     return;
   }
   plastic.workingFailed = PLASTIC_DISABLED || plastic.emptyDistanceMm <= 0 ||
-    plastic.bottomSizeEmptyMm <= 0 || plastic.middleSizeEmptyMm <= 0 || plastic.topSizeEmptyMm <= 0;
+    plastic.bottomSizeEmptyMm <= 0 ||
+    (!bypassPlasticMid && plastic.middleSizeEmptyMm <= 0) ||
+    (!bypassPlasticTop && plastic.topSizeEmptyMm <= 0);
   metal.workingFailed = METAL_DISABLED || metal.emptyDistanceMm <= 0 ||
-    metal.bottomSizeEmptyMm <= 0 || metal.middleSizeEmptyMm <= 0 || metal.topSizeEmptyMm <= 0;
+    metal.bottomSizeEmptyMm <= 0 ||
+    (!bypassMetalMid && metal.middleSizeEmptyMm <= 0) ||
+    (!bypassMetalTop && metal.topSizeEmptyMm <= 0);
   paper.workingFailed = PAPER_DISABLED || paper.emptyDistanceMm <= 0 ||
     paper.bottomEmptyDistanceMm <= 0 || !paperScaleReady;
   plastic.hasEmptyCalibration = !plastic.workingFailed;
@@ -1646,6 +1694,84 @@ bool executeIrisControlCommand(char* cmd) {
   return false;
 }
 
+void reportBypassStatus() {
+  Serial.print(F("BYPASS:STATUS;PLASTIC_MID:")); Serial.print(bypassPlasticMid ? 1 : 0);
+  Serial.print(F(";PLASTIC_TOP:")); Serial.print(bypassPlasticTop ? 1 : 0);
+  Serial.print(F(";METAL_MID:")); Serial.print(bypassMetalMid ? 1 : 0);
+  Serial.print(F(";METAL_TOP:")); Serial.print(bypassMetalTop ? 1 : 0);
+  Serial.print(F(";BIN:")); Serial.println(bypassBinSensors ? 1 : 0);
+}
+
+bool executeSensorBypassCommand(char* cmd) {
+  if (strcmp(cmd, "BYPASS:PLASTIC_MID:ENABLE") == 0) {
+    bypassPlasticMid = true;
+    Serial.println(F("BYPASS:OK:PLASTIC_MID:1"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:PLASTIC_MID:DISABLE") == 0) {
+    bypassPlasticMid = false;
+    Serial.println(F("BYPASS:OK:PLASTIC_MID:0"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:PLASTIC_TOP:ENABLE") == 0) {
+    bypassPlasticTop = true;
+    Serial.println(F("BYPASS:OK:PLASTIC_TOP:1"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:PLASTIC_TOP:DISABLE") == 0) {
+    bypassPlasticTop = false;
+    Serial.println(F("BYPASS:OK:PLASTIC_TOP:0"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:METAL_MID:ENABLE") == 0) {
+    bypassMetalMid = true;
+    Serial.println(F("BYPASS:OK:METAL_MID:1"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:METAL_MID:DISABLE") == 0) {
+    bypassMetalMid = false;
+    Serial.println(F("BYPASS:OK:METAL_MID:0"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:METAL_TOP:ENABLE") == 0) {
+    bypassMetalTop = true;
+    Serial.println(F("BYPASS:OK:METAL_TOP:1"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:METAL_TOP:DISABLE") == 0) {
+    bypassMetalTop = false;
+    Serial.println(F("BYPASS:OK:METAL_TOP:0"));
+    reportBypassStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:BIN:ENABLE") == 0) {
+    bypassBinSensors = true;
+    Serial.println(F("BYPASS:OK:BIN:1"));
+    reportBypassStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:BIN:DISABLE") == 0) {
+    bypassBinSensors = false;
+    Serial.println(F("BYPASS:OK:BIN:0"));
+    reportBypassStatus();
+    reportHardwareStatus();
+    return true;
+  }
+  if (strcmp(cmd, "BYPASS:STATUS") == 0) {
+    reportBypassStatus();
+    return true;
+  }
+  return false;
+}
+
 void enforceHostLease() {
   if (calibrating) return; // Never abort an active hardware calibration mid-cycle
   if (!hostOnline || millis() - lastHostAliveMs <= HOST_LEASE_TIMEOUT_MS) return;
@@ -1736,6 +1862,7 @@ void executeCommand(char* cmd) {
 
   if (executeServoTestCommand(cmd)) return;
   if (executeIrisControlCommand(cmd)) return;
+  if (executeSensorBypassCommand(cmd)) return;
 
   if ((calibrating || activeCompartment != NULL) &&
       (strcmp(cmd, "START") == 0 || strcmp(cmd, "CALIBRATE") == 0 || strcmp(cmd, "SCALE") == 0)) {
