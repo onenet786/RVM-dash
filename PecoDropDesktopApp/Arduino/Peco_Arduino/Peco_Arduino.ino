@@ -3,8 +3,15 @@
 #include <math.h>
 #include <util/atomic.h>
 
-// Firmware build stamp with hardware WDT, high-speed sizing, and snappy iris timing.
-const char FIRMWARE_BUILD[] = "OPT-PECO-CALIB-ROBUST-20261014";
+struct AutoRecovery;
+struct Compartment;
+
+// Disable watchdog immediately upon reset before C runtime (.init3),
+// preventing infinite reset loops on ATmega2560 boards with STK500v2 bootloaders.
+void wdt_init(void) __attribute__((naked)) __attribute__((section(".init3")));
+
+// Firmware build stamp with hardware WDT, robust cold-start, and gate-closed calibration.
+const char FIRMWARE_BUILD[] = "OPT-PECO-STARTUP-ROBUST-20261015";
 
 // Arduino Mega pin map:
 // Plastic: entrance ultrasonic 9/10, iris 11, drop gate 12,
@@ -160,7 +167,7 @@ struct Compartment {
   AutoRecovery recovery;
   bool purging;
   unsigned long purgeStartedMs;
-  bool irisEnabled = true;
+  bool irisEnabled;
 };
 
 Compartment plastic = {
@@ -472,23 +479,41 @@ void setupPaper() {
   paper.bottomGateServo->attach(paper.bottomGateServoPin);
 }
 
+void wdt_init(void) {
+  MCUSR = 0;
+  wdt_disable();
+}
+
 void setup() {
   MCUSR = 0;
   wdt_disable();
-  delay(50);
+  delay(100);
   wdt_enable(WDTO_8S);
+  plastic.irisEnabled = true;
+  metal.irisEnabled = true;
+  paper.irisEnabled = true;
   Serial.begin(115200);
   Serial.print(F("FIRMWARE:")); Serial.println(FIRMWARE_BUILD);
   pinMode(PLASTIC_BIN_PIN, INPUT_PULLUP);
   pinMode(METAL_BIN_PIN, INPUT_PULLUP);
   pinMode(PAPER_BIN_PIN, INPUT_PULLUP);
   pinMode(MQ6_DIGITAL_PIN, INPUT_PULLUP);
-  if (!PLASTIC_DISABLED) setupSizedCompartment(plastic);
+  if (!PLASTIC_DISABLED) {
+    setupSizedCompartment(plastic);
+    delay(100);
+    wdt_reset();
+  }
   if (!METAL_DISABLED) {
     setupSizedCompartment(metal);
     pinMode(metal.materialSensorPin, INPUT_PULLUP);
+    delay(100);
+    wdt_reset();
   }
-  if (!PAPER_DISABLED) setupPaper();
+  if (!PAPER_DISABLED) {
+    setupPaper();
+    delay(100);
+    wdt_reset();
+  }
   // Safety-first boot: hardware remains closed and inactive until the
   // PecoDrop desktop application begins renewing the host lease.
   makeSafe();
@@ -1339,31 +1364,52 @@ void calibrateAll() {
     makeSafe();
     return;
   }
+
+  // Ensure all drop gates are firmly closed and settled before measuring empty acoustic baselines
+  closeCompartment(plastic);
+  delay(80);
+  wdt_reset();
+  closeCompartment(metal);
+  delay(80);
+  wdt_reset();
+  closeCompartment(paper);
+  delay(GATE_SETTLE_MS + 100);
+  wdt_reset();
+
   if (!PLASTIC_DISABLED) {
     plastic.emptyDistanceMm = readStableUltrasonicMm(
       plastic.ultrasonicTrigPin, plastic.ultrasonicEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     plastic.bottomSizeEmptyMm = readStableUltrasonicMm(
       plastic.bottomSizeTrigPin, plastic.bottomSizeEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     plastic.middleSizeEmptyMm = readStableUltrasonicMm(
       plastic.middleSizeTrigPin, plastic.middleSizeEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     plastic.topSizeEmptyMm = readStableUltrasonicMm(
       plastic.topSizeTrigPin, plastic.topSizeEchoPin, CALIBRATION_SAMPLES);
   }
   if (!METAL_DISABLED) {
     metal.emptyDistanceMm = readStableUltrasonicMm(
       metal.ultrasonicTrigPin, metal.ultrasonicEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     metal.bottomSizeEmptyMm = readStableUltrasonicMm(
       metal.bottomSizeTrigPin, metal.bottomSizeEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     metal.middleSizeEmptyMm = readStableUltrasonicMm(
       metal.middleSizeTrigPin, metal.middleSizeEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     metal.topSizeEmptyMm = readStableUltrasonicMm(
       metal.topSizeTrigPin, metal.topSizeEchoPin, CALIBRATION_SAMPLES);
   }
   if (!PAPER_DISABLED) {
     paper.emptyDistanceMm = readStableUltrasonicMm(
       paper.ultrasonicTrigPin, paper.ultrasonicEchoPin, CALIBRATION_SAMPLES);
+    delay(20);
     paper.bottomEmptyDistanceMm = readStableUltrasonicMm(
       paper.bottomUltrasonicTrigPin, paper.bottomUltrasonicEchoPin, CALIBRATION_SAMPLES);
+    delay(50);
+    wdt_reset();
     long tare;
     paperScaleReady = readHx711Average(5, tare);
     if (paperScaleReady) paperTareRaw = tare;

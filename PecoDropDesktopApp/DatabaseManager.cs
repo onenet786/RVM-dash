@@ -116,6 +116,83 @@ public static class DatabaseManager
         command.ExecuteNonQuery();
     }
 
+    public static void SaveConfiguredOrganization(string orgId, bool isCorporate = true)
+    {
+        if (string.IsNullOrWhiteSpace(orgId)) return;
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            EnsureKioskSettingsTable(connection);
+            using var command = new SqlCommand(@"
+                MERGE dbo.KioskSettings AS target
+                USING (SELECT CAST('OrganizationId' AS NVARCHAR(100)) AS SettingKey) AS source
+                ON target.SettingKey = source.SettingKey
+                WHEN MATCHED THEN UPDATE SET SettingValue = @OrgId, UpdatedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN INSERT (SettingKey, SettingValue) VALUES ('OrganizationId', @OrgId);
+
+                MERGE dbo.KioskSettings AS target
+                USING (SELECT CAST('IsCorporate' AS NVARCHAR(100)) AS SettingKey) AS source
+                ON target.SettingKey = source.SettingKey
+                WHEN MATCHED THEN UPDATE SET SettingValue = @IsCorp, UpdatedAt = SYSUTCDATETIME()
+                WHEN NOT MATCHED THEN INSERT (SettingKey, SettingValue) VALUES ('IsCorporate', @IsCorp);", connection);
+            command.Parameters.Add(new SqlParameter("@OrgId", SqlDbType.NVarChar, 100) { Value = orgId.Trim() });
+            command.Parameters.Add(new SqlParameter("@IsCorp", SqlDbType.NVarChar, 10) { Value = isCorporate ? "true" : "false" });
+            command.ExecuteNonQuery();
+        }
+        catch { }
+    }
+
+    public static (string? OrgId, bool IsCorporate) GetConfiguredOrganization()
+    {
+        try
+        {
+            using var connection = new SqlConnection(ConnectionString);
+            connection.Open();
+            EnsureKioskSettingsTable(connection);
+            using var command = new SqlCommand(
+                "SELECT SettingKey, SettingValue FROM dbo.KioskSettings WHERE SettingKey IN ('OrganizationId', 'IsCorporate');", connection);
+            using var reader = command.ExecuteReader();
+            string? orgId = null;
+            bool isCorp = false;
+            while (reader.Read())
+            {
+                string key = reader["SettingKey"].ToString() ?? "";
+                string val = reader["SettingValue"].ToString() ?? "";
+                if (key.Equals("OrganizationId", StringComparison.OrdinalIgnoreCase)) orgId = val;
+                if (key.Equals("IsCorporate", StringComparison.OrdinalIgnoreCase)) isCorp = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+            }
+            return (orgId, isCorp);
+        }
+        catch { return (null, false); }
+    }
+
+    public static bool IsConfiguredAsCorporate()
+    {
+        try
+        {
+            var (orgId, isCorp) = GetConfiguredOrganization();
+            if (isCorp || (!string.IsNullOrWhiteSpace(orgId) && !orgId.Equals("ISP_MASTER", StringComparison.OrdinalIgnoreCase)))
+                return true;
+        }
+        catch { }
+
+        try
+        {
+            var raw = AppSettings.LoadRawConfig();
+            if (raw.TryGetValue("OrganizationId", out var o1) && !string.IsNullOrWhiteSpace(o1) && !o1.Equals("ISP_MASTER", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (raw.TryGetValue("OrgId", out var o2) && !string.IsNullOrWhiteSpace(o2) && !o2.Equals("ISP_MASTER", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (raw.TryGetValue("CorporateOrg", out var o3) && !string.IsNullOrWhiteSpace(o3) && !o3.Equals("ISP_MASTER", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        catch { }
+
+        // PecoDropDesktopApp is by architectural definition dedicated for Enterprise Corporate Clients per AGENTS.md
+        return true;
+    }
+
     public static void EnsureDisplaySettingsTable()
     {
         try
@@ -809,6 +886,24 @@ public static class DatabaseManager
             SET MobileNumber = @PhoneNumber
             WHERE SessionID = @SessionID;
 
+            IF OBJECT_ID('dbo.EnterpriseLeaderboardCache', 'U') IS NOT NULL
+            BEGIN
+                IF EXISTS (SELECT 1 FROM dbo.EnterpriseLeaderboardCache WHERE PhoneNumber = @PhoneNumber)
+                    UPDATE dbo.EnterpriseLeaderboardCache
+                    SET PointsBalance = PointsBalance + @Points
+                    WHERE PhoneNumber = @PhoneNumber;
+                ELSE
+                    INSERT INTO dbo.EnterpriseLeaderboardCache (Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance)
+                    VALUES (
+                        (SELECT ISNULL(MAX(Rank), 0) + 1 FROM dbo.EnterpriseLeaderboardCache),
+                        @PhoneNumber,
+                        @PhoneNumber,
+                        'male',
+                        0,
+                        (SELECT PointsBalance FROM dbo.WalletAccounts WHERE PhoneNumber = @PhoneNumber)
+                    );
+            END;
+
             COMMIT TRANSACTION;
             """, connection);
 
@@ -954,8 +1049,20 @@ public static class DatabaseManager
                         IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
                         SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
 
-                SELECT TOP 10 Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance
-                FROM dbo.EnterpriseLeaderboardCache ORDER BY Rank;
+                SELECT TOP 10 
+                    c.Rank, 
+                    c.DisplayName, 
+                    c.PhoneNumber, 
+                    c.ProfileImage, 
+                    c.IsBirthday, 
+                    CASE 
+                        WHEN w.PointsBalance IS NOT NULL AND w.PointsBalance > c.PointsBalance 
+                        THEN w.PointsBalance 
+                        ELSE c.PointsBalance 
+                    END AS PointsBalance
+                FROM dbo.EnterpriseLeaderboardCache c
+                LEFT JOIN dbo.WalletAccounts w ON w.PhoneNumber = c.PhoneNumber
+                ORDER BY PointsBalance DESC, c.Rank ASC;
                 """);
         }
         catch { }
@@ -991,7 +1098,7 @@ public static class DatabaseManager
                     """
                     SELECT TOP 10 
                         ROW_NUMBER() OVER (ORDER BY SUM(PointsAwarded) DESC) AS Rank,
-                        ISNULL(NULLIF(MobileNumber, ''), 'Eco Citizen') AS DisplayName,
+                        ISNULL(NULLIF(MobileNumber, ''), 'Corporate Recycler') AS DisplayName,
                         ISNULL(MobileNumber, '') AS PhoneNumber,
                         'male' AS ProfileImage,
                         0 AS IsBirthday,
@@ -1017,37 +1124,42 @@ public static class DatabaseManager
             dt.Columns.Add("PointsBalance", typeof(int));
         }
 
-        // Guarantee exactly 10 users for full-height leaderboard (no blank spaces)
-        var defaultRecyclers = new (string Name, int Points)[]
+        bool isCorporate = IsConfiguredAsCorporate();
+        // If kiosk is under a specific corporate organization, ONLY show their users data!
+        // Never pad with outside or synthetic default users.
+        if (!isCorporate)
         {
-            ("Engro Eco Champion", 1450),
-            ("Green Campus Hero", 1280),
-            ("Planet Guardian", 1120),
-            ("CSR Sustainability Lead", 980),
-            ("Zero Waste Pioneer", 840),
-            ("Eco Innovator", 720),
-            ("Clean Energy Advocate", 630),
-            ("Nature Ambassador", 540),
-            ("Earth Defender", 450),
-            ("Green Future Recycler", 380)
-        };
+            var defaultRecyclers = new (string Name, int Points)[]
+            {
+                ("Green Citizen Hero", 1450),
+                ("Planet Guardian", 1280),
+                ("Zero Waste Champion", 1120),
+                ("Eco Innovator", 980),
+                ("Clean Energy Advocate", 840),
+                ("Nature Ambassador", 720),
+                ("Earth Defender", 630),
+                ("Green Future Recycler", 540),
+                ("Sustainability Friend", 450),
+                ("Community Hero", 380)
+            };
 
-        while (dt.Rows.Count < 10)
-        {
-            int nextRank = dt.Rows.Count + 1;
-            int defIdx = (nextRank - 1) % defaultRecyclers.Length;
-            var def = defaultRecyclers[defIdx];
-            var newRow = dt.NewRow();
-            newRow["Rank"] = nextRank;
-            newRow["DisplayName"] = def.Name;
-            newRow["PhoneNumber"] = $"0300{nextRank:D7}";
-            newRow["ProfileImage"] = "male";
-            newRow["IsBirthday"] = 0;
-            int prevPoints = dt.Rows.Count > 0 && dt.Rows[dt.Rows.Count - 1]["PointsBalance"] != DBNull.Value 
-                ? Convert.ToInt32(dt.Rows[dt.Rows.Count - 1]["PointsBalance"]) 
-                : 1600;
-            newRow["PointsBalance"] = Math.Max(50, Math.Min(def.Points, prevPoints - 40));
-            dt.Rows.Add(newRow);
+            while (dt.Rows.Count < 10)
+            {
+                int nextRank = dt.Rows.Count + 1;
+                int defIdx = (nextRank - 1) % defaultRecyclers.Length;
+                var def = defaultRecyclers[defIdx];
+                var newRow = dt.NewRow();
+                newRow["Rank"] = nextRank;
+                newRow["DisplayName"] = def.Name;
+                newRow["PhoneNumber"] = $"0300{nextRank:D7}";
+                newRow["ProfileImage"] = "male";
+                newRow["IsBirthday"] = 0;
+                int prevPoints = dt.Rows.Count > 0 && dt.Rows[dt.Rows.Count - 1]["PointsBalance"] != DBNull.Value 
+                    ? Convert.ToInt32(dt.Rows[dt.Rows.Count - 1]["PointsBalance"]) 
+                    : 1600;
+                newRow["PointsBalance"] = Math.Max(50, Math.Min(def.Points, prevPoints - 40));
+                dt.Rows.Add(newRow);
+            }
         }
 
         if (dt.Rows.Count > 10)
@@ -1203,7 +1315,10 @@ public static class DatabaseManager
         return ("Eco Champion", 10, "Bottle", "Just now");
     }
 
-    public static void UpdateLeaderboardUsers(System.Text.Json.JsonElement usersArr)
+    public static void UpdateLeaderboardUsers(System.Text.Json.JsonElement usersArr) =>
+        UpdateLeaderboardUsers(usersArr, IsConfiguredAsCorporate(), GetConfiguredOrganization().OrgId);
+
+    public static void UpdateLeaderboardUsers(System.Text.Json.JsonElement usersArr, bool isCorporate, string? orgId)
     {
         try
         {
@@ -1216,7 +1331,16 @@ public static class DatabaseManager
                         Rank INT NOT NULL, DisplayName NVARCHAR(100) NOT NULL,
                         PhoneNumber NVARCHAR(100) NOT NULL, ProfileImage NVARCHAR(500) NULL,
                         IsBirthday BIT NOT NULL DEFAULT 0, PointsBalance INT NOT NULL DEFAULT 0,
-                        SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());
+                        SyncedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+                        OrgId NVARCHAR(50) NULL,
+                        IsCorporate BIT NOT NULL DEFAULT 0);
+                ELSE
+                BEGIN
+                    IF COL_LENGTH('dbo.EnterpriseLeaderboardCache', 'OrgId') IS NULL
+                        ALTER TABLE dbo.EnterpriseLeaderboardCache ADD OrgId NVARCHAR(50) NULL;
+                    IF COL_LENGTH('dbo.EnterpriseLeaderboardCache', 'IsCorporate') IS NULL
+                        ALTER TABLE dbo.EnterpriseLeaderboardCache ADD IsCorporate BIT NOT NULL DEFAULT 0;
+                END;
                 DELETE FROM dbo.EnterpriseLeaderboardCache;
             ", connection);
             schemaCmd.ExecuteNonQuery();
@@ -1234,8 +1358,8 @@ public static class DatabaseManager
 
                 using var cmd = new SqlCommand(@"
                     INSERT INTO dbo.EnterpriseLeaderboardCache
-                        (Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance)
-                    VALUES (@rank, @fn, @u, @img, @birthday, @pts);
+                        (Rank, DisplayName, PhoneNumber, ProfileImage, IsBirthday, PointsBalance, OrgId, IsCorporate)
+                    VALUES (@rank, @fn, @u, @img, @birthday, @pts, @orgId, @isCorp);
                 ", connection);
                 cmd.Parameters.AddWithValue("@u", userName);
                 cmd.Parameters.AddWithValue("@fn", fullName);
@@ -1243,6 +1367,8 @@ public static class DatabaseManager
                 cmd.Parameters.AddWithValue("@pts", points);
                 cmd.Parameters.AddWithValue("@rank", rank++);
                 cmd.Parameters.AddWithValue("@birthday", !string.IsNullOrWhiteSpace(dob) && DateTime.TryParse(dob, out var birthDate) && birthDate.Month == DateTime.Today.Month && birthDate.Day == DateTime.Today.Day);
+                cmd.Parameters.AddWithValue("@orgId", (object?)orgId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@isCorp", isCorporate ? 1 : 0);
                 cmd.ExecuteNonQuery();
             }
         }

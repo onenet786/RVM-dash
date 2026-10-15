@@ -9366,28 +9366,31 @@ let cachedLeaderboardExpiresAt = 0;
 async function handleMobileUsernames(req, res) {
   try {
     const requestedMachineId = String(req.query.machineId || '').trim();
+    let explicitOrgId = String(req.query.orgId || req.query.org_id || '').trim();
     const now = Date.now();
-    if (!requestedMachineId && cachedLeaderboardPayload && now < cachedLeaderboardExpiresAt) {
+    if (!requestedMachineId && !explicitOrgId && cachedLeaderboardPayload && now < cachedLeaderboardExpiresAt) {
       return res.json(cachedLeaderboardPayload);
     }
 
     let usersList = [];
     const pool = getPgPool();
+    let orgId = explicitOrgId;
     if (pool) {
-      let orgId = '';
-      if (requestedMachineId) {
+      if (!orgId && requestedMachineId) {
         const orgRes = await pool.query(`
           SELECT COALESCE(NULLIF(kob.org_id, ''), NULLIF(m.client_id, '')) AS org_id
-          FROM machines m
-          LEFT JOIN kiosk_org_bindings kob ON UPPER(kob.machine_id) = UPPER(m.machine_id)
-          WHERE UPPER(m.machine_id) = UPPER($1)
+          FROM (SELECT $1::text AS mid) req
+          LEFT JOIN machines m ON UPPER(m.machine_id) = UPPER(req.mid)
+          LEFT JOIN kiosk_org_bindings kob ON UPPER(kob.machine_id) = UPPER(req.mid)
           LIMIT 1;
         `, [requestedMachineId]);
         orgId = String(orgRes.rows[0]?.org_id || '').trim();
       }
 
-      // If machine is bound to an enterprise organization, fetch corporate members & employees first
-      if (orgId && orgId.toUpperCase() !== 'ISP_MASTER') {
+      const isCorporateOrg = Boolean(orgId && orgId.toUpperCase() !== 'ISP_MASTER');
+
+      // If machine is bound to an enterprise organization, fetch ONLY corporate members & employees!
+      if (isCorporateOrg) {
         const uRes = await pool.query(`
           SELECT 
             COALESCE(NULLIF(u.full_name, ''), NULLIF(u.username, ''), 'Employee') AS "displayName",
@@ -9395,7 +9398,7 @@ async function handleMobileUsernames(req, res) {
             GREATEST(COALESCE(u.points_balance, 0), COALESCE(s.session_pts, 0)) AS "totalPoints",
             u.user_id, u.full_name, u.profile_image, u.dob
           FROM (
-            SELECT u.* FROM users u WHERE u.org_id = $1
+            SELECT u.* FROM users u WHERE UPPER(u.org_id) = UPPER($1)
             UNION
             SELECT 
               'EMP-' || oe.roster_id AS user_id,
@@ -9426,10 +9429,10 @@ async function handleMobileUsernames(req, res) {
               oe.dept_id,
               oe.employee_id
             FROM organization_employees oe
-            WHERE oe.org_id = $1 
+            WHERE UPPER(oe.org_id) = UPPER($1) 
               AND NOT EXISTS (
                 SELECT 1 FROM users eu 
-                WHERE eu.org_id = $1 
+                WHERE UPPER(eu.org_id) = UPPER($1) 
                   AND (eu.mobile = oe.mobile OR LOWER(eu.email) = LOWER(oe.official_email))
               )
           ) u
@@ -9438,7 +9441,7 @@ async function handleMobileUsernames(req, res) {
             FROM recycling_sessions rs
             LEFT JOIN machines sm ON UPPER(sm.machine_id) = UPPER(rs.machine_id)
             LEFT JOIN kiosk_org_bindings skb ON UPPER(skb.machine_id) = UPPER(rs.machine_id)
-            WHERE COALESCE(NULLIF(skb.org_id, ''), NULLIF(sm.client_id, '')) = $1
+            WHERE UPPER(COALESCE(NULLIF(skb.org_id, ''), NULLIF(sm.client_id, ''))) = UPPER($1)
             GROUP BY rs.user_id
           ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
           ORDER BY "totalPoints" DESC, u.created_at ASC
@@ -9453,12 +9456,8 @@ async function handleMobileUsernames(req, res) {
           isBirthday: checkIsBirthday(r.dob),
           totalPoints: Number(r.totalPoints || 0)
         }));
-      }
-
-      // If org has fewer than 25 users or machine has no specific org / is ISP_MASTER,
-      // load top recyclers from users table so the kiosk ALWAYS displays a full real leaderboard!
-      if (usersList.length < 25) {
-        const existingUsernames = new Set(usersList.map(u => String(u.userName).toLowerCase()));
+      } else {
+        // Unassigned public kiosk or ISP_MASTER fleet: Load real public recyclers from users table
         const globalRes = await pool.query(`
           SELECT 
             u.username AS "userName", 
@@ -9476,23 +9475,19 @@ async function handleMobileUsernames(req, res) {
           ) s ON (u.user_id = s.user_id OR u.mobile = s.user_id OR u.username = s.user_id)
           WHERE u.username IS NOT NULL AND u.username NOT IN ('anonymous', '', 'null')
           ORDER BY "totalPoints" DESC, u.created_at ASC
-          LIMIT 100;
+          LIMIT 50;
         `);
 
         for (const r of globalRes.rows) {
           const uname = String(r.userName || r.user_id || '').trim();
-          if (!existingUsernames.has(uname.toLowerCase())) {
-            existingUsernames.add(uname.toLowerCase());
-            usersList.push({
-              userName: uname || r.full_name || 'Eco Hero',
-              fullName: r.full_name || uname || 'Eco Hero',
-              profileImage: r.profile_image || '',
-              dob: r.dob || '',
-              isBirthday: checkIsBirthday(r.dob),
-              totalPoints: Number(r.totalPoints || 0)
-            });
-            if (usersList.length >= 50) break;
-          }
+          usersList.push({
+            userName: uname || r.full_name || 'Eco Hero',
+            fullName: r.full_name || uname || 'Eco Hero',
+            profileImage: r.profile_image || '',
+            dob: r.dob || '',
+            isBirthday: checkIsBirthday(r.dob),
+            totalPoints: Number(r.totalPoints || 0)
+          });
         }
       }
     }
@@ -9500,13 +9495,15 @@ async function handleMobileUsernames(req, res) {
     // Sort by points descending
     usersList.sort((a, b) => b.totalPoints - a.totalPoints);
 
+    const isCorporate = Boolean(orgId && orgId.toUpperCase() !== 'ISP_MASTER');
     const payload = {
       success: true,
       organizationId: orgId || null,
+      isCorporate,
       users: usersList
     };
 
-    if (!requestedMachineId) {
+    if (!requestedMachineId && !explicitOrgId) {
       cachedLeaderboardPayload = payload;
       cachedLeaderboardExpiresAt = now + (6 * 1000); // 6s cache for real-time responsiveness
     }

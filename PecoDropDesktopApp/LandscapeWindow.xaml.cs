@@ -460,6 +460,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#22C55E"));
         }
+        UpdateLeaderboardBadge(true);
     }
 
     private void SetLiveBadgeUnauthorized(string reason)
@@ -477,6 +478,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B"));
         }
+        UpdateLeaderboardBadge(false);
         LogTelemetry($"[API] Central API authorization required: {reason}");
     }
 
@@ -495,7 +497,40 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         {
             HeaderDotText.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
         }
+        UpdateLeaderboardBadge(false);
         LogTelemetry($"[API] Central API offline: {reason}");
+    }
+
+    private void UpdateLeaderboardBadge(bool isOnline)
+    {
+        try
+        {
+            string text = isOnline
+                ? (DatabaseManager.IsConfiguredAsCorporate() ? "ORGANIZATION RANKINGS" : "LIVE RANKINGS")
+                : "LOCAL STORE • OFFLINE";
+
+            var (borderHex, textHex, dotHex) = isOnline
+                ? ("#22C55E", "#86EFAC", "#4ADE80")
+                : ("#D97706", "#FCD34D", "#FBBF24");
+
+            var bgHex = isOnline ? "#14532D" : "#451A03";
+
+            var textBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(textHex));
+            var borderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(borderHex));
+            var bgBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(bgHex));
+            var dotBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(dotHex));
+
+            if (LeaderboardLiveBadgeText != null) LeaderboardLiveBadgeText.Text = text;
+            if (LeaderboardLiveBadgeText != null) LeaderboardLiveBadgeText.Foreground = textBrush;
+            if (LeaderboardLiveBadgeBorder != null) { LeaderboardLiveBadgeBorder.BorderBrush = borderBrush; LeaderboardLiveBadgeBorder.Background = bgBrush; }
+            if (LeaderboardLiveBadgeDot != null) LeaderboardLiveBadgeDot.Fill = dotBrush;
+
+            if (ModernLeaderboardLiveBadgeText != null) ModernLeaderboardLiveBadgeText.Text = text;
+            if (ModernLeaderboardLiveBadgeText != null) ModernLeaderboardLiveBadgeText.Foreground = textBrush;
+            if (ModernLeaderboardLiveBadgeBorder != null) { ModernLeaderboardLiveBadgeBorder.BorderBrush = borderBrush; ModernLeaderboardLiveBadgeBorder.Background = bgBrush; }
+            if (ModernLeaderboardLiveBadgeDot != null) ModernLeaderboardLiveBadgeDot.Fill = dotBrush;
+        }
+        catch { }
     }
 
     public void DisconnectHardwareOnExit()
@@ -1766,6 +1801,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                     try { ModernPodium1Avatar.ImageSource = new BitmapImage(new Uri(r1["AvatarPath"].ToString()!)); } catch { }
                 }
             }
+            else
+            {
+                if (ModernPodium1Name != null) ModernPodium1Name.Text = "Awaiting Recycler";
+                if (ModernPodium1Points != null) ModernPodium1Points.Text = "0 pts";
+            }
+
             if (leaderboardDt.Rows.Count >= 2)
             {
                 var r2 = leaderboardDt.Rows[1];
@@ -1776,6 +1817,12 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                     try { ModernPodium2Avatar.ImageSource = new BitmapImage(new Uri(r2["AvatarPath"].ToString()!)); } catch { }
                 }
             }
+            else
+            {
+                if (ModernPodium2Name != null) ModernPodium2Name.Text = "Awaiting Recycler";
+                if (ModernPodium2Points != null) ModernPodium2Points.Text = "0 pts";
+            }
+
             if (leaderboardDt.Rows.Count >= 3)
             {
                 var r3 = leaderboardDt.Rows[2];
@@ -1785,6 +1832,11 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
                 {
                     try { ModernPodium3Avatar.ImageSource = new BitmapImage(new Uri(r3["AvatarPath"].ToString()!)); } catch { }
                 }
+            }
+            else
+            {
+                if (ModernPodium3Name != null) ModernPodium3Name.Text = "Awaiting Recycler";
+                if (ModernPodium3Points != null) ModernPodium3Points.Text = "0 pts";
             }
 
             // Recent activity feed
@@ -1834,8 +1886,28 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         _lastCalibrationRequest = DateTime.MinValue;
         _calibrationRequestAttempts = 0;
         compartmentAvailability.ResetConnection();
-        RefreshCompartmentCards();
         string targetPort = portOverride ?? settings.ArduinoPort;
+        if (portOverride == null)
+        {
+            try
+            {
+                var availablePorts = SerialPort.GetPortNames();
+                if (!availablePorts.Any(p => p.Equals(settings.ArduinoPort, StringComparison.OrdinalIgnoreCase)))
+                {
+                    var usbCandidates = availablePorts
+                        .Where(p => !p.Equals("COM1", StringComparison.OrdinalIgnoreCase) &&
+                                    !p.Equals(settings.CameraPort, StringComparison.OrdinalIgnoreCase) &&
+                                    SerialManager.IsPortLikelyUsbSerial(p))
+                        .ToList();
+                    if (usbCandidates.Count >= 1)
+                    {
+                        targetPort = usbCandidates[0];
+                        LogTelemetry($"[HARDWARE] Configured {settings.ArduinoPort} missing; auto-discovered Arduino on {targetPort}");
+                    }
+                }
+            }
+            catch { }
+        }
         try
         {
             serial.Connect(targetPort, settings.ArduinoBaud);

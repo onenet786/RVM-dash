@@ -863,10 +863,10 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <Border Grid.Column="2" Background="#14532D" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="12" Padding="10,4" VerticalAlignment="Center">
+                        <Border x:Name="LeaderboardLiveBadgeBorder" Grid.Column="2" Background="#14532D" BorderBrush="#22C55E" BorderThickness="1" CornerRadius="12" Padding="10,4" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="7" Height="7" Fill="#4ADE80" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="LIVE RANKINGS" FontSize="9.5" FontWeight="Black" Foreground="#86EFAC"/>
+                                <Ellipse x:Name="LeaderboardLiveBadgeDot" Width="7" Height="7" Fill="#4ADE80" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="LeaderboardLiveBadgeText" Text="LIVE RANKINGS" FontSize="9.5" FontWeight="Black" Foreground="#86EFAC"/>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -1672,10 +1672,10 @@
                                 </StackPanel>
                             </StackPanel>
 
-                            <Border Grid.Column="2" Background="#064E3B" BorderBrush="#10B981" BorderThickness="1" CornerRadius="12" Padding="8,4" VerticalAlignment="Center">
+                            <Border x:Name="ModernLeaderboardLiveBadgeBorder" Grid.Column="2" Background="#064E3B" BorderBrush="#10B981" BorderThickness="1" CornerRadius="12" Padding="8,4" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Ellipse Width="6" Height="6" Fill="#34D399" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="LIVE RANKINGS" FontSize="9" FontWeight="Black" Foreground="#6EE7B7"/>
+                                    <Ellipse x:Name="ModernLeaderboardLiveBadgeDot" Width="6" Height="6" Fill="#34D399" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="ModernLeaderboardLiveBadgeText" Text="LIVE RANKINGS" FontSize="9" FontWeight="Black" Foreground="#6EE7B7"/>
                                 </StackPanel>
                             </Border>
                         </Grid>

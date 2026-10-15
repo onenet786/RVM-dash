@@ -728,16 +728,42 @@ public static class CentralSyncService
 
             string json = await _httpClient.GetStringAsync(url);
             using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+            bool isCorporate = false;
+            string? orgId = null;
+
+            if (doc.RootElement.TryGetProperty("organizationId", out var orgProp) && orgProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                orgId = orgProp.GetString()?.Trim();
+                if (!string.IsNullOrWhiteSpace(orgId) && !orgId.Equals("ISP_MASTER", StringComparison.OrdinalIgnoreCase))
+                {
+                    isCorporate = true;
+                }
+            }
+
+            if (doc.RootElement.TryGetProperty("isCorporate", out var corpProp) && corpProp.ValueKind == System.Text.Json.JsonValueKind.True)
+            {
+                isCorporate = true;
+            }
+
+            if (isCorporate && !string.IsNullOrWhiteSpace(orgId))
+            {
+                DatabaseManager.SaveConfiguredOrganization(orgId, true);
+            }
+
             if (doc.RootElement.TryGetProperty("users", out var usersArr))
             {
-                if (usersArr.GetArrayLength() == 0 && !string.IsNullOrWhiteSpace(machineId))
+                // CRITICAL MULTI-TENANT ISOLATION:
+                // If this machine is bound to a specific corporate organization, NEVER fall back to global public users!
+                // Fallback to global usernames is strictly prohibited for corporate tenants to guarantee that only their users are shown.
+                if (!isCorporate && usersArr.GetArrayLength() == 0 && !string.IsNullOrWhiteSpace(machineId))
                 {
                     string fallbackUrl = $"{CentralApiUrl.TrimEnd('/')}/api/usernames";
                     string fbJson = await _httpClient.GetStringAsync(fallbackUrl);
                     using var fbDoc = System.Text.Json.JsonDocument.Parse(fbJson);
                     if (fbDoc.RootElement.TryGetProperty("users", out var fbUsers) && fbUsers.GetArrayLength() > 0)
                     {
-                        DatabaseManager.UpdateLeaderboardUsers(fbUsers);
+                        DatabaseManager.UpdateLeaderboardUsers(fbUsers, isCorporate: false, orgId: null);
                         logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {fbUsers.GetArrayLength()} real recyclers from central master.");
                         return;
                     }
@@ -745,14 +771,22 @@ public static class CentralSyncService
 
                 if (usersArr.GetArrayLength() > 0)
                 {
-                    DatabaseManager.UpdateLeaderboardUsers(usersArr);
-                    logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {usersArr.GetArrayLength()} top recyclers with profile images from central master.");
+                    DatabaseManager.UpdateLeaderboardUsers(usersArr, isCorporate, orgId);
+                    logCallback?.Invoke($"[LEADERBOARD SYNC ✨] Synchronized {usersArr.GetArrayLength()} top {(isCorporate ? $"corporate employees ({orgId})" : "recyclers")} from central master.");
+                }
+                else if (isCorporate)
+                {
+                    logCallback?.Invoke($"[LEADERBOARD SYNC 🏢] Corporate organization '{orgId}' has 0 active recyclers on server. Retaining local store data.");
                 }
             }
         }
+        catch (HttpRequestException ex)
+        {
+            logCallback?.Invoke($"[LEADERBOARD OFFLINE 📡] Central server disconnected: {ex.Message}. Displaying local store data.");
+        }
         catch (Exception ex)
         {
-            logCallback?.Invoke($"[LEADERBOARD SYNC ⚠️] {ex.Message}");
+            logCallback?.Invoke($"[LEADERBOARD OFFLINE 📡] Central API offline: {ex.Message}. Displaying local store data.");
         }
     }
 }

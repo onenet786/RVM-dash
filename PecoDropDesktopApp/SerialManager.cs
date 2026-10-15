@@ -94,30 +94,13 @@ public class SerialManager : IDisposable
                     _port.ErrorReceived += OnSerialErrorReceived;
                     _port.Open();
 
-                    // Pulse DTR/RTS to force hardware reset on the Arduino Mega
-                    try
-                    {
-                        _port.DtrEnable = false;
-                        _port.RtsEnable = false;
-                        System.Threading.Thread.Sleep(50);
-                        _port.DtrEnable = true;
-                        _port.RtsEnable = true;
-                    }
-                    catch { }
-
-                    // Discard stale buffer data left from previous sessions
+                    // Opening with DtrEnable=true already asserted DTR and initiated MCU reset.
+                    // Allow the USB-serial driver to settle, then clear any stale buffer bytes.
+                    System.Threading.Thread.Sleep(100);
                     try
                     {
                         _port.DiscardInBuffer();
                         _port.DiscardOutBuffer();
-                    }
-                    catch { }
-
-                    // DTR already resets the board and starts its purge/calibration.
-                    // A second RESET would cancel that startup sequence.
-                    try
-                    {
-                        _port.WriteLine("STATUS");
                     }
                     catch { }
 
