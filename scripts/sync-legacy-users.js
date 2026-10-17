@@ -5,12 +5,12 @@ import dns from 'dns';
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 const { Pool } = pg;
-const mongoUri = process.env.MONGODB_LEGACY_URI || 'mongodb+srv://mcsrwp_db_user:8ctdZ%23TjEx%26N%25H4@cluster0.fuycg6c.mongodb.net/rvmapp?retryWrites=true&w=majority';
+const mongoUri = process.env.MONGODB_LEGACY_URI || (process.env.MONGODB_URI_RVMAPP || '');
 const pgPool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING || (
     process.env.PG_HOST
-      ? `postgresql://${process.env.PG_USER || 'postgres'}:${encodeURIComponent(process.env.PG_PASSWORD || 'Admin786')}@${process.env.PG_HOST}:${process.env.PG_PORT || 5432}/${process.env.PG_DATABASE || 'rvmpg'}`
-      : 'postgresql://postgres:Admin786@127.0.0.1:5432/rvmpg'
+      ? `postgresql://${process.env.PG_USER || 'postgres'}:${encodeURIComponent(process.env.PG_PASSWORD || (process.env.PG_PASSWORD || ''))}@${process.env.PG_HOST}:${process.env.PG_PORT || 5432}/${process.env.PG_DATABASE || 'rvmpg'}`
+      : (process.env.DATABASE_URL || `postgresql://postgres:${encodeURIComponent(process.env.PG_PASSWORD || '')}@127.0.0.1:5432/rvmpg`)
   )
 });
 

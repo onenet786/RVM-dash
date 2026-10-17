@@ -149,9 +149,7 @@ export default function RvmManagementTab({ currentUser }) {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-          'x-username': user.username || '',
-          'x-user-role': user.roleId || ''
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify({
           machineId: machineId.trim(),
@@ -162,11 +160,7 @@ export default function RvmManagementTab({ currentUser }) {
           status,
           machineType,
           clientId,
-          clientName: resolvedClientName,
-          username: user.username,
-          roleId: user.roleId,
-          isSuperAdmin: isSuperAdmin,
-          token
+          clientName: resolvedClientName
         })
       });
 

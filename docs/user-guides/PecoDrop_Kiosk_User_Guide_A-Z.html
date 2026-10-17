@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PecoDrop Enterprise Kiosk – Complete User &amp; Operator Guide (A to Z)</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand">
+    <img class="brand-logo" src="assets/isp_logo.png" alt="ISP Environmental Solutions logo">
+    <div>
+      <div class="brand-company">ISP Environmental Solutions Pvt. Ltd.</div>
+      <div class="brand-role">Manufacturer • Enterprise Smart Recycling Systems</div>
+    </div>
+  </div>
+  <h1>PecoDrop Enterprise Kiosk<br>Complete User &amp; Operator Guide (A to Z)</h1>
+  <p class="subtitle">Dual-display corporate recycling kiosk for offices, factories, banks and university campuses: employee session flow, the three shaped intakes, rewards, daily operation, administration, hardware and troubleshooting.</p>
+  <div class="manufacturer"><b>Product:</b> PecoDrop Enterprise Recycling Kiosk (application <span class="mono">PecoDropDesktopApp</span>, Windows / .NET 8)<br><b>Central system:</b> ISP Master Portal – <span class="mono">https://isprvm.binishaqsoft.com</span><br><b>Companion mobile app:</b> Trash to Cash (Android, package <span class="mono">com.pleaseisp</span>)</div>
+  <div class="meta"><b>Who should read what</b><br><b>Part A – Employees &amp; visitors:</b> sections 1 to 10 (safe to print and post next to the kiosk).<br><b>Part B – Site operators, corporate facility staff and ISP technicians:</b> sections 11 to 22 (contains confidential key sequences and must not be shared with the public).<br><b>Edition:</b> 17 October 2026 • Prepared from the current application source code and firmware.</div>
+  <p class="footer">All on-screen texts quoted in this guide are reproduced exactly as displayed by the kiosk software so that staff can match what they see on the screen with the instructions.</p>
+</section>
+
+<h2>Contents</h2>
+<div class="toc">
+<b>Part A – Using PecoDrop (employees)</b>
+<ol>
+  <li>What PecoDrop is</li>
+  <li>Know the kiosk: displays, console and the three apertures</li>
+  <li>Before you start</li>
+  <li>Starting a session (QR, touch or keypad)</li>
+  <li>Depositing plastic bottles – ⭕ Circle</li>
+  <li>Depositing cans – 🔺 Triangle</li>
+  <li>Depositing office paper – 🟦 Square (weighed)</li>
+  <li>Rejected items and messages you may see</li>
+  <li>Finishing the session and claiming points</li>
+  <li>Points, rewards and your organization's programme</li>
+</ol>
+<b>Part B – Operating and maintaining PecoDrop (staff only)</b>
+<ol start="11">
+  <li>Daily opening and closing checklist</li>
+  <li>Reading the status indicators</li>
+  <li>Keypad reference: public keys and confidential sequences</li>
+  <li>Administration panel</li>
+  <li>config.txt reference</li>
+  <li>Display layout (two screens)</li>
+  <li>Advertisements, instruction video and signage</li>
+  <li>Point rules, leaderboard and data sync with the Master Portal</li>
+  <li>Hardware and firmware (Arduino Mega 2560)</li>
+  <li>Troubleshooting</li>
+  <li>Cleaning, privacy and emergencies</li>
+  <li>Restart, shutdown and exiting the application</li>
+</ol>
+<b>Appendix</b> – Serial message glossary • Sample config.txt
+</div>
+
+<!-- ============================ PART A ============================ -->
+<section class="part">
+<div class="part-banner"><h2>Part A – Using PecoDrop</h2><p>For employees, students and visitors of the host organization.</p></div>
+
+<h2>1. What PecoDrop is</h2>
+<p>PecoDrop is the enterprise edition of the ISP reverse vending machine. It is installed inside corporate campuses and accepts three materials, each through its own illuminated, shaped opening. Every accepted item is counted, converted into reward points and reported to your organization's sustainability dashboard in real time. Points are credited to the recycler's account, and the organization can turn them into recognition, cafeteria discounts, internal perks and CSR / ESG reporting.</p>
+<div class="shape">
+  <div class="circle"><b>⭕ CIRCLE – Aperture 1</b><br>Neon magenta / pink glow<br><b>Plastic PET bottles</b><br>Sized Small / Medium / Large</div>
+  <div class="triangle"><b>🔺 TRIANGLE – Aperture 2</b><br>Neon emerald green glow<br><b>Aluminium beverage cans</b><br>Sized Small / Medium / Large</div>
+  <div class="square"><b>🟦 SQUARE – Aperture 3</b><br>Neon cyan blue glow<br><b>Office paper and documents</b><br>Credited by measured weight (grams / kg)</div>
+</div>
+<div class="warning"><b>Never insert:</b> hands or tools, liquids, glass, batteries, aerosols, electronics, sharp metal, food, wet or contaminated paper, or documents that your information-security policy does not allow to be disposed of. PecoDrop is not a shredder; follow your organization's document-destruction policy before recycling paper.</div>
+
+<h2>2. Know the kiosk</h2>
+<h3>2.1 Two landscape displays</h3>
+<ul>
+  <li><b>Interactive kiosk display</b> – shows the welcome header with the machine ID, the hardware diagnostics strip, the "HOW TO USE PECO DROP" guide and instruction video, the touchless start QR code, the <b>Session Details</b> panel (reward balance and the three material cards) and, on the right-hand pane, the <b>LEADERBOARD • LIVE RANKINGS</b> with the podium and a "RECENT" activity ticker.</li>
+  <li><b>Digital signage display</b> – plays the organization's advertisement video playlist ("PECO DROP / DIGITAL SIGNAGE") while the kiosk is idle and during sessions.</li>
+</ul>
+<p class="small">Which physical screen is on the left or right is configured per site by the operator (see section 16). The factory default places the interactive kiosk display on the left and the signage display on the right.</p>
+<div class="shot"><img src="assets/pecodrop_01_welcome.png" alt="PecoDrop welcome screen, both panes"><div class="cap">Figure 1 – Interactive display at the welcome state: header and diagnostics (top left), how-to-use guide with "SCAN TO START" QR (centre), Session Details (bottom left) and the live leaderboard (right). This capture was made in demo mode with the hardware unplugged, so the compartment cards read "unavailable"; on a production kiosk they read Ready.</div></div>
+
+<h3>2.2 The console</h3>
+<ul>
+  <li><b>Keypad</b> – a numeric keypad. Employees only need <span class="key">0</span> (start), <span class="key">Enter</span> (finish and claim) and the digits <span class="key">1</span>–<span class="key">5</span> for the experience rating. <span class="key">*</span> or <span class="key">Esc</span> cancels the current dialog.</li>
+  <li><b>Touch</b> – touching the glowing "TOUCH SCREEN OR PRESS 0" card has the same effect as pressing <span class="key">0</span>.</li>
+  <li><b>Touchless start QR</b> – the white "📱 TOUCHLESS • SCAN TO START" card on screen. Scan it with the Trash to Cash app (or the phone camera) to start a session that is already linked to your account, so the points are credited automatically when you finish.</li>
+</ul>
+
+<h3>2.3 Session Details panel</h3>
+<p>Below the guide area, the <b>SESSION DETAILS</b> panel shows <b>YOUR REWARD BALANCE</b> (points earned in this session) with the <b>REDEEM</b> button, and four cards: <b>PLASTIC</b> (S / M / L counts and total pieces), <b>CAN</b> (S / M / L and total), <b>PAPER</b> (weight in kg and total) and <b>REJ</b> (rejected items). The counts update the moment an item is accepted.</p>
+
+<h2>3. Before you start</h2>
+<ul class="check">
+  <li>The header shows a green <b>LIVE</b> badge and the correct machine ID for your site (for example PECO-LHR-01).</li>
+  <li>The diagnostics strip reads <b>HARDWARE: COMx</b> (green), <b>DB: OK</b> and <b>API: OK</b>, and the machine status reads <b>MACHINE: IDLE</b> or READY.</li>
+  <li>The three material cards show <b>Ready</b>. A card reading <b>Full</b> or <b>Unavailable</b> means that material cannot be accepted right now.</li>
+  <li>Your bottle or can is <b>empty</b>, uncrushed enough to keep its shape, and your paper is dry, loose (no binders, clips, plastic sleeves) and approved for disposal.</li>
+  <li>Have the Trash to Cash app ready, or know the mobile number registered to your account.</li>
+</ul>
+
+<h2>4. Starting a session</h2>
+<p>The idle screen shows the instruction video with the overlay <b>"PRESS 0 TO START RECYCLING – Or touch screen / scan touchless QR to begin session"</b>. There are three ways to begin:</p>
+<table>
+<tr><th style="width:26%">Method</th><th>What to do</th><th style="width:30%">Result</th></tr>
+<tr><td><b>A. Touchless QR (recommended)</b></td><td>Open Trash to Cash, tap the scanner and scan the on-screen "SCAN TO START" QR (or scan it with the phone camera and follow the link). The QR refreshes itself about every 110 seconds, so always scan the one currently on screen.</td><td>The kiosk greets you by name ("Eco Citizen" if the profile has no name), shows your current <b>Balance</b> in points, and the session opens linked to your account. Points are credited automatically at the end.</td></tr>
+<tr><td><b>B. Touch the screen</b></td><td>Tap the glowing "TOUCH SCREEN OR PRESS 0" card.</td><td>An anonymous session opens. You will enter your mobile number, or scan the claim QR, at the end.</td></tr>
+<tr><td><b>C. Keypad</b></td><td>Press <span class="key">0</span> once.</td><td>Same as B.</td></tr>
+</table>
+<p>When the session is open the screen reads <b>"SESSION ACTIVE • INTAKE GATES READY – PLEASE INSERT BOTTLE / CAN / PAPER – Sensors active • Insert items one at a time into the corresponding illuminated aperture"</b> and the status changes to <b>MACHINE: RUNNING</b>. The three apertures light up.</p>
+<div class="shot"><img src="assets/pecodrop_02_session_ready_left.png" alt="PecoDrop session ready"><div class="cap">Figure 2 – Session ready. The guide steps through "Press 0 to Start / Touch Screen"; the Session Details panel is now live.</div></div>
+<div class="tip"><b>Start a session before inserting anything.</b> Items dropped into a closed aperture are not counted and may block the gate.</div>
+
+<h2>5. Depositing plastic bottles – ⭕ Circle aperture</h2>
+<ol class="steps">
+  <li>Empty the PET bottle. Keep the cap on or off, it does not matter, but the bottle must keep a recognisable shape.</li>
+  <li>Check that the <b>PLASTIC</b> card reads Ready.</li>
+  <li>Insert <b>one</b> bottle into the magenta circle opening and let go. The screen shows "Plastic bottle detected" then the <b>OPTICAL SIZING CHAMBER</b> overlay ("Analyzing Small (S) • Medium (M) • Large (L) – Please keep hands away from the intake aperture while measuring").</li>
+  <li>Wait. The kiosk measures the bottle, opens the drop gate and shows <b>"ITEM ACCEPTED! • Points credited to your session • Ready for next item"</b> with the size, material and points (for example "MEDIUM PLASTIC – 10 points"). A short celebration animation plays.</li>
+  <li>Confirm that the PLASTIC count and YOUR REWARD BALANCE increased, then insert the next item.</li>
+</ol>
+<div class="shot"><img src="assets/pecodrop_03_plastic_accepted_left.png" alt="Plastic accepted"><div class="cap">Figure 3 – Plastic bottle accepted: the PLASTIC card and the reward balance have increased.</div></div>
+
+<h2>6. Depositing cans – 🔺 Triangle aperture</h2>
+<ol class="steps">
+  <li>Use an empty aluminium beverage can. Aerosol cans, food tins and batteries are not accepted.</li>
+  <li>Check that the <b>CAN</b> card reads Ready.</li>
+  <li>Insert one can into the green triangle opening and release it. The screen shows "Can detected — verifying metal" and the sizing overlay.</li>
+  <li>Wait for "ITEM ACCEPTED!" with the size and points, then check the CAN count.</li>
+</ol>
+<div class="shot"><img src="assets/pecodrop_04_can_accepted_left.png" alt="Can accepted"><div class="cap">Figure 4 – Can accepted.</div></div>
+
+<h2>7. Depositing office paper – 🟦 Square aperture (weighed)</h2>
+<p>Paper is not counted in pieces. A digital load cell (HX711) under the square intake weighs the paper in grams and converts the weight into points according to your organization's "per kg" rule.</p>
+<ol class="steps">
+  <li>Confirm the paper is permitted by your information-security policy. Remove binders, clips, plastic folders, batteries, food and anything wet.</li>
+  <li>Check that the <b>PAPER</b> card reads Ready.</li>
+  <li>Place the paper into the cyan square opening as shown in the instruction video. The screen shows "Paper detected — preparing scale" and then <b>"WEIGHING PAPER IN PROGRESS... – Please leave paper on the scale until measurement stabilizes"</b>.</li>
+  <li>Do not push, hold or add paper while the measurement is running.</li>
+  <li>When the weight is stable the gate opens and the screen shows "Paper: 250 g (0.250 kg) – 4 points" (example values). The PAPER card shows the cumulative weight in kg.</li>
+</ol>
+<div class="shot"><img src="assets/pecodrop_05_paper_accepted_left.png" alt="Paper accepted"><div class="cap">Figure 5 – Paper accepted: the PAPER card reports 0.250 kg and the reward balance updated.</div></div>
+
+<h2>8. Rejected items and messages you may see</h2>
+<div class="shot"><img src="assets/pecodrop_06_rejected_left.png" alt="Rejected item"><div class="cap">Figure 6 – Rejected item: the REJ counter increases and the kiosk returns to "insert" after about 2.5 seconds.</div></div>
+<table>
+<tr><th style="width:38%">Message on screen</th><th>Meaning and what to do</th></tr>
+<tr><td>Rejected / Invalid item</td><td>The sensors could not recognise the item as a valid bottle or can of a known size. Wait for all movement to stop, take the item back from the return point if it is presented, and retry once with a clean, eligible item. Do not force it.</td></tr>
+<tr><td>Scan timed out. Remove bottle and try again</td><td>The item was not fully released or was held during scanning. Release it completely and try again.</td></tr>
+<tr><td>Plastic did not reach the sizing chamber / Can did not reach the sizing chamber</td><td>The item stopped before the measuring chamber. Make sure it is inserted straight and released.</td></tr>
+<tr><td>Could not measure bottle length</td><td>The ultrasonic sizing could not read the item; often a crushed or very small item. Try a different item.</td></tr>
+<tr><td>Paper reached the inlet but no stable weight was measured</td><td>The scale could not settle. Remove the paper when instructed, make sure it is dry and loose, and retry once.</td></tr>
+<tr><td>HX711 load cell is not responding</td><td>Scale fault. Paper cannot be accepted. Report to the site operator.</td></tr>
+<tr><td>Bottle stuck – Remove the bottle before inserting another item – MACHINE: BLOCKED</td><td>The item did not clear the drop gate. Remove it from the opening if it is reachable without reaching inside; otherwise call the site operator. Points for that item are cancelled.</td></tr>
+<tr><td>PLASTIC bin is full (or METAL / PAPER) – card shows Full</td><td>That bin needs emptying. The other materials may continue if their cards still read Ready.</td></tr>
+<tr><td>HARDWARE CONNECTION ERROR: Check USB COM port / HARDWARE: OFFLINE</td><td>The kiosk computer has lost contact with the machine hardware. Do not deposit anything. Report to the operator.</td></tr>
+<tr><td>Calibrating... / Keep pipe empty / Recalibrating...</td><td>The machine is zeroing its sensors. Wait until the session-ready message returns.</td></tr>
+</table>
+
+<h2>9. Finishing the session and claiming points</h2>
+<p>When you have inserted your last item press <span class="key">Enter</span> or tap <b>REDEEM</b>. The guards you may see: "Start recycling first", "No items to credit / Insert an item before using your wallet", or "Wallet unavailable / Connect local DB or Central Network before crediting a wallet" (the kiosk is fully offline; ask the operator).</p>
+
+<h3>9.1 If you started with the touchless QR (account already known)</h3>
+<p>The points are credited immediately and the <b>⭐ EXPERIENCE RATING</b> window appears: "✓ Wallet Credited: 03xx xxxxxxx (+25 PTS) – HOW WAS YOUR EXPERIENCE? – Press 1 to 5 on keypad or tap stars to rate · Press ENTER to finish – Auto-completing in 8s...". Press <span class="key">1</span>–<span class="key">5</span> then <span class="key">Enter</span>, or tap <b>Submit Rating ✓</b>, or simply wait; the default rating is 5 stars. <b>Skip</b> (or <span class="key">Esc</span>) finishes without rating.</p>
+
+<h3>9.2 If you started with touch or key 0 (anonymous session)</h3>
+<p>The <b>💳 WALLET TRANSFER · Scan QR or Enter Mobile Number to Claim Points</b> window appears with the <b>RECYCLED DEPOSIT SUMMARY</b> (items recycled, ⭕ Plastic / 🔺 Cans / 🟦 Paper breakdown and <b>POINTS TO CLAIM</b>). Choose one of two ways to claim:</p>
+<ol>
+  <li><b>Scan the claim QR</b> ("📲 SCAN QR CODE TO CLAIM POINTS – Scan using RVM Mobile App or your phone camera") with Trash to Cash or the phone camera, or type the <b>SESSION CODE (FOR MANUAL APP ENTRY)</b> shown under the QR (format <span class="mono">PECO-LHR-01_3a7698c8</span>) into the app. The window shows "Waiting for scan..." and then "✓ Claimed by &lt;your name&gt;!". The QR is <b>valid for 90 seconds</b>.</li>
+  <li><b>Enter your mobile number</b> in "📱 CITIZEN MOBILE WALLET NUMBER – Enter 11 digits starting with 03" and press <b>Claim Points ➔</b> (or <span class="key">Enter</span>). The field validates as you type ("✓ Valid mobile number" / "⚠ Invalid number: Must start with 03…"). Points are credited to the account registered with that number; if the number has no account yet, one is created and the points wait there until you register in the app with the same number.</li>
+</ol>
+<p>After a successful claim the kiosk shows <b>"THANK YOU FOR RECYCLING! – Your wallet has been credited and feedback recorded."</b>, asks for the 1–5 star rating, and returns to the welcome screen.</p>
+<div class="warning"><b>If you walk away:</b> once at least one item has been accepted and nothing happens for 30 seconds, the status shows "Session Closing in 10s…". After 40 seconds a QR-authenticated session is auto-credited to the signed-in account; an anonymous session shows "Session Expired" and the points are <b>not</b> credited to anyone. Pressing <b>✖ Close Session</b>, <span class="key">Esc</span> or <span class="key">*</span> in the wallet window also closes the session without claiming.</div>
+
+<h2>10. Points, rewards and your organization's programme</h2>
+<ul>
+  <li><b>How points are calculated.</b> Plastic and cans earn points per piece by size; paper earns points per kilogram. The values are set by ISP and your organization on the Master Portal and pushed to the kiosk automatically. Factory defaults when no rule has been configured: plastic S / M / L = 5 / 10 / 15 points, cans S / M / L = 10 / 15 / 20 points, paper = 15 points per kg. Your kiosk may use different values; the points shown on screen at acceptance time are always the ones that apply.</li>
+  <li><b>Where the points go.</b> Into the recycler account identified at claim time (QR login or mobile number). The same account is used by the Trash to Cash app, where you can see your balance, session history and redeem rewards.</li>
+  <li><b>Session summary.</b> The kiosk can show "Items Recycled / Points Earned / CO₂ Saved / Water Saved" for the session (0.15 kg CO₂ and 0.75 L water per item are the on-kiosk estimates).</li>
+  <li><b>Corporate programme.</b> Departmental rankings, cafeteria discounts, internal perks, and CSR / ESG reports are managed by your organization's administrator on the Master Portal; the kiosk only records the deposits and credits the points. If a credit is missing, give your administrator the machine ID, the time and the points shown on screen.</li>
+  <li><b>Leaderboard.</b> The right-hand pane ranks the top recyclers of your organization. Ranking is by points balance; it refreshes automatically and after every credited session.</li>
+</ul>
+</section>
+
+<!-- ============================ PART B ============================ -->
+<section class="part">
+<div class="part-banner"><h2>Part B – Operating and maintaining PecoDrop</h2><p>For site operators, facility staff and ISP technicians. Contains confidential key sequences.</p></div>
+<div class="confidential"><b>Confidential.</b> Sections 13, 14, 19 and 22 describe key sequences that can stop the machine, open service controls or power off the kiosk computer. Do not post Part B where the public can read it.</div>
+
+<h2>11. Daily opening and closing checklist</h2>
+<h3>Opening</h3>
+<ul class="check">
+  <li>Both displays are on, full-screen and in the expected physical positions (section 16).</li>
+  <li>The application started (it launches automatically; otherwise run <span class="mono">launch-kiosk.ps1</span> or the PecoDropDesktopApp executable). Wait for the firmware handshake: the status passes through "Calibrating... / Keep pipe empty" and ends with <b>HARDWARE: COMx</b> green and <b>MACHINE: IDLE</b>.</li>
+  <li>Diagnostics strip shows DB: OK and API: OK and the header badge is <b>LIVE</b>. "NO NETWORK" means the central API is unreachable (section 18.4).</li>
+  <li>PLASTIC, CAN and PAPER cards read Ready; bins are empty and seated; the paper scale is empty.</li>
+  <li>QR scanner window, keypad, screens and the three illuminated apertures are clean and undamaged; nothing is left inside an aperture.</li>
+  <li>The machine ID and location in the header are correct for the site.</li>
+  <li>Where site policy allows, run one test deposit and confirm it appears on the Master Portal.</li>
+</ul>
+<h3>Closing</h3>
+<ul class="check">
+  <li>Let any active session finish (or press <span class="key">77</span> to stop it, see section 13).</li>
+  <li>Check all apertures and the return path for stuck items.</li>
+  <li>Empty bins that read Full; note any warning banner for the maintenance log.</li>
+  <li>Follow the site's always-on or shutdown policy (section 22). Do not switch off at the wall while a session is running.</li>
+</ul>
+
+<h2>12. Reading the status indicators</h2>
+<table>
+<tr><th style="width:30%">Indicator</th><th>Values and meaning</th></tr>
+<tr><td>Header badge</td><td><span class="pill green">LIVE</span> central API reachable • <span class="pill red">NO NETWORK</span> API unreachable; deposits still work and are stored locally for later sync.</td></tr>
+<tr><td>HARDWARE</td><td><b>COMx</b> (green) connected and calibrated • <b>OFFLINE / Cable Disconnected</b> USB cable or Arduino missing • <b>ERROR</b> port could not be opened.</td></tr>
+<tr><td>DB</td><td><b>OK</b> local SQL Server reachable • <b>ONLINE/OFFLINE</b> as reported; without local DB and without API, wallet credit is refused.</td></tr>
+<tr><td>API</td><td><b>OK</b> Master Portal reachable • a 403 response means "Machine not registered/authorized on Central Dashboard": the machine ID must be registered in the portal first.</td></tr>
+<tr><td>MACHINE</td><td>IDLE • RUNNING (session active) • BLOCKED (item stuck) • NOT CALIBRATED • OFFLINE • Partial / Warning (one compartment unavailable).</td></tr>
+<tr><td>Compartment cards</td><td><b>Ready</b> • <b>Full</b> (bin sensor blocked for more than 0.5 s; clears 2 s after the bin is emptied) • <b>Unavailable</b> (compartment failed self-test, iris disabled, or firmware compiled without it).</td></tr>
+<tr><td>Warning banner</td><td>Examples: "PLASTIC bin is full", "METAL working failed", "MQ6: Smoke / gas detected" (MQ-6 gas sensor). A smoke/gas warning requires immediate inspection.</td></tr>
+<tr><td>DEMO MODE / DEMO TESTING (F2)</td><td>The kiosk is simulating hardware. Deposits made in demo mode are test data. Leave demo mode by restarting the application.</td></tr>
+</table>
+
+<h2>13. Keypad reference</h2>
+<p>Digit sequences are typed on the numeric keypad; the buffer accepts up to 8 characters and resets after 4 seconds of inactivity. Servo and iris sequences are ignored while in demo mode or when the hardware is disconnected.</p>
+<h3>13.1 Public keys (safe for employees)</h3>
+<table>
+<tr><th style="width:22%">Key</th><th>Function</th></tr>
+<tr><td><span class="key">0</span> / Insert / NumPad 0</td><td>Start a session. <b>Caution:</b> if the hardware is disconnected, pressing 0 silently enters demo mode (simulated deposits); restart the application to leave demo mode.</td></tr>
+<tr><td><span class="key">Enter</span></td><td>Finish the session and open the wallet / rating window.</td></tr>
+<tr><td><span class="key">1</span> – <span class="key">5</span></td><td>Experience rating in the rating window.</td></tr>
+<tr><td><span class="key">Esc</span> or <span class="key">*</span></td><td>Close the current dialog without claiming; during a session stops the machine (a QR-authenticated session with items is auto-credited first). <b>At the idle screen, Esc exits the kiosk application</b> (operator use).</td></tr>
+<tr><td><span class="key">Backspace</span>, <span class="key">-</span>, <span class="key">Del</span></td><td>Delete the last digit in an input field.</td></tr>
+<tr><td><span class="key">/</span></td><td>Toggle keypad mouse-emulation (arrows move the pointer, 5 / Enter click, 0 / . right-click).</td></tr>
+</table>
+<h3>13.2 Confidential operator sequences</h3>
+<table>
+<tr><th style="width:22%">Sequence</th><th>Function</th></tr>
+<tr><td><span class="key">55</span></td><td>Toggle the <b>REAL-TIME TELEMETRY TERMINAL</b> overlay (live serial and sync log). Esc or 55 closes it.</td></tr>
+<tr><td><span class="key">66</span> / <span class="key">77</span> / <span class="key">88</span> / <span class="key">99</span></td><td>START / STOP / RESET (also reconnects the serial port) / CALIBRATE the machine.</td></tr>
+<tr><td><span class="key">1</span> ×3 within 1.5 s, or <span class="key">A</span></td><td>Open the Administration login.</td></tr>
+<tr><td><span class="key">001</span></td><td>Enter demo mode (no window). <span class="key">1122</span>, <span class="key">F2</span> or <span class="key">D</span>: demo mode with the Demo Testing simulator window.</td></tr>
+<tr><td><span class="key">0012</span> / <span class="key">0021</span></td><td>Display layout: kiosk LEFT + signage RIGHT / signage LEFT + kiosk RIGHT (section 16).</td></tr>
+<tr><td><span class="key">1218</span> / <span class="key">1219</span></td><td>Confidential RESTART / SHUTDOWN dialog for the kiosk computer (section 22).</td></tr>
+<tr><td><span class="key">601</span>–<span class="key">612</span></td><td>Servo tests: 601/602 plastic iris open/close • 603/604 plastic drop gate • 605/606 metal iris • 607/608 metal drop gate • 609/610 paper iris • 611/612 paper drop gate. Manual servo testing stops normal intake; close commands settle and detach the servo.</td></tr>
+<tr><td><span class="key">620</span>–<span class="key">629</span></td><td>Iris aperture enable / disable: 620 enable all • 621/622 plastic enable/disable • 623/624 metal • 625/626 paper • 629 disable all. A disabled aperture stays closed and ignores objects.</td></tr>
+<tr><td><span class="key">S</span></td><td>Stop machine (keyboard).</td></tr>
+</table>
+
+<h2>14. Administration panel</h2>
+<p>Open it with <span class="key">1</span> <span class="key">1</span> <span class="key">1</span> (or <span class="key">A</span>) and sign in with the kiosk admin account stored in the local SQL Server (table AdminCredentials). <b>Change the factory password on first commissioning</b> using "🔐 CHANGE ADMIN PASSWORD" in the Security tab. If the local SQL Server is unreachable, the Admin login is refused until the database service is running again.</p>
+<p>The header of the window shows the SQL Server and Dashboard API status and the buttons <b>🎮 Simulator</b>, <b>Refresh</b> and <b>Save Points</b>. Tabs:</p>
+<table>
+<tr><th style="width:28%">Tab</th><th>Contents</th></tr>
+<tr><td>Point Settings</td><td>Grid of the local point rules (material × size → points, paper per kg). Save Points writes them to the local table dbo.PointSettings. Rules pushed from the Master Portal override local values.</td></tr>
+<tr><td>Transactions Log</td><td>Local session and wallet transactions with their sync state.</td></tr>
+<tr><td>🔐 Security &amp; Manual Data Sync</td><td>Local vs Dashboard telemetry comparison • <b>⚡ Sync Local Unsynced Data to Dashboard</b> • <b>🚀 Sync All Local SQL Data to Central Server</b> (re-posts every local session to <span class="mono">/api/machine/sync-session</span>) • <b>🔐 CHANGE ADMIN PASSWORD</b> • <b>🎯 DYNAMIC LOCAL POINT SETTINGS MATRIX</b> with <b>🔄 Pull Latest Point Settings from Dashboard</b>.</td></tr>
+<tr><td>⚙️ System &amp; Hardware Config (config.txt)</td><td>Reload / Save. §1 Machine ID, Kiosk UI Theme (Modern / Classic), Central Dashboard Base URL, Installation Location, Latitude / Longitude with 📍 Auto-Detect. §2 SQL Connection String. §3 Arduino Port / Baud, Camera Port / Baud and hardware buttons: Refresh All Sensors, Safe Self-Test, Scale Read, Calibrate All, CLOSE ALL / SAFE STOP, Reconnect / Re-initialize. INDIVIDUAL SERVO TESTING (plastic / metal / paper iris and drop gates). CHAMBER IRIS APERTURE CONTROL (ENABLE / DISABLE per chamber, ENABLE ALL, DISABLE ALL, REFRESH STATUS). HARDWARE SENSOR BYPASS &amp; FAULT RESILIENCE OVERRIDES (bypass or restore the Plastic Middle, Plastic Top, Metal Middle, Metal Top sizing transducers and the Optical Bin Sensors). §4 Folders &amp; Classifier: Advertisement Video Folder, Instruction Video Folder, Model Path, Capture Directory.</td></tr>
+<tr><td>⚡ Central Dashboard Simulator &amp; Test Suite</td><td>🔌 Ping Connection &amp; Rules, manual entry (Machine ID, Mobile, Material PLASTIC / CAN / CUP / TETRA PAK / PAPER-CARDBOARD / GLASS, Size, Count, Weight) → 🚀 Simulate Bottle Insert &amp; Sync, 📡 Send Heartbeat (85% Fill), 🔍 Verify QR Code Scanner, console log. Use only for commissioning tests; the records are real on the portal.</td></tr>
+<tr><td>📺 Advertisement &amp; Video Signage</td><td>Browse &amp; Add, Open Ads Folder, Refresh Playlist, Apply &amp; Play, Preview, Delete Selected (section 17).</td></tr>
+</table>
+<div class="note">All hardware commands sent from the Admin panel use the kiosk's existing serial connection; the panel never opens a second COM port. Closing the Admin window after a servo test closes all servos (safe state).</div>
+<div class="warning"><b>Known limitations of the current build.</b> (1) The "Refresh All Sensors" and "Safe Self-Test" buttons send DIAG:SNAPSHOT / DIAG:SELF_TEST, which the current Peco_Arduino firmware does not implement; use Scale Read, Calibrate All and the servo tests instead. (2) "Save Configuration" in the config tab rewrites config.txt without the sensor-bypass and display-layout keys; after saving, re-check the display layout (it is also stored in the local database, which takes precedence) and re-apply any sensor bypass from the bypass card.</div>
+
+<h2>15. config.txt reference</h2>
+<p>config.txt sits next to the executable and is edited through the Admin panel (or a text editor while the application is closed). The display layout and UI theme are also stored in the local table <span class="mono">dbo.KioskSettings</span>, which takes precedence after the first run.</p>
+<table>
+<tr><th style="width:26%">Key</th><th style="width:30%">Default</th><th>Meaning</th></tr>
+<tr><td>MachineId</td><td>RVM-RWP (example)</td><td>Unique kiosk ID, must match the machine registered on the Master Portal (for example PECO-LHR-01). Unconfigured kiosks report as PECO-UNCONFIGURED.</td></tr>
+<tr><td>CentralApiUrl</td><td>https://isprvm.binishaqsoft.com</td><td>Master Portal base URL.</td></tr>
+<tr><td>KioskApiKey</td><td>(empty)</td><td>Shared secret issued by ISP; sent as the <span class="mono">x-kiosk-key</span> header on every API call. Required once the portal enforces kiosk authentication.</td></tr>
+<tr><td>ConnectionString</td><td>Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;…</td><td>Local SQL Server connection. Change the SQL password from the factory value.</td></tr>
+<tr><td>ArduinoPort / ArduinoBaud</td><td>COM16 / 115200</td><td>Serial port of the Arduino Mega 2560. If the configured port is missing, the app auto-selects the single USB-serial device present.</td></tr>
+<tr><td>CameraPort / CameraBaud</td><td>COM31 / 921600</td><td>Optional camera module port (excluded from auto-selection).</td></tr>
+<tr><td>AdvertisementVideoFolder / InstructionVideoFolder</td><td>Ads\Advertisements / Ads\Instructions</td><td>Signage playlist folder and instruction video folder.</td></tr>
+<tr><td>ModelPath / CaptureDirectory</td><td>Models\… / Captures</td><td>Classifier model and capture folder (optional).</td></tr>
+<tr><td>DisplayMode</td><td>MultiDisplay</td><td>MultiDisplay (kiosk on primary, signage on second monitor) or BothOnPrimary (65 % / 35 % split on one monitor; also with command-line <span class="mono">--both-on-primary</span> / <span class="mono">--single-display</span>).</td></tr>
+<tr><td>DisplayLayout</td><td>0012</td><td>0012 = kiosk left, signage right • 0021 = signage left, kiosk right.</td></tr>
+<tr><td>UiTheme</td><td>Modern</td><td>Modern or Classic (Legacy Dual-Pane) interactive skin.</td></tr>
+<tr><td>BypassPlasticMidSensor, BypassPlasticTopSensor, BypassMetalMidSensor, BypassMetalTopSensor, BypassBinSensors</td><td>false</td><td>Persisted sensor bypass flags, re-sent to the firmware at every calibration.</td></tr>
+</table>
+
+<h2>16. Display layout (two screens)</h2>
+<ol>
+  <li>Windows must see both monitors (extended desktop). Do not change Windows display settings on a running kiosk.</li>
+  <li>Type <span class="key">0012</span> on the keypad for kiosk LEFT / signage RIGHT, or <span class="key">0021</span> for signage LEFT / kiosk RIGHT. A toast confirms the change.</li>
+  <li>The preference is saved per machine in <span class="mono">dbo.KioskSettings</span> (with config.txt as fallback) and is restored automatically after the application or Windows restarts.</li>
+</ol>
+
+<h2>17. Advertisements, instruction video and signage</h2>
+<ul>
+  <li><b>Instruction video</b> – <span class="mono">Ads\Instructions\Instructinal.mp4</span> plays on the interactive display while idle and is restored after every session.</li>
+  <li><b>Signage playlist</b> – every MP4 in <span class="mono">Ads\Advertisements</span> plays in a loop on the signage display. Add files with Browse &amp; Add or by copying MP4 files into the folder, then Refresh Playlist and Apply &amp; Play.</li>
+  <li><b>Central control</b> – the kiosk polls the Master Portal every 15 seconds for its active advertisement playlist (<span class="mono">/api/machine/ads/playlist</span>) and downloads new videos. Files that were downloaded from the portal (names starting with <span class="mono">ad_</span>) and are no longer in the playlist are removed automatically; locally added files are kept.</li>
+  <li><b>Celebration clips</b> – DancingPlastic, DancingXN (can) and DancingTetra (paper) in <span class="mono">Assets</span> play for about 5 seconds after each accepted item.</li>
+</ul>
+
+<h2>18. Point rules, leaderboard and data sync with the Master Portal</h2>
+<h3>18.1 Point rules</h3>
+<p>Order of precedence: Master Portal machine config (fetched with every heartbeat) → local dbo.PointSettings → built-in defaults (plastic 5 / 10 / 15, cans 10 / 15 / 20, paper 15 per kg). Paper rules support per-kg, per-gram and per-piece units; points are rounded incrementally on the cumulative weight of the session.</p>
+<h3>18.2 Heartbeat (every 15 s)</h3>
+<p>POST <span class="mono">/api/machine/heartbeat</span> with machine ID, status (ONLINE, IN_SESSION, BIN_FULL, WARNING, ERROR), fill levels of the three bins, scale status, smoke flag, anti-cheat trips, local IP, location and coordinates. The portal's Machine Health tab shows this data; a kiosk that misses heartbeats is shown OFFLINE.</p>
+<h3>18.3 Sessions</h3>
+<p>Each accepted item is posted live to <span class="mono">/api/machine/sync-session</span> with the cumulative counts of the session; the final post carries the claiming user. Feedback ratings go to <span class="mono">/api/machine/feedback</span>. The leaderboard is read from <span class="mono">/api/usernames</span> scoped to the organization the kiosk is bound to (corporate kiosks never show public citizens).</p>
+<h3>18.4 Offline behaviour</h3>
+<p>Deposits and wallet credits continue with the local SQL Server when the portal is unreachable (header shows NO NETWORK). Unsynced rows are re-sent automatically on the 15-second cycle and can be pushed manually from the Security tab. If both the local DB and the portal are down, the kiosk refuses to open the wallet window ("Wallet unavailable").</p>
+
+<h2>19. Hardware and firmware (Arduino Mega 2560)</h2>
+<h3>19.1 Overview</h3>
+<ul>
+  <li>Firmware: <span class="mono">PecoDropDesktopApp\Arduino\Peco_Arduino\Peco_Arduino.ino</span>, board "Arduino Mega or Mega 2560 / ATmega2560", 115200 baud. Full pin sheet: <span class="mono">PECODROP_ARDUINO_MEGA_PINOUTS.html</span>.</li>
+  <li>Each chamber has an entrance ultrasonic, an iris servo, a drop-gate servo and sizing sensors (three ultrasonics per bottle/can chamber: bottom + middle + top = Large). The paper chamber has top and bottom ultrasonics plus the HX711 load cell. Optical bin-full sensors on pins 47–49; an MQ-6 gas sensor reports MQ6:WARNING / CLEAR.</li>
+</ul>
+<h3>19.2 Host lease (the firmware never runs without the application)</h3>
+<ul>
+  <li>At power-up the firmware moves all servos to the closed safe state and prints <span class="mono">HOST:WAITING</span>. It accepts only STOP, RESET and STATUS until the application sends <span class="mono">HOST:ALIVE</span> (answered by HOST:ONLINE) and <span class="mono">HOST:START</span>.</li>
+  <li>The application renews the lease every 1.5 s. If no renewal arrives for 8 s the firmware stops, un-calibrates, closes all servos and prints HOST:TIMEOUT / MACHINE:STOPPED. This is why the machine goes idle automatically when the application closes or the USB cable is removed.</li>
+</ul>
+<h3>19.3 Calibration</h3>
+<ul>
+  <li>Triggered automatically at connection and after a reconnect, or manually with <span class="key">99</span> / Calibrate All. The application retries a failed calibration 6 times at 8 s, then every 15 s.</li>
+  <li>The firmware waits for the bin sensors to settle (up to 2.5 s, requiring 750 ms all-clear), measures the empty-chamber distances of every enabled sensor, tares the scale and reports <span class="mono">CALIBRATION:OK</span> followed by MACHINE:STARTED / MACHINE:IDLE. A compartment that fails is removed from the intake loop and recovers automatically later; calibration succeeds if at least one compartment is good.</li>
+  <li><b>Bin-full sensing in the current firmware build:</b> the optical bin sensors on pins 47–49 are compiled out (the *_BIN_SENSOR_ENABLED flags are false in Peco_Arduino.ino), so compartments do not automatically report Full. Operators must check bin levels visually; the dashboard fill figures come from the kiosk's own counters. Enable the flags and re-upload the firmware to activate sensor-based detection.</li>
+  <li>Bin-full reports received before CALIBRATION:OK are ignored, which prevents false "Full" states at start-up. Failure messages on screen: "Hardware calibration required – Empty all compartments, check ultrasonic wiring, then calibrate" or "Check HX711 wiring and load-cell power, then calibrate".</li>
+</ul>
+<h3>19.4 Iris enable/disable and sensor bypass (service features)</h3>
+<ul>
+  <li><b>Iris control</b> (<span class="mono">IRIS:&lt;PLASTIC|METAL|PAPER|ALL&gt;:ENABLE|DISABLE</span>, hotkeys 620–629 or Admin panel): a disabled chamber keeps its iris closed, is reported Unavailable and ignores objects. Use it to take one chamber out of service without stopping the kiosk.</li>
+  <li><b>Sensor bypass</b> (<span class="mono">BYPASS:&lt;PLASTIC_MID|PLASTIC_TOP|METAL_MID|METAL_TOP|BIN&gt;:ENABLE|DISABLE</span>, Admin panel): a bypassed sizing transducer is replaced by its empty-chamber baseline so the chamber keeps working with reduced sizing accuracy; bypassing the bin sensors disables bin-full detection. Bypass flags persist in config.txt and are re-applied at each calibration. Restore the sensor as soon as it is repaired.</li>
+</ul>
+<h3>19.5 USB hot-plug and reconnection</h3>
+<p>The application scans the serial ports every 1.5 s. It prefers the configured ArduinoPort, otherwise the single USB-serial device found (COM1 and the camera port are excluded). On reconnection it renews the lease, requests calibration and waits for CALIBRATION:OK before accepting bin-full states. While disconnected the screen shows "HARDWARE: OFFLINE – Cable Disconnected – Arduino cable unplugged — reconnect cable to resume".</p>
+<h3>19.6 Uploading new firmware</h3>
+<ol>
+  <li>Close PecoDrop first so the COM port is free.</li>
+  <li>In the Arduino IDE select "Arduino Mega or Mega 2560", processor ATmega2560, the kiosk's COM port, open Peco_Arduino.ino and Upload.</li>
+  <li>Errors such as "stk500v2_getsync()" or "can't open device COMx" are port / bootloader / cable problems, not sketch-size problems: check the cable, the port number and that no other program holds the port.</li>
+  <li>Restart PecoDrop; it must show HOST:WAITING → calibration → HARDWARE: COMx.</li>
+  <li>The scale can be tested standalone with <span class="mono">Arduino\HX711_Test\HX711_Test.ino</span> and the <span class="mono">SCALE</span> command in the Serial Monitor.</li>
+</ol>
+
+<h2>20. Troubleshooting</h2>
+<table>
+<tr><th style="width:34%">Symptom</th><th>Cause and action</th></tr>
+<tr><td>Red banner "HARDWARE CONNECTION ERROR: Check USB COM port" with RETRY / DEMO MODE buttons</td><td>USB cable or Arduino not detected. Reseat the cable, press RETRY or <span class="key">88</span>. Check ArduinoPort in the Admin config. Never run the public kiosk in DEMO MODE.</td></tr>
+<tr><td>HARDWARE: COMx but MACHINE: NOT CALIBRATED</td><td>Empty every chamber and the paper scale, then press <span class="key">99</span>. If one chamber keeps failing, disable its iris (section 19.4) and log a service call.</td></tr>
+<tr><td>A compartment reads Full although the bin is empty</td><td>Bin sensor blocked or misaligned. Clean the sensor window; as a temporary measure bypass the bin sensors from the Admin panel and request service.</td></tr>
+<tr><td>Paper weight does not stabilise</td><td>Paper touching the chamber wall, wet paper, or foreign objects on the scale. Clear the scale, retry; if "HX711 load cell is not responding" persists, check the load-cell cable.</td></tr>
+<tr><td>"Bottle stuck" / MACHINE: BLOCKED</td><td>Open the affected drop gate with its servo hotkey (603 / 607 / 611) or from the Admin panel, let the item fall, then close it (604 / 608 / 612) or use CLOSE ALL / SAFE STOP. Do not reach inside with the machine powered.</td></tr>
+<tr><td>Header NO NETWORK, API not OK</td><td>Check the kiosk's internet connection and CentralApiUrl. Deposits continue offline and sync later.</td></tr>
+<tr><td>API shows 403 / "not registered"</td><td>The machine ID is not registered on the Master Portal, or the KioskApiKey is wrong. Register the machine in the portal's Machine Health / RVM Management tab and verify the key.</td></tr>
+<tr><td>Touchless QR never changes to STARTED after scanning</td><td>The phone must have internet access and the Trash to Cash app must be signed in. The QR token expires after 110 s; scan the current one. Confirm the API badge is LIVE.</td></tr>
+<tr><td>Points shown differ from the portal</td><td>Point rules on the portal override local values on the next heartbeat (15 s). Use "Pull Latest Point Settings from Dashboard" and compare the Point Settings tab.</td></tr>
+<tr><td>Leaderboard empty</td><td>The kiosk is not bound to an organization on the portal, or the API is unreachable. Bind the kiosk to the client in Enterprise Clients and wait one sync cycle.</td></tr>
+<tr><td>Wrong screen shows the kiosk</td><td>Type <span class="key">0012</span> or <span class="key">0021</span>. If a monitor is missing, check cables and Windows "Extend" mode.</td></tr>
+<tr><td>"MQ6: Smoke / gas detected"</td><td>Isolate the kiosk from users, inspect for burning smell or heat, power off if in doubt and escalate immediately.</td></tr>
+<tr><td>Admin login refused</td><td>Local SQL Server down (start the SQL Express service) or wrong password. There is no fallback password; a lost admin password must be reset in the AdminCredentials table by ISP support.</td></tr>
+</table>
+
+<h2>21. Cleaning, privacy and emergencies</h2>
+<ul>
+  <li>Use screen-safe cleaner on a cloth; never spray liquids into the apertures, the QR scanner window or the keypad. No metal tools inside the apertures.</li>
+  <li>Handle recovered office paper under the organization's document-security policy. Never photograph or share employee QR codes or mobile numbers shown on the telemetry overlay (<span class="key">55</span>).</li>
+  <li>Smoke, burning smell, exposed wiring, liquid ingress, repeated uncontrolled gate movement, broken glass or forced cabinet access: isolate the kiosk, switch it off at the mains and call ISP support.</li>
+</ul>
+
+<h2>22. Restart, shutdown and exiting the application</h2>
+<ul>
+  <li><span class="key">1218</span> opens "Are you sure you want to RESTART the kiosk computer?" – confirm with <span class="key">Enter</span> / <span class="key">1</span> ("Yes, Restart") or cancel with <span class="key">0</span> / <span class="key">Backspace</span>.</li>
+  <li><span class="key">1219</span> opens the same dialog for SHUT DOWN. Both run a controlled Windows restart / shutdown; the firmware falls back to its safe state when the host lease expires.</li>
+  <li><span class="key">Esc</span> at the idle screen exits the kiosk application to the Windows desktop (closes the signage window and stops the heartbeat). Use this only for maintenance, then relaunch the application.</li>
+</ul>
+</section>
+
+<section class="part">
+<h2>Appendix A – Serial message glossary (firmware ↔ application)</h2>
+<table>
+<tr><th style="width:36%">Message</th><th>Meaning</th></tr>
+<tr><td>HOST:WAITING / HOST:ONLINE / HOST:TIMEOUT</td><td>Firmware waiting for the application • lease established • lease expired (safe stop).</td></tr>
+<tr><td>HOST:ALIVE / HOST:START (from app)</td><td>Lease renewal • start or calibrate.</td></tr>
+<tr><td>START / STOP / RESET / CALIBRATE / STATUS / SCALE / CLEAR_CHAMBER / DEBUG ON|OFF</td><td>Operator commands. Replies: MACHINE:STARTED, MACHINE:STOPPED, RESET:OK, PAPER:SCALE_RAW…</td></tr>
+<tr><td>CALIBRATION:OK / ERROR:CALIBRATION_FAILED / ERROR:PAPER_SCALE_NOT_READY</td><td>Calibration result.</td></tr>
+<tr><td>PLASTIC:OBJECT_DETECTED, METAL:…, PAPER:…</td><td>Item entering a chamber.</td></tr>
+<tr><td>SIZE:SMALL|MEDIUM|LARGE|UNKNOWN;MATERIAL:…;METAL:0|1</td><td>Sizing / material result.</td></tr>
+<tr><td>BOTTLE:CLEARED;COMPARTMENT:X</td><td>Item dropped into the bin – points are committed.</td></tr>
+<tr><td>INTAKE:IDLE, *_NO_ITEM_DROPPED, ERROR:*_ARRIVAL_TIMEOUT, ERROR:PAPER_WEIGHT_TIMEOUT, ERROR:*_INVALID_SENSOR_PATTERN, ERROR:CLEAR_TIMEOUT</td><td>No item / timeouts / stuck item.</td></tr>
+<tr><td>COMPARTMENT:NAME;WORKING:OK|FAILED;BIN:FULL|CLEAR</td><td>Per-compartment status (also legacy BIN:FULL / BIN:CLEARED).</td></tr>
+<tr><td>SERVO:ALL:CLOSED, SERVO:OK:&lt;cmd&gt;, IRIS:STATUS, BYPASS:STATUS, MQ6:WARNING|CLEAR, ERROR:HOST_OFFLINE, ERROR:COMPARTMENT_BUSY</td><td>Service replies and warnings.</td></tr>
+</table>
+
+<h2>Appendix B – Sample config.txt</h2>
+<pre>MachineId = PECO-LHR-01
+CentralApiUrl = https://isprvm.binishaqsoft.com
+KioskApiKey = &lt;issued by ISP – keep secret&gt;
+ConnectionString = Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=&lt;site password&gt;;Encrypt=False;TrustServerCertificate=True;
+ArduinoPort = COM16
+ArduinoBaud = 115200
+CameraPort = COM31
+CameraBaud = 921600
+AdvertisementVideoFolder = Ads\Advertisements
+InstructionVideoFolder = Ads\Instructions
+DisplayMode = MultiDisplay
+DisplayLayout = 0012
+UiTheme = Modern
+BypassPlasticMidSensor = false
+BypassPlasticTopSensor = false
+BypassMetalMidSensor = false
+BypassMetalTopSensor = false
+BypassBinSensors = false</pre>
+<p class="footer">PecoDrop Enterprise Kiosk – Complete User &amp; Operator Guide • Edition 17 October 2026 • ISP Environmental Solutions Pvt. Ltd. • Part B is confidential.</p>
+</section>
+</body>
+</html>

@@ -107,10 +107,10 @@ public static class HeartbeatService
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            // Reuse one static client (15 s timeout, x-kiosk-key applied) instead of allocating one per tick.
+            HttpClient client = KioskHttp.Client;
             string baseUrl = _serverUrl.TrimEnd('/');
             string localIp = GetLocalIpAddress();
-            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
 
             // 1. Post telemetry heartbeat with Local IP, Status, and Location Coordinates
             var heartbeatObj = new 
@@ -125,7 +125,9 @@ public static class HeartbeatService
             };
             var heartbeatJson = System.Text.Json.JsonSerializer.Serialize(heartbeatObj);
             using var content = new StringContent(heartbeatJson, Encoding.UTF8, "application/json");
-            var hbResponse = await client.PostAsync($"{baseUrl}/api/machine/heartbeat", content);
+            using var hbRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/machine/heartbeat") { Content = content };
+            hbRequest.Headers.TryAddWithoutValidation("X-Local-IP", localIp);
+            using var hbResponse = await client.SendAsync(hbRequest);
 
             if (hbResponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
@@ -133,7 +135,9 @@ public static class HeartbeatService
                 return;
             }
 
-            var configResponse = await client.GetAsync($"{baseUrl}/api/machine/config/{_machineId}");
+            using var cfgRequest = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/api/machine/config/{_machineId}");
+            cfgRequest.Headers.TryAddWithoutValidation("X-Local-IP", localIp);
+            using var configResponse = await client.SendAsync(cfgRequest);
             if (configResponse.IsSuccessStatusCode)
             {
                 string json = await configResponse.Content.ReadAsStringAsync();

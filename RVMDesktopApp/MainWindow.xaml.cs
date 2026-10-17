@@ -313,6 +313,19 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         catch { }
     }
 
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        // Kiosk hardening: Alt+F4 / programmatic Close() must not exit the kiosk unless the app's own
+        // restart/shutdown path (SystemPowerDialog) or Windows session-ending has authorized it.
+        if (!App.AllowKioskClose)
+        {
+            e.Cancel = true;
+            try { LogTelemetry("[KIOSK] Window close request blocked (kiosk mode)."); } catch { }
+            return;
+        }
+        base.OnClosing(e);
+    }
+
     private void MainWindow_Closed(object? sender, EventArgs e)
     {
         _startHandshakeTimer.Stop();
@@ -551,7 +564,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 return;
             }
 
-            if (e.Key == Key.Escape) Close();
+            // Escape is a no-op in kiosk mode: it must never close the kiosk window.
+            if (e.Key == Key.Escape) e.Handled = true;
             return;
         }
 
@@ -581,22 +595,23 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
                 break;
 
             case Key.B:
-                SimulateItemDeposit("PLASTIC", "MEDIUM", accept: true);
-                e.Handled = true;
-                break;
-
             case Key.C:
-                SimulateItemDeposit("CAN", "MEDIUM", accept: true);
-                e.Handled = true;
-                break;
-
             case Key.U:
-                SimulateItemDeposit("UBC", "MEDIUM", accept: true);
-                e.Handled = true;
-                break;
-
             case Key.R:
-                SimulateItemDeposit("PLASTIC", "UNKNOWN", accept: false);
+                // Simulated deposits are only permitted while Demo Mode is active (hotkey 1122 / 001).
+                if (!IsDemoMode)
+                {
+                    LogTelemetry($"[HOTKEY] Simulation key '{e.Key}' ignored: Demo Mode is not active.");
+                    e.Handled = true;
+                    break;
+                }
+                switch (e.Key)
+                {
+                    case Key.B: SimulateItemDeposit("PLASTIC", "MEDIUM", accept: true); break;
+                    case Key.C: SimulateItemDeposit("CAN", "MEDIUM", accept: true); break;
+                    case Key.U: SimulateItemDeposit("UBC", "MEDIUM", accept: true); break;
+                    default: SimulateItemDeposit("PLASTIC", "UNKNOWN", accept: false); break;
+                }
                 e.Handled = true;
                 break;
 
@@ -1598,8 +1613,8 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
 
         try
         {
-            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            
+            using var client = KioskHttp.Create(TimeSpan.FromSeconds(5));
+
             string localIp = HeartbeatService.GetLocalIpAddress();
             client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
             
@@ -1736,7 +1751,24 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         }
     }
 
+    private bool _handshakeTickBusy;
+
     private async void StartHandshakeTimer_Tick(object? sender, EventArgs e)
+    {
+        // Re-entrancy guard: the 1.5 s timer must not overlap an in-flight await.
+        if (_handshakeTickBusy) return;
+        _handshakeTickBusy = true;
+        try
+        {
+            await StartHandshakeTickCoreAsync();
+        }
+        finally
+        {
+            _handshakeTickBusy = false;
+        }
+    }
+
+    private async System.Threading.Tasks.Task StartHandshakeTickCoreAsync()
     {
         if (machineStarted)
         {
@@ -2102,7 +2134,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null; // null = no user yet; server will not credit anyone
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
@@ -2495,7 +2527,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null; // null = no user yet; server will not credit anyone
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;

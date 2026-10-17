@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-const pool = new Pool({ connectionString: 'postgresql://postgres:Admin786@127.0.0.1:5432/rvmpg' });
+const pool = new Pool({ connectionString: (process.env.DATABASE_URL || `postgresql://postgres:${encodeURIComponent(process.env.PG_PASSWORD || '')}@127.0.0.1:5432/rvmpg`) });
 
 async function testVerification() {
   try {

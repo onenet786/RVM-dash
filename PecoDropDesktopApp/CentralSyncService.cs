@@ -84,7 +84,8 @@ public class KioskUserInfo
 
 public static class CentralSyncService
 {
-    private static readonly HttpClient _httpClient = new HttpClient();
+    // Shared client: x-kiosk-key is injected per request by KioskHttp (resolved at send time).
+    private static readonly HttpClient _httpClient = KioskHttp.CreateClient(TimeSpan.FromSeconds(20));
     public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
 
     /// <summary>
@@ -228,7 +229,7 @@ public static class CentralSyncService
     public static async Task<SyncResult> SyncSessionToCentralDetailedAsync(
         string machineId,
         string localSessionId,
-        string mobileNumber,
+        string? mobileNumber,
         int plasticCount,
         int aluminiumCount,
         int paperCardboardCount,
@@ -268,8 +269,9 @@ public static class CentralSyncService
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "PECO-UNCONFIGURED" : machineId,
                 localSessionId = localSessionId,
-                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
-                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
+                // No fallback account: an unknown employee/user is sent as null.
+                userId = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim(),
+                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim(),
                 plasticCount = plasticCount,
                 aluminiumCount = aluminiumCount,
                 paperCardboardCount = paperCardboardCount,
@@ -342,7 +344,7 @@ public static class CentralSyncService
     public static async Task<bool> SyncSessionToCentralAsync(
         string machineId,
         string localSessionId,
-        string mobileNumber,
+        string? mobileNumber,
         int plasticCount,
         int aluminiumCount,
         int paperCardboardCount,

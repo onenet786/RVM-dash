@@ -21,6 +21,11 @@ public sealed class AppSettings
     public double? Latitude { get; init; } = 31.5826;
     public double? Longitude { get; init; } = 74.3276;
     public string UiTheme { get; init; } = "Modern";
+    /// <summary>Shared secret sent as the x-kiosk-key header on every central API request. Never display in UI.</summary>
+    public string KioskApiKey { get; init; } = "";
+    /// <summary>Optional offline admin credentials (used only when the local SQL database is unreachable). Empty = offline admin login denied.</summary>
+    public string AdminUsername { get; init; } = "";
+    public string AdminPassword { get; init; } = "";
 
     public static AppSettings Load()
     {
@@ -42,7 +47,10 @@ public sealed class AppSettings
             InstructionVideoFolder = Get(values, "InstructionVideoFolder", @"Ads\Instructions"),
             ModelPath = Get(values, "ModelPath", @"Models\rvm_classifier.onnx"),
             CaptureDirectory = Get(values, "CaptureDirectory", "Captures"),
-            UiTheme = Get(values, "UiTheme", "Modern")
+            UiTheme = Get(values, "UiTheme", "Modern"),
+            KioskApiKey = Get(values, "KioskApiKey", ""),
+            AdminUsername = Get(values, "AdminUsername", ""),
+            AdminPassword = Get(values, "AdminPassword", "")
         };
     }
 
@@ -84,6 +92,21 @@ public sealed class AppSettings
 
     public static void SaveConfigToFile(Dictionary<string, string> configValues)
     {
+        // Preserve security keys that callers (e.g. Admin > Save Config) do not expose in the UI,
+        // so re-saving settings never blanks the kiosk API key or offline admin credentials.
+        try
+        {
+            var existing = LoadRawConfig();
+            foreach (string securedKey in new[] { "KioskApiKey", "AdminUsername", "AdminPassword" })
+            {
+                if (!configValues.ContainsKey(securedKey) && existing.TryGetValue(securedKey, out string? existingValue))
+                {
+                    configValues[securedKey] = existingValue;
+                }
+            }
+        }
+        catch { }
+
         var content = new StringBuilder();
         content.AppendLine("# Database connection settings.");
         content.AppendLine($"ConnectionString={configValues.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;")}");
@@ -105,21 +128,16 @@ public sealed class AppSettings
         if (configValues.TryGetValue("Longitude", out string? lngVal) && !string.IsNullOrWhiteSpace(lngVal))
             content.AppendLine($"Longitude = {lngVal}");
         content.AppendLine($"UiTheme = {configValues.GetValueOrDefault("UiTheme", "Modern")}");
+        content.AppendLine();
+        content.AppendLine("# Security (never shown in UI). KioskApiKey is sent as the x-kiosk-key header to the Central API.");
+        content.AppendLine($"KioskApiKey = {configValues.GetValueOrDefault("KioskApiKey", "")}");
+        content.AppendLine("# Optional offline admin fallback credentials (only used when local SQL is unreachable). Leave empty to deny offline admin login.");
+        content.AppendLine($"AdminUsername = {configValues.GetValueOrDefault("AdminUsername", "")}");
+        content.AppendLine($"AdminPassword = {configValues.GetValueOrDefault("AdminPassword", "")}");
 
         string text = content.ToString();
         string baseFile = Path.Combine(AppContext.BaseDirectory, "config.txt");
         File.WriteAllText(baseFile, text);
-
-        // Also update root config.txt if running in dev environment
-        try
-        {
-            string devProjectFile = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\config.txt"));
-            if (File.Exists(devProjectFile))
-            {
-                File.WriteAllText(devProjectFile, text);
-            }
-        }
-        catch {}
     }
 
     public static void UpdateUiTheme(string theme)

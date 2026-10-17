@@ -65,6 +65,7 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
         var settings = AppSettings.Load();
+        KioskHttp.Configure(settings);
 
         // Check if both windows should be explicitly displayed together on Primary (Laptop) display
         bool showBothOnPrimary = e.Args.Any(a => a.Equals("--both-on-primary", StringComparison.OrdinalIgnoreCase) ||

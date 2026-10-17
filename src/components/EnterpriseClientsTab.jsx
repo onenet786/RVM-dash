@@ -143,9 +143,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
                     localStorage.getItem('rvm_token') || '';
       const authHeaders = {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        ...(currentUser?.roleId ? { 'x-user-role': currentUser.roleId } : { 'x-user-role': 'super_admin' }),
-        ...(currentUser?.username ? { 'x-user-name': currentUser.username } : { 'x-user-name': 'onenet' })
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
 
       if (deleteModal.mode === 'bulk') {
@@ -227,7 +225,7 @@ export default function EnterpriseClientsTab({ currentUser, selectedClientId = '
         username: `${slug}_admin`,
         fullName: `${org.name} Corporate Client Lead`,
         email: org.contact_email || `admin@${org.domain}`,
-        password: 'adminpassword123'
+        password: ''
       });
     }
 

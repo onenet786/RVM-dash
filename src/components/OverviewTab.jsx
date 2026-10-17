@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   Leaf, Scale, Recycle, CloudSun, Award, Activity, CheckCircle2, 
   RefreshCw, FileSpreadsheet, Layers, ScanLine, Building2, Archive, 
@@ -77,7 +78,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     }
   };
 
+  const overviewRequestId = useRef(0);
+
   const fetchOverview = async (isManual = false) => {
+    const requestId = ++overviewRequestId.current;
     try {
       if (isManual) setRefreshing(true);
       else setLoading(true);
@@ -92,6 +96,7 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
         fetch('/api/health', { headers }),
         fetch(`/api/analytics/machines/summary${query}`, { headers })
       ]);
+      if (requestId !== overviewRequestId.current) return; // stale response: a newer request was issued
 
       if (ovRes.ok) {
         const ovData = await ovRes.json().catch(() => null);
@@ -119,8 +124,10 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     } catch (err) {
       console.error('Error fetching overview', err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === overviewRequestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -330,18 +337,18 @@ export default function OverviewTab({ currentUser, stationFilter = 'ALL', select
     } else {
       const headers = ['Scope', 'Total Waste (Tonnes)', 'Items Recycled', 'Bottles (PET)', 'Cans (ALU)', 'Cartons (UBC)', 'Paper (kg)', 'CO2 Saved (kg)', 'Points Rewarded', 'Voucher Value (PKR)', 'Sessions'];
       const rows = Object.entries(scopeData).map(([key, data]) => [
-        `"${key.toUpperCase()}"`,
+        key.toUpperCase(),
         data.mass,
         data.units,
         data.bottles,
         data.cans,
         data.cartons,
         data.paperKg,
-        `"${data.carbon}"`,
+        data.carbon,
         data.points,
         data.liability,
         data.sessions
-      ]);
+      ].map(csvCell));
 
       const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
       const encodedUri = encodeURI(csvContent);

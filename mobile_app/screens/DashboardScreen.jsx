@@ -17,6 +17,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAuthToken, getAuthHeader } from '../utility/authToken';
 import axios from 'axios';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { CommonActions, useNavigation } from '@react-navigation/native';
@@ -173,7 +174,7 @@ const DashboardScreen = ({ route }) => {
         try {
           await fetch(`${API_BASE_URL}/backup`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
             body: JSON.stringify(backupPayload),
           });
         } catch (netErr) {
@@ -197,7 +198,9 @@ const DashboardScreen = ({ route }) => {
 
       let backupPayload;
       try {
-        const response = await fetch(`${API_BASE_URL}/backup-full`);
+        const response = await fetch(`${API_BASE_URL}/backup-full`, {
+          headers: { ...getAuthHeader() },
+        });
         if (response.ok) {
           backupPayload = await response.json();
         }
@@ -325,7 +328,7 @@ const DashboardScreen = ({ route }) => {
 
     const response = await fetch(`${API_BASE_URL}/get-points`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeader() },
       body: JSON.stringify({ 
         phoneNumber: user.mobile || user.username || user.id,
         userId: user.id
@@ -384,6 +387,7 @@ const DashboardScreen = ({ route }) => {
           onPress: async () => {
             try {
               await AsyncStorage.multiRemove(['isLoggedIn', 'user', 'recycleHistory', 'token', 'lastBackupDate', 'lastBackupData']);
+              await clearAuthToken();
               setLocalUser(null);
               setLocalHistory(null);
               navigation.dispatch(

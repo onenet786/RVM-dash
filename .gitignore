@@ -12,3 +12,6 @@ server/point_settings_db.json
 *.tar.gz
 *.rar
 *.7z
+
+# Scratch verification folders
+.tmp/

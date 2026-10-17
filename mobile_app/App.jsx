@@ -9,6 +9,7 @@ import IntroScreen from './screens/IntroScreen';
 import LoginScreen from './screens/LoginScreen';
 import SignupScreen from './screens/SignupScreen';
 import TabNavigator from './utility/TabNavigator';
+import { loadAuthToken } from './utility/authToken';
 import { AuthProvider } from './contextApi/auth';
 import ForgetPassword from './screens/ForgetPassword';
 import VerifyOTP from './screens/VerifyOTP';
@@ -24,6 +25,8 @@ const App = () => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
+        // Restore the JWT (and axios Authorization default) before any screen mounts.
+        await loadAuthToken();
         const loginStatus = await AsyncStorage.getItem('isLoggedIn');
         setIsLoggedIn(loginStatus === 'true');
       } catch (error) {

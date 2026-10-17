@@ -174,28 +174,6 @@ public sealed class AdminLoginWindow : Window
         buttonsGrid.Children.Add(loginButton);
         footerPanel.Children.Add(buttonsGrid);
 
-        // Default Credentials Chip
-        var hintBorder = new Border
-        {
-            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B")),
-            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#334155")),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(10, 6, 10, 6),
-            Margin = new Thickness(0, 14, 0, 0)
-        };
-
-        var hintText = new TextBlock
-        {
-            Text = "🔑 Default Access: Username: RVM | Password: Admin786",
-            FontSize = 11,
-            Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9")),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontWeight = FontWeights.SemiBold
-        };
-        hintBorder.Child = hintText;
-        footerPanel.Children.Add(hintBorder);
-
         Grid.SetRow(footerPanel, 2);
         rootGrid.Children.Add(footerPanel);
 
@@ -291,7 +269,7 @@ public sealed class AdminLoginWindow : Window
         }
         else
         {
-            errorText.Text = "❌ Invalid credentials. Default: RVM / Admin786";
+            errorText.Text = "❌ Invalid credentials.";
             passwordBox.SelectAll();
             passwordBox.Focus();
         }

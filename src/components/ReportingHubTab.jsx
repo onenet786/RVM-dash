@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   BarChart3, Leaf, Activity, Layers, Coins, Download, Printer, 
   ShieldCheck, SlidersHorizontal, ChevronDown, CheckCircle2, X,
@@ -196,19 +197,19 @@ export default function ReportingHubTab({ stationFilter = 'ALL', selectedClientI
       // Generate and download CSV
       const headers = ['Category / Material', 'Volume', 'Point Conversion Rule', 'Points Issued', 'Cash Liability (PKR)'];
       const rows = financialRows.map(r => [
-        `"${r.material.replace(/"/g, '""')}"`,
-        `"${r.volume}"`,
-        `"${r.rule}"`,
+        r.material,
+        r.volume,
+        r.rule,
         r.points,
         r.cashPkr
-      ]);
+      ].map(csvCell));
       rows.push([
-        '"TOTAL FLEET POINT LIABILITY"',
-        '""',
-        '""',
+        'TOTAL FLEET POINT LIABILITY',
+        '',
+        '',
         totalFinancialLiability.totalPoints,
         totalFinancialLiability.totalCash
-      ]);
+      ].map(csvCell));
 
       const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
       const encodedUri = encodeURI(csvContent);

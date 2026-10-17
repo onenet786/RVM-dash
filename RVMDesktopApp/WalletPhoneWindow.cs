@@ -1135,16 +1135,18 @@ public sealed class WalletPhoneWindow : Window
             if (_qrSecondsRemaining <= 0)
             {
                 StopQrTimer();
-                _qrTimerText.Text = "⏱️ Expired - Auto-closing to fallback...";
+                _qrTimerText.Text = "⏱️ Expired - closing session...";
                 _qrTimerText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
-                _qrStatusText.Text = "✓ Credited to Fallback Account (08884424625)";
-                _qrStatusText.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-                _qrBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(50, 16, 185, 129));
-                _qrBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(16, 185, 129));
+                _qrStatusText.Text = "QR expired - session closed without claiming";
+                _qrStatusText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+                _qrBadgeBorder.Background = new SolidColorBrush(Color.FromArgb(50, 245, 158, 11));
+                _qrBadgeBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
 
-                PhoneNumber = "08884424625";
+                // No fallback account: an empty PhoneNumber tells callers the session closed without claiming
+                // and nobody is credited (locally or on the central server).
+                PhoneNumber = string.Empty;
                 Rating = 5;
-                FeedbackText = "Auto-fallback (QR Expired)";
+                FeedbackText = "QR expired (unclaimed)";
                 FeedbackSubmitted = false;
                 IsAutoFallbackExpired = true;
 

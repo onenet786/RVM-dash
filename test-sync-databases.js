@@ -13,7 +13,7 @@ async function testOneWayDatabaseSync() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'onenet',
-        password: 'Admin&86',
+        password: (process.env.MASTER_DEV_PASSWORD || ''),
         syncMode: 'upsert'
       })
     });

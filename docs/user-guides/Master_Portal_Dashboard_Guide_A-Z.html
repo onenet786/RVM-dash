@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ISP Master Portal – Complete Dashboard Guide (A to Z)</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand">
+    <img class="brand-logo" src="assets/isp_logo.png" alt="ISP Environmental Solutions logo">
+    <div>
+      <div class="brand-company">ISP Environmental Solutions Pvt. Ltd.</div>
+      <div class="brand-role">Smart Recycling Master Portal • Administrator Documentation</div>
+    </div>
+  </div>
+  <h1>ISP Master Portal<br>Complete Dashboard Guide (A to Z)</h1>
+  <p class="subtitle">Every menu, screen, button and workflow of the Smart Recycling Master Dashboard for the public RVM fleet and the PecoDrop corporate kiosk fleet: sign-in and roles, monitoring, machines, point rules, signage, recyclers, rewards, corporate clients, ESG reporting, security and database operations.</p>
+  <div class="manufacturer"><b>Portal:</b> <span class="mono">https://isprvm.binishaqsoft.com</span> (browser title "ISP Environmental Solutions - Smart Recycling Master Dashboard")<br><b>Connected systems:</b> RVM public kiosks (RVMDesktopApp), PecoDrop enterprise kiosks (PecoDropDesktopApp), Trash to Cash mobile app, touchless claim web page</div>
+  <div class="meta"><b>Audience:</b> ISP super administrators, system administrators, fleet operators, technicians, analysts and desk operators.<br><b>Edition:</b> 17 October 2026 • Prepared from the current source code of the portal and verified in the live application. Screenshots were taken on a development copy with sample data.</div>
+  <p class="footer">Menu labels, field names and messages are quoted exactly as they appear in the portal.</p>
+</section>
+
+<h2>Contents</h2>
+<div class="toc">
+<ol>
+  <li>What the Master Portal manages</li>
+  <li>Signing in, sessions and passwords</li>
+  <li>Roles and what each role can see</li>
+  <li>Portal layout: sidebar, navbar, client scope, themes</li>
+  <li>Executive Overview</li>
+  <li>Manual Intake Desk</li>
+  <li>Machine Health &amp; Operations</li>
+  <li>Digital Signage</li>
+  <li>Recycler Community</li>
+  <li>Rewards &amp; Leaderboards (payouts and broadcasts)</li>
+  <li>Enterprise Accounts (corporate clients)</li>
+  <li>ESG &amp; Carbon Impact</li>
+  <li>Analytics &amp; Reports</li>
+  <li>Access &amp; Security (RBAC)</li>
+  <li>Smart Recycling Machines (fleet registration)</li>
+  <li>Smart Recycling Configurations (point rules)</li>
+  <li>Users and Raw Database Tables</li>
+  <li>Database Connections</li>
+  <li>Backups &amp; Restore</li>
+  <li>How the kiosks talk to the portal (RVM and PecoDrop)</li>
+  <li>Citizen and employee channels: mobile app and touchless claim page</li>
+  <li>Standard operating procedures (A to Z workflows)</li>
+  <li>Security and governance rules</li>
+  <li>Troubleshooting</li>
+  <li>Glossary</li>
+</ol>
+</div>
+
+<section class="part">
+<h2>1. What the Master Portal manages</h2>
+<p>The Master Portal is the single control centre for ISP's recycling network. It receives telemetry and sessions from every kiosk, holds the recycler accounts and points, manages corporate client tenants, pushes point rules and video signage to the machines, and produces operational, ESG and compliance reports. All production data lives in PostgreSQL; the legacy MongoDB clusters are read-only sources used only for one-way synchronisation into PostgreSQL.</p>
+<table>
+<tr><th style="width:24%">Fleet</th><th>Kiosk</th><th>Materials</th><th>Typical sites</th></tr>
+<tr><td><b>Public RVM</b> (machine type RVM_NEW; legacy counters RVM_OLD)</td><td>Single-aperture reverse vending machine with portrait touch screen</td><td>🧴 Plastic bottles, 🥫 cans, 🧃 UBC / Tetra Pak cartons (S / M / L), rejects</td><td>Malls, metro stations, commercial hubs, parks</td></tr>
+<tr><td><b>PecoDrop</b> (machine type PECODROP)</td><td>Dual-display enterprise kiosk with QR scanner, keypad and three shaped apertures</td><td>⭕ Plastic bottles, 🔺 cans, 🟦 office paper (weighed in kg)</td><td>Corporate campuses, banks, factories, universities</td></tr>
+</table>
+
+<h2>2. Signing in, sessions and passwords</h2>
+<div class="shot short"><img src="assets/01-login.png" alt="Login screen"><div class="cap">Figure 1 – Login card "ISP Environmental Solutions – Smart Recycling Portal".</div></div>
+<ul>
+  <li>Open <span class="mono">https://isprvm.binishaqsoft.com</span>. The portal is a progressive web app: in Chrome or Edge you can install it ("RVM Master") for a full-screen experience.</li>
+  <li>Enter <b>Username or Email</b> and <b>Password</b>, keep <b>Remember me</b> ticked to stay signed in on that browser, and press <b>Sign In</b>.</li>
+  <li><b>Forgot password?</b> has no self-service flow: "Please contact system administrator to reset credentials". A super admin resets passwords from Access &amp; Security.</li>
+  <li>Sessions last <b>24 hours</b>; after that you are returned to the login card. <b>Sign Out</b> is in the navbar.</li>
+  <li>Password rule for every account type: at least 8 characters. Accounts can be <span class="pill green">active</span>, <span class="pill amber">pending_approval</span> ("Your Corporate Client account is pending approval from ISP Environmental Solutions…") or <span class="pill red">suspended</span> ("Account Suspended. Please contact system administrator.").</li>
+  <li>The master developer account (default username <span class="mono">onenet</span>) is configured on the server; it is a super admin and cannot be deleted or demoted.</li>
+</ul>
+
+<h2>3. Roles and what each role can see</h2>
+<table>
+<tr><th style="width:22%">Role (identifier)</th><th>Menus (modules)</th><th style="width:26%">Action rights</th></tr>
+<tr><td>Super Admin / Master Dev (super_admin)</td><td>Everything, including Database Connections, Backups &amp; Restore, Access &amp; Security, raw tables</td><td>view, edit, export, delete, manage users, switch DB</td></tr>
+<tr><td>System Administrator (admin)</td><td>Executive Overview, Rewards &amp; Leaderboards, Machine Health, Enterprise Accounts, Analytics &amp; Reports, ESG, Digital Signage, Users, Recycler Community</td><td>all except switch DB (cannot grant super admin)</td></tr>
+<tr><td>Corporate Client Admin (client_admin)</td><td>Scoped to their organization: Executive Overview, Machine Health, Digital Signage, Rewards &amp; Leaderboards, ESG, Analytics &amp; Reports; plus Sub-Users / Manual Intake when those modules are enabled on the role</td><td>view, edit, export, manage sub-users; no delete</td></tr>
+<tr><td>Corporate Sub-User (corporate_sub_user)</td><td>Overview, Machine Health, Rewards, ESG, Analytics &amp; Reports for their delegated kiosks only</td><td>view, export</td></tr>
+<tr><td>PecoDrop Service Technician / RVM Field Technician</td><td>Overview, Machine Health, Analytics &amp; Reports</td><td>view, edit, export</td></tr>
+<tr><td>RVM Fleet Operator (fleet_operator)</td><td>Machine Health, Overview</td><td>view, edit, export</td></tr>
+<tr><td>Analytics &amp; Operations Analyst</td><td>Overview, Rewards, ESG, Analytics &amp; Reports</td><td>view, export</td></tr>
+<tr><td>Customer Support Specialist</td><td>Feedbacks, Users</td><td>view, edit</td></tr>
+<tr><td>Manual Intake / Desk Operator (desk_operator)</td><td>Manual Intake Desk only (fixed ISP Eco theme)</td><td>view, edit</td></tr>
+</table>
+<p class="small">Menus are driven by the module list stored on each role (editable in Access &amp; Security → Role Access Matrix). The lists above are the current defaults.</p>
+
+<h2>4. Portal layout</h2>
+<div class="shot"><img src="assets/02-overview.png" alt="Executive Overview"><div class="cap">Figure 2 – Sidebar (left), navbar (top) and the Executive Overview.</div></div>
+<h3>4.1 Sidebar (exact labels)</h3>
+<table>
+<tr><th style="width:26%">Section</th><th>Items</th></tr>
+<tr><td>Core – "Core Operations"</td><td>Executive Overview • Manual Intake Desk • Machine Health &amp; Operations • Digital Signage</td></tr>
+<tr><td>Community &amp; Users – "Public &amp; Mobile"</td><td>Recycler Community (corporate users see "Recycler Activity") • Rewards &amp; Leaderboards</td></tr>
+<tr><td>Commercial &amp; ESG – "Enterprise &amp; CSR"</td><td>Enterprise Accounts • ESG &amp; Carbon Impact</td></tr>
+<tr><td>Intelligence – "Data &amp; Reports"</td><td>Analytics &amp; Reports</td></tr>
+<tr><td>System &amp; Admin – "System Governance"</td><td>Access &amp; Security (RBAC) • Smart Recycling Machines • Smart Recycling Configurations • Users • Database Connections • Backups &amp; Restore</td></tr>
+<tr><td>Raw Database Tables (super admin)</td><td>recycling_sessions • redemptions (PostgreSQL); a collapsed "MongoDB Collections" group for the legacy source</td></tr>
+</table>
+<p>Only one section is open at a time. Super admins also see the <b>Database Engine</b> pill (🐘 PostgreSQL) and the PG host in the sidebar footer.</p>
+<h3>4.2 Navbar</h3>
+<ul>
+  <li><b>Title</b> "ISP SMART RECYCLING – NATIONWIDE MASTER PORTAL" (or the selected corporate client's dashboard title and logo).</li>
+  <li><b>Switch Enterprise Client Scope</b> (ISP roles): a searchable list of all client organizations ("Search client, venue, city..."). Choosing a client scopes every tab to that client's kiosks and staff; "ISP Environmental Master" returns to the whole network. Corporate users instead see a fixed "Organization Fleet:" or "Assigned Kiosks:" label.</li>
+  <li><b>Master Color Themes</b> (palette button): ISP Eco Vanguard (default), ISP Enterprise Portal, Cyber Emerald, Ocean Sapphire, Neon Violet, Light Luxe. Corporate users receive their organization's theme automatically.</li>
+  <li>Live clock, network health (polled every 15 s), role badge and <b>Sign Out</b>.</li>
+</ul>
+<div class="shot short"><img src="assets/18-theme-menu.png" alt="Theme menu"><div class="cap">Figure 3 – "MASTER COLOR THEMES" menu.</div></div>
+
+<h2>5. Executive Overview</h2>
+<p>The landing page. Use the filter row to define the scope, then read the KPI tiles and material cards. Data refreshes automatically every 30 seconds.</p>
+<table>
+<tr><th style="width:24%">Control</th><th>Options / behaviour</th></tr>
+<tr><td>Date Range</td><td>Today (Past 24h) • Yesterday • Last 7 Days • Last 30 Days (Standard, default) • This Month (Current Cycle) • All Time (Audited Records)</td></tr>
+<tr><td>Machine Model</td><td>All Models (Master Cumulative) • Smart RVM • PecoDrop (Office 3-Chamber Kiosk) • Legacy RVM (Old Counter Units)</td></tr>
+<tr><td>Client Org</td><td>All Client Organizations • ISP Environmental Master • each enterprise client</td></tr>
+<tr><td>Location</td><td>All Locations (Nationwide) • Lahore • Karachi • Rawalpindi • Islamabad</td></tr>
+<tr><td>Scope buttons</td><td>Master Cumulative • Smart RVM • PecoDrop (Corporate Kiosk) • Legacy RVM (Counter Units) – also sets the station filter used by other tabs</td></tr>
+<tr><td>Refresh Metrics / Export ESG / CSR</td><td>Manual refresh • "Export Sustainability Report" as Executive PDF (print dialog) or Excel / CSV file <span class="mono">ISP_Sustainability_Overview_&lt;date&gt;.csv</span></td></tr>
+</table>
+<ul>
+  <li><b>KPI tiles:</b> Total Waste Collected (tonnes, progress against a 5.0 t target), Total Items Recycled, Clean Air &amp; CO₂ Saved (kg), Points &amp; Reward Value (with "Voucher Value" = points × PKR 0.20), Recycling Sessions.</li>
+  <li><b>Material cards:</b> Plastic Bottles (Small 345 ml / Medium 500 ml–1 L / Large 1.5 L), Aluminium Cans (250 / 375 / 500 ml), Tetra Pak Cartons (200 ml / 1 L / 1.5 L; Smart RVM only), Office Paper (kg; Light &lt;100 g / File 100–499 g / Bulk ≥500 g; PecoDrop only).</li>
+  <li><b>Sections:</b> daily deposit trend chart, waste share, machine status summary ("Operational &amp; Ready" vs "Needs Emptying / Tech"), recent sessions, live alerts.</li>
+</ul>
+
+<h2>6. Manual Intake Desk</h2>
+<div class="shot"><img src="assets/11-manual-intake.png" alt="Manual Intake Desk"><div class="cap">Figure 4 – "Manual Intake &amp; Assisted Recycling Station".</div></div>
+<p>Used by reception or desk staff to credit a recycler when a kiosk is out of order or for bulk drops. Available to ISP admins, client admins, desk operators and any account whose role has the manual_intake module; machines are limited to the operator's assigned fleet.</p>
+<ol class="steps">
+  <li><b>1. Recycler Account:</b> enter the mobile number (03xx xxxxxxx) and press <b>Verify</b>. Registered recyclers show Current Wallet, Total Drops, Bottles and Cans; an unregistered number shows "Unregistered Citizen Number" and an optional name ("Account will be auto-created…").</li>
+  <li>Select the <b>Machine / Unit</b> (a kiosk or "MANUAL-DESK-COUNTER (Reception / Main Desk)") and the <b>Intake Reason</b>: Kiosk Out of Order / Hardware Fault, Bin Full / Storage Capacity Reached, Scheduled Maintenance / Service, Bulk / Office Paper Drop, Attendant Assisted Deposit, Other Manual Intake. Add notes if needed.</li>
+  <li><b>2. Materials Intake Counter:</b> bottles Small (≤500 ml) / Medium (1–1.5 L) / Large (≥2 L) with +1 / +5 / +10; cans Slim (250 ml) / Standard (330 ml) / Tall (500 ml); paper net weight in grams with +250 g / +500 g / +1.0 kg; Tetra Pak / UBC cartons.</li>
+  <li>Points are calculated automatically (plastic ×10, cans ×20, paper 15 per kg, cartons ×10). Tick <b>Custom Eco-Points Override</b> to enter a different total. The summary shows Total Units, Total Weight, Avoided CO₂, Reward Credit and the Citizen Wallet Projection.</li>
+  <li>Press <b>Credit &amp; Complete Deposit</b>. A receipt modal with <b>Print Receipt</b> appears; the deposit is written as a recycling session (ID prefix DESK-) and logged in the "manual_intake_logs" ledger below (Timestamp, Citizen, Machine / Unit, Materials, Points, Reason, Operator; <b>Refresh Ledger</b> shows the last 50 entries).</li>
+</ol>
+
+<h2>7. Machine Health &amp; Operations</h2>
+<div class="shot"><img src="assets/04-machine-health.png" alt="Machine Health"><div class="cap">Figure 5 – Fleet status KPIs and machine cards.</div></div>
+<ul>
+  <li><b>KPIs:</b> Connected Machines, Online &amp; Active, Awaiting Heartbeat, Maintenance Flags. A machine is ONLINE when its last heartbeat is within 60 seconds. Refreshes every 10 seconds; <b>Refresh Heartbeat</b> forces a reload.</li>
+  <li><b>Machine card:</b> status pill (Online / Bin Full / In Session / Fault / Offline), 3-Bin Capacity (Plastic / Metal / Paper), Relay Counter Bridge, AI Optical System, Sessions / Bottles / Cans / Paper / Points Issued, Public IP / Local IP, "View GPS on Google Maps", and the edit icon "Edit Machine Configuration". A bin warning appears when plastic or metal fill ≥85 %, paper ≥12 kg, or the kiosk reports BIN_FULL; the server records HIGH_BIN_FILL alerts at ≥80 % and CRITICAL_BIN_FULL at ≥95 %.</li>
+  <li><b>Sort by</b> Recent Heartbeat Ping / Highest Volume Processed / Bin Fill Level; filter by machine model tabs; <b>Fleet GPS Map</b> opens the map view.</li>
+  <li><b>Edit Machine Configuration:</b> name (e.g. "Smart RVM V2 (Food Court)"), location, latitude / longitude, type (Smart RVM (Multi-Sensor Optical) / PecoDrop (Count &amp; Weigh) / Legacy Counter (Pulse)), client assignment, and the per-machine <b>points sync form</b> (plastic / can / glass S / M / L and paper per kg) which is pushed to that kiosk on its next 15-second config poll. Only ISP admins can register new machines; client admins can edit machines in their fleet.</li>
+  <li><b>Machine Maintenance &amp; Emptying History</b> table with <b>Export Service Log</b> (CSV <span class="mono">ISP_Machine_Maintenance_Logs_&lt;date&gt;.csv</span>).</li>
+</ul>
+<div class="warning"><b>Dispatch Field Tech</b> opens the "Dispatch Service Technician" form (machine, service task, notes). In the current build this creates a local log entry on your screen only; no work order is sent to anyone. Use your maintenance ticketing process in parallel.</div>
+
+<h2>8. Digital Signage</h2>
+<div class="shot"><img src="assets/10-advertisements.png" alt="Digital Signage"><div class="cap">Figure 6 – "Screen Ad &amp; Video Manager" with campaign cards.</div></div>
+<ul>
+  <li><b>Filters:</b> Target Network Scope (Global Fleet / Public RVM Fleet / Corporate PecoDrop Fleet), Select Facility / Location, Hardware Screen Profile (All / 16:9 Landscape (PecoDrop) / 16:9 Header Display (Public RVM) / Single Standalone Display).</li>
+  <li><b>Upload New Video Ad:</b> Campaign Title, Hardware Category (Public RVM / PecoDrop Exclusive / Campus Specific), Screen Profile, target (All / All PecoDrop / All Public RVM / Specific Kiosks), Video Source = file (MP4 or WebM; recommended 1080p H.264 under 50 MB; server limit 250 MB; also .avi .mov .mkv .m4v accepted) or URL.</li>
+  <li><b>Campaign card actions:</b> <b>Push to Screen(s)</b> (makes it the active playlist for the destinations), <b>Change Machines</b> ("Delegate Machines &amp; Broadcast Target": All Screens / All PecoDrop (Dual Screens) / All Public RVM (Header Displays) / Specific Kiosks), preview (1920×1080), delete. <b>Sync All Displays</b> (ISP admins) forces every kiosk to re-pull its playlist.</li>
+  <li><b>How it reaches the kiosks:</b> each kiosk polls its playlist every 15 seconds, downloads new files into its Ads\Advertisements folder and removes portal-downloaded files that were taken out of the playlist. Corporate users only see and manage campaigns of their own organization. Kiosk instruction videos are not managed from the portal; they are files on the kiosk.</li>
+</ul>
+
+<h2>9. Recycler Community</h2>
+<div class="shot"><img src="assets/09-mobile-users.png" alt="Recycler Community"><div class="cap">Figure 7 – "Recyclers &amp; App Community" directory.</div></div>
+<ul>
+  <li>KPIs: Registered Recyclers, Active This Month, Unclaimed Points, Vouchers Cashed In, Total Items Deposited, Top Champions. Segments Public / Corporate; search by name, mobile, email or user ID. Refreshes every 20 seconds.</li>
+  <li>Open a recycler to see Active Balance, Redeemed, Paper Recycled, Total Sessions, the session history and voucher redemptions.</li>
+  <li><b>Export CSV</b> ("Export Recycler List") → <span class="mono">ISP_Recyclers_Directory_&lt;date&gt;.csv</span>.</li>
+  <li>For a corporate scope the tab becomes "Corporate Client Roster – Corporate Workplace Members &amp; Staff Directory": roster entries not yet linked to an app account show "Pending App Link / Awaiting App Sign-in" with the Authorized Staff ID, Assigned Department and Official Email, and the instructions employees need to link (section 21).</li>
+</ul>
+
+<h2>10. Rewards &amp; Leaderboards</h2>
+<div class="shot"><img src="assets/03-analytics.png" alt="Rewards and Leaderboards"><div class="cap">Figure 8 – "Green Champions &amp; Recycling Leaderboard".</div></div>
+<ul>
+  <li><b>Leaderboard</b> scopes: all time, this month, corporate, citizens; client picker; search. Columns: Rank, User Details, Contact Identifier, Sessions, Bottles, Cans / Cartons, Points Earned, Voucher Value (points × PKR 0.20), Action. Non-admin viewers see masked phone numbers.</li>
+  <li><b>Issue Cash Payout &amp; Reward</b> (row action or "Issue Payout / Voucher"): recipient phone and name, payout method EasyPaisa Wallet / JazzCash Wallet / Mobile Airtime Top-Up / Retail Merchant E-Voucher / Raast Instant Pay, amount presets PKR 500 (2,500 pts), 1,000 (5,000 pts), 2,500 (12,500 pts), 5,000 (25,000 pts) or a custom amount (minimum PKR 50, maximum PKR 100,000), note. Conversion <b>5 points = PKR 1</b>. The recycler must hold enough points; the deduction is atomic. "Admin Courtesy Overdraft / Milestone Grant" credits without deducting points and is allowed for super admins only. The payout is recorded in the redemptions ledger with a reference code (EP-, JC-, LOAD-, RAAST- or VOUCH-PKR&lt;amount&gt;-XXXX); the money transfer itself is executed outside the portal by the finance team.</li>
+  <li><b>Broadcast Notification</b> ("Push &amp; SMS Campaign Announcement"): audience Top 10 Green Champions / All Active Kiosk Citizens / PecoDrop Corporate Campus Employees plus a message. In the current build the portal only acknowledges the request; no SMS or push gateway is connected.</li>
+</ul>
+
+<h2>11. Enterprise Accounts (corporate clients)</h2>
+<div class="shot"><img src="assets/07-enterprise-clients.png" alt="Enterprise Accounts"><div class="cap">Figure 9 – "Enterprise Corporate Clients &amp; ESG": KPI row and client cards.</div></div>
+<ul>
+  <li><b>KPIs:</b> Corporate Clients, Active, Enrolled Staff, Paper Recycled, Bottles &amp; Cans, Trees Saved (ESG). <b>Refresh Clients</b>; search by name or domain; link "User Guide (PDF / اردو)".</li>
+  <li><b>Client card:</b> selection checkbox, status pill, logo, name, @domain, "Code: &lt;company code&gt;" (used by employees in the mobile app), Bottles / Cans / Paper, Staff / Depts / ESG Points, buttons <b>Personalize Fleet</b>, <b>Depts &amp; Roster</b>, print ESG certificate, and (super admin only) the red delete button. <b>Select All</b> + delete performs a bulk delete.</li>
+</ul>
+<h3>11.1 Create an organization</h3>
+<p>Fill Company / Organization Name*, Corporate Email Domain* (for auto-routing of employees who sign in with a work email), Contact Email, Contact Phone, Monthly Target (Total kg Diverted, default 2000), Monthly Points Pool (default 200000), Logo URL. The portal generates the organization ID (ORG_&lt;DOMAIN&gt;_&lt;number&gt;) and sets the status to active. Super admin only.</p>
+<h3>11.2 Personalize Fleet</h3>
+<div class="shot"><img src="assets/19-enterprise-client-card-modal.png" alt="Personalization Hub"><div class="cap">Figure 10 – "PERSONALIZATION HUB": Assign Kiosks, Dashboard Branding &amp; Theme, Corporate Client Admin Login.</div></div>
+<ul>
+  <li><b>Assign Kiosks</b> ("Delegated Hardware Kiosks"): tick the machines that belong to the client and <b>Save Assigned Kiosks</b>. The binding replaces the client's previous list; machines removed from the list return to ISP Environmental Master. Client admins' fleet scope is updated automatically. Super admin only.</li>
+  <li><b>Dashboard Branding &amp; Theme:</b> Personalized Dashboard Title, Corporate Client Logo URL, Welcome Greeting Message, Primary Brand Accent Color (Emerald / Sapphire / Crimson / Violet / Amber / Sky), Default Interface Theme (one of the six themes). Applied to the client's portal at their next login.</li>
+  <li><b>Corporate Client Lead Administrator:</b> Username*, Full Name*, Official Email, password (≥ 8 characters). Creates or updates the client_admin account, active immediately. Super admin only. Hand the credentials to the client securely and ask them to change the password.</li>
+</ul>
+<h3>11.3 Depts &amp; Roster</h3>
+<ul>
+  <li><b>Departments</b> table (Department, Manager, Staff, PET, Cans, Paper, Total Mass, Points) and <b>+ Add Dept</b> (name, manager, monthly target kg).</li>
+  <li><b>Staff roster</b> (Employee Name &amp; Email, Department, Employee ID, PET, Cans, Paper, Points Earned, Access Method).</li>
+  <li><b>Bulk CSV Onboarding:</b> paste rows in the order <span class="mono">Full Name, Email Address, Department, EmployeeID, Phone</span> (header row optional; up to 5,000 rows). Email is mandatory; a missing Employee ID is generated as EMP-####; unknown departments are created ("General" if blank). Re-importing the same (organization, employee ID) updates the entry.</li>
+  <li><b>Print ESG Certificate</b> produces the "Corporate Sustainability Certificate" print view.</li>
+</ul>
+<div class="confidential"><b>Deleting a client</b> (super admin only) removes the organization, its departments, its client admin and sub-user accounts, and unbinds its kiosks (they return to ISP Environmental Master). Machines and recycling history are never deleted. Confirm the client's name before deleting; this cannot be undone from the portal.</div>
+
+<h2>12. ESG &amp; Carbon Impact</h2>
+<div class="shot"><img src="assets/12-environmental-impact.png" alt="ESG and Carbon Impact"><div class="cap">Figure 11 – "Environmental &amp; Carbon Impact Audit".</div></div>
+<ul>
+  <li>KPIs: Verified Carbon Offset (kg CO₂e), Tree Growth Equivalent (kg ÷ 21.77), Vehicle Miles Avoided (kg ÷ 0.40), Organic &amp; Fiber Diversion.</li>
+  <li>"Audited Carbon Offset Ledger by Material Stream": Material Stream, Machine Source, Measurement Method, Processed Weight, Offset Factor (editable per browser; <b>Reset Standards</b> restores defaults), Net CO₂e Saved.</li>
+  <li>Default factors: weight per bottle 0.025 kg, per can 0.015 kg; CO₂e per kg Plastic 1.50, Aluminium 9.10, Paper 2.90, Tetra / cardboard 3.10, Organic 0.50.</li>
+  <li><b>Export ESG Audit (PDF)</b> → "ISO 14064 Compliance Certificate" modal: Verified PDF Report (print) or CSV Data Ledger <span class="mono">ISP_ESG_Carbon_Audit_&lt;date&gt;.csv</span>; <b>Print Audit</b>.</li>
+</ul>
+
+<h2>13. Analytics &amp; Reports</h2>
+<div class="shot"><img src="assets/13-reporting-hub.png" alt="Analytics and Reports"><div class="cap">Figure 12 – "Analytics &amp; Compliance Hub".</div></div>
+<p>Filters: Timeline Scope, Client Organization, Machine Location / City, Machine Category. Sections: Audited Environmental Offset (trees saved, kWh conserved, landfill diverted), material units, Daily Carbon Avoided Velocity, Corporate CSR Equivalents, Network Machine Availability, Machine Reliability, PecoDrop Load Cells, Live Alerts, Recycled Stream Share, Variant Sizes &amp; Quantity Distribution, points reconciliation. Export as Executive PDF or Excel CSV <span class="mono">ISP_Compliance_Analytics_Report_&lt;date&gt;.csv</span>.</p>
+<div class="warning"><b>Important:</b> in the current build this tab is a presentation template. Its figures are illustrative values scaled by the timeline, not live database results, and the calibration / anomaly audit logs are placeholders. Use Executive Overview, ESG &amp; Carbon Impact and Machine Health for audited numbers until this hub is connected to live data.</div>
+
+<h2>14. Access &amp; Security (RBAC)</h2>
+<div class="shot"><img src="assets/14-security.png" alt="Access and Security"><div class="cap">Figure 13 – "User Accounts &amp; Role Permissions".</div></div>
+<ul>
+  <li><b>User Accounts</b> table: User Account, Assigned Role, Assigned Smart Recycling Machines Scope, Accessible Modules, Status, Actions. <b>Create User &amp; Assign Role:</b> Full Name, Username, Initial Password (≥ 8), Email, Assigned Role, machine scope ("🌟 All Fleet Machines (*)" or specific machines). Edit: new password (optional), Account Status Active / Suspended, role, scope. Delete removes the account. Only a super admin can create or edit super_admin accounts; the master account cannot be deleted or demoted.</li>
+  <li><b>Role Access Matrix:</b> role cards with Administrative Action Rights (View, Edit, Export, Delete, Users, Switch DB) and Assigned System Menus. <b>Add New Role</b> / edit: Role Name, Role Identifier (Key), Badge Color Theme, description, rights, module checklist. Built-in super_admin and fleet_operator roles cannot be deleted; only a super admin may modify the super_admin role.</li>
+  <li>Passwords are stored hashed; existing plaintext passwords are upgraded automatically at the user's next login.</li>
+</ul>
+
+<h2>15. Smart Recycling Machines (fleet registration)</h2>
+<div class="shot"><img src="assets/05-rvm-management.png" alt="Smart Recycling Machines"><div class="cap">Figure 14 – "Smart Recycling Fleet Registration &amp; Editor".</div></div>
+<p><b>+ Register New Smart Recycling Machine</b> (ISP admins): Machine ID (e.g. RVM-001 or PECO-LHR-01; must match the kiosk's config.txt MachineId), Name, Location, Latitude / Longitude, Type (RVM New (Multi-Sensor Optical) / PecoDrop (Count &amp; Weigh) / RVM Old (Legacy Pulse)), Client (ISP Environmental Master or an organization), Status (ONLINE (Active) / MAINTENANCE (Under Repair) / OFFLINE (Inactive)). The type is auto-detected from "PECO" or "OLD" in the ID when not set; unassigned machines belong to ISP_MASTER. <b>Edit Machine</b> on each card updates the same fields. A kiosk whose ID is not registered receives "not registered / unauthorized" on its heartbeat and shows UNAUTHORIZED on screen.</p>
+
+<h2>16. Smart Recycling Configurations (point rules)</h2>
+<div class="shot"><img src="assets/06-machine-configs.png" alt="Point settings"><div class="cap">Figure 15 – "Dynamic Smart Recycling Point Settings Table".</div></div>
+<ul>
+  <li>Choose "🌟 ALL MACHINES (Fleet Global Rule Sync)" or a single machine. Table columns: Material Category, Size / Variant, Points Awarded (pts), Calculation Unit (Per Piece / Per Gram / Per Kilogram), Status, Actions.</li>
+  <li><b>+ Add New Item Variant:</b> materials PLASTIC, CAN, CUP, TETRA PAK, GLASS, PAPER, CUSTOM; sizes SMALL / MEDIUM / LARGE / CUSTOM.</li>
+  <li>Defaults: PLASTIC 5 / 10 / 15, CAN 10 / 15 / 20, TETRA PAK 5 / 10 / 15, GLASS 10 / 15 / 20, PAPER 15 per kg.</li>
+  <li><b>Save &amp; Push</b> (ISP admins): a fleet-wide save writes the rule set to every registered machine and becomes the global default; a single-machine save changes only that machine. Kiosks pick up the new rules on their next 15-second config poll and apply them to subsequent deposits.</li>
+</ul>
+
+<h2>17. Users and Raw Database Tables</h2>
+<div class="shot short"><img src="assets/17-data-tables.png" alt="Raw table"><div class="cap">Figure 16 – Raw table view "Recycling Sessions (Relational Table)".</div></div>
+<ul>
+  <li><b>Users</b> (System &amp; Admin) shows the recycler directory together with the raw users table.</li>
+  <li><b>Raw Database Tables</b> (super admin): recycling_sessions and redemptions, with search, sortable columns, 10 / 15 / 25 / 50 rows per page, <b>Refresh Table Data</b>, <b>Export CSV</b> and a per-row <b>View</b> JSON inspector. Tables containing personal data or credentials are restricted to ISP administrators and never show password fields.</li>
+</ul>
+
+<h2>18. Database Connections</h2>
+<div class="shot"><img src="assets/16-db-switcher.png" alt="Database Connections"><div class="cap">Figure 17 – "Database Connection &amp; PostgreSQL Sync Manager".</div></div>
+<ul>
+  <li>Super admin only, and every action also requires the <b>Master Developer Authorization</b> username and password (configured on the server, never stored in the browser).</li>
+  <li><b>PostgreSQL Hosting Server Sync Engine:</b> PG Host / Port / User / Password / Database Name → <b>Test Connection</b>, <b>Sync MongoDB → PostgreSQL</b>.</li>
+  <li><b>MongoDB Cluster Presets:</b> ONS-RVM Master Cluster, MCSRWP Production rvmapp Cluster, PostgreSQL Dedicated Hosting Database → <b>Switch</b> (changes the runtime engine and persists it to the server's environment file), <b>Restart API Server</b>, and the <b>One-Way MongoDB Sync Engine rvmapp → ONS-RVM</b>. MongoDB is a read-only legacy source; PostgreSQL is the production system of record.</li>
+</ul>
+
+<h2>19. Backups &amp; Restore</h2>
+<div class="shot"><img src="assets/15-db-backup.png" alt="Backups and Restore"><div class="cap">Figure 18 – "Database Backup &amp; Restore Utility (PostgreSQL)".</div></div>
+<ul>
+  <li><b>Create &amp; Download Backup</b> produces a JSON snapshot of all collections and stores it on the server; the list shows Backup Filename, Created Date, File Size and Actions (download, restore).</li>
+  <li><b>Restore</b> from a stored snapshot or an uploaded .json file (mode replace). Restores run inside a transaction and only touch JSON document tables; typed relational tables are skipped and reported. Restoring onto the legacy rvmapp source is refused.</li>
+  <li><b>Clear Operational Data</b> (super admin, PostgreSQL only): choose all tables or one table, type the confirmation phrase exactly ("CLEAR ALL OPERATIONAL DATA" or "TRUNCATE &lt;table&gt;") and enter the database-reset authorization credentials. Every reset is written to the database_reset_audit table. Take a backup first.</li>
+</ul>
+
+<h2>20. How the kiosks talk to the portal</h2>
+<table>
+<tr><th style="width:26%">Exchange</th><th>What happens</th></tr>
+<tr><td>Registration</td><td>ISP registers the machine ID (section 15). The kiosk's config.txt carries the same MachineId, the portal URL and the <b>KioskApiKey</b> issued by ISP (sent on every request as the x-kiosk-key header once key enforcement is switched on).</td></tr>
+<tr><td>Heartbeat (every 15 s)</td><td>Status (ONLINE / IN_SESSION / BIN_FULL / WARNING / ERROR), bin fill levels (PecoDrop reports plastic / metal / paper; public RVM reports its status), location, IP. Missing heartbeats for more than 60 s = OFFLINE.</td></tr>
+<tr><td>Configuration pull (every 15 s)</td><td>Machine name and point rules from Smart Recycling Configurations / Machine Health.</td></tr>
+<tr><td>Sessions</td><td>Each accepted item is posted with the cumulative counts of the session; the final post carries the claiming recycler. Points are credited once per session to the recycler and machine totals are incremented by the difference. Feedback ratings are posted separately.</td></tr>
+<tr><td>Touchless start and claim</td><td>Kiosk registers a start token (QR valid about 2 minutes, refreshed every 110 s); the app or claim page starts the session; after the session the kiosk creates a 90-second claim QR that credits the scanning account.</td></tr>
+<tr><td>Signage</td><td>Playlist pulled every 15 s (section 8).</td></tr>
+<tr><td>Leaderboard</td><td>PecoDrop kiosks show their organization's ranking; public RVMs show the local top 10.</td></tr>
+<tr><td>Corporate binding</td><td>Enterprise Accounts → Personalize Fleet → Assign Kiosks (section 11.2). A bound PecoDrop scopes its leaderboard and the client's dashboards to that organization.</td></tr>
+</table>
+
+<h2>21. Citizen and employee channels</h2>
+<div class="shot short"><img src="assets/30-claim-page.png" alt="Claim page"><div class="cap">Figure 19 – Touchless claim page (/claim) with "Continue with Google" and the reward catalogue.</div></div>
+<ul>
+  <li><b>Trash to Cash app</b> (Android): registration with mobile number, Google sign-in, QR scanner for the kiosk start and claim codes, balance, history, leaderboard, rewards. Employees of a corporate client are recognised automatically when they sign in with a work email whose domain matches the organization; otherwise they link in Profile → Corporate Membership with the <b>Company Code</b> (shown on the client card) and their <b>Staff ID</b>.</li>
+  <li><b>Touchless claim page</b> <span class="mono">/claim</span>: opened by scanning a kiosk QR with any phone camera; asks for the mobile number or a Google-verified email (6-digit code by email), starts or claims the session and shows the reward catalogue (Cafeteria Voucher 50 pts, Mobile Airtime 100, Shopping Discount 200, Plant a Tree 150 – configurable).</li>
+  <li><b>Scanner page</b> <span class="mono">/scanner</span>: a browser QR scanner for devices with a camera.</li>
+</ul>
+
+<h2>22. Standard operating procedures (A to Z)</h2>
+<ol class="steps">
+  <li><b>Commission a new kiosk.</b> Smart Recycling Machines → Register (ID, type, location, client) → give the installer the MachineId, portal URL and KioskApiKey for config.txt → wait for the first heartbeat in Machine Health → set point rules (Configurations) → assign signage (Digital Signage) → for PecoDrop, bind the kiosk to the client (Enterprise Accounts).</li>
+  <li><b>Onboard a corporate client.</b> Enterprise Accounts → create organization → Personalize Fleet: assign kiosks, set branding and theme, create the Corporate Client Lead Administrator → Depts &amp; Roster: add departments and import the staff roster → send the client the Corporate Client Dashboard Guide and their credentials.</li>
+  <li><b>Change point rules.</b> Configurations → ALL MACHINES or one machine → edit → Save &amp; Push. Confirm on a kiosk after 15 s.</li>
+  <li><b>Publish a video campaign.</b> Digital Signage → Upload New Video Ad → choose target → Push to Screen(s). Use Sync All Displays if a kiosk lags.</li>
+  <li><b>Handle a bin-full alert.</b> Machine Health shows Bin Full / Needs Action → dispatch the site team (your ticketing system) → after emptying, the next heartbeat clears the flag (public RVMs need the operator to press 0 on the kiosk).</li>
+  <li><b>Credit a recycler manually.</b> Manual Intake Desk (section 6).</li>
+  <li><b>Pay out points.</b> Rewards &amp; Leaderboards → Payout → method, amount, Dispatch → execute the transfer with finance using the reference code.</li>
+  <li><b>Create a staff login.</b> Access &amp; Security → Create User &amp; Assign Role → choose role and machine scope.</li>
+  <li><b>Suspend or remove a user.</b> Access &amp; Security → Edit → Status Suspended, or Delete.</li>
+  <li><b>Produce ESG evidence.</b> ESG &amp; Carbon Impact → Export ESG Audit (PDF) or CSV; Enterprise Accounts → Print ESG Certificate for a client.</li>
+  <li><b>Back up before risky changes.</b> Backups &amp; Restore → Create &amp; Download Backup; keep the file off-server.</li>
+  <li><b>Remove a client.</b> Enterprise Accounts → trash icon (super admin) → confirm. Kiosks return to ISP Environmental Master automatically.</li>
+</ol>
+
+<h2>23. Security and governance rules</h2>
+<ul>
+  <li>Authorisation is decided by the server from the signed session token only; the browser cannot claim a role.</li>
+  <li>Super admin only: create / delete organizations, assign kiosks, create client admins, fleet-wide point rules, Sync All Displays, overdraft payouts, Database Connections, Backups &amp; Restore, raw tables, creating other super admins.</li>
+  <li>Client admins and sub-users are confined to their organization's kiosks, staff and campaigns on every tab and API.</li>
+  <li>Kiosks authenticate with the shared KioskApiKey; the mobile app authenticates with the user's session token. Both are enforced by server settings controlled by ISP.</li>
+  <li>Secrets (database passwords, session secret, master credentials, kiosk key) live only in the server's environment file; rotate them if they are ever exposed.</li>
+  <li>Exports contain personal data (phone numbers, emails). Handle CSV files according to ISP's data-protection policy.</li>
+</ul>
+
+<h2>24. Troubleshooting</h2>
+<table>
+<tr><th style="width:34%">Symptom</th><th>Action</th></tr>
+<tr><td>Login fails with "Invalid username or password"</td><td>Check username / email; ask a super admin to reset the password in Access &amp; Security. Repeated failures are rate-limited for 5 minutes.</td></tr>
+<tr><td>"Your Corporate Client account is pending approval"</td><td>The client admin was created through self-registration; ISP must approve it (section 11) or recreate it from Personalize Fleet.</td></tr>
+<tr><td>A menu item is missing</td><td>The role lacks that module. Edit the role in Role Access Matrix or assign another role.</td></tr>
+<tr><td>Kiosk shows OFFLINE in Machine Health</td><td>No heartbeat for 60 s: check the kiosk's internet, its MachineId / KioskApiKey, and that it is registered.</td></tr>
+<tr><td>Kiosk header shows UNAUTHORIZED</td><td>Machine ID not registered or key mismatch. Register the machine; verify the key in config.txt.</td></tr>
+<tr><td>New point rules not applied</td><td>Wait 15 s; confirm the kiosk is online; check whether a per-machine rule overrides the fleet rule.</td></tr>
+<tr><td>Video not playing on a kiosk</td><td>Confirm the campaign is pushed to that kiosk's destinations; use Sync All Displays; check the kiosk's Ads folder from its Admin panel.</td></tr>
+<tr><td>Client admin cannot see a kiosk</td><td>Bind it in Personalize Fleet → Assign Kiosks; the admin must sign out and in again.</td></tr>
+<tr><td>Recycler says points are missing</td><td>Recycler Community → open the user → session history; cross-check Machine Health counters and the kiosk's transaction log; credit via Manual Intake if justified.</td></tr>
+<tr><td>Session expired unexpectedly</td><td>Sessions last 24 h; a 401 from the server (expired or rotated token) returns you to the login card.</td></tr>
+</table>
+
+<h2>25. Glossary</h2>
+<table>
+<tr><th style="width:26%">Term</th><th>Meaning</th></tr>
+<tr><td>ISP Environmental Master (ISP_MASTER)</td><td>The default owner of every machine not bound to a corporate client.</td></tr>
+<tr><td>Company Code</td><td>The organization ID without its ORG_ prefix; employees enter it in the mobile app to link their account.</td></tr>
+<tr><td>Machine types</td><td>RVM_NEW Smart RVM (multi-sensor optical), RVM_OLD legacy pulse counter, PECODROP count-and-weigh enterprise kiosk.</td></tr>
+<tr><td>Machine status</td><td>ONLINE (heartbeat ≤ 60 s), OFFLINE, IN_SESSION, BIN_FULL, WARNING (smoke sensor), ERROR / Fault, MAINTENANCE.</td></tr>
+<tr><td>Alerts</td><td>HIGH_BIN_FILL ≥ 80 %, CRITICAL_BIN_FULL ≥ 95 %.</td></tr>
+<tr><td>Points / PKR</td><td>5 points = PKR 1; 1,000 points ≈ PKR 200 voucher value.</td></tr>
+<tr><td>Weights</td><td>Bottle 0.025 kg, can 0.015 kg, carton 0.02 kg, glass 0.2 kg; paper measured by the PecoDrop load cell.</td></tr>
+<tr><td>CO₂e factors</td><td>Plastic 1.50, Aluminium 9.10, Paper 2.90, Tetra / cardboard 3.10, Organic 0.50 kg CO₂e per kg; trees = kg CO₂e ÷ 21.77; vehicle miles = kg CO₂e ÷ 0.40.</td></tr>
+<tr><td>Account status</td><td>active, pending_approval, suspended.</td></tr>
+<tr><td>Modules</td><td>The menu capabilities attached to a role (overview, analytics, machines, advertisements, mobile_users, enterprise_clients, esg_impact, reporting_hub, security, sub_users, manual_intake, users, db_switcher, db_backup).</td></tr>
+</table>
+<p class="footer">ISP Master Portal – Complete Dashboard Guide • Edition 17 October 2026 • ISP Environmental Solutions Pvt. Ltd.</p>
+</section>
+</body>
+</html>

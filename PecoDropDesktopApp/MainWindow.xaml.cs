@@ -244,6 +244,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         UpdateImpactMetrics();
 
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
+        KioskHttp.Configure(settings);
         UpdateRvmNameDisplay(settings.MachineId);
 
         HeartbeatService.StatusChanged += OnNetworkStatusChanged;
@@ -1565,7 +1566,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
 
         try
         {
-            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = KioskHttp.CreateClient(TimeSpan.FromSeconds(5));
             
             string localIp = HeartbeatService.GetLocalIpAddress();
             client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
@@ -2256,7 +2257,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null;
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
@@ -2767,7 +2768,7 @@ public partial class MainWindow : Window, IKioskSimulatorTarget, IHardwareDiagno
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null;
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;

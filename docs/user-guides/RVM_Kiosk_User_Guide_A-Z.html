@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RVM Public Kiosk – Complete User &amp; Operator Guide (A to Z)</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<section class="cover">
+  <div class="brand">
+    <img class="brand-logo" src="assets/isp_logo.png" alt="ISP Environmental Solutions logo">
+    <div>
+      <div class="brand-company">ISP Environmental Solutions Pvt. Ltd.</div>
+      <div class="brand-role">Manufacturer • Public Smart Recycling Systems</div>
+    </div>
+  </div>
+  <h1>RVM Public Reverse Vending Machine<br>Complete User &amp; Operator Guide (A to Z)</h1>
+  <p class="subtitle">Smart RVM for shopping malls, metro stations, commercial hubs and parks: how citizens recycle and claim rewards, and how site operators and technicians run, configure and maintain the machine.</p>
+  <div class="manufacturer"><b>Product:</b> ISP Smart Reverse Vending Machine, public edition (application <span class="mono">RVMDesktopApp</span>, Windows / .NET 8)<br><b>Central system:</b> ISP Master Portal – <span class="mono">https://isprvm.binishaqsoft.com</span><br><b>Companion mobile app:</b> Trash to Cash (Android)</div>
+  <div class="meta"><b>Who should read what</b><br><b>Part A – Citizens:</b> sections 1 to 11 (safe to print and display next to the machine).<br><b>Part B – Site operators and ISP technicians:</b> sections 12 to 23 (contains confidential key sequences; do not display in public).<br><b>Edition:</b> 17 October 2026 • Prepared from the current application source code and firmware.</div>
+  <p class="footer">All on-screen texts quoted in this guide are reproduced exactly as displayed by the kiosk software.</p>
+</section>
+
+<h2>Contents</h2>
+<div class="toc">
+<b>Part A – Using the RVM (citizens)</b>
+<ol>
+  <li>What the RVM is</li>
+  <li>Know the kiosk</li>
+  <li>Before you start</li>
+  <li>Starting a session</li>
+  <li>Inserting items (one at a time)</li>
+  <li>Rejected items and messages</li>
+  <li>Finishing the session</li>
+  <li>Claiming your points</li>
+  <li>Points, rewards and payouts</li>
+  <li>Do's and don'ts</li>
+  <li>Frequently asked questions</li>
+</ol>
+<b>Part B – Operating and maintaining the RVM (staff only)</b>
+<ol start="12">
+  <li>Daily opening and closing checklist</li>
+  <li>Reading the status indicators</li>
+  <li>Keypad reference: public keys and confidential sequences</li>
+  <li>Administration panel</li>
+  <li>config.txt reference</li>
+  <li>Launching the application and screen modes</li>
+  <li>Advertisements and instruction video</li>
+  <li>Point rules, leaderboard and data sync</li>
+  <li>Hardware and firmware (Arduino)</li>
+  <li>Troubleshooting</li>
+  <li>Cleaning, safety and emergencies</li>
+  <li>Restart, shutdown and exiting</li>
+</ol>
+<b>Appendix</b> – Serial message glossary • Sample config.txt
+</div>
+
+<!-- ============================ PART A ============================ -->
+<section class="part">
+<div class="part-banner"><h2>Part A – Using the RVM</h2><p>For members of the public.</p></div>
+
+<h2>1. What the RVM is</h2>
+<p>The RVM (Reverse Vending Machine) takes back empty beverage containers and rewards you with points. Insert one container at a time; the machine identifies the material and size, drops it into the collection bin and adds points to your session. At the end you send the points to your mobile wallet account, where they can be turned into rewards through the Trash to Cash app and ISP's reward programme.</p>
+<div class="mat">
+  <div class="plastic"><b>🧴 PLASTIC</b><br>PET / HDPE bottles<br>Small • Medium • Large</div>
+  <div class="can"><b>🥫 CAN</b><br>Aluminium beverage cans<br>Small • Medium • Large</div>
+  <div class="ubc"><b>🧃 UBC</b><br>Tetra Pak / carton drinks<br>Small • Medium • Large</div>
+  <div class="reject"><b>🚫 REJECT</b><br>Anything the sensors cannot validate is returned and counted as rejected</div>
+</div>
+<div class="warning"><b>Never insert:</b> hands or objects other than empty containers, glass, liquids, batteries, aerosols, food, paper or general waste. Containers must be empty; a bottle with liquid is rejected or may jam the chamber.</div>
+
+<h2>2. Know the kiosk</h2>
+<ul>
+  <li><b>Touch screen</b> (portrait) with, from top to bottom: the header "RVM • REVERSE VENDING MACHINE – WELCOME • خوش آمدید" with the LIVE badge and machine ID; the <b>HARDWARE &amp; MACHINE DIAGNOSTICS</b> strip; the instruction video / "HOW TO USE RVM" seven-step guide with the <b>TOUCHLESS START</b> QR card; the "HOW TO USE RVM" step strip; and, lower down, the <b>SESSION DETAILS</b> panel with YOUR REWARD BALANCE and the PLASTIC / CAN / UBC / REJ cards (S, M, L and TOTAL counts), the advertisement video and the Top 10 leaderboard.</li>
+  <li><b>Insertion aperture</b> – a single round, illuminated opening. Insert the container lengthwise, barcode facing upwards, and let go.</li>
+  <li><b>Keypad</b> – a numeric keypad next to the screen. You only need <span class="key">0</span> (start), <span class="key">Enter</span> (finish), the digits for your mobile number or rating, <span class="key">Backspace</span> to correct a digit, and <span class="key">*</span> to cancel a dialog.</li>
+  <li><b>Collection bin</b> inside the cabinet (serviced by staff).</li>
+</ul>
+<div class="shot"><img src="assets/rvm_screen_02_home_page.png" alt="RVM welcome screen"><div class="cap">Figure 1 – Welcome screen: diagnostics strip (HARDWARE: COM3, DB: OK, API: ONLINE, MACHINE: READY), the seven-step guide and the "SCAN TO START" touchless QR.</div></div>
+
+<h2>3. Before you start</h2>
+<ul class="check">
+  <li>The header shows <b>LIVE</b> and the diagnostics strip shows HARDWARE (green), DB: OK and API: ONLINE; the status reads <b>MACHINE: READY</b>.</li>
+  <li>Your container is empty and not flattened; the barcode is readable.</li>
+  <li>You have the Trash to Cash app installed and signed in, or you know the 11-digit mobile number (03xxxxxxxxx) registered to your wallet account.</li>
+</ul>
+
+<h2>4. Starting a session</h2>
+<table>
+<tr><th style="width:26%">Method</th><th>What to do</th><th style="width:30%">Result</th></tr>
+<tr><td><b>A. Touchless QR (recommended)</b></td><td>In the Trash to Cash app open the QR scanner and scan the <b>SCAN TO START</b> code on screen (or scan it with the phone camera and open the link). The code renews itself about every 110 seconds, so scan the one currently displayed.</td><td>The kiosk greets you ("👤 &lt;your name&gt; Balance: N pts") and starts the machine. Your points will be credited automatically when you finish.</td></tr>
+<tr><td><b>B. Press 0 or touch the start circle</b></td><td>Press <span class="key">0</span> on the keypad or touch the glowing start circle on screen.</td><td>An anonymous session starts; you will claim the points at the end with the app or your mobile number.</td></tr>
+</table>
+<p>The screen then shows <b>"Machine Started – Insert container"</b>, the status becomes <b>MACHINE: RUNNING</b> and the overlay <b>"PLEASE INSERT BOTTLE / CAN / UBC"</b> appears.</p>
+<div class="shot"><img src="assets/rvm_screen_03_step_01.png" alt="Session started"><div class="cap">Figure 2 – Session started: the kiosk is waiting for the first container.</div></div>
+
+<h2>5. Inserting items (one at a time)</h2>
+<ol class="steps">
+  <li>Insert <b>one</b> empty container into the aperture, barcode facing up, and release it completely. Do not hold it.</li>
+  <li>The screen shows "Scanning... / Bottle detected" and the overlay <b>"DETECTING &amp; SIZING ITEM... – CALIBRATING VOLUME • OPTICAL IR SCAN ACTIVE – PLEASE WAIT A MOMENT • DO NOT PULL ITEM"</b>. Do not insert another item during scanning.</li>
+  <li>If the item is accepted the gate opens, the container drops and the screen shows <b>"ITEM ACCEPTED! • &lt;SIZE MATERIAL&gt; – +N REWARD POINTS ADDED"</b> with a short celebration animation. The matching card (PLASTIC, CAN or UBC) and YOUR REWARD BALANCE increase.</li>
+  <li>After about 5 seconds the "insert" prompt returns. Insert the next container.</li>
+</ol>
+<div class="two">
+  <div class="shot"><img src="assets/rvm_screen_04_step_02.png" alt="Detecting"><div class="cap">Figure 3 – Detecting and sizing.</div></div>
+  <div class="shot"><img src="assets/rvm_screen_06_step_03_accepted.png" alt="Accepted"><div class="cap">Figure 4 – Accepted: "+10 REWARD POINTS ADDED".</div></div>
+</div>
+<p class="small">Size classes used on the dashboard: bottles Small ≈ 345 ml, Medium 500 ml–1 L, Large 1.5 L; cans Small 250 ml, Medium 375 ml, Large 500 ml; cartons Small 200 ml, Medium 1 L, Large 1.5 L. The machine measures the container's length with infrared sensors to decide the class.</p>
+<div class="tip"><b>Timing.</b> If no container is dropped within 25 seconds of the scan starting, the kiosk shows "Scan Timeout – Remove bottle and try again" and resets. After each accepted item you have 15 seconds to insert the next one; from 10 seconds the screen counts down "Insert item • Auto-completing in Ns" and then finishes the session for you.</div>
+
+<h2>6. Rejected items and messages</h2>
+<div class="shot"><img src="assets/rvm_screen_05_step_02_rejection.png" alt="Rejected"><div class="cap">Figure 5 – Rejected item: "ITEM REJECTED – PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER".</div></div>
+<table>
+<tr><th style="width:38%">Message on screen</th><th>Meaning and what to do</th></tr>
+<tr><td>Rejected / Invalid item – ITEM REJECTED, PLEASE REMOVE ITEM FROM DEPOSIT CHAMBER</td><td>The material or size could not be validated (for example a non-metal, non-carton object, or an unrecognised shape). Take the item back from the aperture when the gate presents it, wait for all movement to stop, and try a different container. The REJ counter increases; no points are given.</td></tr>
+<tr><td>Scan Timeout – Remove bottle and try again</td><td>The container was not released or did not reach the sensors within 25 seconds. Remove it and insert it again, barcode up.</td></tr>
+<tr><td>Bottle stuck – Remove the bottle before inserting another item – MACHINE: BLOCKED</td><td>The container did not clear the drop gate. Pull it back gently if it is in the aperture; otherwise call staff. The points for that item are cancelled; the machine shows "Ready / Insert the next item" once the chamber is clear.</td></tr>
+<tr><td>Bin Full / Blocked – MACHINE: BIN FULL</td><td>The collection bin is full. The machine stops accepting items until staff empty it.</td></tr>
+<tr><td>HARDWARE CONNECTION ERROR / HARDWARE: ERROR</td><td>The screen has lost contact with the machine. Do not insert anything; inform staff.</td></tr>
+<tr><td>Calibrating... / Keep pipe empty</td><td>The machine is zeroing its sensors; wait for MACHINE: READY.</td></tr>
+</table>
+
+<h2>7. Finishing the session</h2>
+<p>Press <span class="key">Enter</span> (or wait for the 15-second auto-complete). If you press Enter before inserting anything the kiosk says "Start recycling first" or "No items to credit – Insert an item before using your wallet". If the machine is completely offline it says "Wallet unavailable – Connect local DB or Central Network before crediting a wallet"; ask staff.</p>
+
+<h2>8. Claiming your points</h2>
+<h3>8.1 You started with the touchless QR</h3>
+<p>Your account is already known, so the points are credited immediately. The <b>⭐ EXPERIENCE RATING</b> window appears ("HOW WAS YOUR EXPERIENCE?"): press <span class="key">1</span> (Very Bad) to <span class="key">5</span> (Excellent) and <span class="key">Enter</span>, or wait 8 seconds. Then "THANK YOU FOR RECYCLING! – Your wallet has been credited and feedback recorded." is shown and the kiosk returns to the welcome screen.</p>
+<h3>8.2 You started with key 0 or the start circle</h3>
+<p>The <b>💳 WALLET TRANSFER · Scan QR or Enter Mobile Number to Claim Points</b> window opens with your <b>RECYCLED DEPOSIT SUMMARY</b> and <b>POINTS TO CLAIM</b>. Choose one option:</p>
+<ol>
+  <li><b>📲 SCAN QR CODE TO CLAIM POINTS</b> – scan the code with the Trash to Cash app or your phone camera, or type the <b>SESSION CODE (FOR MANUAL APP ENTRY)</b> (for example <span class="mono">RVM-001_3a7698c8</span>) into the app. The window shows "⏳ Waiting for scan..." then "✓ Claimed by &lt;name&gt;!". The code is <b>valid for 90 seconds</b>; if it expires the window shows "⏱️ Expired - closing session..." and the session closes without crediting anyone.</li>
+  <li><b>OR ENTER MOBILE NUMBER DIRECTLY</b> – type your 11-digit number starting with 03 in "📱 CITIZEN MOBILE WALLET NUMBER" and press <b>Claim Points ➔</b> or <span class="key">Enter</span>. The field validates as you type ("Must start with 03", "Must be exactly 11 digits", "✓ Valid mobile number"). If the number has no account yet, the points are kept under that number until you register in the app with the same number.</li>
+</ol>
+<div class="two">
+  <div class="shot tall"><img src="assets/rvm_screen_07_step_04_wallet.png" alt="Wallet transfer window"><div class="cap">Figure 6 – Wallet transfer: claim QR, session code and mobile-number entry.</div></div>
+  <div class="shot tall"><img src="assets/rvm_screen_08_step_04_success.png" alt="Credited"><div class="cap">Figure 7 – Points credited.</div></div>
+</div>
+<p>After the claim you are asked for the 1–5 star rating, then the thank-you message is shown and the session ends. <b>✖ Close Session</b>, <span class="key">Esc</span> or <span class="key">*</span> closes the window without claiming.</p>
+<div class="two">
+  <div class="shot"><img src="assets/rvm_screen_09_feedback.png" alt="Rating"><div class="cap">Figure 8 – Experience rating.</div></div>
+  <div class="shot"><img src="assets/rvm_screen_10_complete.png" alt="Complete"><div class="cap">Figure 9 – Session complete; kiosk returns to welcome.</div></div>
+</div>
+
+<h2>9. Points, rewards and payouts</h2>
+<ul>
+  <li><b>Points per item</b> are set centrally by ISP and pushed to each machine. Factory defaults when no rule is configured: plastic bottles Small / Medium / Large = 5 / 10 / 15 points, cans = 10 / 15 / 20 points, cartons (UBC) = 5 / 10 / 15 points. The points shown at acceptance time are the ones that apply.</li>
+  <li><b>Value.</b> On the ISP programme 5 points = PKR 1 (1,000 points ≈ PKR 200 voucher value).</li>
+  <li><b>Where to see and spend points.</b> In the Trash to Cash app: balance, session history, leaderboard and the rewards catalogue (mobile airtime, shopping vouchers, cafeteria vouchers, tree-planting certificates). Cash payouts to EasyPaisa or JazzCash wallets, mobile load, Raast transfers and merchant e-vouchers are issued by ISP administrators from the Master Portal against your balance; the kiosk itself does not pay out.</li>
+  <li><b>Leaderboard.</b> The kiosk shows the top 10 wallets by points balance held on that machine; the app shows the national leaderboard.</li>
+  <li><b>Impact.</b> Each item is counted as about 0.15 kg of CO₂ and 0.75 L of water saved in the on-kiosk session summary.</li>
+</ul>
+
+<h2>10. Do's and don'ts</h2>
+<div class="two">
+<div class="note"><b>Do</b><ul><li>Start the session first, then insert.</li><li>One container at a time, empty, barcode up.</li><li>Wait for "ITEM ACCEPTED!" before the next one.</li><li>Finish with Enter and claim within 90 seconds.</li><li>Report jams, errors or a full bin to staff.</li></ul></div>
+<div class="warning"><b>Don't</b><ul><li>Hold the container or pull it back during scanning.</li><li>Force items, reach inside or hit the gate.</li><li>Insert glass, liquids, batteries, aerosols or waste.</li><li>Share your claim QR or session code with others.</li><li>Walk away before claiming (anonymous sessions expire unclaimed).</li></ul></div>
+</div>
+
+<h2>11. Frequently asked questions</h2>
+<ul>
+  <li><b>The screen zoomed into the video and the counters disappeared.</b> After one minute without activity the kiosk enlarges the instruction video. Touch the screen or press <span class="key">0</span> to restore the normal layout.</li>
+  <li><b>I entered my number but have no app.</b> Download Trash to Cash, register with the same mobile number and the points will be in your balance.</li>
+  <li><b>I pressed Enter by mistake with no items.</b> Nothing is lost: the kiosk shows "No items to credit" and returns to the session.</li>
+  <li><b>The QR window closed before I could scan.</b> The claim QR is valid for 90 seconds and the session closes unclaimed afterwards. Ask the operator to check the machine's transaction log; points cannot be re-issued by the kiosk itself.</li>
+  <li><b>Can I recycle paper here?</b> No. Paper is accepted only on the PecoDrop corporate kiosks.</li>
+</ul>
+</section>
+
+<!-- ============================ PART B ============================ -->
+<section class="part">
+<div class="part-banner"><h2>Part B – Operating and maintaining the RVM</h2><p>For site operators, mall / station facility staff and ISP technicians. Contains confidential key sequences.</p></div>
+<div class="confidential"><b>Confidential.</b> Sections 14, 15, 20 and 23 describe key sequences that stop the machine, open service controls or power off the kiosk computer. Do not post Part B in public.</div>
+
+<h2>12. Daily opening and closing checklist</h2>
+<h3>Opening</h3>
+<ul class="check">
+  <li>Power on; the application launches full-screen automatically (otherwise use the launch command in section 17).</li>
+  <li>Wait for the start-up calibration ("Calibrating... / Keep pipe empty") to end with "Ready / Empty pipe distance: n cm" and <b>HARDWARE: COMx</b> green.</li>
+  <li>Diagnostics strip shows DB: OK and API: ONLINE; header badge LIVE. "UNAUTHORIZED" means the machine ID is not registered on the Master Portal (section 21).</li>
+  <li>Collection bin empty and seated; the bin-full sensor beam (D11) is clear.</li>
+  <li>Aperture, gate area, screen and keypad clean; nothing left in the chamber.</li>
+  <li>Machine ID and location in the header are correct.</li>
+  <li>One test deposit where site policy allows; confirm it appears in the portal's Machine Health tab.</li>
+</ul>
+<h3>Closing</h3>
+<ul class="check">
+  <li>Let any session finish (or press <span class="key">S</span> to stop it).</li>
+  <li>Empty the bin if the kiosk showed BIN FULL; check the chamber for stuck items.</li>
+  <li>Follow the site's always-on or shutdown policy (section 23).</li>
+</ul>
+
+<h2>13. Reading the status indicators</h2>
+<table>
+<tr><th style="width:30%">Indicator</th><th>Values and meaning</th></tr>
+<tr><td>Header badge</td><td><span class="pill green">LIVE</span> portal reachable • <span class="pill red">UNAUTHORIZED</span> machine not registered / kiosk key rejected • <span class="pill gray">OFFLINE</span> no network (deposits continue locally).</td></tr>
+<tr><td>HARDWARE / SERIAL</td><td><b>COMx</b> connected and calibrated • <b>ERROR</b> serial fault or cable removed (red banner with RETRY).</td></tr>
+<tr><td>DB</td><td><b>OK</b> local SQL Server Express reachable. Without local DB and without the portal, wallet credit is refused.</td></tr>
+<tr><td>API</td><td><b>ONLINE</b> Master Portal reachable • offline tolerated; data syncs later.</td></tr>
+<tr><td>MACHINE</td><td>READY • RUNNING • BIN FULL • BLOCKED (stuck item) • NOT CALIBRATED • ERROR.</td></tr>
+<tr><td>DEMO MODE / DEMO TESTING (F2)</td><td>Simulated hardware. Never leave a public kiosk in demo mode; restart the application to clear it.</td></tr>
+</table>
+
+<h2>14. Keypad reference</h2>
+<p>Sequences are typed on the keypad; the buffer resets after 4 seconds between digits.</p>
+<h3>14.1 Public keys</h3>
+<table>
+<tr><th style="width:24%">Key</th><th>Function</th></tr>
+<tr><td><span class="key">0</span> / start circle</td><td>Start a session (hardware must be connected; otherwise the telemetry log says "Key 0 is reserved for physical hardware"). Also restores the screen from idle zoom and retries a lost hardware connection.</td></tr>
+<tr><td><span class="key">Enter</span></td><td>Finish the session and open the wallet / rating window.</td></tr>
+<tr><td>Digits</td><td>Mobile number or rating entry.</td></tr>
+<tr><td><span class="key">Backspace</span> / numpad <span class="key">-</span></td><td>Delete the last digit.</td></tr>
+<tr><td><span class="key">*</span> / <span class="key">Esc</span></td><td>Cancel / close the current dialog.</td></tr>
+<tr><td><span class="key">/</span></td><td>Toggle keypad mouse-emulation (8 / 2 / 4 / 6 move, 5 or Enter click, 0 / . right-click).</td></tr>
+</table>
+<h3>14.2 Confidential operator sequences</h3>
+<table>
+<tr><th style="width:24%">Sequence</th><th>Function</th></tr>
+<tr><td><span class="key">111</span> or <span class="key">A</span></td><td>Open the Administration login.</td></tr>
+<tr><td><span class="key">888</span></td><td>Toggle the real-time telemetry overlay (last 200 log lines). Esc or * closes it.</td></tr>
+<tr><td><span class="key">33</span> (3 twice within 1.5 s)</td><td>CLEAR_CHAMBER: opens the drop gate for 2 seconds to release a stuck item.</td></tr>
+<tr><td><span class="key">001</span></td><td>Start a demo session without the simulator window. <span class="key">1122</span>, <span class="key">F2</span>: demo mode with the Demo Testing simulator window.</td></tr>
+<tr><td><span class="key">1218</span> / <span class="key">1219</span></td><td>Confidential RESTART / SHUTDOWN dialog for the kiosk computer (section 23).</td></tr>
+<tr><td><span class="key">S</span></td><td>Stop the machine (keyboard).</td></tr>
+<tr><td><span class="key">B</span> / <span class="key">C</span> / <span class="key">U</span> / <span class="key">R</span></td><td>Simulate plastic / can / UBC / reject – <b>demo mode only</b>; ignored in normal operation.</td></tr>
+<tr><td><span class="key">Ctrl</span>+<span class="key">I</span></td><td>Toggle the idle-zoom layout (testing).</td></tr>
+</table>
+<p class="small">The sequences 55, 66, 77, 88, 99, 0012, 0021 and 601–629 belong to the PecoDrop enterprise kiosk and do nothing on the RVM.</p>
+
+<h2>15. Administration panel</h2>
+<p>Open with <span class="key">111</span> or <span class="key">A</span> ("RVM Admin Panel Login"). The account is stored in the kiosk's local SQL Server (table AdminCredentials); <b>change the factory password during commissioning</b> from the Security tab. If the local database is unreachable, the login falls back only to <span class="mono">AdminUsername</span> / <span class="mono">AdminPassword</span> in config.txt (empty = refused).</p>
+<table>
+<tr><th style="width:30%">Tab</th><th>Contents</th></tr>
+<tr><td>Point Settings</td><td>Local point grid; <b>Save Points</b> writes dbo.PointSettings. Portal rules override local values on the next sync.</td></tr>
+<tr><td>Transactions Log</td><td>Last 100 local transactions (dbo.BottleTransactions) with sync state.</td></tr>
+<tr><td>🔐 Security &amp; Manual Data Sync</td><td>Local vs dashboard comparison • <b>⚡ Sync Local Unsynced Data to Dashboard</b> • <b>Update Admin Password</b> • <b>Pull Latest Point Settings from Dashboard</b>.</td></tr>
+<tr><td>⚙️ System &amp; Hardware Config (config.txt)</td><td>Machine ID, Kiosk UI Theme (Modern / Classic), Central Dashboard Base URL, Location, Latitude / Longitude with 📍 Auto-Detect, SQL Connection String, Arduino port / baud, Camera port / baud, hardware buttons (Refresh All, Safe Self-Test, Calibrate, Safe Stop, Entrance Open / Close, Drop Open / Close, Reconnect / Re-initialize), video folders, model path, capture directory. <b>Save Configuration</b> writes config.txt, applies the theme and restarts the heartbeat.</td></tr>
+<tr><td>⚡ Central Dashboard Simulator</td><td>Ping, Simulate Insert, Send Heartbeat, Verify QR – commissioning tests only (records are real on the portal).</td></tr>
+<tr><td>📺 Advertisement &amp; Video Signage</td><td>Browse / Add, Open Ads Folder, Refresh, Apply &amp; Play, Preview, Delete.</td></tr>
+</table>
+<div class="note">Hardware buttons use the kiosk's live serial link and are disabled when "Arduino is offline or Demo Mode is active". Closing the Admin window sends DIAG:EXIT so the firmware returns to normal operation.</div>
+
+<h2>16. config.txt reference</h2>
+<table>
+<tr><th style="width:26%">Key</th><th style="width:28%">Default</th><th>Meaning</th></tr>
+<tr><td>MachineId</td><td>RVM-001</td><td>Unique ID, must match the machine registered on the Master Portal. Aliases MachineName / RVMName are accepted.</td></tr>
+<tr><td>CentralApiUrl</td><td>https://isprvm.binishaqsoft.com</td><td>Master Portal base URL.</td></tr>
+<tr><td>KioskApiKey</td><td>(empty)</td><td>Shared secret issued by ISP, sent as the x-kiosk-key header. Required once the portal enforces kiosk authentication. Never shown in the UI.</td></tr>
+<tr><td>ConnectionString</td><td>Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;…</td><td>Local SQL Server. Change the SQL password from the factory value.</td></tr>
+<tr><td>Location / Latitude / Longitude</td><td>Lahore example / 31.5826 / 74.3276</td><td>Shown in the header and reported in the heartbeat for the fleet map.</td></tr>
+<tr><td>ArduinoPort / ArduinoBaud</td><td>COM16 / 9600</td><td>Serial port and speed of the machine controller.</td></tr>
+<tr><td>CameraPort / CameraBaud</td><td>COM31 / 921600</td><td>Optional camera module (not used by the standard session flow).</td></tr>
+<tr><td>AdvertisementVideoFolder / InstructionVideoFolder</td><td>Ads\Advertisements / Ads\Instructions</td><td>Advertisement playlist and instruction video (first file in the folder).</td></tr>
+<tr><td>ModelPath / CaptureDirectory</td><td>Models\… / Captures</td><td>Optional classifier model and capture folder.</td></tr>
+<tr><td>UiTheme</td><td>Modern</td><td>Modern or Classic interface skin.</td></tr>
+<tr><td>AdminUsername / AdminPassword</td><td>(empty)</td><td>Offline fallback for the Admin login.</td></tr>
+</table>
+<p class="small">config.txt lives next to the executable. Saving from the Admin panel preserves KioskApiKey, AdminUsername and AdminPassword.</p>
+
+<h2>17. Launching the application and screen modes</h2>
+<ul>
+  <li>Launch command: <span class="mono">powershell -ExecutionPolicy Bypass -File .\RVMDesktopApp\launch-kiosk.ps1</span>. Parameters: <span class="mono">-ScreenIndex</span> (default 1), <span class="mono">-Mode Portrait|Landscape|Auto</span> (default Portrait; Auto detects from the monitor orientation), <span class="mono">-Demo</span>.</li>
+  <li>The application runs one window per process: a 1080×1920 portrait touch layout (standard) or a 1920×1080 landscape layout (<span class="mono">--landscape</span>, 56 % / 44 % two-column layout). Only one instance can run at a time.</li>
+  <li>Idle zoom: after 1 minute without activity (machine not running) the instruction video expands to half the screen; any key, touch or mouse movement restores the layout.</li>
+</ul>
+<div class="shot"><img src="assets/rvm_screen_landscape_kiosk.png" alt="Landscape layout"><div class="cap">Figure 10 – Landscape layout (left: guide and session panel, right: live leaderboard).</div></div>
+
+<h2>18. Advertisements and instruction video</h2>
+<ul>
+  <li>The instruction video is the first file in <span class="mono">Ads\Instructions</span>; it is managed locally (copy a new MP4 into the folder).</li>
+  <li>Advertisement videos play in the lower banner. Every 15 seconds the kiosk downloads the active campaign and playlist assigned to it on the Master Portal (Digital Signage tab) into <span class="mono">Ads\Advertisements</span>; downloaded files no longer in the playlist are removed. Instruction and celebration videos are never deleted.</li>
+  <li>Local additions: Admin → Advertisement &amp; Video Signage → Browse / Add → Apply &amp; Play.</li>
+</ul>
+
+<h2>19. Point rules, leaderboard and data sync</h2>
+<ul>
+  <li><b>Point rules.</b> Precedence: Master Portal machine config (GET /api/machine/config/&lt;MachineId&gt; every 15 s) → local dbo.PointSettings → built-in defaults (plastic 5 / 10 / 15, can 10 / 15 / 20, carton 5 / 10 / 15). Note: in the current build cartons (UBC / Tetra Pak) are credited with the paper-per-kg value (15) for every size when no explicit carton rule exists; configure explicit TETRA PAK rules on the portal.</li>
+  <li><b>Heartbeat.</b> POST /api/machine/heartbeat every 15 s with machine ID, status, location and coordinates. A 403 reply shows "Machine '&lt;id&gt;' not registered/authorized on Central Dashboard"; a super admin must register the machine in the portal. This model does not report a measured bin-fill percentage; rely on the kiosk's BIN FULL status.</li>
+  <li><b>Sessions.</b> Each accepted item is posted live to /api/machine/sync-session with the cumulative session counts; the final post carries the claiming mobile number. Ratings go to /api/machine/feedback.</li>
+  <li><b>Offline.</b> Transactions are stored in dbo.BottleTransactions with IsSynced = 0 and uploaded automatically when the portal is back (15 s cycle) or manually from the Security tab.</li>
+  <li><b>Leaderboard.</b> Top 10 of the local dbo.WalletAccounts by points balance.</li>
+</ul>
+
+<h2>20. Hardware and firmware (Arduino)</h2>
+<h3>20.1 Controller and sensors</h3>
+<ul>
+  <li>Firmware: <span class="mono">RVMDesktopApp\Arduino\RVM_Arduino\RVM_Arduino.ino</span>, serial 9600 baud, 8-N-1.</li>
+  <li>Pins: bottom IR D2, chamber ultrasonic echo D3 / trigger D4, metal inductive D5, entrance gate servo D6 (75° closed / 90° open), middle IR D7, top IR D8, drop gate servo D9 (71° closed / open), Tetra inductive D10, bin-full sensor D11, entrance ultrasonic D12 / D13.</li>
+  <li>Sizing: top IR covered = LARGE, middle = MEDIUM, otherwise SMALL. Material: 20 samples over 200 ms; metal + tetra = TETRAPAK, metal only = CAN, tetra only = REJECT, non-metal short object (4–14 cm) = CUP, otherwise PLASTIC.</li>
+  <li>The entrance gate opens when an object is within 15 cm of the entrance sensor while the machine is running and closes 5 s after the entrance clears; it stays closed when stopped.</li>
+</ul>
+<h3>20.2 Start-up and calibration</h3>
+<p>On connection the application toggles DTR / RTS (which resets the board), shows "Calibrating... / Keep pipe empty" and sends CALIBRATE. The firmware takes 12 ultrasonic readings (up to 3 attempts) and, if an object is detected within 4 cm, opens the gate to clear it. Success: CALIBRATED:EMPTY_DISTANCE_CM:n → "Ready / Empty pipe distance: n cm". Failure: ERROR:CALIBRATION_FAILED → MACHINE: NOT CALIBRATED; empty the chamber and press Calibrate in the Admin panel.</p>
+<h3>20.3 Bin full and stuck items</h3>
+<ul>
+  <li>Bin sensor D11 blocked → BIN:BLOCKED, ERROR:BIN_FULL, MACHINE:STOPPED; START is refused while blocked. The firmware does not send a "cleared" message: after emptying the bin, press <span class="key">0</span> (or Start) to resume; START re-checks the sensor.</li>
+  <li>ERROR:CLEAR_TIMEOUT (item did not clear within 1.2 s of the gate opening) → "Bottle stuck", points cancelled, MACHINE: BLOCKED. When the bottom IR clears the firmware sends BOTTLE:REMOVED → "Ready / Insert the next item". Use <span class="key">33</span> to open the gate for 2 s if the item is resting on it.</li>
+</ul>
+<h3>20.4 USB disconnection</h3>
+<p>A serial fault shows HARDWARE: ERROR and the red banner "HARDWARE CONNECTION ERROR … ہارڈویئر کا رابطہ منقطع ہے" with a <b>RETRY</b> button. Reseat the cable and press RETRY, press <span class="key">0</span>, or use Admin → Reconnect / Re-initialize (sends RESET + DIAG:SNAPSHOT). The RVM application does not reconnect in the background by itself.</p>
+<h3>20.5 Uploading firmware</h3>
+<ol>
+  <li>Close the RVM application so the COM port is free.</li>
+  <li>In the Arduino IDE select the board stated in the sketch header, the kiosk's COM port and 9600 baud, open RVM_Arduino.ino and Upload.</li>
+  <li>"stk500 getsync" or "can't open device" errors are cable / port / bootloader problems, not sketch problems.</li>
+  <li>Relaunch the application and confirm READY → calibration → HARDWARE: COMx.</li>
+</ol>
+
+<h2>21. Troubleshooting</h2>
+<table>
+<tr><th style="width:34%">Symptom</th><th>Cause and action</th></tr>
+<tr><td>Red "HARDWARE CONNECTION ERROR" banner</td><td>Cable / Arduino not detected or wrong COM port. Reseat, RETRY; check ArduinoPort in Admin → System &amp; Hardware Config → Save Configuration → Reconnect.</td></tr>
+<tr><td>Header shows UNAUTHORIZED</td><td>Machine ID not registered on the portal or kiosk key mismatch. Register the machine (Smart Recycling Machines tab) and verify KioskApiKey.</td></tr>
+<tr><td>DB not OK</td><td>SQL Server Express service stopped or connection string wrong. Start the SQLEXPRESS service; verify ConnectionString.</td></tr>
+<tr><td>MACHINE: BIN FULL after emptying</td><td>Press 0 / Start to re-check the sensor. If it persists, clean or realign the D11 sensor.</td></tr>
+<tr><td>Every item rejected</td><td>Inductive sensors or IR beams dirty / misaligned, or chamber not calibrated. Calibrate; clean sensors; test with a known-good can and bottle.</td></tr>
+<tr><td>Scan timeouts</td><td>Item not reaching the bottom IR (crushed or very light containers). Check the chute for obstructions.</td></tr>
+<tr><td>"Bottle stuck" repeatedly</td><td>Gate angle or chute obstruction. Clear with 33; inspect the drop gate servo.</td></tr>
+<tr><td>Points not on the portal</td><td>Portal offline at the time; rows wait with IsSynced = 0. Confirm API: ONLINE and use Sync Local Unsynced Data.</td></tr>
+<tr><td>Citizen claims missing credit</td><td>Check Transactions Log for the session, time and phone number; anonymous sessions that expired unclaimed cannot be credited by the kiosk. Escalate to ISP support with the machine ID.</td></tr>
+<tr><td>Screen frozen</td><td>Wait 30 s; if unresponsive use 1218 (restart) from the keypad or power-cycle per site policy.</td></tr>
+<tr><td>Admin login refused</td><td>Local DB down (start SQLEXPRESS) or use the config.txt AdminUsername / AdminPassword fallback.</td></tr>
+</table>
+
+<h2>22. Cleaning, safety and emergencies</h2>
+<ul>
+  <li>Clean the screen, keypad and aperture rim with a damp cloth; never spray into the aperture or electronics. No metal tools inside the chamber.</li>
+  <li>Empty bins with the machine stopped. Never reach into the chamber while the gates are powered.</li>
+  <li>Smoke, burning smell, exposed wiring, liquid ingress, repeated uncontrolled gate movement or forced cabinet access: isolate the machine, switch off at the mains and contact ISP support.</li>
+  <li>Privacy: the telemetry overlay (<span class="key">888</span>) shows citizens' mobile numbers; close it before leaving the screen.</li>
+</ul>
+
+<h2>23. Restart, shutdown and exiting</h2>
+<ul>
+  <li><span class="key">1218</span> opens the confidential restart dialog, <span class="key">1219</span> the shutdown dialog. Confirm with <span class="key">1</span> / <span class="key">Y</span> / <span class="key">Enter</span>, cancel with <span class="key">0</span> / <span class="key">Backspace</span> / <span class="key">Esc</span> / <span class="key">*</span>. Both run a forced Windows restart / shutdown immediately.</li>
+  <li>Escape never exits the kiosk application in normal operation; use the restart dialog or Windows tools for maintenance.</li>
+</ul>
+</section>
+
+<section class="part">
+<h2>Appendix A – Serial message glossary (firmware ↔ application)</h2>
+<table>
+<tr><th style="width:38%">Message</th><th>Meaning</th></tr>
+<tr><td>READY</td><td>Firmware booted.</td></tr>
+<tr><td>START (or 0) / STOP / RESET / CALIBRATE / STATUS / CLEAR_CHAMBER (or 33) / PROTO?</td><td>Commands from the application. Replies: MACHINE:STARTED, MACHINE:STOPPED, RESET:OK, CHAMBER:CLEARED.</td></tr>
+<tr><td>DIAG:SNAPSHOT / SELF_TEST / ENTER / EXIT / GATE:OPEN|CLOSE / ENTRANCE:OPEN|CLOSE</td><td>Admin diagnostics commands.</td></tr>
+<tr><td>CALIBRATION:START / CLEARING_CHAMBER / RETRY, CALIBRATED:EMPTY_DISTANCE_CM:n, ERROR:CALIBRATION_FAILED, ERROR:NOT_CALIBRATED</td><td>Calibration progress and result.</td></tr>
+<tr><td>IR:DETECTED_TRIGGER</td><td>Item at the bottom sensor; scan starts.</td></tr>
+<tr><td>SIZE:SMALL|MEDIUM|LARGE|UNKNOWN;MATERIAL:PLASTIC|CAN|TETRAPAK|CUP|REJECT</td><td>Classification result.</td></tr>
+<tr><td>GATE:OPEN / GATE:CLOSED, BOTTLE:CLEARED, BOTTLE:REMOVED</td><td>Drop gate movement, item delivered to bin (points committed), stuck item removed.</td></tr>
+<tr><td>BIN:BLOCKED, ERROR:BIN_FULL</td><td>Bin sensor blocked; machine stops.</td></tr>
+<tr><td>ERROR:CLEAR_TIMEOUT, ERROR:NO_BOTTLE_CHANGE, ERROR:IR_BOTTOM_STUCK_DETECTED</td><td>Stuck item / sensor fault conditions.</td></tr>
+</table>
+
+<h2>Appendix B – Sample config.txt</h2>
+<pre>MachineId = RVM-LHR-01
+CentralApiUrl = https://isprvm.binishaqsoft.com
+KioskApiKey = &lt;issued by ISP – keep secret&gt;
+ConnectionString = Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=&lt;site password&gt;;Encrypt=False;TrustServerCertificate=True;
+Location = Packages Mall, Lahore
+Latitude = 31.4697
+Longitude = 74.3996
+ArduinoPort = COM16
+ArduinoBaud = 9600
+CameraPort = COM31
+CameraBaud = 921600
+AdvertisementVideoFolder = Ads\Advertisements
+InstructionVideoFolder = Ads\Instructions
+UiTheme = Modern
+AdminUsername =
+AdminPassword =</pre>
+<p class="footer">RVM Public Kiosk – Complete User &amp; Operator Guide • Edition 17 October 2026 • ISP Environmental Solutions Pvt. Ltd. • Part B is confidential.</p>
+</section>
+</body>
+</html>

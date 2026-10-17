@@ -73,7 +73,26 @@ dotenv.config({ override: true });
 const app = express();
 app.set('trust proxy', 1); // Enable proxy header resolution (NGINX / Cloudflare)
 const PORT = process.env.PORT || 5009;
-const JWT_SECRET = process.env.JWT_SECRET || 'rvm-isp-production-secret-key-2026-aapanel';
+const IS_PRODUCTION = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+
+// Security: JWT secret must come from the environment. Never fall back to a value that lives in source control.
+let JWT_SECRET = String(process.env.JWT_SECRET || '').trim();
+if (!JWT_SECRET || JWT_SECRET.length < 32 || JWT_SECRET === 'rvm-isp-production-secret-key-2026-aapanel' || JWT_SECRET === 'rvm-isp-dev-secret-key-2026') {
+  JWT_SECRET = crypto.randomBytes(48).toString('hex');
+  console.warn('[SECURITY] JWT_SECRET is missing, too short, or a known default. A random per-process secret was generated; all sessions will be invalidated on restart. Set a strong JWT_SECRET (>= 32 chars) in .env.');
+}
+
+// Optional shared secret for kiosk machines (desktop apps send it as the x-kiosk-key header).
+const KIOSK_API_KEY = String(process.env.KIOSK_API_KEY || '').trim();
+if (!KIOSK_API_KEY) {
+  console.warn('[SECURITY] KIOSK_API_KEY is not set. Kiosk endpoints accept unauthenticated requests until it is configured on the server and in each kiosk config.txt (KioskApiKey).');
+}
+
+// Mobile-app endpoints: identity comes from the Bearer JWT. Enforcement is opt-in until the mobile app release that sends the token is rolled out.
+const ENFORCE_MOBILE_AUTH = String(process.env.ENFORCE_MOBILE_AUTH || '').toLowerCase() === 'true';
+if (!ENFORCE_MOBILE_AUTH) {
+  console.warn('[SECURITY] ENFORCE_MOBILE_AUTH=false. User-scoped mobile endpoints still accept unauthenticated identifiers. Set ENFORCE_MOBILE_AUTH=true once the mobile app build that sends Authorization headers is deployed.');
+}
 
 // Security Hardening: Helmet HTTP Headers (HSTS, X-Frame-Options, X-Content-Type-Options)
 app.use(helmet({
@@ -100,10 +119,13 @@ const isLoopbackIp = (ip) => {
   return cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === '::ffff:127.0.0.1' || cleanIp.startsWith('127.');
 };
 
+// NOTE: only req.ip (resolved via trust proxy) is consulted. The raw x-forwarded-for header is attacker-controlled.
+const skipLoopback = (req) => isLoopbackIp(req.ip);
+
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 30,
-  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
+  skip: skipLoopback,
   message: { error: 'Too many login attempts from this IP. Please try again after 5 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
@@ -112,8 +134,18 @@ const loginLimiter = rateLimit({
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
-  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
+  skip: skipLoopback,
   message: { success: false, message: 'Too many OTP requests from this IP. Please wait 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// OTP / code verification attempts (6-digit codes must not be brute-forceable)
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  skip: skipLoopback,
+  message: { success: false, message: 'Too many verification attempts from this IP. Please wait 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -121,11 +153,66 @@ const otpLimiter = rateLimit({
 const databaseResetLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  skip: (req) => isLoopbackIp(req.ip) || isLoopbackIp(req.headers['x-forwarded-for']),
+  skip: skipLoopback,
   message: { error: 'Too many database reset authorization attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false
 });
+
+// Master-developer operations (switch-db, restart, sync, test connection)
+const adminOpsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skip: skipLoopback,
+  message: { error: 'Too many administrative operations from this IP. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Generic limiter for public citizen/kiosk write endpoints (claims, redemptions, profile changes)
+const publicWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  skip: skipLoopback,
+  message: { success: false, error: 'Too many requests. Please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Password handling: bcrypt for all new/updated passwords, transparent verification of legacy plaintext rows.
+const BCRYPT_ROUNDS = 10;
+function isBcryptHash(value) {
+  return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+}
+async function hashPassword(plain) {
+  return bcrypt.hash(String(plain), BCRYPT_ROUNDS);
+}
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a ?? ''), 'utf8');
+  const bb = Buffer.from(String(b ?? ''), 'utf8');
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
+// Returns { ok, needsRehash }. Empty/missing stored passwords never match.
+async function verifyPassword(plain, stored) {
+  if (!plain || !stored) return { ok: false, needsRehash: false };
+  if (isBcryptHash(stored)) {
+    const ok = await bcrypt.compare(String(plain), stored);
+    return { ok, needsRehash: false };
+  }
+  const ok = safeEqual(plain, stored);
+  return { ok, needsRehash: ok };
+}
+function maskPhone(value) {
+  const s = String(value || '');
+  if (s.length <= 4) return s ? '****' : '';
+  return `${'*'.repeat(Math.max(0, s.length - 4))}${s.slice(-4)}`;
+}
+function stripSensitive(doc) {
+  if (!doc || typeof doc !== 'object') return doc;
+  const { password, otp, otp_expiry, otpExpiry, ...rest } = doc;
+  return rest;
+}
 
 // Security Hardening: Central Token Extraction & Authentication Middleware
 function extractToken(req) {
@@ -141,19 +228,119 @@ function extractToken(req) {
   return null;
 }
 
-const KNOWN_JWT_SECRETS = [
-  process.env.JWT_SECRET,
-  'rvm-isp-production-secret-key-2026-aapanel',
-  'rvm-isp-dev-secret-key-2026'
-].filter(Boolean);
-
+// Tokens are verified against the single configured secret only.
 function verifyTokenWithAnySecret(token) {
   if (!token || typeof token !== 'string') return null;
-  for (const secret of KNOWN_JWT_SECRETS) {
-    try {
-      return jwt.verify(token, secret);
-    } catch (e) { }
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    return null;
   }
+}
+
+// Kiosk machine authentication (shared secret). Returns true when the request carries a valid kiosk key.
+function hasValidKioskKey(req) {
+  if (!KIOSK_API_KEY) return false;
+  const provided = String(req.headers['x-kiosk-key'] || '').trim();
+  return provided.length > 0 && safeEqual(provided, KIOSK_API_KEY);
+}
+
+// Shared public endpoints used by kiosks, the mobile app, and the /claim web page: accepts a user JWT or a kiosk key,
+// and otherwise allows the request while either KIOSK_API_KEY or ENFORCE_MOBILE_AUTH is still unset (migration window).
+async function requirePublicClient(req, res, next) {
+  const token = extractToken(req);
+  if (token) {
+    const decoded = verifyTokenWithAnySecret(token);
+    if (decoded) {
+      req.user = decoded;
+      return next();
+    }
+  }
+  if (hasValidKioskKey(req)) {
+    req.isKiosk = true;
+    return next();
+  }
+  if (!KIOSK_API_KEY || !ENFORCE_MOBILE_AUTH) return next();
+  return res.status(401).json({ success: false, error: 'Authentication required.' });
+}
+
+// Resolves the public base URL for links embedded in QR codes (never trusts the Host header when PUBLIC_BASE_URL is set).
+function publicBaseUrl(req) {
+  const configured = String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (configured) return configured;
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+// Allows: a valid user JWT, or a valid kiosk key. When no KIOSK_API_KEY is configured on the server,
+// unauthenticated kiosk traffic is still allowed (legacy fleet) and req.isLegacyKiosk is set.
+async function requireKioskOrUser(req, res, next) {
+  const token = extractToken(req);
+  if (token) {
+    const decoded = verifyTokenWithAnySecret(token);
+    if (decoded) {
+      req.user = await refreshCorporateMachineScope(decoded);
+      return next();
+    }
+  }
+  if (hasValidKioskKey(req)) {
+    req.isKiosk = true;
+    return next();
+  }
+  if (!KIOSK_API_KEY) {
+    req.isKiosk = true;
+    req.isLegacyKiosk = true;
+    return next();
+  }
+  return res.status(401).json({ success: false, error: 'Authentication required (user token or kiosk key).' });
+}
+
+// Mobile/citizen endpoints. Sets req.user from a JWT when present. When ENFORCE_MOBILE_AUTH is on, the token is mandatory.
+async function requireMobileUser(req, res, next) {
+  const token = extractToken(req);
+  if (token) {
+    const decoded = verifyTokenWithAnySecret(token);
+    if (decoded) {
+      req.user = decoded;
+      return next();
+    }
+    if (ENFORCE_MOBILE_AUTH) {
+      return res.status(401).json({ success: false, error: 'Invalid or expired session. Please log in again.' });
+    }
+  }
+  if (ENFORCE_MOBILE_AUTH) {
+    return res.status(401).json({ success: false, error: 'Authentication required. Please log in.' });
+  }
+  return next();
+}
+
+// For user-scoped operations: the target identifier must belong to the authenticated user, unless the caller is an admin.
+function isAdminRole(user) {
+  const role = String(user?.roleId || user?.role_id || user?.role || '').toLowerCase();
+  return role === 'super_admin' || role === 'superadmin' || role === 'admin' || role === 'client_admin' || role === 'desk_operator';
+}
+function userOwnsIdentifier(user, identifier) {
+  if (!user) return false;
+  const id = String(identifier || '').trim().toLowerCase();
+  if (!id) return false;
+  const candidates = [user.userId, user.user_id, user.username, user.mobile, user.email]
+    .filter(Boolean).map(v => String(v).trim().toLowerCase());
+  return candidates.includes(id);
+}
+// Resolves the identifier a user-scoped handler must operate on. Returns null (and sends 403) when the caller may not act on it.
+function resolveOwnedIdentifier(req, res, requestedIdentifier) {
+  if (!req.user) {
+    if (ENFORCE_MOBILE_AUTH) {
+      res.status(401).json({ success: false, error: 'Authentication required.' });
+      return null;
+    }
+    return String(requestedIdentifier || '').trim();
+  }
+  if (isAdminRole(req.user) || req.isKiosk) return String(requestedIdentifier || '').trim();
+  if (!requestedIdentifier) {
+    return String(req.user.userId || req.user.user_id || req.user.mobile || req.user.username || req.user.email || '').trim();
+  }
+  if (userOwnsIdentifier(req.user, requestedIdentifier)) return String(requestedIdentifier).trim();
+  res.status(403).json({ success: false, error: 'You can only access your own account.' });
   return null;
 }
 
@@ -253,21 +440,44 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
 }
 
+// Super-admin status is derived ONLY from the verified JWT (req.user). Request headers and body fields are never trusted.
 function isSuperAdminUser(req) {
   const u = req.user;
-  if (u) {
-    const role = String(u.roleId || u.role_id || u.role || '').toLowerCase();
-    const uname = String(u.username || u.name || '').toLowerCase();
-    if (role === 'super_admin' || role === 'superadmin' || uname === 'onenet' || uname === 'bilalaaqueel' || u.isSuperAdmin === true) {
-      return true;
-    }
-  }
-  const headerRole = String(req.headers['x-user-role'] || '').toLowerCase();
-  const headerUser = String(req.headers['x-user-name'] || '').toLowerCase();
-  if (headerRole === 'super_admin' || headerRole === 'superadmin' || headerUser === 'onenet' || headerUser === 'bilalaaqueel') {
-    return true;
-  }
-  return false;
+  if (!u) return false;
+  const role = String(u.roleId || u.role_id || u.role || '').toLowerCase();
+  return role === 'super_admin' || role === 'superadmin';
+}
+
+function isClientAdminUser(req) {
+  const role = String(req.user?.roleId || '').toLowerCase();
+  return role === 'client_admin';
+}
+
+// True when the caller may manage the given organization: super admin, or client admin of that same org.
+function canManageOrg(req, orgId) {
+  if (isSuperAdminUser(req)) return true;
+  if (!req.user || !orgId) return false;
+  const role = String(req.user.roleId || '').toLowerCase();
+  if (role !== 'client_admin' && role !== 'corporate_sub_user') return false;
+  return String(req.user.orgId || '').toUpperCase() === String(orgId).toUpperCase();
+}
+function requireOrgAccess(getOrgId) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required.' });
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(400).json({ success: false, error: 'orgId is required.' });
+    if (!canManageOrg(req, orgId)) return res.status(403).json({ success: false, error: 'Access denied for this organization.' });
+    return next();
+  };
+}
+
+// Manual intake desk: admins, client admins, and desk operators (role or module grant) only.
+function requireManualIntakeOperator(req, res, next) {
+  if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required.' });
+  const role = String(req.user.roleId || '').toLowerCase();
+  const modules = Array.isArray(req.user.modules) ? req.user.modules : [];
+  if (isAdminRole(req.user) || role === 'desk_operator' || modules.includes('manual_intake')) return next();
+  return res.status(403).json({ success: false, error: 'Access denied: manual intake operator privileges required.' });
 }
 
 function requireSuperAdmin(req, res, next) {
@@ -317,11 +527,17 @@ let activePgConfig = {
   host: process.env.PG_HOST || '127.0.0.1',
   port: parseInt(process.env.PG_PORT || '5432'),
   user: process.env.PG_USER || 'postgres',
-  password: process.env.PG_PASSWORD || 'Admin786',
+  password: process.env.PG_PASSWORD || '',
   database: process.env.PG_DATABASE || 'rvmpg'
 };
+if (!process.env.PG_PASSWORD) {
+  console.warn('[SECURITY] PG_PASSWORD is not set in .env; PostgreSQL connections will use an empty password.');
+}
 
-let currentUri = process.env.MONGODB_URI || 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority';
+// MongoDB connection strings are read from the environment only (legacy read-only sync source).
+const MONGODB_URI_ONS_RVM = String(process.env.MONGODB_URI_ONS_RVM || process.env.MONGODB_URI || '').trim();
+const MONGODB_URI_RVMAPP = String(process.env.MONGODB_URI_RVMAPP || '').trim();
+let currentUri = MONGODB_URI_ONS_RVM;
 let currentDbName = activeDbType === 'postgres'
   ? (activePgConfig.database || 'rvmpg')
   : (process.env.MONGODB_DBNAME || 'ONS-RVM');
@@ -337,18 +553,18 @@ const DB_PRESETS = {
     id: 'ONS-RVM',
     type: 'mongodb',
     label: 'ONS-RVM Master Cluster',
-    host: 'cluster0.ktted0m.mongodb.net',
-    uri: 'mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority',
-    dbName: 'ONS-RVM',
+    host: getSanitizedHost(MONGODB_URI_ONS_RVM),
+    uri: MONGODB_URI_ONS_RVM,
+    dbName: process.env.MONGODB_DBNAME || 'ONS-RVM',
     description: 'Primary ONS-RVM MongoDB Cluster'
   },
   'rvmapp': {
     id: 'rvmapp',
     type: 'mongodb',
     label: 'MCSRWP Production rvmapp Cluster',
-    host: 'cluster0.fuycg6c.mongodb.net',
-    uri: 'mongodb+srv://mcsrwp_db_user:8ctdZ%23TjEx%26N%25H4@cluster0.fuycg6c.mongodb.net/rvmapp?retryWrites=true&w=majority',
-    dbName: 'rvmapp',
+    host: getSanitizedHost(MONGODB_URI_RVMAPP),
+    uri: MONGODB_URI_RVMAPP,
+    dbName: process.env.MONGODB_DBNAME_RVMAPP || 'rvmapp',
     description: 'Legacy Production rvmapp MongoDB Cluster'
   },
   'rvm_postgres': {
@@ -363,10 +579,13 @@ const DB_PRESETS = {
   }
 };
 
+// Master developer credentials come from the environment only. With no MASTER_DEV_PASSWORD configured, master login is disabled.
 function validateMasterCredentials(username, password) {
   const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
-  const masterPass = process.env.MASTER_DEV_PASSWORD || 'Admin&86';
-  return (username === masterUser || username === `${masterUser}@rvm-dash.io`) && password === masterPass;
+  const masterPass = String(process.env.MASTER_DEV_PASSWORD || '');
+  if (!masterPass) return false;
+  const userOk = safeEqual(username, masterUser) || safeEqual(username, `${masterUser}@rvm-dash.io`);
+  return userOk && safeEqual(password, masterPass);
 }
 
 // MULTI-TENANT ENTERPRISE IN-MEMORY DATA STORE & FALLBACK
@@ -440,7 +659,7 @@ function getPgPool() {
     host: process.env.PG_HOST || '127.0.0.1',
     port: parseInt(process.env.PG_PORT || '5432'),
     user: process.env.PG_USER || 'postgres',
-    password: process.env.PG_PASSWORD || 'Admin786',
+    password: process.env.PG_PASSWORD || '',
     database: process.env.PG_DATABASE || 'rvmpg'
   };
   if (!pgPoolInstance) {
@@ -1084,10 +1303,9 @@ async function initProductionPostgresSchemas() {
       // Ensure onenet exists in PostgreSQL users table with super_admin role
       await pool.query(`
         INSERT INTO users (user_id, username, full_name, email, password, role_id, status)
-        VALUES ('USR-ONENET-01', 'onenet', 'Master Developer (onenet)', 'onenet@rvm-dash.io', 'Admin&86', 'super_admin', 'active')
+        VALUES ('USR-ONENET-01', 'onenet', 'Master Developer (onenet)', 'onenet@rvm-dash.io', '', 'super_admin', 'active')
         ON CONFLICT (username) DO UPDATE SET
-          role_id = 'super_admin',
-          status = 'active';
+          role_id = 'super_admin';
       `);
     } catch (e) {
       console.warn('[onenet Protection Trigger Notice]', e.message);
@@ -1101,18 +1319,45 @@ async function initProductionPostgresSchemas() {
 
 
 
+// Persists only the database selection keys into .env, preserving every other existing variable (JWT_SECRET, SMTP_*, MASTER_DEV_*, ...).
 function writeEnvFile(uri, dbName, dbType = 'postgres', pgConfig = {}) {
-  const envPath = path.join(__dirname, '..', '.env');
+  const envFilePath = path.join(__dirname, '..', '.env');
   const pgHost = pgConfig.host || process.env.PG_HOST || '127.0.0.1';
   const pgPort = pgConfig.port || process.env.PG_PORT || 5432;
   const pgUser = pgConfig.user || process.env.PG_USER || 'postgres';
   const pgPass = pgConfig.password || process.env.PG_PASSWORD || '';
   const pgDb = pgConfig.database || process.env.PG_DATABASE || 'rvmpg';
 
+  const updates = {
+    DB_TYPE: dbType,
+    MONGODB_DBNAME: dbName,
+    PG_HOST: pgHost,
+    PG_PORT: String(pgPort),
+    PG_USER: pgUser,
+    PG_PASSWORD: pgPass,
+    PG_DATABASE: pgDb
+  };
+  if (dbType === 'mongodb' && uri) updates.MONGODB_URI = uri;
 
-  const content = `DB_TYPE=${dbType}\nMONGODB_URI=${uri}\nMONGODB_DBNAME=${dbName}\nPG_HOST=${pgHost}\nPG_PORT=${pgPort}\nPG_USER=${pgUser}\nPG_PASSWORD=${pgPass}\nPG_DATABASE=${pgDb}\nJWT_SECRET=rvm-isp-dev-secret-key-2026\nADMIN_USERNAME=admin\nADMIN_PASSWORD=adminpassword\nPORT=${PORT}\nVITE_API_URL=http://localhost:${PORT}\n`;
-  fs.writeFileSync(envPath, content, 'utf-8');
-  process.env.DB_TYPE = dbType;
+  let existingLines = [];
+  try {
+    if (fs.existsSync(envFilePath)) existingLines = fs.readFileSync(envFilePath, 'utf-8').split(/\r?\n/);
+  } catch (e) { existingLines = []; }
+
+  const seen = new Set();
+  const outLines = existingLines.map(line => {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+    if (m && Object.prototype.hasOwnProperty.call(updates, m[1])) {
+      seen.add(m[1]);
+      return `${m[1]}=${updates[m[1]]}`;
+    }
+    return line;
+  });
+  for (const [k, v] of Object.entries(updates)) {
+    if (!seen.has(k)) outLines.push(`${k}=${v}`);
+  }
+  fs.writeFileSync(envFilePath, outLines.join('\n').replace(/\n*$/, '\n'), 'utf-8');
+  Object.assign(process.env, updates);
 }
 
 
@@ -1231,39 +1476,38 @@ async function getMongoDBServerLocation(targetDb) {
 }
 
 // Health check endpoint
-app.get('/api/health', async (req, res) => {
+// Health: schema details (table names, row counts, host) are only returned to authenticated users.
+let healthStatsCache = { at: 0, data: null };
+app.get('/api/health', optionalAuth, async (req, res) => {
+  const detailed = Boolean(req.user);
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
-      const client = new pg.Client(activePgConfig);
-      await client.connect();
-      const tablesRes = await client.query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema='public' AND table_type='BASE TABLE';
-      `);
+      const pool = getPgPool();
+      await pool.query('SELECT 1');
 
-      const collectionsWithStats = [];
-      for (const row of tablesRes.rows) {
-        const tName = row.table_name;
-        let count = 0;
-        try {
-          const countRes = await client.query(`SELECT COUNT(*) FROM "${tName}";`);
-          count = parseInt(countRes.rows[0].count || '0');
-        } catch (cErr) { }
-
-        collectionsWithStats.push({
-          name: tName,
-          count
-        });
+      let collectionsWithStats = [];
+      if (detailed) {
+        if (Date.now() - healthStatsCache.at > 30000 || !healthStatsCache.data) {
+          const tablesRes = await pool.query(`
+            SELECT c.relname AS table_name, c.reltuples::bigint AS approx_rows
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relkind = 'r'
+            ORDER BY c.relname;
+          `);
+          healthStatsCache = {
+            at: Date.now(),
+            data: tablesRes.rows.map(r => ({ name: r.table_name, count: Math.max(0, parseInt(r.approx_rows || '0')) }))
+          };
+        }
+        collectionsWithStats = healthStatsCache.data;
       }
-
-      await client.end();
 
       return res.json({
         status: 'online',
         databaseType: 'postgres',
-        database: activePgConfig.database || 'rvm_postgres',
-        serverHost: `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}`,
+        database: detailed ? (activePgConfig.database || 'rvm_postgres') : undefined,
+        serverHost: detailed ? `${activePgConfig.host || '127.0.0.1'}:${activePgConfig.port || 5432}` : undefined,
         serverLocation: { display: 'Ubuntu Dedicated Server (PostgreSQL Localhost)' },
         ping: 'OK',
         collectionsCount: collectionsWithStats.length,
@@ -1272,6 +1516,12 @@ app.get('/api/health', async (req, res) => {
       });
     }
 
+    if (!db) {
+      return res.status(503).json({ status: 'error', error: 'Database not connected' });
+    }
+    if (!detailed) {
+      return res.json({ status: 'online', databaseType: 'mongodb', ping: 'OK', timestamp: new Date().toISOString() });
+    }
     const admin = db.admin();
     const ping = await admin.ping();
     const collections = await db.listCollections().toArray();
@@ -1298,24 +1548,30 @@ app.get('/api/health', async (req, res) => {
   } catch (err) {
     res.status(500).json({
       status: 'error',
-      error: err.message,
-      database: currentDbName,
-      serverHost: getSanitizedHost(currentUri)
+      error: detailed ? err.message : 'Database unavailable'
     });
   }
 });
 
 
 // Admin DB Switcher Presets Info
-app.get('/api/admin/presets', (req, res) => {
+app.get('/api/admin/presets', authenticateToken, requireSuperAdmin, (req, res) => {
+  // Never return connection strings (they contain credentials).
+  const presets = Object.values(DB_PRESETS).map(p => {
+    const { uri, ...safe } = p;
+    return { ...safe, configured: p.type === 'postgres' ? true : Boolean(uri) };
+  });
   res.json({
     activeDatabase: currentDbName,
     activeHost: getSanitizedHost(currentUri),
-    presets: Object.values(DB_PRESETS)
+    presets
   });
 });
 
 async function ensurePostgresDatabase(pgConfig) {
+  if (pgConfig.database && !/^[A-Za-z0-9_-]{1,63}$/.test(String(pgConfig.database))) {
+    throw new Error('Invalid PostgreSQL database name. Only letters, digits, underscore and hyphen are allowed.');
+  }
   try {
     const client = new pg.Client(pgConfig);
     await client.connect();
@@ -1339,13 +1595,16 @@ async function ensurePostgresDatabase(pgConfig) {
   }
 }
 
-// Admin Switch Database Endpoint (Protected by username: onenet / password: Admin&86)
-app.post('/api/admin/switch-db', async (req, res) => {
+// Admin Switch Database Endpoint (super admin JWT + master developer credentials from MASTER_DEV_* env)
+app.post('/api/admin/switch-db', adminOpsLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const { username, password, targetPreset, customUri, customDbName, pgHost, pgPort, pgUser, pgPassword, pgDatabase, pgConnString } = req.body;
 
     if (!validateMasterCredentials(username, password)) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials (username: onenet)' });
+      return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials' });
+    }
+    if (targetPreset && DB_PRESETS[targetPreset] && DB_PRESETS[targetPreset].type === 'mongodb' && !DB_PRESETS[targetPreset].uri) {
+      return res.status(400).json({ error: `MongoDB preset "${targetPreset}" is not configured on this server (set MONGODB_URI_* in .env).` });
     }
 
     if (targetPreset === 'rvm_postgres' || req.body.targetDbType === 'postgres') {
@@ -1424,8 +1683,8 @@ app.post('/api/admin/switch-db', async (req, res) => {
 });
 
 
-// Admin Restart API Server Endpoint (Protected by username: onenet / password: Admin&86)
-app.post('/api/admin/restart-server', async (req, res) => {
+// Admin Restart API Server Endpoint (super admin JWT + master developer credentials from MASTER_DEV_* env)
+app.post('/api/admin/restart-server', adminOpsLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -1433,8 +1692,13 @@ app.post('/api/admin/restart-server', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials' });
     }
 
-    // Force reconnect database client
-    await connectDB(true);
+    // Force reconnect database client (Mongo only; PostgreSQL pool is recycled)
+    if (activeDbType === 'mongodb') {
+      await connectDB(true);
+    } else {
+      await closePgPool();
+      getPgPool();
+    }
 
     res.json({
       success: true,
@@ -1448,7 +1712,7 @@ app.post('/api/admin/restart-server', async (req, res) => {
 });
 
 // One-Way Database Sync Endpoint: rvmapp (Source) -> ONS-RVM (Target)
-app.post('/api/admin/sync-databases', async (req, res) => {
+app.post('/api/admin/sync-databases', adminOpsLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
   let sourceClient = null;
   let targetClient = null;
 
@@ -1456,7 +1720,10 @@ app.post('/api/admin/sync-databases', async (req, res) => {
     const { username, password, syncMode = 'upsert', collections = 'all' } = req.body;
 
     if (!validateMasterCredentials(username, password)) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials (username: onenet)' });
+      return res.status(401).json({ error: 'Unauthorized: Invalid Master Developer Credentials' });
+    }
+    if (!DB_PRESETS['rvmapp'].uri || !DB_PRESETS['ONS-RVM'].uri) {
+      return res.status(400).json({ error: 'MongoDB sync is not configured (MONGODB_URI_RVMAPP / MONGODB_URI_ONS_RVM missing).' });
     }
 
     const sourceUri = DB_PRESETS['rvmapp'].uri;
@@ -1797,7 +2064,7 @@ function isAlertAllowed(alert, { isClientScoped, allowedMachineIds }) {
 }
 
 // Lightweight, tenant-scoped labels for the corporate portal header.
-app.get('/api/corporate/fleet-labels', optionalAuth, async (req, res) => {
+app.get('/api/corporate/fleet-labels', authenticateToken, async (req, res) => {
   try {
     const machineIds = getEffectiveMachineScope(req);
     if (!req.user || !['client_admin', 'corporate_sub_user'].includes(req.user.roleId)) {
@@ -1825,7 +2092,7 @@ app.get('/api/corporate/fleet-labels', optionalAuth, async (req, res) => {
 });
 
 // High level KPIs Overview (Resilient Optional Auth & Global Telemetry Fallback)
-app.get('/api/overview', optionalAuth, async (req, res) => {
+app.get('/api/overview', requireKioskOrUser, async (req, res) => {
   try {
     if (activeDbType === 'postgres' && activePgConfig) {
       const pool = getPgPool();
@@ -2342,14 +2609,26 @@ app.get('/api/overview', optionalAuth, async (req, res) => {
 });
 
 // List all Collections with details (Protected by Auth)
+const SENSITIVE_COLLECTIONS = ['users', 'userprofile', 'adminaccounts', 'organizations', 'organization_employees', 'redemptions', 'roles', 'departments'];
 app.get('/api/collections/:name', authenticateToken, async (req, res) => {
   try {
     const { name } = req.params;
-    const { page = 1, limit = 50, search = '' } = req.query;
+    const { page = 1, search = '' } = req.query;
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 50));
+
+    if (!/^[A-Za-z0-9_]{1,64}$/.test(String(name))) {
+      return res.status(400).json({ error: 'Invalid collection name.' });
+    }
+    // Raw PII / credential tables are restricted to ISP administrators.
+    const callerRole = String(req.user?.roleId || '').toLowerCase();
+    const isIspAdmin = callerRole === 'super_admin' || callerRole === 'superadmin' || callerRole === 'admin';
+    if (SENSITIVE_COLLECTIONS.includes(String(name).toLowerCase()) && !isIspAdmin) {
+      return res.status(403).json({ error: 'Access denied: this collection is restricted to ISP administrators.' });
+    }
 
     if (activeDbType === 'postgres' && activePgConfig) {
       const docs = await fetchCollectionDocs(name);
-      let filteredDocs = docs;
+      let filteredDocs = docs.map(stripSensitive);
 
       // PostgreSQL JSON-backed collections must enforce the same machine scope
       // as Mongo queries. Without this, tenant users could see another fleet's
@@ -2399,7 +2678,7 @@ app.get('/api/collections/:name', authenticateToken, async (req, res) => {
     }
 
     if (search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(search.trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       filters.push({
         $or: [
           { userName: regex },
@@ -2442,7 +2721,7 @@ app.get('/api/collections/:name', authenticateToken, async (req, res) => {
 });
 
 // Analytics Trends Endpoint (Resilient Optional Auth & Tenant Scoped)
-app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
+app.get('/api/analytics/trends', authenticateToken, async (req, res) => {
   try {
     const pool = getPgPool();
     const scopeCtx = await resolveScopeContext(req, pool);
@@ -2528,7 +2807,7 @@ app.get('/api/analytics/trends', optionalAuth, async (req, res) => {
 
 // Analytics Leaderboard Endpoint (Resilient Optional Auth)
 // Analytics Leaderboard Endpoint (Resilient Optional Auth)
-app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
+app.get('/api/analytics/leaderboard', requireKioskOrUser, async (req, res) => {
   try {
     const scope = (req.query.scope || 'all').toLowerCase(); // 'all', 'month', 'corporate', 'citizens'
     const targetClient = (req.query.client || '').trim(); // specific corporate client org_id or name
@@ -2666,7 +2945,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
             userType: uProf?.user_type || (mId.startsWith('PECO') ? 'ENTERPRISE' : 'CITIZEN'),
             orgId: uProf?.org_id || (mClient.clientId !== 'ISP_MASTER' ? mClient.clientId : '') || '',
             clientName: clientName || (uProf?.user_type === 'ENTERPRISE' ? 'Corporate Client' : 'Public Citizen'),
-            mobile: uProf?.mobile || phone,
+            mobile: (req.user && isAdminRole(req.user)) ? (uProf?.mobile || phone) : maskPhone(uProf?.mobile || phone),
             machineId: s.machineId || s.machine_id || '',
             totalBottles: 0,
             totalCans: 0,
@@ -2771,7 +3050,7 @@ app.get('/api/analytics/leaderboard', optionalAuth, async (req, res) => {
 
 // Issue Voucher Reward Endpoint
 // Issue Voucher & Mobile Wallet Payout Reward Endpoint (EasyPaisa, JazzCash, Mobile Load, Raast, Vouchers)
-app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
+app.post('/api/analytics/issue-voucher', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const {
       targetUserId,
@@ -2786,8 +3065,18 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
 
     const pool = getPgPool();
     const cleanAmount = parseInt(amountPkr || 1000);
+    if (!Number.isFinite(cleanAmount) || cleanAmount <= 0 || cleanAmount > 100000) {
+      return res.status(400).json({ success: false, error: 'amountPkr must be a positive whole number up to 100,000.' });
+    }
+    // Overdraft (crediting without deducting points) is a super-admin-only action.
+    if (allowOverdraft && !isSuperAdminUser(req)) {
+      return res.status(403).json({ success: false, error: 'Only a Super Admin can issue overdraft payouts.' });
+    }
+    if (!targetUserId && !recipientPhone) {
+      return res.status(400).json({ success: false, error: 'targetUserId or recipientPhone is required.' });
+    }
     const ptsRedeemed = Math.round(cleanAmount * 5); // 5 pts = PKR 1 (1 pt = Rs. 0.20)
-    const phone = (recipientPhone || targetUserId || '03000000000').trim();
+    const phone = String(recipientPhone || targetUserId).trim();
     const userLabel = recipientName || targetUserId || 'Leaderboard Champion';
 
     // Channel-specific reference prefix and display name
@@ -2891,12 +3180,17 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
       if (!allowOverdraft) {
         try {
           if (userRow) {
-            const newBal = Math.max(0, availablePoints - ptsRedeemed);
-            await pool.query(`
-              UPDATE users 
-              SET points_balance = $1, last_active = NOW()
-              WHERE user_id = $2;
-            `, [newBal, userRow.user_id]);
+            // Atomic conditional deduction: fails (0 rows) if a concurrent payout already consumed the balance.
+            const dRes = await pool.query(`
+              UPDATE users
+              SET points_balance = points_balance - $1, last_active = NOW()
+              WHERE user_id = $2 AND points_balance >= $1
+              RETURNING points_balance;
+            `, [ptsRedeemed, userRow.user_id]);
+            if (dRes.rowCount === 0) {
+              await pool.query('DELETE FROM redemptions WHERE redemption_id = $1', [redemptionId]).catch(() => { });
+              return res.status(409).json({ success: false, error: 'Balance changed concurrently; payout not issued. Please retry.' });
+            }
           } else {
             // If user wasn't registered in users table yet, create or update record
             await pool.query(`
@@ -2941,7 +3235,7 @@ app.post('/api/analytics/issue-voucher', optionalAuth, async (req, res) => {
 });
 
 // Broadcast Motivation Notification Endpoint
-app.post('/api/analytics/broadcast', optionalAuth, async (req, res) => {
+app.post('/api/analytics/broadcast', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { audience, message, channel } = req.body;
     res.json({
@@ -2955,7 +3249,7 @@ app.post('/api/analytics/broadcast', optionalAuth, async (req, res) => {
 });
 
 // Machine Hardware Status Aggregation (Resilient Optional Auth)
-app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
+app.get('/api/analytics/machines', requireKioskOrUser, async (req, res) => {
   try {
     const ONLINE_THRESHOLD_MS = 60 * 1000; // 60 seconds (1 minute) window
     const now = Date.now();
@@ -3035,16 +3329,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
               (r.plastic_bin_fill == null && r.metal_bin_fill == null && r.paper_bin_fill_kg == null)
             );
 
-            if (isMockDefault && pool) {
-              pool.query(
-                `UPDATE machines 
-                 SET plastic_bin_fill = 0, metal_bin_fill = 0, paper_bin_fill_kg = 0.00, 
-                     bin_fill_percentage = 0, pulse_count = 0, zero_drift_grams = 0.00, 
-                     scale_status = 'Ready' 
-                 WHERE machine_id = $1`,
-                [r.machine_id]
-              ).catch(() => { });
-            }
+            // NOTE: this is a read endpoint; it must never write telemetry back to the machines table.
 
             const plasticBinFill = isMockDefault ? 0 : (r.plastic_bin_fill != null ? parseInt(r.plastic_bin_fill) : 0);
             const metalBinFill = isMockDefault ? 0 : (r.metal_bin_fill != null ? parseInt(r.metal_bin_fill) : 0);
@@ -3348,7 +3633,7 @@ app.get('/api/analytics/machines', optionalAuth, async (req, res) => {
 });
 
 // Scoped Real-Time Bin Full & Capacity Alerts Feed
-app.get('/api/analytics/bin-notifications', optionalAuth, async (req, res) => {
+app.get('/api/analytics/bin-notifications', authenticateToken, async (req, res) => {
   try {
     const pool = getPgPool();
     const scopeCtx = await resolveScopeContext(req, pool);
@@ -3380,7 +3665,7 @@ app.get('/api/analytics/bin-notifications', optionalAuth, async (req, res) => {
 });
 
 // Live Machine Asset Summary for Global Top Bar Control Strip (Public Telemetry Counters & Tenant Scoped)
-app.get('/api/analytics/machines/summary', optionalAuth, async (req, res) => {
+app.get('/api/analytics/machines/summary', authenticateToken, async (req, res) => {
   try {
     const pool = getPgPool();
     const scopeCtx = await resolveScopeContext(req, pool);
@@ -3533,9 +3818,19 @@ app.get(['/api/clients', '/api/enterprise/clients-list'], async (req, res) => {
 });
 
 // Hardware-Specific Technical Verification & Audit Suite Endpoint (Resilient Optional Auth)
-app.get('/api/reporting/audits', optionalAuth, async (req, res) => {
+app.get('/api/reporting/audits', authenticateToken, async (req, res) => {
   try {
-    const { stationFilter = 'ALL', clientId = 'ALL' } = req.query;
+    // No audit/calibration log source exists yet in PostgreSQL. Return empty, clearly-labelled datasets instead of fabricated samples.
+    return res.json({
+      success: true,
+      dataSource: 'none',
+      note: 'Calibration and anomaly audit logs are not yet collected from the fleet. Values are zero until kiosks report them.',
+      pecodrop: { tareAccuracy: null, totalPaperMassKg: 0, zeroDriftEvents: 0, weightLimitEvents: 0, calibrationLogs: [], anomalies: [] },
+      rvmNew: { opticalPassRate: null, inductiveAccuracy: null, liquidRejectionCount: 0, stringTieTripCount: 0, dropGateTimeoutCount: 0, logs: [] },
+      rvmOld: { cloudSyncLatencyMs: null, pulseSyncDelta: null, networkDropEvents: 0, offlineRecoveryDurationMin: 0, logs: [] }
+    });
+    // Legacy sample payload retained below for reference only (unreachable).
+    // eslint-disable-next-line no-unreachable
     res.json({
       success: true,
       pecodrop: {
@@ -3585,7 +3880,7 @@ app.get('/api/reporting/audits', optionalAuth, async (req, res) => {
 });
 
 // Add or Register RVM Machine Name & Location
-app.post('/api/machines', async (req, res) => {
+app.post('/api/machines', authenticateToken, async (req, res) => {
   try {
     const {
       machineId,
@@ -3663,63 +3958,14 @@ app.post('/api/machines', async (req, res) => {
       } catch (e) { }
     }
 
-    // Comprehensive Super Admin Verification (Handles Proxies/Nginx Header Stripping)
-    const rawUsername = String(bodyUsername || req.headers['x-username'] || req.headers['username'] || '').trim().toLowerCase();
-    const rawRole = String(bodyRoleId || bodyUserRole || req.headers['x-user-role'] || req.headers['user-role'] || req.headers['role'] || '').trim().toLowerCase();
-    const authHeader = String(req.headers.authorization || req.headers['x-auth-token'] || bodyToken || '').trim();
+    // Authorization comes from the verified JWT only (headers/body role hints are ignored).
+    const callerRole = String(req.user?.roleId || '').toLowerCase();
+    const isSuperAdmin = callerRole === 'super_admin' || callerRole === 'superadmin' || callerRole === 'admin';
 
-    let isSuperAdmin = false;
-
-    if (
-      rawUsername === 'onenet' ||
-      rawUsername === 'bilalaaqueel' ||
-      rawRole === 'super_admin' ||
-      rawRole === 'superadmin' ||
-      rawRole === 'admin' ||
-      req.body.isSuperAdmin === true ||
-      authHeader.includes('onenet') ||
-      authHeader.includes('bilalaaqueel')
-    ) {
-      isSuperAdmin = true;
-    } else if (rawUsername) {
-      // Check database admin accounts
-      if (pool) {
-        try {
-          const uRes = await pool.query(`SELECT data FROM adminaccounts WHERE id = $1 OR data->>'username' = $1`, [rawUsername]);
-          if (uRes.rows && uRes.rows.length > 0) {
-            const uData = typeof uRes.rows[0].data === 'string' ? JSON.parse(uRes.rows[0].data) : uRes.rows[0].data;
-            if (
-              uData.roleId === 'super_admin' ||
-              uData.roleId === 'admin' ||
-              String(uData.roleName || '').toLowerCase().includes('super admin') ||
-              (Array.isArray(uData.assignedMachines) && uData.assignedMachines.includes('*'))
-            ) {
-              isSuperAdmin = true;
-            }
-          }
-        } catch (e) { }
-      } else if (db) {
-        try {
-          const uDoc = await db.collection('adminaccounts').findOne({
-            $or: [{ username: rawUsername }, { email: rawUsername }]
-          });
-          if (
-            uDoc &&
-            (uDoc.roleId === 'super_admin' ||
-              uDoc.roleId === 'admin' ||
-              String(uDoc.roleName || '').toLowerCase().includes('super admin') ||
-              (Array.isArray(uDoc.assignedMachines) && uDoc.assignedMachines.includes('*')))
-          ) {
-            isSuperAdmin = true;
-          }
-        } catch (e) { }
-      }
-    }
-
-    // Role Permission Restriction: Cannot create new RVM except Super Admin
-    if (!isExisting && !isSuperAdmin) {
+    // Role Permission Restriction: Only admins can register new machines or modify existing ones.
+    if (!isSuperAdmin) {
       return res.status(403).json({
-        error: 'Permission Denied: Only Super Admin accounts can register or create new RVM machines.'
+        error: 'Permission Denied: Only administrator accounts can register or modify RVM machines.'
       });
     }
 
@@ -3946,7 +4192,7 @@ const MATERIAL_FACTORS = {
   Default: { factor: 1.2, note: 'Fallback uncategorized' }
 };
 
-app.get('/api/analytics/environmental-impact', optionalAuth, async (req, res) => {
+app.get('/api/analytics/environmental-impact', authenticateToken, async (req, res) => {
   try {
     let totalBottles = 0;
     let totalCups = 0;
@@ -4371,7 +4617,7 @@ app.get('/api/db/download/:filename', authenticateToken, requireAdmin, (req, res
 });
 
 // Test PostgreSQL Database Connection
-app.post('/api/admin/test-postgres', async (req, res) => {
+app.post('/api/admin/test-postgres', adminOpsLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
   const { host, port, user, password, database, connectionString } = req.body || {};
   const pgConfig = connectionString ? { connectionString } : {
     host: host || process.env.PG_HOST || '127.0.0.1',
@@ -4427,7 +4673,7 @@ function safeParseDate(val, fallbackDate = new Date()) {
 }
 
 // Sync Data FROM Active MongoDB TO PostgreSQL Database
-app.post('/api/admin/sync-postgres', optionalAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/sync-postgres', adminOpsLimiter, authenticateToken, requireSuperAdmin, async (req, res) => {
   const { host, port, user, password, database, connectionString, mongoSourcePreset = 'rvmapp' } = req.body || {};
   const pgConfig = connectionString ? { connectionString } : {
     host: host || activePgConfig.host || process.env.PG_HOST || '127.0.0.1',
@@ -4795,49 +5041,71 @@ async function executeRestoreData(backupData, targetDb, mode = 'replace') {
   if (activeDbType === 'postgres' && activePgConfig) {
     const client = new pg.Client(activePgConfig);
     await client.connect();
+    const skippedCollections = [];
 
-    for (const [colName, docs] of Object.entries(backupData.collections)) {
-      if (!Array.isArray(docs)) continue;
-      const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    try {
+      // All-or-nothing: a failure mid-restore rolls back every truncate/insert.
+      await client.query('BEGIN');
 
-      // Create relational table if not exists with JSONB column
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS "${tableName}" (
-          id VARCHAR(255) PRIMARY KEY,
-          data JSONB NOT NULL,
-          synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      for (const [colName, docs] of Object.entries(backupData.collections)) {
+        if (!Array.isArray(docs)) continue;
+        const tableName = colName.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        if (!tableName || tableName.length > 63) continue;
+
+        // Only JSON-document tables (id, data) may be restored by this routine. Typed relational tables
+        // (users, machines, organizations, ...) must never be truncated here.
+        const colRes = await client.query(
+          `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1`,
+          [tableName]
         );
-      `);
-
-      if (mode === 'replace') {
-        try {
-          await client.query(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY;`);
-        } catch (e) {
-          console.warn(`[Truncate Warning ${tableName}]`, e.message);
+        const existingCols = colRes.rows.map(r => r.column_name);
+        if (existingCols.length > 0 && !(existingCols.includes('id') && existingCols.includes('data'))) {
+          skippedCollections.push({ name: colName, reason: 'typed relational table; not restorable via JSON snapshot' });
+          continue;
         }
+
+        if (existingCols.length === 0) {
+          await client.query(`
+            CREATE TABLE IF NOT EXISTS "${tableName}" (
+              id VARCHAR(255) PRIMARY KEY,
+              data JSONB NOT NULL,
+              synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+        }
+
+        if (mode === 'replace') {
+          await client.query(`DELETE FROM "${tableName}";`);
+        }
+
+        let insertedForCol = 0;
+        for (const doc of docs) {
+          if (!doc || typeof doc !== 'object') continue;
+          const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || `gen_${crypto.randomBytes(8).toString('hex')}`);
+          const docToSave = { ...doc, _id: idStr };
+          delete docToSave.id;
+
+          await client.query(`
+            INSERT INTO "${tableName}" (id, data, synced_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
+          `, [idStr, JSON.stringify(docToSave)]);
+
+          insertedForCol++;
+        }
+
+        totalRestoredDocs += insertedForCol;
+        restoredCollections.push({ name: colName, count: insertedForCol });
       }
 
-      let insertedForCol = 0;
-      for (const doc of docs) {
-        const idStr = doc._id ? doc._id.toString() : (doc.id || doc.username || `gen_${Math.random()}`);
-        const docToSave = { ...doc, _id: idStr };
-        delete docToSave.id;
-
-        await client.query(`
-          INSERT INTO "${tableName}" (id, data, synced_at)
-          VALUES ($1, $2, NOW())
-          ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, synced_at = NOW();
-        `, [idStr, JSON.stringify(docToSave)]);
-
-        insertedForCol++;
-      }
-
-      totalRestoredDocs += insertedForCol;
-      restoredCollections.push({ name: colName, count: insertedForCol });
+      await client.query('COMMIT');
+    } catch (restoreErr) {
+      try { await client.query('ROLLBACK'); } catch (e) { }
+      throw restoreErr;
+    } finally {
+      try { await client.end(); } catch (e) { }
     }
-
-    await client.end();
-    return { totalRestoredDocs, restoredCollections, engine: 'postgres' };
+    return { totalRestoredDocs, restoredCollections, skippedCollections, engine: 'postgres' };
   }
 
   // MongoDB Restore
@@ -5285,7 +5553,7 @@ app.post('/api/db/restore-snapshot/:filename', authenticateToken, requireAdmin, 
 
     res.json({
       success: true,
-      message: `Successfully restored snapshot "${filename}" (${result.totalRestoredDocs} documents) directly into connected ${activeDbType.toUpperCase()} database "${activeName}" on server ${hostInfo}.`,
+      message: `Successfully restored snapshot "${safeFilename}" (${result.totalRestoredDocs} documents) directly into connected ${activeDbType.toUpperCase()} database "${activeName}" on server ${hostInfo}.`,
       restoredCollections: result.restoredCollections,
       totalRestoredDocs: result.totalRestoredDocs,
       targetDatabase: activeName,
@@ -5389,7 +5657,11 @@ const DEFAULT_RBAC_ROLES = [
 ];
 
 // Seed default roles and admin accounts if empty
+let lastSecuritySeedAt = 0;
 async function seedSecurityDefaults(targetDb) {
+  // Seeding is idempotent; run it at most once every 10 minutes instead of on every login / session check.
+  if (Date.now() - lastSecuritySeedAt < 10 * 60 * 1000) return;
+  lastSecuritySeedAt = Date.now();
   if (activeDbType === 'postgres' && activePgConfig) {
     try {
       const roles = await fetchCollectionDocs('roles');
@@ -5560,6 +5832,11 @@ app.post('/api/security/roles', authenticateToken, requireAdmin, enforceReadOnly
 
     const cleanRoleId = roleId.trim();
     const targetLookup = (originalRoleId && originalRoleId.trim()) || cleanRoleId;
+    if (['super_admin', 'superadmin'].includes(cleanRoleId.toLowerCase()) || ['super_admin', 'superadmin'].includes(targetLookup.toLowerCase())) {
+      if (!isSuperAdminUser(req)) {
+        return res.status(403).json({ error: 'Only a Super Admin can modify the Super Admin role.' });
+      }
+    }
     const roleDoc = {
       roleId: cleanRoleId,
       name: name.trim(),
@@ -5650,7 +5927,7 @@ app.get('/api/security/users', authenticateToken, requireAdmin, async (req, res)
   try {
     await seedSecurityDefaults(db);
     const users = await fetchCollectionDocs('adminaccounts');
-    res.json(users);
+    res.json(users.map(stripSensitive));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -5671,6 +5948,13 @@ app.post('/api/security/users', authenticateToken, requireAdmin, enforceReadOnly
     if (existing) {
       return res.status(400).json({ error: `User with username "${cleanUsername}" already exists.` });
     }
+    // Privilege ceiling: only a super admin may grant super_admin.
+    if (['super_admin', 'superadmin'].includes(String(roleId).toLowerCase()) && !isSuperAdminUser(req)) {
+      return res.status(403).json({ error: 'Only a Super Admin can create Super Admin accounts.' });
+    }
+    if (!password || String(password).trim().length < 8) {
+      return res.status(400).json({ error: 'A password of at least 8 characters is required.' });
+    }
 
     const roles = await fetchCollectionDocs('roles');
     const roleDoc = roles.find(r => r.roleId === roleId);
@@ -5683,7 +5967,7 @@ app.post('/api/security/users', authenticateToken, requireAdmin, enforceReadOnly
       username: cleanUsername,
       fullName: fullName || cleanUsername,
       email: email || `${cleanUsername}@rvm-dash.io`,
-      password: password && password.trim() ? password.trim() : 'adminpassword',
+      password: await hashPassword(String(password).trim()),
       roleId,
       roleName,
       orgId: targetOrgId,
@@ -5715,6 +5999,15 @@ app.put('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadO
       updateFields.status = 'active';
       updateFields.assignedMachines = ['*'];
     } else {
+      // Privilege ceiling: a non-super admin may neither grant super_admin nor modify an existing super admin.
+      if (!isSuperAdminUser(req)) {
+        const allAccounts = await fetchCollectionDocs('adminaccounts');
+        const target = allAccounts.find(u => String(u.username).toLowerCase() === String(id).toLowerCase());
+        const targetRole = String(target?.roleId || '').toLowerCase();
+        if (targetRole === 'super_admin' || targetRole === 'superadmin' || ['super_admin', 'superadmin'].includes(String(roleId || '').toLowerCase())) {
+          return res.status(403).json({ error: 'Only a Super Admin can modify Super Admin accounts.' });
+        }
+      }
       if (roleId) {
         updateFields.roleId = roleId;
         const roles = await fetchCollectionDocs('roles');
@@ -5727,7 +6020,10 @@ app.put('/api/security/users/:id', authenticateToken, requireAdmin, enforceReadO
     }
 
     if (password && password.trim()) {
-      updateFields.password = password.trim();
+      if (password.trim().length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+      }
+      updateFields.password = await hashPassword(password.trim());
       updateFields.passwordUpdatedAt = new Date().toISOString();
     }
     if (fullName) updateFields.fullName = fullName;
@@ -5816,10 +6112,17 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         });
       }
 
-      // Enforce strict password validation
-      const expectedPassword = foundUser.password || process.env.ADMIN_PASSWORD || 'adminpassword';
-      if (password !== expectedPassword) {
+      // Strict password validation: bcrypt (or legacy plaintext, upgraded on success). Accounts without a password cannot log in.
+      const check = await verifyPassword(password, foundUser.password);
+      if (!check.ok) {
         return res.status(401).json({ error: 'Invalid username or password' });
+      }
+      if (check.needsRehash) {
+        try {
+          await updateDocInEngine('adminaccounts', 'username', foundUser.username, { password: await hashPassword(password), passwordUpdatedAt: new Date().toISOString() });
+        } catch (rehashErr) {
+          console.warn('[Login] Password upgrade skipped:', rehashErr.message);
+        }
       }
 
       user = foundUser;
@@ -5882,7 +6185,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
 
     // Set secure authentication cookie
     res.cookie('rvm_auth_token', token, {
-      httpOnly: false,
+      httpOnly: true,
+      secure: IS_PRODUCTION || req.secure || String(req.headers['x-forwarded-proto'] || '').includes('https'),
       sameSite: 'lax',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000
@@ -5945,6 +6249,43 @@ app.post('/api/auth/logout', (req, res) => {
 // ==========================================
 
 const pendingGoogle2FA = new Map();
+
+// Verifies a Google ID token with Google's tokeninfo endpoint. Throws when invalid.
+// Set GOOGLE_CLIENT_IDS (comma separated) to also pin the audience.
+async function verifyGoogleIdToken(idToken) {
+  if (!idToken || idToken.split('.').length !== 3) throw new Error('Malformed ID token');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let payload;
+  try {
+    const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, { signal: controller.signal });
+    if (!resp.ok) throw new Error(`tokeninfo responded ${resp.status}`);
+    payload = await resp.json();
+  } finally {
+    clearTimeout(timer);
+  }
+  const iss = String(payload.iss || '');
+  if (iss !== 'https://accounts.google.com' && iss !== 'accounts.google.com') throw new Error('Unexpected issuer');
+  if (String(payload.email_verified) !== 'true') throw new Error('Email not verified by Google');
+  const exp = parseInt(payload.exp || '0', 10);
+  if (!exp || exp * 1000 < Date.now()) throw new Error('ID token expired');
+  const allowedAud = String(process.env.GOOGLE_CLIENT_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (allowedAud.length > 0 && !allowedAud.includes(String(payload.aud || ''))) throw new Error('Audience mismatch');
+  return payload;
+}
+
+// Periodic pruning of in-memory OTP / session maps (prevents unbounded growth from anonymous requests)
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of pendingGoogle2FA.entries()) {
+    if (!v || !v.expiresAt || v.expiresAt < now) pendingGoogle2FA.delete(k);
+  }
+  if (typeof pendingSsoOtps !== 'undefined') {
+    for (const [k, v] of pendingSsoOtps.entries()) {
+      if (!v || !v.expiresAt || v.expiresAt < now) pendingSsoOtps.delete(k);
+    }
+  }
+}, 60 * 1000).unref();
 
 function getMailTransporter() {
   let host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -6125,15 +6466,15 @@ async function handleGoogleInitiate2FA(req, res) {
       message: emailResult.sent ? `A 6-digit verification code has been sent to ${email}` : `Verification code generated for ${email}`,
       emailSent: emailResult.sent,
       emailError: emailResult.sent ? undefined : (emailResult.error || emailResult.note),
-      debugCode: emailResult.sent ? undefined : code
+      debugCode: undefined
     });
   } catch (err) {
     console.error('[Google Initiate 2FA Error]', err);
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/auth/google/initiate-2fa', handleGoogleInitiate2FA);
-app.post('/auth/google/initiate-2fa', handleGoogleInitiate2FA);
+app.post('/api/auth/google/initiate-2fa', otpLimiter, handleGoogleInitiate2FA);
+app.post('/auth/google/initiate-2fa', otpLimiter, handleGoogleInitiate2FA);
 
 // 2. Verify Google Two-Step Verification OTP & Complete Login
 async function handleGoogleVerify2FA(req, res) {
@@ -6149,24 +6490,21 @@ async function handleGoogleVerify2FA(req, res) {
     let isValid = false;
     let storedUserData = null;
 
-    // Cryptographic JWT from official Google Identity Services
+    // Google ID token: verified server-side against Google's tokeninfo endpoint (signature, expiry, issuer, audience).
     if (credential || idToken) {
-      const tokenToVerify = credential || idToken;
+      const tokenToVerify = String(credential || idToken);
       try {
-        const parts = tokenToVerify.split('.');
-        if (parts.length === 3) {
-          const parsed = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-          if (parsed && parsed.email && parsed.email.toLowerCase() === email) {
-            isValid = true;
-            storedUserData = {
-              email,
-              name: parsed.name || parsed.given_name || email.split('@')[0],
-              picture: parsed.picture || ''
-            };
-          }
+        const parsed = await verifyGoogleIdToken(tokenToVerify);
+        if (parsed && parsed.email && parsed.email.toLowerCase() === email) {
+          isValid = true;
+          storedUserData = {
+            email,
+            name: parsed.name || parsed.given_name || email.split('@')[0],
+            picture: parsed.picture || ''
+          };
         }
       } catch (decErr) {
-        console.warn('[Google JWT Decode Warning]', decErr.message);
+        console.warn('[Google ID Token Rejected]', decErr.message);
       }
     }
 
@@ -6382,8 +6720,8 @@ async function handleGoogleVerify2FA(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/auth/google/verify-2fa', handleGoogleVerify2FA);
-app.post('/auth/google/verify-2fa', handleGoogleVerify2FA);
+app.post('/api/auth/google/verify-2fa', otpVerifyLimiter, handleGoogleVerify2FA);
+app.post('/auth/google/verify-2fa', otpVerifyLimiter, handleGoogleVerify2FA);
 
 // 3. Resend Google Two-Step Verification Code
 async function handleGoogleResend2FA(req, res) {
@@ -6420,17 +6758,17 @@ async function handleGoogleResend2FA(req, res) {
       success: true,
       message: `A new 6-digit verification code has been sent to ${email}`,
       emailSent: emailResult.sent,
-      debugCode: (!process.env.SMTP_USER || !process.env.SMTP_PASS) ? code : undefined
+      debugCode: undefined
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/auth/google/resend-2fa', handleGoogleResend2FA);
-app.post('/auth/google/resend-2fa', handleGoogleResend2FA);
+app.post('/api/auth/google/resend-2fa', otpLimiter, handleGoogleResend2FA);
+app.post('/auth/google/resend-2fa', otpLimiter, handleGoogleResend2FA);
 
 // Main /api/auth/google endpoint (if otp or credential provided, completes verification; otherwise initiates 2FA)
-app.post('/api/auth/google', async (req, res) => {
+app.post('/api/auth/google', otpVerifyLimiter, async (req, res) => {
   if (req.body.otp || req.body.credential || req.body.idToken) {
     return handleGoogleVerify2FA(req, res);
   }
@@ -6508,15 +6846,15 @@ async function handleSendSsoCode(req, res) {
       corporateDetected,
       emailSent: emailResult.sent,
       emailError: emailResult.sent ? undefined : (emailResult.error || emailResult.note),
-      codePreview: emailResult.sent ? undefined : code
+      codePreview: undefined
     });
   } catch (err) {
     console.error('[SSO Code Error]', err);
     res.status(500).json({ success: false, message: 'Failed to send verification code: ' + err.message });
   }
 }
-app.post('/api/auth/sso-code', handleSendSsoCode);
-app.post('/auth/sso-code', handleSendSsoCode);
+app.post('/api/auth/sso-code', otpLimiter, handleSendSsoCode);
+app.post('/auth/sso-code', otpLimiter, handleSendSsoCode);
 
 async function handleVerifySsoCode(req, res) {
   try {
@@ -6543,8 +6881,13 @@ async function handleVerifySsoCode(req, res) {
         const uRes = await pool.query('SELECT * FROM users WHERE email = $1 LIMIT 1', [cleanEmail]);
         if (uRes.rows.length > 0) {
           user = uRes.rows[0];
-          if (!isValid && user.otp === cleanOtp) {
+          const otpFresh = user.otp_expiry ? (new Date(user.otp_expiry).getTime() > Date.now()) : false;
+          if (!isValid && user.otp && otpFresh && safeEqual(user.otp, cleanOtp)) {
             isValid = true;
+          }
+          if (isValid) {
+            // Single-use: clear the stored code immediately
+            await pool.query('UPDATE users SET otp = NULL, otp_expiry = NULL WHERE user_id = $1', [user.user_id]).catch(() => { });
           }
         }
       } catch (e) { }
@@ -6669,8 +7012,8 @@ async function handleVerifySsoCode(req, res) {
     res.status(500).json({ success: false, message: 'Verification failed: ' + err.message });
   }
 }
-app.post('/api/auth/verify-sso', handleVerifySsoCode);
-app.post('/auth/verify-sso', handleVerifySsoCode);
+app.post('/api/auth/verify-sso', otpVerifyLimiter, handleVerifySsoCode);
+app.post('/auth/verify-sso', otpVerifyLimiter, handleVerifySsoCode);
 
 // 2. Get All Enterprise Organizations with Aggregated ESG Metrics
 app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
@@ -6767,6 +7110,19 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
       }));
     }
 
+    // Unauthenticated callers (mobile sign-up org picker) and non-admin users only get the public directory fields.
+    const callerRole = String(req.user?.roleId || '').toLowerCase();
+    const privileged = callerRole === 'super_admin' || callerRole === 'superadmin' || callerRole === 'admin';
+    if (!privileged) {
+      const ownOrg = String(req.user?.orgId || '').toUpperCase();
+      orgs = orgs
+        .filter(o => String(o.status || '').toLowerCase() === 'active' || String(o.org_id || '').toUpperCase() === ownOrg)
+        .map(o => {
+          if (ownOrg && String(o.org_id || '').toUpperCase() === ownOrg) return o;
+          return { org_id: o.org_id, name: o.name, domain: o.domain, logo_url: o.logo_url, status: o.status };
+        });
+    }
+
     res.json({ success: true, organizations: orgs });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -6774,7 +7130,7 @@ app.get('/api/enterprise/organizations', optionalAuth, async (req, res) => {
 });
 
 // Update Organization Personalization (Dashboard Title, Theme, Welcome Message, Colors)
-app.put('/api/enterprise/organizations/:orgId/personalization', optionalAuth, async (req, res) => {
+app.put('/api/enterprise/organizations/:orgId/personalization', authenticateToken, requireOrgAccess(req => req.params.orgId), async (req, res) => {
   try {
     const { orgId } = req.params;
     const { dashboard_title, welcome_msg, theme, primary_color, monthly_budget, monthly_target_kg, logo_url } = req.body;
@@ -6801,7 +7157,7 @@ app.put('/api/enterprise/organizations/:orgId/personalization', optionalAuth, as
 });
 
 // Assign RVMs & PecoDrops to an Organization
-app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, requireAdmin, async (req, res) => {
+app.post('/api/enterprise/organizations/:orgId/assign-machines', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const { orgId } = req.params;
     const { machineIds } = req.body;
@@ -6919,12 +7275,17 @@ app.post('/api/enterprise/organizations/:orgId/assign-machines', optionalAuth, r
 });
 
 // Create Corporate Client Login Account for an Organization
-app.post('/api/enterprise/create-client-admin', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/create-client-admin', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    const { orgId, username, fullName, email, password } = req.body;
+    const { orgId, username, fullName, email } = req.body;
+    let { password } = req.body;
     if (!orgId || !username || !password) {
       return res.status(400).json({ success: false, error: 'orgId, username, and password are required.' });
     }
+    if (String(password).trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters.' });
+    }
+    password = await hashPassword(String(password).trim());
 
     const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
     const pool = getPgPool();
@@ -6964,7 +7325,7 @@ app.post('/api/enterprise/create-client-admin', optionalAuth, async (req, res) =
       username: cleanUsername,
       fullName: fullName ? fullName.trim() : `${org.name} Admin`,
       email: email ? email.trim() : `${cleanUsername}@${org.domain || 'rvm-dash.io'}`,
-      password: password.trim(),
+      password, // already bcrypt-hashed above
       roleId: 'client_admin',
       roleName: 'Corporate Client Admin',
       orgId: org.org_id,
@@ -6986,11 +7347,14 @@ app.post('/api/enterprise/create-client-admin', optionalAuth, async (req, res) =
 });
 
 // Self-Service or Corporate Registration (Defaults to PENDING_APPROVAL)
-app.post('/api/enterprise/register-client-admin', async (req, res) => {
+app.post('/api/enterprise/register-client-admin', publicWriteLimiter, async (req, res) => {
   try {
     const { orgId, username, fullName, email, password } = req.body;
     if (!orgId || !username || !password) {
       return res.status(400).json({ success: false, error: 'Organization, Username, and Password are required.' });
+    }
+    if (String(password).trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters.' });
     }
 
     const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
@@ -7014,7 +7378,7 @@ app.post('/api/enterprise/register-client-admin', async (req, res) => {
       username: cleanUsername,
       fullName: fullName ? fullName.trim() : `${org.name} Representative`,
       email: email ? email.trim() : `${cleanUsername}@${org.domain || 'rvm-dash.io'}`,
-      password: password.trim(),
+      password: await hashPassword(password.trim()),
       roleId: 'client_admin',
       roleName: 'Corporate Client Admin',
       orgId: org.org_id,
@@ -7042,7 +7406,7 @@ app.post('/api/enterprise/register-client-admin', async (req, res) => {
 });
 
 // Get Pending Corporate Client Approvals (Super Admin Only)
-app.get('/api/enterprise/pending-approvals', optionalAuth, async (req, res) => {
+app.get('/api/enterprise/pending-approvals', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     if (!isSuperAdminUser(req)) {
       return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can view pending approvals.' });
@@ -7086,7 +7450,7 @@ app.get('/api/enterprise/pending-approvals', optionalAuth, async (req, res) => {
 });
 
 // Approve Corporate Client Account (Super Admin Only)
-app.post('/api/enterprise/approve-client/:username', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/approve-client/:username', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const targetUsername = String(req.params.username).toLowerCase().trim();
     if (!isSuperAdminUser(req)) {
@@ -7137,7 +7501,7 @@ app.post('/api/enterprise/approve-client/:username', optionalAuth, async (req, r
 });
 
 // Reject / Suspend Corporate Client Account (Super Admin Only)
-app.post('/api/enterprise/reject-client/:username', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/reject-client/:username', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const targetUsername = String(req.params.username).toLowerCase().trim();
     if (!isSuperAdminUser(req)) {
@@ -7160,7 +7524,7 @@ app.post('/api/enterprise/reject-client/:username', optionalAuth, async (req, re
 });
 
 // Get Sub-Users for Enterprise Organization
-app.get('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
+app.get('/api/enterprise/sub-users', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const allUsers = await fetchCollectionDocs('adminaccounts');
     let subUsers = allUsers.filter(u => u.roleId === 'corporate_sub_user');
@@ -7197,12 +7561,17 @@ app.get('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
 });
 
 // Create Sub-User with specific machine delegation
-app.post('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/sub-users', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
-    const { username, fullName, email, password, assignedMachines, orgId } = req.body;
+    const { username, fullName, email, assignedMachines, orgId } = req.body;
+    let { password } = req.body;
     if (!username || !fullName || !password) {
       return res.status(400).json({ success: false, error: 'Username, Full Name, and Password are required.' });
     }
+    if (String(password).trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters.' });
+    }
+    password = await hashPassword(String(password).trim());
 
     const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9_.-]/g, '');
     if (!cleanUsername) {
@@ -7296,18 +7665,18 @@ app.post('/api/enterprise/sub-users', optionalAuth, async (req, res) => {
 });
 
 // Update Sub-User (Machine delegation, status, password)
-app.put('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) => {
+app.put('/api/enterprise/sub-users/:username', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { username } = req.params;
     const cleanUsername = String(username).toLowerCase().trim();
     const allUsers = await fetchCollectionDocs('adminaccounts');
     const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
-    if (!existing) {
+    if (!existing || String(existing.roleId || '') !== 'corporate_sub_user') {
       return res.status(404).json({ success: false, error: `Sub-user "${cleanUsername}" not found.` });
     }
 
     const isClientAdmin = req.user?.roleId === 'client_admin';
-    if (isClientAdmin && existing.parentUserId !== req.user.username && existing.orgId !== req.user.orgId) {
+    if (isClientAdmin && existing.parentUserId !== req.user.username && String(existing.orgId || '').toUpperCase() !== String(req.user.orgId || '').toUpperCase()) {
       return res.status(403).json({ success: false, error: 'Security Violation: Cannot edit sub-users outside your organization.' });
     }
 
@@ -7315,8 +7684,13 @@ app.put('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) =>
     const updateFields = {};
     if (fullName) updateFields.fullName = fullName.trim();
     if (email) updateFields.email = email.trim();
-    if (password && password.trim()) updateFields.password = password.trim();
-    if (status) updateFields.status = status;
+    if (password && password.trim()) {
+      if (password.trim().length < 8) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 8 characters.' });
+      }
+      updateFields.password = await hashPassword(password.trim());
+    }
+    if (status && ['active', 'suspended'].includes(String(status))) updateFields.status = status;
 
     if (assignedMachines) {
       let requested = Array.isArray(assignedMachines) ? assignedMachines : [assignedMachines];
@@ -7344,18 +7718,18 @@ app.put('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) =>
 });
 
 // Delete Sub-User
-app.delete('/api/enterprise/sub-users/:username', optionalAuth, async (req, res) => {
+app.delete('/api/enterprise/sub-users/:username', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { username } = req.params;
     const cleanUsername = String(username).toLowerCase().trim();
     const allUsers = await fetchCollectionDocs('adminaccounts');
     const existing = allUsers.find(u => String(u.username).toLowerCase() === cleanUsername);
-    if (!existing) {
+    if (!existing || String(existing.roleId || '') !== 'corporate_sub_user') {
       return res.status(404).json({ success: false, error: `Sub-user "${cleanUsername}" not found.` });
     }
 
     const isClientAdmin = req.user?.roleId === 'client_admin';
-    if (isClientAdmin && existing.parentUserId !== req.user.username && existing.orgId !== req.user.orgId) {
+    if (isClientAdmin && existing.parentUserId !== req.user.username && String(existing.orgId || '').toUpperCase() !== String(req.user.orgId || '').toUpperCase()) {
       return res.status(403).json({ success: false, error: 'Security Violation: Cannot delete sub-users outside your organization.' });
     }
 
@@ -7367,7 +7741,7 @@ app.delete('/api/enterprise/sub-users/:username', optionalAuth, async (req, res)
 });
 
 // 3. Create or Update Enterprise Organization
-app.post('/api/enterprise/organizations', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/organizations', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     const { org_id, name, domain, logo_url, contact_email, contact_phone, monthly_budget, monthly_target_kg, status } = req.body;
     if (!name || !domain) {
@@ -7416,7 +7790,7 @@ app.post('/api/enterprise/organizations', optionalAuth, async (req, res) => {
 });
 
 // 4. Delete Enterprise Organization (Super Admin Only)
-app.delete('/api/enterprise/organizations/:orgId', optionalAuth, async (req, res) => {
+app.delete('/api/enterprise/organizations/:orgId', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     if (!isSuperAdminUser(req)) {
       return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can delete enterprise clients.' });
@@ -7453,7 +7827,7 @@ app.delete('/api/enterprise/organizations/:orgId', optionalAuth, async (req, res
 });
 
 // 4b. Bulk Delete Enterprise Organizations (Super Admin Only)
-app.post('/api/enterprise/organizations/bulk-delete', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/organizations/bulk-delete', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
     if (!isSuperAdminUser(req)) {
       return res.status(403).json({ success: false, error: 'Unauthorized: Only ISP Super Administrators can delete enterprise clients.' });
@@ -7494,7 +7868,7 @@ app.post('/api/enterprise/organizations/bulk-delete', optionalAuth, async (req, 
 });
 
 // 5. Get Departments for an Organization
-app.get('/api/enterprise/departments/:orgId', optionalAuth, async (req, res) => {
+app.get('/api/enterprise/departments/:orgId', authenticateToken, requireOrgAccess(req => req.params.orgId), async (req, res) => {
   try {
     const { orgId } = req.params;
     const pool = getPgPool();
@@ -7561,7 +7935,7 @@ app.get('/api/enterprise/departments/:orgId', optionalAuth, async (req, res) => 
 });
 
 // 6. Create Department
-app.post('/api/enterprise/departments', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/departments', authenticateToken, requireOrgAccess(req => req.body?.org_id), async (req, res) => {
   try {
     const { org_id, name, manager_name, manager_email, monthly_target_kg } = req.body;
     if (!org_id || !name) {
@@ -7591,11 +7965,14 @@ app.post('/api/enterprise/departments', optionalAuth, async (req, res) => {
 });
 
 // 7. Bulk Import Employees via CSV/Array
-app.post('/api/enterprise/employees/bulk-import', optionalAuth, async (req, res) => {
+app.post('/api/enterprise/employees/bulk-import', authenticateToken, requireOrgAccess(req => req.body?.orgId), async (req, res) => {
   try {
     const { orgId, employees } = req.body;
     if (!orgId || !Array.isArray(employees) || employees.length === 0) {
       return res.status(400).json({ success: false, error: 'orgId and employees array are required' });
+    }
+    if (employees.length > 5000) {
+      return res.status(400).json({ success: false, error: 'A maximum of 5000 employees can be imported per request.' });
     }
     const pool = getPgPool();
     let importedCount = 0;
@@ -7644,7 +8021,7 @@ app.post('/api/enterprise/employees/bulk-import', optionalAuth, async (req, res)
 });
 
 // 7b. Get Enrolled Staff Roster for Enterprise Client
-app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
+app.get('/api/enterprise/employees/:orgId', authenticateToken, requireOrgAccess(req => req.params.orgId), async (req, res) => {
   try {
     const { orgId } = req.params;
     const pool = getPgPool();
@@ -7828,7 +8205,7 @@ app.get('/api/enterprise/employees/:orgId', optionalAuth, async (req, res) => {
 });
 
 // 8. Organization Real-Time ESG Sustainability Report
-app.get('/api/enterprise/stats/:orgId', optionalAuth, async (req, res) => {
+app.get('/api/enterprise/stats/:orgId', authenticateToken, requireOrgAccess(req => req.params.orgId), async (req, res) => {
   try {
     const { orgId } = req.params;
     const pool = getPgPool();
@@ -7949,8 +8326,6 @@ async function handleMobileLogin(req, res) {
       }
     }
 
-    console.log('[Mobile Login Attempt]', { identifier, foundUser: Boolean(user), username: user?.username });
-
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
     }
@@ -7959,25 +8334,21 @@ async function handleMobileLogin(req, res) {
     if (!user.password || user.password.trim() === '') {
       return res.status(401).json({
         success: false,
-        message: 'Account password not set in PostgreSQL database. Please use "Forgot Password" or Register.'
+        message: 'Account password not set. Please use "Forgot Password" or Register.'
       });
     }
 
-    // Verify password (supports both legacy bcrypt hashes from MongoDB rvmapp and direct passwords)
-    let passwordMatches = false;
-    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$')) {
-      try {
-        passwordMatches = bcrypt.compareSync(password, user.password);
-      } catch (bcErr) {
-        console.warn('[bcrypt compare note]', bcErr.message);
-        passwordMatches = false;
-      }
-    } else {
-      passwordMatches = (user.password === password);
-    }
-
-    if (!passwordMatches) {
+    // Verify password (bcrypt, or legacy plaintext upgraded to bcrypt on success)
+    const pwCheck = await verifyPassword(password, user.password);
+    if (!pwCheck.ok) {
       return res.status(401).json({ success: false, message: 'Invalid phone number or password' });
+    }
+    if (pwCheck.needsRehash && pool && user.user_id) {
+      try {
+        await pool.query('UPDATE users SET password = $1 WHERE user_id = $2', [await hashPassword(password), user.user_id]);
+      } catch (rehashErr) {
+        console.warn('[Mobile Login] Password upgrade skipped:', rehashErr.message);
+      }
     }
 
     // Update online & last_login status in PostgreSQL
@@ -8212,8 +8583,8 @@ async function handleMobileLogin(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/login', handleMobileLogin);
-app.post('/login', handleMobileLogin);
+app.post('/api/login', loginLimiter, handleMobileLogin);
+app.post('/login', loginLimiter, handleMobileLogin);
 
 // Birthday Helper
 function checkIsBirthday(dobStr) {
@@ -8251,10 +8622,12 @@ async function handleMobileRegister(req, res) {
 
     // Hybrid Corporate & Citizen Detection
     const domain = cleanEmail.includes('@') ? cleanEmail.split('@')[1].toLowerCase().trim() : '';
-    let userType = (req.body.userType || '').trim().toUpperCase() === 'ENTERPRISE' ? 'ENTERPRISE' : 'CITIZEN';
-    let orgId = req.body.orgId || null;
-    let deptId = req.body.deptId || null;
-    let employeeId = req.body.employeeId ? String(req.body.employeeId).trim() : null;
+    // Corporate membership is never taken from the request body; it is derived from the verified work-email domain,
+    // the HR roster, or an explicit company code match below.
+    let userType = 'CITIZEN';
+    let orgId = null;
+    let deptId = null;
+    let employeeId = req.body.employeeId ? String(req.body.employeeId).trim().slice(0, 64) : null;
     let matchedOrg = null;
 
     const pool = getPgPool();
@@ -8287,11 +8660,12 @@ async function handleMobileRegister(req, res) {
           } catch { }
         }
       }
-      if (!matchedOrg && companyCode) {
-        matchedOrg = inMemoryOrganizations.find(o => o.org_id.toUpperCase().includes(companyCode) || (o.domain && o.domain.toUpperCase().includes(companyCode)));
+      if (!matchedOrg && companyCode && /^[A-Z0-9_.-]{3,64}$/.test(String(companyCode))) {
+        // Exact match only (no wildcard LIKE): company code must equal the org id or its domain.
+        matchedOrg = inMemoryOrganizations.find(o => o.org_id.toUpperCase() === companyCode || (o.domain && o.domain.toUpperCase() === companyCode));
         if (pool) {
           try {
-            const orgRes = await pool.query('SELECT * FROM organizations WHERE UPPER(org_id) LIKE $1 OR UPPER(domain) LIKE $1 LIMIT 1', [`%${companyCode}%`]);
+            const orgRes = await pool.query('SELECT * FROM organizations WHERE (UPPER(org_id) = $1 OR UPPER(domain) = $1) AND status = $2 LIMIT 1', [companyCode, 'active']);
             if (orgRes.rows.length > 0) matchedOrg = orgRes.rows[0];
           } catch { }
         }
@@ -8344,7 +8718,7 @@ async function handleMobileRegister(req, res) {
           user_type, org_id, dept_id, employee_id, created_at
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 'active', $12, $13, $14, $15, NOW());
-      `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password || '', userAge, nic || '', gender, cleanDob, cleanProfileImage, userType, orgId, deptId, employeeId]);
+      `, [userId, cleanUsername, cleanFullName, cleanEmail, cleanMobile, password ? await hashPassword(String(password)) : '', userAge, nic || '', gender, cleanDob, cleanProfileImage, userType, orgId, deptId, employeeId]);
     }
 
     const isBirthday = checkIsBirthday(cleanDob);
@@ -8384,10 +8758,20 @@ app.post('/register', handleMobileRegister);
 // 2b. Update User Profile (Runtime Full Name, DOB, Profile Picture)
 async function handleUpdateProfile(req, res) {
   try {
-    const { userId, username, mobile, fullName, dob, profileImage, email, gender, nic } = req.body;
+    let { userId, username, mobile } = req.body;
+    const { fullName, dob, profileImage, email, gender, nic } = req.body;
+    // Authenticated citizens may only update their own profile; identifiers in the body are ignored for them.
+    if (req.user && !isAdminRole(req.user)) {
+      userId = req.user.userId || req.user.user_id || null;
+      username = userId ? null : (req.user.username || null);
+      mobile = (userId || username) ? null : (req.user.mobile || null);
+    }
     const identifier = userId || username || mobile;
     if (!identifier) {
-      return res.status(400).json({ success: false, message: 'User identifier is required' });
+      return res.status(ENFORCE_MOBILE_AUTH && !req.user ? 401 : 400).json({ success: false, message: 'User identifier is required' });
+    }
+    if (profileImage && String(profileImage).length > 2 * 1024 * 1024) {
+      return res.status(400).json({ success: false, message: 'Profile image is too large (max 2 MB).' });
     }
 
     let updatedUser = null;
@@ -8471,12 +8855,12 @@ async function handleUpdateProfile(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/user/profile', handleUpdateProfile);
-app.put('/api/user/profile', handleUpdateProfile);
-app.post('/api/update-profile', handleUpdateProfile);
-app.post('/user/profile', handleUpdateProfile);
-app.put('/user/profile', handleUpdateProfile);
-app.post('/update-profile', handleUpdateProfile);
+app.post('/api/user/profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
+app.put('/api/user/profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
+app.post('/api/update-profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
+app.post('/user/profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
+app.put('/user/profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
+app.post('/update-profile', publicWriteLimiter, requireMobileUser, handleUpdateProfile);
 
 // ==========================================
 // CORPORATE WORKPLACE LINKING & VERIFICATION API
@@ -8540,7 +8924,9 @@ app.get('/corporate/departments/:orgId', handleGetCorporateDepartments);
 // Link Citizen user to Corporate Workplace using Company Code & Employee ID
 async function handleLinkCorporate(req, res) {
   try {
-    const { userId, companyCode, employeeId, department } = req.body;
+    const { companyCode, employeeId, department } = req.body;
+    const userId = resolveOwnedIdentifier(req, res, req.body.userId);
+    if (userId === null) return;
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User identifier is required.' });
     }
@@ -8578,7 +8964,7 @@ async function handleLinkCorporate(req, res) {
              OR LOWER(domain) = $1
              OR LOWER(domain) = $1 || '.com'
              OR LOWER(domain) = $1 || '.pk'
-             OR LOWER(name) ILIKE '%' || $1 || '%'
+             OR LOWER(name) = $1
              OR (company_code IS NOT NULL AND LOWER(company_code) = $1)
           LIMIT 1;
         `, [cleanCode]);
@@ -8591,7 +8977,7 @@ async function handleLinkCorporate(req, res) {
              OR LOWER(domain) = $1
              OR LOWER(domain) = $1 || '.com'
              OR LOWER(domain) = $1 || '.pk'
-             OR LOWER(name) ILIKE '%' || $1 || '%'
+             OR LOWER(name) = $1
           LIMIT 1;
         `, [cleanCode]);
       }
@@ -8758,13 +9144,14 @@ async function handleLinkCorporate(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/user/link-corporate', handleLinkCorporate);
-app.post('/user/link-corporate', handleLinkCorporate);
+app.post('/api/user/link-corporate', publicWriteLimiter, requireMobileUser, handleLinkCorporate);
+app.post('/user/link-corporate', publicWriteLimiter, requireMobileUser, handleLinkCorporate);
 
 // Unlink Corporate Workplace (reverts back to Citizen)
 async function handleUnlinkCorporate(req, res) {
   try {
-    const { userId } = req.body;
+    const userId = resolveOwnedIdentifier(req, res, req.body.userId);
+    if (userId === null) return;
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User identifier is required' });
     }
@@ -8817,13 +9204,28 @@ async function handleUnlinkCorporate(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/user/unlink-corporate', handleUnlinkCorporate);
-app.post('/user/unlink-corporate', handleUnlinkCorporate);
+app.post('/api/user/unlink-corporate', publicWriteLimiter, requireMobileUser, handleUnlinkCorporate);
+app.post('/user/unlink-corporate', publicWriteLimiter, requireMobileUser, handleUnlinkCorporate);
 
 
 // High-Speed In-Memory Cache for Mobile User Profile & Recycles (15-second TTL)
 const mobileUserPointsCache = new Map();
 const mobileUserRecycleCache = new Map();
+
+// Bounded in-memory caches: evict expired entries every minute and hard-cap size (keys come from caller input).
+function pruneBoundedCache(map, maxEntries = 5000) {
+  const now = Date.now();
+  for (const [k, v] of map.entries()) {
+    if (!v || (v.expiresAt && v.expiresAt < now)) map.delete(k);
+  }
+  if (map.size > maxEntries) map.clear();
+}
+setInterval(() => {
+  pruneBoundedCache(mobileUserPointsCache);
+  pruneBoundedCache(mobileUserRecycleCache);
+  if (typeof cachedActiveAds !== 'undefined') pruneBoundedCache(cachedActiveAds, 2000);
+  if (typeof cachedAdsPlaylists !== 'undefined') pruneBoundedCache(cachedAdsPlaylists, 2000);
+}, 60 * 1000).unref();
 
 function invalidateMobileUserCaches(userId) {
   if (!userId) return;
@@ -8845,7 +9247,9 @@ function invalidateMobileUserCaches(userId) {
 // 3. Mobile Get Points & Stats for User
 async function handleMobileGetPoints(req, res) {
   try {
-    const phone = (req.body?.phoneNumber || req.body?.phone || req.body?.userId || req.query?.userId || req.query?.phoneNumber || req.query?.phone || '').toString().trim();
+    const requested = (req.body?.phoneNumber || req.body?.phone || req.body?.userId || req.query?.userId || req.query?.phoneNumber || req.query?.phone || '').toString().trim();
+    const phone = resolveOwnedIdentifier(req, res, requested);
+    if (phone === null) return;
     if (!phone || phone === 'anonymous') {
       return res.status(400).json({ success: false, message: 'Valid user phoneNumber or userId is required' });
     }
@@ -9048,16 +9452,21 @@ async function handleMobileGetPoints(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.get('/api/get-points', handleMobileGetPoints);
-app.get('/get-points', handleMobileGetPoints);
-app.post('/api/get-points', handleMobileGetPoints);
-app.post('/get-points', handleMobileGetPoints);
+app.get('/api/get-points', requireMobileUser, handleMobileGetPoints);
+app.get('/get-points', requireMobileUser, handleMobileGetPoints);
+app.post('/api/get-points', requireMobileUser, handleMobileGetPoints);
+app.post('/get-points', requireMobileUser, handleMobileGetPoints);
 
 // 4. Mobile Get Recycle History (Exclusively from PostgreSQL)
 async function handleMobileGetRecycle(req, res) {
   try {
-    const { userId } = req.params;
-    const { mobile, username, phone, userId: qUserId } = req.query;
+    const userId = resolveOwnedIdentifier(req, res, req.params.userId);
+    if (userId === null) return;
+    let { mobile, username, phone, userId: qUserId } = req.query;
+    if (req.user && !isAdminRole(req.user) && !req.isKiosk) {
+      // Extra query identifiers are ignored for citizens (they could widen the lookup to another account).
+      mobile = undefined; username = undefined; phone = undefined; qUserId = undefined;
+    }
     if (!userId || userId === 'anonymous') return res.status(400).json({ success: false, error: 'Valid userId is required' });
 
     let history = [];
@@ -9355,8 +9764,8 @@ async function handleMobileGetRecycle(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
-app.get('/api/getrecycle/:userId', optionalAuth, handleMobileGetRecycle);
-app.get('/getrecycle/:userId', optionalAuth, handleMobileGetRecycle);
+app.get('/api/getrecycle/:userId', requireMobileUser, handleMobileGetRecycle);
+app.get('/getrecycle/:userId', requireMobileUser, handleMobileGetRecycle);
 
 // High-Speed In-Memory Cache for Mobile Leaderboard (30-second TTL)
 let cachedLeaderboardPayload = null;
@@ -9513,8 +9922,8 @@ async function handleMobileUsernames(req, res) {
     res.status(500).json({ success: false, error: err.message });
   }
 }
-app.get('/api/usernames', handleMobileUsernames);
-app.get('/usernames', handleMobileUsernames);
+app.get('/api/usernames', requirePublicClient, handleMobileUsernames);
+app.get('/usernames', requirePublicClient, handleMobileUsernames);
 
 // 6. Mobile Forgot Password / OTP Flow (Secured with Cryptographic PRNG & Expiry)
 async function handleForgotPassword(req, res) {
@@ -9583,11 +9992,14 @@ async function handleResetPassword(req, res) {
         return res.status(400).json({ success: false, message: 'OTP code has expired. Please request a new code.' });
       }
 
+      if (String(newPassword).length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
       await pool.query(`
-        UPDATE users 
-        SET password = $1, otp = NULL, otp_expiry = NULL 
+        UPDATE users
+        SET password = $1, otp = NULL, otp_expiry = NULL
         WHERE user_id = $2;
-      `, [newPassword, user.user_id]);
+      `, [await hashPassword(String(newPassword)), user.user_id]);
     }
 
     res.json({ success: true, message: 'Password reset successfully' });
@@ -9595,8 +10007,8 @@ async function handleResetPassword(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/reset-password', handleResetPassword);
-app.post('/reset-password', handleResetPassword);
+app.post('/api/reset-password', otpVerifyLimiter, handleResetPassword);
+app.post('/reset-password', otpVerifyLimiter, handleResetPassword);
 
 // 6b. Mobile Gmail / Corporate SSO with One-Tap OTP Code Verification
 const ssoOtpStore = new Map();
@@ -9825,10 +10237,8 @@ async function handleVerifySso(req, res) {
   }
 }
 
-app.post('/api/auth/sso-code', handleSsoCodeRequest);
-app.post('/auth/sso-code', handleSsoCodeRequest);
-app.post('/api/auth/verify-sso', handleVerifySso);
-app.post('/auth/verify-sso', handleVerifySso);
+// NOTE: /api/auth/sso-code and /api/auth/verify-sso are served by handleSendSsoCode / handleVerifySsoCode above.
+// The duplicate registrations that pointed at handleSsoCodeRequest / handleVerifySso were dead code and have been removed.
 
 
 // 7. Mobile Vouch365 Promo Link
@@ -9844,20 +10254,20 @@ async function handleVouch365Link(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
-app.post('/api/generate-vouch365-link', handleVouch365Link);
-app.post('/generate-vouch365-link', handleVouch365Link);
+app.post('/api/generate-vouch365-link', requireMobileUser, handleVouch365Link);
+app.post('/generate-vouch365-link', requireMobileUser, handleVouch365Link);
 
 // 8. Mobile Backup
-app.post(['/api/backup', '/backup'], async (req, res) => {
+app.post(['/api/backup', '/backup'], requireMobileUser, async (req, res) => {
   res.json({ success: true, message: 'Backup synced successfully', timestamp: new Date().toISOString() });
 });
-app.get(['/api/backup-full', '/backup-full'], async (req, res) => {
+app.get(['/api/backup-full', '/backup-full'], requireMobileUser, async (req, res) => {
   res.json({ success: true, appName: 'ISP RVM Ecosystem', exportDate: new Date().toISOString() });
 });
 
 // 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL - Resilient Optional Auth)
 // 9. Mobile Users & Active Logins for Dashboard (Exclusively from PostgreSQL - Resilient Optional Auth)
-app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
+app.get('/api/analytics/mobile-users', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     let usersList = [];
     let stats = {
@@ -10341,14 +10751,18 @@ app.get('/api/analytics/mobile-users', optionalAuth, async (req, res) => {
 });
 
 // Citizen Loyalty Redemption Endpoint (Spend Points for Rewards & Vouchers)
-app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-points'], async (req, res) => {
+app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-points'], publicWriteLimiter, requireMobileUser, async (req, res) => {
   try {
     const { userId, mobile, phoneNumber, username, itemName, points, voucherCode, note } = req.body;
-    const targetId = (userId || mobile || phoneNumber || username || '').trim();
+    const targetId = resolveOwnedIdentifier(req, res, (userId || mobile || phoneNumber || username || '').trim());
+    if (targetId === null) return;
     const pts = parseInt(points || 0);
 
     if (!targetId || targetId === 'anonymous') {
       return res.status(400).json({ success: false, error: 'Valid citizen userId or mobile number is required' });
+    }
+    if (!Number.isFinite(pts) || pts > 1000000) {
+      return res.status(400).json({ success: false, error: 'Invalid points amount' });
     }
     if (!pts || pts <= 0) {
       return res.status(400).json({ success: false, error: 'Points to redeem must be greater than 0' });
@@ -10379,12 +10793,17 @@ app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-po
       });
     }
 
-    const newBal = currentBal - pts;
-    await pool.query(`
-      UPDATE users 
-      SET points_balance = $1, last_active = NOW()
-      WHERE user_id = $2;
-    `, [newBal, user.user_id]);
+    // Atomic conditional deduction: concurrent redemptions cannot both pass the balance check.
+    const dRes = await pool.query(`
+      UPDATE users
+      SET points_balance = points_balance - $1, last_active = NOW()
+      WHERE user_id = $2 AND points_balance >= $1
+      RETURNING points_balance;
+    `, [pts, user.user_id]);
+    if (dRes.rowCount === 0) {
+      return res.status(409).json({ success: false, error: 'Insufficient points balance (balance changed concurrently). Please refresh and retry.' });
+    }
+    const newBal = parseInt(dRes.rows[0].points_balance || 0);
 
     const redemptionId = `RED_${Date.now()}_${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     const code = voucherCode || `VOUCH-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
@@ -10416,10 +10835,11 @@ app.post(['/api/redemptions/redeem', '/api/admin/redeem-points', '/api/redeem-po
 });
 
 // Mobile App Heartbeat / Active Ping
-app.post(['/api/mobile/heartbeat', '/mobile/heartbeat'], async (req, res) => {
+app.post(['/api/mobile/heartbeat', '/mobile/heartbeat'], requireMobileUser, async (req, res) => {
   try {
     const { userId, mobile } = req.body;
-    const id = (userId || mobile || '').trim();
+    const id = resolveOwnedIdentifier(req, res, (userId || mobile || '').trim());
+    if (id === null) return;
     if (!id) return res.status(400).json({ error: 'userId required' });
 
     if (activeDbType === 'postgres') {
@@ -10452,14 +10872,7 @@ app.get('/api/auth/me', async (req, res) => {
       decoded = jwt.verify(token, JWT_SECRET);
       username = decoded.username;
     } catch (e) {
-      // Transitional support for active dev session token
-      const legacyMatch = token.match(/^token_([^_]+)_/);
-      const masterUser = process.env.MASTER_DEV_USERNAME || 'onenet';
-      if (legacyMatch && (legacyMatch[1] === masterUser || legacyMatch[1] === 'onenet')) {
-        username = legacyMatch[1];
-      } else {
-        return res.status(401).json({ authenticated: false, error: 'Invalid or expired authentication session' });
-      }
+      return res.status(401).json({ authenticated: false, error: 'Invalid or expired authentication session' });
     }
 
     if (!username) {
@@ -10549,9 +10962,11 @@ async function verifyAndAuthorizeMachine(machineId) {
         }
         return { authorized: true };
       } catch (e) {
-        return { authorized: true };
+        // Fail closed: a registry error must not grant access to unregistered machines.
+        return { authorized: false, reason: 'Machine registry temporarily unavailable. Please retry.' };
       }
     }
+    return { authorized: false, reason: 'Machine registry unavailable (no database pool).' };
   }
 
   if (activeDbType === 'mongodb') {
@@ -10567,16 +10982,16 @@ async function verifyAndAuthorizeMachine(machineId) {
         }
         return { authorized: true };
       } catch (e) {
-        return { authorized: true };
+        return { authorized: false, reason: 'Machine registry temporarily unavailable. Please retry.' };
       }
     }
   }
 
-  return { authorized: true };
+  return { authorized: false, reason: 'Machine registry unavailable.' };
 }
 
 // Upstream Session Sync Endpoint (Receives detailed local transaction data from desktop machines)
-app.post('/api/machine/sync-session', async (req, res) => {
+app.post('/api/machine/sync-session', requireKioskOrUser, async (req, res) => {
   try {
     const {
       machineId,
@@ -10641,8 +11056,10 @@ app.post('/api/machine/sync-session', async (req, res) => {
 
     let cleanUserId = (userId || req.body.mobileNumber || '').toString().trim();
     // Intercept legacy fallback 3214424625 or empty/anonymous -> force to official fallback 08884424625
-    if (!cleanUserId || cleanUserId === 'anonymous' || cleanUserId === 'null' || cleanUserId === 'undefined' || cleanUserId === '3214424625') {
-      cleanUserId = '08884424625';
+    // No fallback account: an unknown user means "nobody is credited yet". The kiosk re-posts the same
+    // localSessionId with the real mobile number once the citizen enters it, and the delta is credited then.
+    if (!cleanUserId || cleanUserId === 'anonymous' || cleanUserId === 'null' || cleanUserId === 'undefined' || cleanUserId === '3214424625' || cleanUserId === '08884424625') {
+      cleanUserId = '';
     }
 
     const sessionDoc = {
@@ -10700,14 +11117,27 @@ app.post('/api/machine/sync-session', async (req, res) => {
       const pool = getPgPool();
       if (pool) {
         // 1. Ensure machine exists FIRST to satisfy foreign key constraint
+        // Kiosks post cumulative counts for the same localSessionId after every item. Machine totals must
+        // therefore be incremented by the DELTA since the previous post of this session, not the full count.
+        const existingSessionCheck = await pool.query(
+          `SELECT session_id, user_id, points_earned, plastic_count, aluminium_count, paper_cardboard_count, glass_count, total_weight_kg
+           FROM recycling_sessions WHERE session_id = $1 LIMIT 1;`,
+          [sessionId]
+        );
+        const prevRow = existingSessionCheck.rows[0] || null;
+        const prevBottles = prevRow ? (Number(prevRow.plastic_count) || 0) : 0;
+        const prevWeight = prevRow ? (Number(prevRow.total_weight_kg) || 0) : 0;
+        const bottlesDelta = Math.max(0, (Number(totalBottles) || 0) - prevBottles);
+        const weightDelta = Math.max(0, (Number(weightKg) || 0) - prevWeight);
+
         await pool.query(`
           INSERT INTO machines (machine_id, name, location, status, total_bottles_recycled, total_weight_kg)
           VALUES ($1, $1, 'System Auto', 'active', $2, $3)
-          ON CONFLICT (machine_id) DO UPDATE SET 
+          ON CONFLICT (machine_id) DO UPDATE SET
             total_bottles_recycled = machines.total_bottles_recycled + EXCLUDED.total_bottles_recycled,
             total_weight_kg = machines.total_weight_kg + EXCLUDED.total_weight_kg,
             last_ping_at = NOW();
-        `, [machineId, totalBottles, weightKg]);
+        `, [machineId, bottlesDelta, weightDelta]);
 
         const pSmall = plasticSmallCount || (bSize === 'SMALL' ? plasticCount : 0);
         const pMedium = plasticMediumCount || (bSize === 'MEDIUM' ? plasticCount : 0);
@@ -10720,12 +11150,14 @@ app.post('/api/machine/sync-session', async (req, res) => {
         const paperGrams = effectivePaperGrams;
         const tetrapakGrams = tetrapakWeightGrams || 0;
 
-        // 2. Insert or Update recycling_sessions table        // Check if session was already inserted/credited by dynamic QR claim (/api/session/claim-points)
-        const existingSessionCheck = await pool.query(
-          `SELECT session_id, user_id, points_earned FROM recycling_sessions WHERE session_id = $1 LIMIT 1;`,
-          [sessionId]
-        );
-        const alreadyCredited = existingSessionCheck.rows.length > 0;
+        // 2. Insert or Update recycling_sessions table.
+        // Crediting rule: points are credited to a user only once per session, as a delta over what was
+        // already credited for this session (cumulative posts), and only when a real user is known.
+        const prevUser = String(prevRow?.user_id || '').trim();
+        const prevHadRealUser = Boolean(prevUser) && prevUser !== 'anonymous' && prevUser !== '08884424625' && prevUser !== '3214424625';
+        const prevPoints = prevHadRealUser ? (Number(prevRow?.points_earned) || 0) : 0;
+        const creditPoints = Math.max(0, (Number(pointsEarned) || 0) - prevPoints);
+        const alreadyCredited = creditPoints <= 0;
 
         await pool.query(`
           INSERT INTO recycling_sessions (
@@ -10785,16 +11217,15 @@ app.post('/api/machine/sync-session', async (req, res) => {
               UPDATE users 
               SET points_balance = points_balance + $1, last_active = NOW()
               WHERE user_id = $2;
-            `, [pointsEarned, existingUid]);
+            `, [creditPoints, existingUid]);
           } else {
-            const isFallback = (cleanUserId === '08884424625');
-            const fullName = isFallback ? 'Fallback Kiosk Citizen' : cleanUserId;
-            const email = isFallback ? 'fallback@rvm-dash.io' : `${cleanUserId}@rvm-dash.io`;
+            const fullName = `Citizen (${cleanUserId.slice(-4)})`;
+            const isEmailId = cleanUserId.includes('@');
             await pool.query(`
               INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status)
-              VALUES ($1, $1, $2, $1, $3, $4, 'fleet_operator', 'active')
+              VALUES ($1, $1, $2, $3, $4, $5, 'citizen', 'active')
               ON CONFLICT (user_id) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance;
-            `, [cleanUserId, fullName, email, pointsEarned]);
+            `, [cleanUserId, fullName, isEmailId ? null : cleanUserId, isEmailId ? cleanUserId : null, creditPoints]);
           }
         }
         if (cleanUserId && cleanUserId !== 'anonymous') {
@@ -10840,7 +11271,7 @@ app.post('/api/machine/sync-session', async (req, res) => {
 });
 
 // Upstream Machine Feedback & Experience Rating Endpoint
-app.post('/api/machine/feedback', async (req, res) => {
+app.post('/api/machine/feedback', requireKioskOrUser, publicWriteLimiter, async (req, res) => {
   try {
     const {
       machineId = 'RVM-001',
@@ -10932,7 +11363,8 @@ function getClientIpInfo(req) {
 // Upstream Telemetry Heartbeat & Bin Level Alerts (PecoDrop & Smart RVMs)
 const binAlertDebounceMap = new Map(); // key: `${machineId}_${alertType}`, value: Date.now()
 
-app.post('/api/machine/heartbeat', async (req, res) => {
+let heartbeatSchemaEnsured = false;
+app.post('/api/machine/heartbeat', requireKioskOrUser, async (req, res) => {
   try {
     const {
       machineId,
@@ -11005,18 +11437,22 @@ app.post('/api/machine/heartbeat', async (req, res) => {
     }
 
     if (pool) {
-      await pool.query(`
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS address TEXT;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS plastic_bin_fill INTEGER DEFAULT 0;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS metal_bin_fill INTEGER DEFAULT 0;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS paper_bin_fill_kg NUMERIC DEFAULT 0.00;
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS scale_status VARCHAR(50) DEFAULT 'Ready';
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS optical_status VARCHAR(50) DEFAULT '60 FPS';
-        ALTER TABLE machines ADD COLUMN IF NOT EXISTS anti_cheat_trips INTEGER DEFAULT 0;
-      `).catch(() => { });
+      // Schema DDL runs once per process, not on every heartbeat (ALTER TABLE takes an exclusive lock).
+      if (!heartbeatSchemaEnsured) {
+        heartbeatSchemaEnsured = true;
+        await pool.query(`
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS address TEXT;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS plastic_bin_fill INTEGER DEFAULT 0;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS metal_bin_fill INTEGER DEFAULT 0;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS paper_bin_fill_kg NUMERIC DEFAULT 0.00;
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS scale_status VARCHAR(50) DEFAULT 'Ready';
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS optical_status VARCHAR(50) DEFAULT '60 FPS';
+          ALTER TABLE machines ADD COLUMN IF NOT EXISTS anti_cheat_trips INTEGER DEFAULT 0;
+        `).catch(() => { heartbeatSchemaEnsured = false; });
+      }
 
       await pool.query(`
         INSERT INTO machines (
@@ -11159,7 +11595,7 @@ app.post('/api/machine/heartbeat', async (req, res) => {
 });
 
 // Downstream Config & Points Rules Endpoint
-app.get('/api/machine/config/:machineId', async (req, res) => {
+app.get('/api/machine/config/:machineId', requireKioskOrUser, async (req, res) => {
   try {
     const { machineId } = req.params;
 
@@ -11399,9 +11835,9 @@ const handleSaveMachineConfig = async (req, res) => {
   }
 };
 
-app.post('/api/machine/config', handleSaveMachineConfig);
-app.post('/api/machine/config/:machineId', handleSaveMachineConfig);
-app.put('/api/machine/config/:machineId', handleSaveMachineConfig);
+app.post('/api/machine/config', authenticateToken, requireAdminOrClientAdmin, handleSaveMachineConfig);
+app.post('/api/machine/config/:machineId', authenticateToken, requireAdminOrClientAdmin, handleSaveMachineConfig);
+app.put('/api/machine/config/:machineId', authenticateToken, requireAdminOrClientAdmin, handleSaveMachineConfig);
 
 // ==========================================
 // DYNAMIC POINT SETTINGS MATRIX ENDPOINTS
@@ -11449,7 +11885,7 @@ const savePointSettingsToFile = () => {
   }
 };
 
-app.get('/api/machine/point-settings', async (req, res) => {
+app.get('/api/machine/point-settings', requireKioskOrUser, async (req, res) => {
   try {
     const machineId = (req.query.machineId || req.query.targetMachine || '*').trim();
     let settingsList = MEMORY_POINT_SETTINGS[machineId] || MEMORY_POINT_SETTINGS['*'] || DEFAULT_INITIAL_POINT_SETTINGS;
@@ -11502,7 +11938,7 @@ app.get('/api/machine/point-settings', async (req, res) => {
   }
 });
 
-app.post('/api/machine/point-settings', async (req, res) => {
+app.post('/api/machine/point-settings', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { targetMachine = '*', settings = [] } = req.body || {};
     if (!Array.isArray(settings)) {
@@ -11521,8 +11957,11 @@ app.post('/api/machine/point-settings', async (req, res) => {
     }));
 
     MEMORY_POINT_SETTINGS[machineScope] = formattedSettings;
-    MEMORY_POINT_SETTINGS['*'] = formattedSettings;
-    MEMORY_POINT_SETTINGS['ALL'] = formattedSettings;
+    // Only an explicit fleet-wide save ('*' / 'ALL') changes the global default; a single-machine save must not.
+    if (machineScope === '*' || machineScope.toUpperCase() === 'ALL') {
+      MEMORY_POINT_SETTINGS['*'] = formattedSettings;
+      MEMORY_POINT_SETTINGS['ALL'] = formattedSettings;
+    }
     savePointSettingsToFile();
 
     // PostgreSQL ONLY Database Sync
@@ -11646,7 +12085,7 @@ app.post('/api/machine/ads/upload', authenticateToken, requireAdminOrClientAdmin
     }
 
     const relativeUrl = `/uploads/advertisements/${req.file.filename}`;
-    const fullUrl = `${req.protocol}://${req.get('host')}${relativeUrl}`;
+    const fullUrl = `${publicBaseUrl(req)}${relativeUrl}`;
 
     res.json({
       success: true,
@@ -11663,7 +12102,7 @@ app.post('/api/machine/ads/upload', authenticateToken, requireAdminOrClientAdmin
 
 // Fetch active advertisement video playlist for RVM fleet / specific machine
 // Fetch active advertisement video playlist for RVM fleet / specific machine
-app.get('/api/machine/ads', optionalAuth, async (req, res) => {
+app.get('/api/machine/ads', requireKioskOrUser, async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
     const pool = getPgPool();
@@ -11726,6 +12165,9 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
               // Default Super Admin view: ISP Master ads only (do not mix corporate clients' private videos into master loop)
               queryText += ` WHERE (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
             }
+          } else {
+            // Non-admin / anonymous callers: public ISP Master ads only
+            queryText += ` WHERE (client_id = 'ISP_MASTER' OR org_id = 'ISP_MASTER' OR client_id IS NULL) `;
           }
         }
 
@@ -11848,7 +12290,7 @@ app.get('/api/machine/ads', optionalAuth, async (req, res) => {
 });
 
 // Save or Update Advertisement Video Configuration
-app.post('/api/machine/ads', optionalAuth, async (req, res) => {
+app.post('/api/machine/ads', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     let {
       id,
@@ -11991,7 +12433,7 @@ app.post('/api/machine/ads', optionalAuth, async (req, res) => {
 });
 
 // Toggle Advertisement Video Active State
-app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
+app.patch('/api/machine/ads/:id/toggle', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const pool = getPgPool();
@@ -12023,7 +12465,7 @@ app.patch('/api/machine/ads/:id/toggle', async (req, res) => {
 });
 
 // Update Advertisement Video Destinations / Machines
-app.patch('/api/machine/ads/:id/destinations', async (req, res) => {
+app.patch('/api/machine/ads/:id/destinations', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { destinations = [] } = req.body;
@@ -12056,7 +12498,7 @@ app.patch('/api/machine/ads/:id/destinations', async (req, res) => {
 });
 
 // Broadcast / Push Video to Selected Displays Immediately
-app.post('/api/machine/ads/:id/push', async (req, res) => {
+app.post('/api/machine/ads/:id/push', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const pool = getPgPool();
@@ -12085,7 +12527,7 @@ app.post('/api/machine/ads/:id/push', async (req, res) => {
 });
 
 // Sync All Machine Displays Across Fleet
-app.post('/api/machine/ads/sync-all', async (req, res) => {
+app.post('/api/machine/ads/sync-all', authenticateToken, requireAdmin, async (req, res) => {
   try {
     invalidateAdsCache();
     res.json({
@@ -12098,116 +12540,66 @@ app.post('/api/machine/ads/sync-all', async (req, res) => {
 });
 
 // Delete Advertisement Video (Handles DB record & Local file removal)
-app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
+app.delete('/api/machine/ads/:id', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
-    const rawId = req.params.id;
-    const { fileName, title } = req.query;
+    const rawId = String(req.params.id || '').trim();
+    const fileName = req.query.fileName ? path.basename(String(req.query.fileName)) : '';
     const pool = getPgPool();
     let deletedCount = 0;
-    let deletedTitle = title || rawId;
+    let deletedTitle = rawId;
+    const deletedFileNames = new Set();
 
-    const isSuper = req.user?.roleId === 'super_admin' || req.user?.roleId === 'superadmin' || String(req.user?.username || '').toLowerCase() === 'onenet' || String(req.user?.username || '').toLowerCase() === 'bilalaaqueel';
-    const isCorpUser = req.user && !isSuper && (req.user.orgId || ['client_admin', 'corporate_sub_user'].includes(req.user.roleId));
+    const isSuper = isSuperAdminUser(req) || String(req.user?.roleId || '').toLowerCase() === 'admin';
+    const isCorpUser = !isSuper;
 
     if (pool && activeDbType === 'postgres') {
       try {
-        let selRes;
-        let authClause = '';
-        let authParams = [];
-        if (isCorpUser) {
-          authClause = ' AND (UPPER(client_id) = UPPER($4) OR UPPER(org_id) = UPPER($4))';
-          authParams.push(req.user.orgId);
-        }
-
+        // Exact-match deletion only: by numeric id, or by exact stored file name. Never substring/title matching.
+        let selRes = { rows: [] };
+        const corpClause = isCorpUser ? ' AND (UPPER(client_id) = UPPER($2) OR UPPER(org_id) = UPPER($2))' : '';
+        const corpParams = isCorpUser ? [String(req.user.orgId || '')] : [];
         if (/^\d+$/.test(rawId)) {
-          selRes = await pool.query(
-            `SELECT * FROM machine_advertisements WHERE (id = $1 OR title ILIKE $2 OR file_name = $3)` + authClause,
-            [parseInt(rawId), `%${title || ''}%`, fileName || '', ...authParams]
-          );
-        } else {
-          const corpClause = isCorpUser ? ' AND (UPPER(client_id) = UPPER($5) OR UPPER(org_id) = UPPER($5))' : '';
-          selRes = await pool.query(`
-            SELECT * FROM machine_advertisements 
-            WHERE (file_name = $1 
-               OR video_url LIKE $2 
-               OR title ILIKE $3
-               OR title ILIKE $4)` + corpClause,
-            [fileName || rawId, `%${rawId}%`, `%${rawId}%`, `%${title || ''}%`, ...(isCorpUser ? [req.user.orgId] : [])]
-          );
+          selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE id = $1` + corpClause, [parseInt(rawId, 10), ...corpParams]);
+        } else if (fileName || rawId) {
+          selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE file_name = $1` + corpClause, [fileName || rawId, ...corpParams]);
         }
 
-        if ((!selRes || selRes.rows.length === 0) && title) {
-          selRes = await pool.query(`SELECT * FROM machine_advertisements WHERE title ILIKE $1`, [`%${title}%`]);
-        }
-
-        if (selRes && selRes.rows.length > 0) {
-          for (const ad of selRes.rows) {
-            deletedTitle = ad.title || deletedTitle;
-            await pool.query(`DELETE FROM machine_advertisements WHERE id = $1`, [ad.id]);
-            deletedCount++;
-
-            // Clean up matching file on disk
-            if (ad.file_name) {
-              const localFilePath = path.join(ADS_UPLOAD_DIR, ad.file_name);
-              if (fs.existsSync(localFilePath)) {
-                try { fs.unlinkSync(localFilePath); } catch (e) { }
-              }
-            }
-          }
+        for (const ad of selRes.rows) {
+          deletedTitle = ad.title || deletedTitle;
+          await pool.query(`DELETE FROM machine_advertisements WHERE id = $1`, [ad.id]);
+          deletedCount++;
+          if (ad.file_name) deletedFileNames.add(path.basename(String(ad.file_name)));
         }
       } catch (dbErr) {
         console.warn('[DELETE Ad DB Warning]', dbErr.message);
       }
     }
+    if (fileName && isSuper) deletedFileNames.add(fileName);
 
-    // Also scan ADS_UPLOAD_DIR to remove any file matching rawId or query fileName
-    if (fs.existsSync(ADS_UPLOAD_DIR)) {
-      try {
-        const files = fs.readdirSync(ADS_UPLOAD_DIR);
-        for (const f of files) {
-          const shouldDelete = f === rawId ||
-            (fileName && f === fileName) ||
-            (rawId && rawId.length > 5 && f.includes(rawId)) ||
-            (deletedTitle && deletedTitle.length > 5 && f.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
-          if (shouldDelete) {
-            try {
-              fs.unlinkSync(path.join(ADS_UPLOAD_DIR, f));
-              deletedCount++;
-            } catch (e) { }
-          }
-        }
-      } catch (e) { }
+    if (deletedCount === 0 && deletedFileNames.size === 0) {
+      return res.status(404).json({ success: false, error: 'Advertisement not found (or not owned by your organization).' });
     }
 
-    // Also purge matching files from local kiosk sync folders (PecoDrop & RVM desktop apps)
-    const purgeLocal = req.query.purgeLocal !== 'false';
+    // Remove only the exact files that belonged to the deleted records.
+    for (const fname of deletedFileNames) {
+      const localFilePath = path.join(ADS_UPLOAD_DIR, fname);
+      if (localFilePath.startsWith(path.resolve(ADS_UPLOAD_DIR)) && fs.existsSync(localFilePath)) {
+        try { fs.unlinkSync(localFilePath); deletedCount++; } catch (e) { }
+      }
+    }
+
+    // Optional purge from the server-local kiosk sync folder (exact file names only; super admin only).
+    const purgeLocal = isSuper && req.query.purgeLocal !== 'false';
     const purgedMachineFiles = [];
     if (purgeLocal) {
-      const machineFolders = [
-        path.join(__dirname, '..', 'PecoDropDesktopApp', 'Ads'),
-        path.join(__dirname, '..', 'RVMDesktopApp', 'Ads'),
-        path.join(__dirname, '..', 'Ads'),
-        'C:\\RVM\\Ads'
-      ];
+      const machineFolders = [path.join(__dirname, '..', 'Ads'), 'C:\\RVM\\Ads'];
       for (const mFolder of machineFolders) {
-        if (fs.existsSync(mFolder)) {
-          try {
-            const mFiles = fs.readdirSync(mFolder);
-            for (const mf of mFiles) {
-              const matches = mf === rawId ||
-                (fileName && mf === fileName) ||
-                (fileName && mf.toLowerCase() === fileName.toLowerCase()) ||
-                (rawId && rawId.length > 5 && mf.includes(rawId)) ||
-                (deletedTitle && deletedTitle.length > 5 && mf.toLowerCase().includes(deletedTitle.toLowerCase().replace(/ /g, '_')));
-              if (matches) {
-                try {
-                  fs.unlinkSync(path.join(mFolder, mf));
-                  purgedMachineFiles.push(path.join(mFolder, mf));
-                  deletedCount++;
-                } catch (e) { }
-              }
-            }
-          } catch (e) { }
+        if (!fs.existsSync(mFolder)) continue;
+        for (const fname of deletedFileNames) {
+          const target = path.join(mFolder, fname);
+          if (fs.existsSync(target)) {
+            try { fs.unlinkSync(target); purgedMachineFiles.push(target); deletedCount++; } catch (e) { }
+          }
         }
       }
     }
@@ -12224,7 +12616,7 @@ app.delete('/api/machine/ads/:id', optionalAuth, async (req, res) => {
 });
 
 // Fetch currently active/selected advertisement video for RVM machine
-app.get('/api/machine/ads/active', async (req, res) => {
+app.get('/api/machine/ads/active', requireKioskOrUser, async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
     const now = Date.now();
@@ -12314,7 +12706,7 @@ app.get('/api/machine/ads/active', async (req, res) => {
 });
 
 // Fetch complete active advertisement playlist for RVM machine rotation
-app.get('/api/machine/ads/playlist', async (req, res) => {
+app.get('/api/machine/ads/playlist', requireKioskOrUser, async (req, res) => {
   try {
     const { machineId = '*' } = req.query;
     const now = Date.now();
@@ -12402,7 +12794,7 @@ app.get('/api/machine/ads/playlist', async (req, res) => {
 });
 
 // Reorder or set multiple active videos in playlist
-app.post('/api/machine/ads/playlist/reorder', async (req, res) => {
+app.post('/api/machine/ads/playlist/reorder', authenticateToken, requireAdminOrClientAdmin, async (req, res) => {
   try {
     const { orderedIds = [], machineId = '*' } = req.body;
     const pool = getPgPool();
@@ -12431,7 +12823,7 @@ app.post('/api/machine/ads/playlist/reorder', async (req, res) => {
 });
 
 // QR Code Authenticator for RVM Machine Scanner
-app.post('/api/user/verify-qr', async (req, res) => {
+app.post('/api/user/verify-qr', requireKioskOrUser, publicWriteLimiter, async (req, res) => {
   try {
     const { qrCodeToken, machineId } = req.body;
     if (!qrCodeToken) return res.status(400).json({ error: 'qrCodeToken is required' });
@@ -12489,7 +12881,9 @@ setInterval(() => {
     }
   }
   for (const [machineId, handshake] of activeStartHandshakes.entries()) {
-    if (handshake.expiresAt && handshake.expiresAt < now && handshake.status !== 'STARTED') {
+    const startedAt = handshake.startedAt || handshake.createdAt || 0;
+    const staleStarted = handshake.status === 'STARTED' && (now - startedAt) > 30 * 60 * 1000;
+    if ((handshake.expiresAt && handshake.expiresAt < now && handshake.status !== 'STARTED') || staleStarted) {
       activeStartHandshakes.delete(machineId);
     }
   }
@@ -12501,16 +12895,16 @@ setInterval(() => {
 }, 30000);
 
 // 1. Kiosk registers/refreshes its dynamic Start QR Code while idle
-app.post('/api/session/kiosk-handshake/register', async (req, res) => {
+app.post('/api/session/kiosk-handshake/register', requireKioskOrUser, async (req, res) => {
   try {
     const { machineId = 'RVM-001' } = req.body;
     const cleanMachineId = String(machineId).trim();
     const startToken = `start_${cleanMachineId}_${crypto.randomBytes(4).toString('hex')}`;
     const expiresAt = Date.now() + (120 * 1000); // 2-minute lifespan
 
-    const host = req.get('host') || 'isprvm.binishaqsoft.com';
-    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = publicBaseUrl(req);
+    const host = new URL(baseUrl).host;
+    const protocol = new URL(baseUrl).protocol.replace(':', '');
     const qrUrl = `${baseUrl}/claim?startToken=${encodeURIComponent(startToken)}&m=${encodeURIComponent(cleanMachineId)}`;
 
     const prevHandshake = activeStartHandshakes.get(cleanMachineId);
@@ -12546,7 +12940,7 @@ app.post('/api/session/kiosk-handshake/register', async (req, res) => {
 });
 
 // 2. Kiosk polls its Start Handshake status (<1ms in-memory query)
-app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
+app.get('/api/session/kiosk-handshake/status/:machineId', requirePublicClient, (req, res) => {
   try {
     const machineId = (req.params.machineId || '').trim();
     const handshake = activeStartHandshakes.get(machineId);
@@ -12618,7 +13012,7 @@ app.get('/api/session/kiosk-handshake/status/:machineId', (req, res) => {
 });
 
 // 3. Mobile App or Web Claim scans Start QR and claims the kiosk session
-app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
+app.post('/api/session/kiosk-handshake/claim-start', publicWriteLimiter, requirePublicClient, async (req, res) => {
   try {
     const { startToken, machineId, mobileNumber, phone, userId, fullName } = req.body;
     const userPhone = (mobileNumber || phone || userId || '').toString().trim();
@@ -12764,7 +13158,7 @@ app.post('/api/session/kiosk-handshake/claim-start', async (req, res) => {
 });
 
 // 4. Mobile App requests finish for an active Touchless session
-app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
+app.post('/api/session/kiosk-handshake/request-finish', publicWriteLimiter, requirePublicClient, (req, res) => {
   try {
     const { machineId, mobileNumber, startToken } = req.body;
     let targetHandshake = null;
@@ -12814,7 +13208,7 @@ app.post('/api/session/kiosk-handshake/request-finish', (req, res) => {
 });
 
 // 5. Kiosk resets handshake back to IDLE when session ends or is cancelled
-app.post('/api/session/kiosk-handshake/reset', (req, res) => {
+app.post('/api/session/kiosk-handshake/reset', requireKioskOrUser, (req, res) => {
   const { machineId } = req.body;
   if (machineId && activeStartHandshakes.has(machineId)) {
     activeStartHandshakes.delete(machineId);
@@ -12823,7 +13217,7 @@ app.post('/api/session/kiosk-handshake/reset', (req, res) => {
 });
 
 // 5. Create a dynamic claim session from Kiosk (Post-Session Claim)
-app.post('/api/session/create-claim', async (req, res) => {
+app.post('/api/session/create-claim', requireKioskOrUser, publicWriteLimiter, async (req, res) => {
   try {
     const {
       machineId = 'RVM-001',
@@ -12890,9 +13284,9 @@ app.post('/api/session/create-claim', async (req, res) => {
 
     activeClaimSessions.set(sessionId, sessionData);
 
-    const host = req.get('host') || 'isprvm.binishaqsoft.com';
-    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = publicBaseUrl(req);
+    const host = new URL(baseUrl).host;
+    const protocol = new URL(baseUrl).protocol.replace(':', '');
     const qrUrl = `${baseUrl}/claim?session=${encodeURIComponent(sessionId)}&pts=${sessionData.points}&m=${encodeURIComponent(machineId)}&tok=${claimToken}`;
 
     res.json({
@@ -12911,7 +13305,7 @@ app.post('/api/session/create-claim', async (req, res) => {
 });
 
 // 2. Kiosk polls claim status
-app.get('/api/session/claim-status', async (req, res) => {
+app.get('/api/session/claim-status', requirePublicClient, async (req, res) => {
   try {
     const sessionId = req.query.sessionId || req.query.session;
     if (!sessionId) {
@@ -12945,7 +13339,7 @@ app.get('/api/session/claim-status', async (req, res) => {
 });
 
 // 3. Mobile App or Web Browser claims points
-app.post('/api/session/claim-points', async (req, res) => {
+app.post('/api/session/claim-points', publicWriteLimiter, requirePublicClient, async (req, res) => {
   try {
     const { sessionId, claimToken, userId, mobileNumber, phone } = req.body;
     const userIdentifier = (mobileNumber || phone || userId || '').toString().trim();
@@ -12958,10 +13352,10 @@ app.post('/api/session/claim-points', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Session expired or not found' });
     }
 
-    if (session.status === 'CLAIMED') {
+    if (session.status === 'CLAIMED' || session.status === 'CLAIMING') {
       return res.status(409).json({
         success: false,
-        error: 'Session has already been claimed',
+        error: session.status === 'CLAIMING' ? 'Session claim is already in progress' : 'Session has already been claimed',
         claimedBy: session.claimedBy,
         claimedUser: session.claimedUser
       });
@@ -12972,11 +13366,21 @@ app.post('/api/session/claim-points', async (req, res) => {
       return res.status(410).json({ success: false, error: 'Session has expired' });
     }
 
-    const pointsEarned = session.points;
-    let cleanUserIdentifier = (userIdentifier || '').toString().trim();
-    if (cleanUserIdentifier === '3214424625' || !cleanUserIdentifier || cleanUserIdentifier === 'anonymous') {
-      cleanUserIdentifier = '08884424625';
+    if (claimToken && session.claimToken && !safeEqual(String(claimToken), String(session.claimToken))) {
+      return res.status(403).json({ success: false, error: 'Invalid claim token for this session' });
     }
+
+    const pointsEarned = session.points;
+    const cleanUserIdentifier = (userIdentifier || '').toString().trim();
+    if (!cleanUserIdentifier || cleanUserIdentifier === 'anonymous' || !/^[A-Za-z0-9@._+-]{3,120}$/.test(cleanUserIdentifier)) {
+      return res.status(400).json({ success: false, error: 'A valid mobile number, email, or user id is required to claim points' });
+    }
+    // Authenticated non-admin callers may only claim into their own account.
+    if (req.user && !isAdminRole(req.user) && !req.isKiosk && !userOwnsIdentifier(req.user, cleanUserIdentifier)) {
+      return res.status(403).json({ success: false, error: 'You can only claim points into your own account.' });
+    }
+    // Reserve the session atomically (single-threaded check-and-set) so concurrent claims cannot double-credit.
+    session.status = 'CLAIMING';
     let displayName = cleanUserIdentifier;
     let newBalance = pointsEarned;
 
@@ -13003,12 +13407,13 @@ app.post('/api/session/claim-points', async (req, res) => {
           `, [newBalance, u.user_id]);
         } else {
           newBalance = pointsEarned;
-          const isFallback = (cleanUserIdentifier === '08884424625');
-          const fullName = isFallback ? 'Fallback Kiosk Citizen' : cleanUserIdentifier;
+          const fullName = `Citizen (${cleanUserIdentifier.slice(-4)})`;
+          const isEmailId = cleanUserIdentifier.includes('@');
           await pool.query(`
-            INSERT INTO users (user_id, username, full_name, mobile, points_balance, role, is_active, created_at, last_active)
-            VALUES ($1, $1, $2, $1, $3, 'user', true, NOW(), NOW());
-          `, [cleanUserIdentifier, fullName, newBalance]);
+            INSERT INTO users (user_id, username, full_name, mobile, email, points_balance, role_id, status, created_at, last_active)
+            VALUES ($1, $1, $2, $3, $4, $5, 'citizen', 'active', NOW(), NOW())
+            ON CONFLICT (username) DO UPDATE SET points_balance = users.points_balance + EXCLUDED.points_balance, last_active = NOW();
+          `, [cleanUserIdentifier, fullName, isEmailId ? null : cleanUserIdentifier, isEmailId ? cleanUserIdentifier : null, newBalance]);
         }
 
         // Write recycling session
@@ -13033,7 +13438,9 @@ app.post('/api/session/claim-points', async (req, res) => {
         ]);
       }
     } catch (pgErr) {
-      console.warn('[QR Claim] PostgreSQL update warning:', pgErr.message);
+      console.error('[QR Claim] PostgreSQL update failed:', pgErr.message);
+      session.status = 'PENDING';
+      return res.status(500).json({ success: false, error: 'Could not credit points right now. Please try again.' });
     }
 
     // B. Update MongoDB / in-memory docs
@@ -14243,7 +14650,7 @@ async function ensureManualIntakeSchema(pool) {
 }
 
 // 1. Available Machines List for Desk Operator (Strictly scoped to assigned machines)
-app.get('/api/manual-intake/machines', optionalAuth, async (req, res) => {
+app.get('/api/manual-intake/machines', authenticateToken, requireManualIntakeOperator, async (req, res) => {
   try {
     const pool = getPgPool();
     const userAssigned = req.user?.assignedMachines;
@@ -14280,7 +14687,7 @@ app.get('/api/manual-intake/machines', optionalAuth, async (req, res) => {
 });
 
 // 2. Real-time Citizen Lookup by Mobile Number
-app.get('/api/manual-intake/lookup', optionalAuth, async (req, res) => {
+app.get('/api/manual-intake/lookup', authenticateToken, requireManualIntakeOperator, async (req, res) => {
   try {
     const rawMobile = req.query.mobile || req.query.phone || req.query.search;
     if (!rawMobile || String(rawMobile).trim().length < 3) {
@@ -14371,7 +14778,7 @@ app.get('/api/manual-intake/lookup', optionalAuth, async (req, res) => {
 });
 
 // 3. Submit Manual / Assisted Intake
-app.post('/api/manual-intake/submit', optionalAuth, async (req, res) => {
+app.post('/api/manual-intake/submit', authenticateToken, requireManualIntakeOperator, async (req, res) => {
   try {
     const pool = getPgPool();
     if (!pool) {
@@ -14621,7 +15028,7 @@ app.post('/api/manual-intake/submit', optionalAuth, async (req, res) => {
 });
 
 // 4. Desk Intake History & Today's Summary
-app.get('/api/manual-intake/history', optionalAuth, async (req, res) => {
+app.get('/api/manual-intake/history', authenticateToken, requireManualIntakeOperator, async (req, res) => {
   try {
     const pool = getPgPool();
     if (!pool) {

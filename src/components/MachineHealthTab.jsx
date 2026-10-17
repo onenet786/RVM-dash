@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   Cpu, AlertTriangle, CheckCircle2, Clock, Activity, RefreshCw, Server, Plus, 
   MapPin, Edit3, X, Settings, Globe, Wifi, Wrench, Boxes, PowerOff, Check, 
@@ -126,9 +127,12 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
 
   const assignedList = getAssignedList();
 
-  const fetchMachines = async () => {
+  const machinesRequestId = useRef(0);
+
+  const fetchMachines = async (silent = false) => {
+    const requestId = ++machinesRequestId.current;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const assigned = getAssignedList();
       const params = new URLSearchParams();
       if (assigned && assigned.length > 0) params.append('assignedMachines', assigned.join(','));
@@ -141,6 +145,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
         fetch('/api/clients'),
         fetch('/api/analytics/bin-notifications')
       ]);
+      if (requestId !== machinesRequestId.current) return; // stale response: a newer request was issued
       if (mRes.ok) {
         const data = await mRes.json();
         const filtered = assigned && assigned.length > 0
@@ -173,7 +178,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (requestId === machinesRequestId.current) setLoading(false);
     }
   };
 
@@ -201,9 +206,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',
-          'x-username': user.username || '',
-          'x-user-role': user.roleId || ''
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify({
           machineId: newMachineId.trim(),
@@ -214,10 +217,6 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
           machineType: newMachineType || 'RVM_NEW',
           clientId: newClientId || 'ISP_MASTER',
           clientName: resolvedClientName,
-          username: user.username,
-          roleId: user.roleId,
-          isSuperAdmin,
-          token,
           pointsPerPlasticBottle: parseInt(pointsPlastic) || 10,
           plasticUnit,
           pointsPerAluminiumCan: parseInt(pointsAluminium) || 20,
@@ -370,7 +369,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
       ['Event Ref', 'Machine ID', 'Location', 'Trigger Type', 'Timestamp', 'Status'].join(',')
     ];
     visibleServiceLogs.forEach(l => {
-      csvRows.push([`"${l.id}"`, `"${l.machineId}"`, `"${l.location}"`, `"${l.trigger}"`, `"${l.timestamp}"`, `"${l.status}"`].join(','));
+      csvRows.push([l.id, l.machineId, l.location, l.trigger, l.timestamp, l.status].map(csvCell).join(','));
     });
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -384,7 +383,7 @@ export default function MachineHealthTab({ currentUser, stationFilter = 'ALL', s
 
   useEffect(() => {
     fetchMachines();
-    const interval = setInterval(fetchMachines, 10000);
+    const interval = setInterval(() => fetchMachines(true), 10000);
     return () => clearInterval(interval);
   }, [stationFilter, selectedClientId]);
 

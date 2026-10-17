@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   Leaf, Trees, Car, Recycle, Award, RefreshCw, Info, CheckCircle2, 
   Scale, ShieldCheck, Flame, ArrowUpRight, Database, Printer, FileCheck,
@@ -182,10 +183,10 @@ export default function EnvironmentalImpactTab({ stationFilter, selectedClientId
   const downloadCsv = () => {
     if (!calculatedBreakdown || calculatedBreakdown.length === 0) return;
     const headers = ['Material Stream,Machine Source,Measurement Method,Processed Weight (kg),Offset Factor,Net CO2e Saved (kg)'];
-    const rows = calculatedBreakdown.map(b => 
-      `"${b.material}","${b.source || ''}","${b.method || ''}",${b.weightKg},${b.factor},${b.co2eSavedKg}`
+    const rows = calculatedBreakdown.map(b =>
+      [b.material, b.source || '', b.method || '', b.weightKg, b.factor, b.co2eSavedKg].map(csvCell).join(',')
     );
-    rows.push(`"TOTAL AUDITED SAVINGS","All Fleets","Verified Aggregation",${displayTotalWeightProcessedKg},${displayWeightedFactor},${displayTotalCo2eAvoidedKg}`);
+    rows.push(['TOTAL AUDITED SAVINGS', 'All Fleets', 'Verified Aggregation', displayTotalWeightProcessedKg, displayWeightedFactor, displayTotalCo2eAvoidedKg].map(csvCell).join(','));
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);

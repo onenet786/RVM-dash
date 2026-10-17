@@ -29,7 +29,7 @@ async function testOnenetExclusivity() {
     const resMaster = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || '') })
     });
     const masterData = await resMaster.json();
     console.log('Master Dev Login Success:', masterData.success);

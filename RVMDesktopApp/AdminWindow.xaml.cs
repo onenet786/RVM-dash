@@ -315,7 +315,7 @@ public partial class AdminWindow : Window
 
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = KioskHttp.Create(TimeSpan.FromSeconds(5));
             var response = await client.GetAsync($"{serverUrl}/api/machine/config/{machineId}");
             if (response.IsSuccessStatusCode)
             {
@@ -725,7 +725,7 @@ public partial class AdminWindow : Window
 
             try
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                using var http = KioskHttp.Create(TimeSpan.FromSeconds(8));
 
                 string[] candidateEndpoints = new[]
                 {

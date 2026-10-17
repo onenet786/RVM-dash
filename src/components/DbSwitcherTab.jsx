@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Server, HardDrive, Lock, ShieldCheck, KeyRound, 
   RotateCcw, ArrowRightLeft, CheckCircle2, AlertTriangle, RefreshCw, MapPin, Database, Zap, RefreshCcw, Layers
 } from 'lucide-react';
 
 export default function DbSwitcherTab({ onRefreshHealth }) {
-  const [username, setUsername] = useState('onenet');
-  const [password, setPassword] = useState('Admin&86');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const reloadTimerRef = useRef(null);
   const [targetPreset, setTargetPreset] = useState('ONS-RVM');
   const [healthInfo, setHealthInfo] = useState(null);
   const [presets, setPresets] = useState([]);
@@ -64,6 +65,9 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
 
   useEffect(() => {
     fetchPresetsAndHealth();
+    return () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    };
   }, []);
 
   const handleSwitchDb = async (e) => {
@@ -96,7 +100,8 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
         if (onRefreshHealth) onRefreshHealth();
 
         // Refresh all dashboard tab data cleanly
-        setTimeout(() => {
+        if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => {
           window.location.reload();
         }, 1200);
       } else {
@@ -508,6 +513,42 @@ export default function DbSwitcherTab({ onRefreshHealth }) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Master Developer Credentials (second factor, typed each time, never stored) */}
+      <div className="glass-panel p-6 rounded-3xl space-y-4">
+        <div>
+          <h2 className="text-base font-bold t-text-primary flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-emerald-400" /> Master Developer Authorization
+          </h2>
+          <p className="text-xs t-text-muted mt-0.5">
+            Enter the master credentials for every privileged action. They are never saved in the browser.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">Master Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              placeholder="Master username"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-emerald-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider t-text-muted mb-1 block">Master Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="Master password"
+              className="w-full px-3 py-2 text-xs rounded-xl t-bg-sec border t-border t-text-primary mono focus:border-emerald-400 outline-none"
+            />
+          </div>
         </div>
       </div>
 

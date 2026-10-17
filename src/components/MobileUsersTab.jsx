@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   Users, UserCheck, Smartphone, Wallet, Gift, Recycle, RefreshCw, Search, 
   Download, Clock, Phone, Mail, ChevronRight, X, Shield, Sparkles, Trophy, 
@@ -78,7 +79,10 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
     return selectedUser?.totalRedeemedPoints || selectedUser?.redeemedPoints || 0;
   }, [userRedemptions, selectedUser]);
 
+  const usersRequestId = useRef(0);
+
   const fetchMobileUsers = async (isManual = false) => {
+    const requestId = ++usersRequestId.current;
     try {
       if (isManual) setRefreshing(true);
       else setLoading(true);
@@ -97,8 +101,10 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
 
       const qs = queryParams.toString();
       const res = await fetch(`/api/analytics/mobile-users${qs ? `?${qs}` : ''}`, { headers });
+      if (requestId !== usersRequestId.current) return; // stale response: a newer request was issued
       if (res.ok) {
         const data = await res.json();
+        if (requestId !== usersRequestId.current) return;
         const allUsers = data.users || [];
         setUsers(allUsers);
 
@@ -117,8 +123,10 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
     } catch (err) {
       console.error('Failed to fetch recyclers directory:', err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === usersRequestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -275,13 +283,13 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
     ];
 
     const rows = filteredUsers.map(u => [
-      `"${u.id || ''}"`,
-      `"${(u.fullName || '').replace(/"/g, '""')}"`,
-      `"${(u.username || '').replace(/"/g, '""')}"`,
-      `"${isCorporateUser(u) ? 'Corporate' : 'Public Kiosk'}"`,
-      `"${(u.orgName || 'Public Citizen').replace(/"/g, '""')}"`,
-      `"${u.mobile || ''}"`,
-      `"${u.email || ''}"`,
+      u.id || '',
+      u.fullName || '',
+      u.username || '',
+      isCorporateUser(u) ? 'Corporate' : 'Public Kiosk',
+      u.orgName || 'Public Citizen',
+      u.mobile || '',
+      u.email || '',
       u.points || 0,
       u.totalRedeemedPoints || u.redeemedPoints || 0,
       (u.bottles || 0) + (u.cups || 0) + (u.tetra || 0) + (u.paper || 0),
@@ -291,8 +299,8 @@ export default function MobileUsersTab({ stationFilter = 'ALL', selectedClientId
       u.paper || 0,
       u.sessions || 0,
       u.isOnline ? 'Online' : 'Offline',
-      `"${u.lastActive ? new Date(u.lastActive).toISOString() : 'Never'}"`
-    ]);
+      u.lastActive ? new Date(u.lastActive).toISOString() : 'Never'
+    ].map(csvCell));
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);

@@ -287,14 +287,16 @@ export default function SecurityTab() {
     if (!window.confirm(`Are you sure you want to delete user "${user.username}"?`)) return;
 
     try {
-      const res = await fetch(`/api/security/users/${user.username}`, {
+      const res = await fetch(`/api/security/users/${encodeURIComponent(user.username)}`, {
         method: 'DELETE'
       });
 
-      const json = await res.json();
-      if (json.success) {
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
         setMessage({ type: 'success', text: `User "${user.username}" removed.` });
         fetchData();
+      } else {
+        setMessage({ type: 'error', text: json.error || json.message || `Failed to delete user "${user.username}".` });
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });

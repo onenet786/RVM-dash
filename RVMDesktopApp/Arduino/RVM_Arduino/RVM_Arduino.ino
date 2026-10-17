@@ -305,6 +305,11 @@ void handleSerialCommand()
     else
     {
       inputBuffer += c;
+      // Cap command length to prevent heap exhaustion from garbage/noise on the serial line.
+      if (inputBuffer.length() > 96)
+      {
+        inputBuffer = "";
+      }
     }
   }
 }

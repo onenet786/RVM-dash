@@ -459,6 +459,7 @@ public sealed class SystemPowerDialog : Window
         if (success)
         {
             await Task.Delay(400);
+            App.AllowKioskClose = true;
             try
             {
                 Application.Current?.Dispatcher.Invoke(() => Application.Current?.Shutdown());
@@ -507,6 +508,7 @@ public sealed class SystemPowerDialog : Window
         if (success)
         {
             System.Threading.Thread.Sleep(400);
+            App.AllowKioskClose = true;
             try { Application.Current?.Shutdown(); } catch { }
             Environment.Exit(0);
         }
@@ -519,6 +521,7 @@ public sealed class SystemPowerDialog : Window
         if (success)
         {
             System.Threading.Thread.Sleep(400);
+            App.AllowKioskClose = true;
             try { Application.Current?.Shutdown(); } catch { }
             Environment.Exit(0);
         }

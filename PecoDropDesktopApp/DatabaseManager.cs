@@ -524,7 +524,7 @@ public static class DatabaseManager
         {
             EnsurePointSettingsTable();
             string serverUrl = CentralSyncService.CentralApiUrl;
-            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            using var http = KioskHttp.CreateClient(TimeSpan.FromSeconds(8));
 
             string[] candidateEndpoints = new[]
             {
@@ -1492,18 +1492,13 @@ public static class DatabaseManager
                 return dbPassword == password;
             }
 
-            // Fallback default
-            if (username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786")
-            {
-                return true;
-            }
-
+            // Unknown username: no hardcoded fallback credentials.
             return false;
         }
         catch
         {
-            // Fallback default when database is offline
-            return username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786";
+            // Local database unreachable: admin login is refused (no hardcoded fallback).
+            return false;
         }
     }
 
@@ -1585,7 +1580,7 @@ public static class DatabaseManager
             string sql = @"
                 SELECT 
                     SessionID,
-                    ISNULL(MobileNumber, '08884424625') AS MobileNumber,
+                    ISNULL(MobileNumber, '') AS MobileNumber,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS PlasticSmall,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS PlasticLarge,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS PlasticMedium,
@@ -1600,7 +1595,7 @@ public static class DatabaseManager
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
                 WHERE (IsSynced = 0 OR IsSynced IS NULL) AND (IsAccepted = 1 OR IsAccepted IS NULL)
-                GROUP BY SessionID, ISNULL(MobileNumber, '08884424625');
+                GROUP BY SessionID, ISNULL(MobileNumber, '');
             ";
 
             using var cmd = new SqlCommand(sql, connection);
@@ -1612,7 +1607,7 @@ public static class DatabaseManager
             {
                 sessionList.Add((
                     reader["SessionID"].ToString() ?? Guid.NewGuid().ToString(),
-                    reader["MobileNumber"].ToString() ?? "08884424625",
+                    reader["MobileNumber"].ToString() ?? "",
                     Convert.ToInt32(reader["PlasticSmall"]),
                     Convert.ToInt32(reader["PlasticMedium"]),
                     Convert.ToInt32(reader["PlasticLarge"]),

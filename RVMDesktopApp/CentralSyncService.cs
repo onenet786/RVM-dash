@@ -83,7 +83,7 @@ public class KioskUserInfo
 
 public static class CentralSyncService
 {
-    private static readonly HttpClient _httpClient = new HttpClient();
+    private static readonly HttpClient _httpClient = KioskHttp.Create(TimeSpan.FromSeconds(20));
     public static string CentralApiUrl { get; set; } = "https://isprvm.binishaqsoft.com";
 
     /// <summary>
@@ -232,7 +232,7 @@ public static class CentralSyncService
     public static async Task<SyncResult> SyncSessionToCentralDetailedAsync(
         string machineId,
         string localSessionId,
-        string mobileNumber,
+        string? mobileNumber,
         int plasticCount,
         int aluminiumCount,
         int paperCardboardCount,
@@ -259,14 +259,17 @@ public static class CentralSyncService
         try
         {
             int totalItems = plasticCount + aluminiumCount + paperCardboardCount + glassCount;
-            if (totalItems <= 0) totalItems = 1;
+
+            // No fallback account: when the user is not yet known, send null so the server does NOT credit anyone.
+            // The server credits the real user when the final post for this localSessionId carries a mobile number.
+            string? userRef = string.IsNullOrWhiteSpace(mobileNumber) ? null : mobileNumber.Trim();
 
             var payload = new
             {
                 machineId = string.IsNullOrWhiteSpace(machineId) ? "RVM-001" : machineId,
                 localSessionId = localSessionId,
-                userId = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
-                mobileNumber = string.IsNullOrWhiteSpace(mobileNumber) ? "08884424625" : mobileNumber,
+                userId = userRef,
+                mobileNumber = userRef,
                 plasticCount = plasticCount,
                 aluminiumCount = aluminiumCount,
                 paperCardboardCount = paperCardboardCount,
@@ -283,8 +286,8 @@ public static class CentralSyncService
                 tetrapakWeightGrams = tetrapakWeightGrams,
                 totalBottles = totalItems,
                 bottles = totalItems,
-                pointsEarned = pointsEarned > 0 ? pointsEarned : 30,
-                points = pointsEarned > 0 ? pointsEarned : 30,
+                pointsEarned = pointsEarned,
+                points = pointsEarned,
                 weightKg = weightKg,
                 createdAt = DateTime.UtcNow.ToString("o")
             };
@@ -338,7 +341,7 @@ public static class CentralSyncService
     public static async Task<bool> SyncSessionToCentralAsync(
         string machineId,
         string localSessionId,
-        string mobileNumber,
+        string? mobileNumber,
         int plasticCount,
         int aluminiumCount,
         int paperCardboardCount,
@@ -454,6 +457,23 @@ public static class CentralSyncService
     }
 
     /// <summary>
+    /// Sanitizes a server-supplied advertisement file name before it is combined with the local ads folder.
+    /// Returns null when the name is empty, rooted, contains path separators / traversal, or invalid characters.
+    /// </summary>
+    private static string? SanitizeAdFileName(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName)) return null;
+        string raw = fileName.Trim();
+        if (Path.IsPathRooted(raw)) return null;
+        if (raw.Contains('/') || raw.Contains('\\') || raw.Contains("..")) return null;
+        string safe = Path.GetFileName(raw);
+        if (string.IsNullOrWhiteSpace(safe) || !string.Equals(safe, raw, StringComparison.Ordinal)) return null;
+        if (safe.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
+        if (safe == "." || safe == "..") return null;
+        return safe;
+    }
+
+    /// <summary>
     /// Syncs Advertisement Videos from Central Master Dashboard to local Ads/Advertisements directory.
     /// </summary>
     public static async Task<System.Collections.Generic.List<string>> SyncAdvertisementsFromCentralAsync(string machineId, string localAdsFolder, Action<string>? logCallback = null)
@@ -504,8 +524,15 @@ public static class CentralSyncService
                         }
                     }
 
+                    fileName = SanitizeAdFileName(fileName);
+                    if (fileName == null)
+                    {
+                        logCallback?.Invoke("[AD SYNC ⚠️] Skipped advertisement with unsafe file name from server.");
+                        continue;
+                    }
+
                     string localPath = Path.Combine(localAdsFolder, fileName);
-                    
+
                     // Download file if missing or empty
                     if (!File.Exists(localPath) || new FileInfo(localPath).Length == 0)
                     {
@@ -570,6 +597,13 @@ public static class CentralSyncService
                     {
                         fileName = $"ad_{Guid.NewGuid().ToString("N")[..8]}.mp4";
                     }
+                }
+
+                fileName = SanitizeAdFileName(fileName);
+                if (fileName == null)
+                {
+                    logCallback?.Invoke("[REMOTE AD ⚠️] Skipped active advertisement with unsafe file name from server.");
+                    return null;
                 }
 
                 string localPath = Path.Combine(localAdsFolder, fileName);
@@ -639,6 +673,13 @@ public static class CentralSyncService
                         }
                     }
 
+                    fileName = SanitizeAdFileName(fileName);
+                    if (fileName == null)
+                    {
+                        logCallback?.Invoke("[REMOTE PLAYLIST ⚠️] Skipped playlist entry with unsafe file name from server.");
+                        continue;
+                    }
+
                     string localPath = Path.Combine(localAdsFolder, fileName);
                     if (!File.Exists(localPath) || new FileInfo(localPath).Length == 0)
                     {
@@ -654,12 +695,15 @@ public static class CentralSyncService
                     }
                 }
 
-                // If remote playlist has active videos, clean up any obsolete local video files that were deleted on dashboard
+                // If remote playlist has active videos, clean up any obsolete local video files that were deleted on dashboard.
+                // Only server-generated uploads (file names starting with "ad_") are eligible for deletion so that
+                // instruction / celebration / operator-placed videos are never removed.
                 if (playlist.Count > 0 && Directory.Exists(localAdsFolder))
                 {
                     var supportedExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".mp4", ".webm", ".avi", ".mov", ".mkv", ".m4v", ".wmv" };
                     var currentLocalFiles = Directory.EnumerateFiles(localAdsFolder)
                         .Where(f => supportedExts.Contains(Path.GetExtension(f)))
+                        .Where(f => Path.GetFileName(f).StartsWith("ad_", StringComparison.OrdinalIgnoreCase))
                         .ToList();
 
                     var activeNormalizedPaths = new HashSet<string>(playlist.Select(Path.GetFullPath), StringComparer.OrdinalIgnoreCase);

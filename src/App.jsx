@@ -26,10 +26,31 @@ const ManualIntakeTab = lazy(() => import('./components/ManualIntakeTab'));
 if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
   window._rvm_fetch_intercepted = true;
   const originalFetch = window.fetch;
-  window.fetch = async function (resource, init = {}) {
+  // Only same-origin /api/ requests get the bearer token (never leak it to third-party hosts)
+  const isSameOriginApi = (url) => {
     try {
-      const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
-      if (url.includes('/api/')) {
+      if (!url) return false;
+      const parsed = new URL(url, window.location.origin);
+      return parsed.origin === window.location.origin && parsed.pathname.includes('/api/');
+    } catch (e) {
+      return false;
+    }
+  };
+  const headersHaveAuth = (headers) => {
+    try {
+      if (!headers) return false;
+      if (headers instanceof Headers) return headers.has('Authorization');
+      if (Array.isArray(headers)) return headers.some(([k]) => String(k).toLowerCase() === 'authorization');
+      return Boolean(headers['Authorization'] || headers['authorization']);
+    } catch (e) {
+      return false;
+    }
+  };
+  window.fetch = async function (resource, init = {}) {
+    const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+    const sameOriginApi = isSameOriginApi(url);
+    try {
+      if (sameOriginApi) {
         const token = sessionStorage.getItem('rvm_auth_token') || localStorage.getItem('rvm_auth_token');
         if (token) {
           init = init || {};
@@ -52,10 +73,11 @@ if (typeof window !== 'undefined' && !window._rvm_fetch_intercepted) {
       }
     } catch (e) { }
 
+    const carriedToken = headersHaveAuth(init && init.headers);
     const response = await originalFetch.call(this, resource, init);
-    if (response && response.status === 401) {
-      const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
-      if (url.includes('/api/') && !url.includes('/api/auth/login')) {
+    // Only a 401 on a same-origin /api/ request that carried a token means the session expired (403 never logs out)
+    if (response && response.status === 401 && sameOriginApi && carriedToken) {
+      if (!url.includes('/api/auth/login')) {
         // Expired or invalid token: purge and trigger clean login prompt
         sessionStorage.removeItem('rvm_auth_token');
         sessionStorage.removeItem('rvm_auth_user');

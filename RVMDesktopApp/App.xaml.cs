@@ -23,6 +23,18 @@ public partial class App : Application
 
     private const int SW_RESTORE = 9;
 
+    /// <summary>
+    /// Kiosk windows refuse to close (Escape / Alt+F4 / taskbar close) unless this flag is set by one of the
+    /// app's own exit paths (SystemPowerDialog restart/shutdown, Windows session ending).
+    /// </summary>
+    public static volatile bool AllowKioskClose;
+
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        AllowKioskClose = true;
+        base.OnSessionEnding(e);
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         bool createdNew = false;

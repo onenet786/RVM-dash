@@ -187,7 +187,7 @@ public sealed class AdminLoginWindow : Window
 
         var hintText = new TextBlock
         {
-            Text = "🔑 Default Access: Username: RVM | Password: Admin786",
+            Text = "🔑 Enter the kiosk administrator credentials issued for this machine",
             FontSize = 11,
             Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0EA5E9")),
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -291,7 +291,7 @@ public sealed class AdminLoginWindow : Window
         }
         else
         {
-            errorText.Text = "❌ Invalid credentials. Default: RVM / Admin786";
+            errorText.Text = "❌ Invalid credentials.";
             passwordBox.SelectAll();
             passwordBox.Focus();
         }

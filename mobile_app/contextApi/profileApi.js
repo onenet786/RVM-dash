@@ -1,10 +1,22 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { getAuthToken } from '../utility/authToken';
 
 // Create a configured axios instance
 const api = axios.create({
   baseURL: API_BASE_URL, // Use baseURL instead of repeating it
   timeout: 10000, // Set a reasonable timeout (10 seconds)
+});
+
+// axios.create() snapshots axios.defaults at creation time, so a token set later
+// via axios.defaults would not reach this instance. Attach it per request instead.
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = 'Bearer ' + token;
+  }
+  return config;
 });
 
 

@@ -13,7 +13,7 @@ async function testRvmappProtection() {
     const switchRes = await fetch('http://localhost:5000/api/admin/switch-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86', targetPreset: 'rvmapp' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || ''), targetPreset: 'rvmapp' })
     });
     console.log('Switch Status:', switchRes.status);
   } catch (e) {
@@ -56,7 +56,7 @@ async function testRvmappProtection() {
     await fetch('http://localhost:5000/api/admin/switch-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86', targetPreset: 'ONS-RVM' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || ''), targetPreset: 'ONS-RVM' })
     });
     console.log('Switched back to ONS-RVM successfully.');
   } catch (e) {}

@@ -9,11 +9,11 @@ async function testAuthenticationFlow() {
 
   // 1. Test Master Developer Login
   try {
-    console.log('1. Logging in as Master Developer (onenet / Admin&86)...');
+    console.log('1. Logging in as Master Developer (onenet / MASTER_DEV_PASSWORD)...');
     const resMaster = await fetch('http://localhost:5000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || '') })
     });
     const masterJson = await resMaster.json();
     console.log('Master Dev Login Response:', masterJson.success, '| User:', masterJson.user?.username, '| Role:', masterJson.user?.roleName);

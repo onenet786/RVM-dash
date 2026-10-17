@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { csvCell } from '../utils/csv';
 import { 
   Search, RefreshCw, ChevronLeft, ChevronRight, Download, Eye, 
   ArrowUpDown, Database, AlertCircle, Calendar, User, Phone, CheckCircle2, AlertTriangle
@@ -97,12 +98,7 @@ export default function DataTable({ collectionName, displayName, machineIds = nu
     const csvRows = [keys.join(',')];
     
     data.forEach(row => {
-      const values = keys.map(k => {
-        const val = row[k];
-        if (val === null || val === undefined) return '""';
-        if (typeof val === 'object') return `"${JSON.stringify(val).replace(/"/g, '""')}"`;
-        return `"${String(val).replace(/"/g, '""')}"`;
-      });
+      const values = keys.map(k => csvCell(row[k]));
       csvRows.push(values.join(','));
     });
 

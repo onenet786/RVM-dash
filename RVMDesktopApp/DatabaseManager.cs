@@ -224,7 +224,7 @@ public static class DatabaseManager
         {
             EnsurePointSettingsTable();
             string serverUrl = CentralSyncService.CentralApiUrl;
-            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            using var http = KioskHttp.Create(TimeSpan.FromSeconds(8));
 
             string[] candidateEndpoints = new[]
             {
@@ -1014,6 +1014,10 @@ public static class DatabaseManager
                         LastUpdated DATETIME NOT NULL DEFAULT GETDATE()
                     );
 
+                    -- SECURITY: initial seed password. Operators MUST change this via Admin > Change Password
+                    -- immediately after first install. The application no longer accepts this value as a
+                    -- hardcoded fallback; only the stored row (or config.txt AdminUsername/AdminPassword offline
+                    -- fallback) is honoured.
                     INSERT INTO dbo.AdminCredentials (Username, Password)
                     VALUES ('RVM', 'Admin786');
                 END;
@@ -1029,18 +1033,30 @@ public static class DatabaseManager
                 return dbPassword == password;
             }
 
-            // Fallback default
-            if (username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786")
-            {
-                return true;
-            }
-
+            // DB reachable but no such user: deny (no hardcoded fallback).
             return false;
         }
         catch
         {
-            // Fallback default when database is offline
-            return username.Equals("RVM", StringComparison.OrdinalIgnoreCase) && password == "Admin786";
+            // Database offline: allow login ONLY with credentials explicitly configured in config.txt
+            // (AdminUsername / AdminPassword). If either is empty, offline admin login is denied.
+            return VerifyOfflineAdminCredentials(username, password);
+        }
+    }
+
+    private static bool VerifyOfflineAdminCredentials(string username, string password)
+    {
+        try
+        {
+            var cfg = AppSettings.Load();
+            if (string.IsNullOrWhiteSpace(cfg.AdminUsername) || string.IsNullOrWhiteSpace(cfg.AdminPassword))
+                return false;
+            return username.Equals(cfg.AdminUsername.Trim(), StringComparison.OrdinalIgnoreCase)
+                && password == cfg.AdminPassword;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -1077,12 +1093,20 @@ public static class DatabaseManager
         }
     }
 
+    // In-flight guard for SyncAllLocalSessionsToCentralAsync (called on a 15 s timer): 1 = running.
+    private static int _sessionSyncInFlight;
+
     public static async System.Threading.Tasks.Task<(int Total, int Success, int Failed)> SyncAllLocalSessionsToCentralAsync(
         string machineId,
         Action<string>? logCallback = null,
         bool forceResyncAll = false)
     {
         int total = 0, success = 0, failed = 0;
+        if (System.Threading.Interlocked.CompareExchange(ref _sessionSyncInFlight, 1, 0) != 0)
+        {
+            // A previous sync tick is still running; skip this tick to avoid double-posting sessions.
+            return (0, 0, 0);
+        }
         try
         {
             using var connection = new SqlConnection(ConnectionString);
@@ -1120,7 +1144,7 @@ public static class DatabaseManager
             string sql = @"
                 SELECT 
                     SessionID,
-                    ISNULL(MobileNumber, '08884424625') AS MobileNumber,
+                    ISNULL(MobileNumber, '') AS MobileNumber,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%SMALL%' OR UPPER(BottleSize) = 'S') THEN 1 ELSE 0 END) AS PlasticSmall,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND (UPPER(BottleSize) LIKE '%LARGE%' OR UPPER(BottleSize) = 'L') THEN 1 ELSE 0 END) AS PlasticLarge,
                     SUM(CASE WHEN (UPPER(MaterialType) LIKE '%PLASTIC%' OR MaterialType IS NULL) AND UPPER(BottleSize) NOT LIKE '%SMALL%' AND UPPER(BottleSize) NOT LIKE '%LARGE%' AND UPPER(BottleSize) != 'S' AND UPPER(BottleSize) != 'L' THEN 1 ELSE 0 END) AS PlasticMedium,
@@ -1134,7 +1158,7 @@ public static class DatabaseManager
                     COUNT(*) AS TotalItems
                 FROM dbo.BottleTransactions
                 WHERE (IsSynced = 0 OR IsSynced IS NULL) AND (IsAccepted = 1 OR IsAccepted IS NULL)
-                GROUP BY SessionID, ISNULL(MobileNumber, '08884424625');
+                GROUP BY SessionID, ISNULL(MobileNumber, '');
             ";
 
             using var cmd = new SqlCommand(sql, connection);
@@ -1146,7 +1170,7 @@ public static class DatabaseManager
             {
                 sessionList.Add((
                     reader["SessionID"].ToString() ?? Guid.NewGuid().ToString(),
-                    reader["MobileNumber"].ToString() ?? "08884424625",
+                    reader["MobileNumber"].ToString() ?? string.Empty, // empty = no user; sent as null (not credited)
                     Convert.ToInt32(reader["PlasticSmall"]),
                     Convert.ToInt32(reader["PlasticMedium"]),
                     Convert.ToInt32(reader["PlasticLarge"]),
@@ -1208,6 +1232,10 @@ public static class DatabaseManager
         catch (Exception ex)
         {
             logCallback?.Invoke($"[Sync Exception 🔴] {ex.Message}");
+        }
+        finally
+        {
+            System.Threading.Interlocked.Exchange(ref _sessionSyncInFlight, 0);
         }
 
         return (total, success, failed);

@@ -227,6 +227,13 @@ public class SerialManager : IDisposable
                         messages.Add(line);
                     }
                 }
+
+                // Cap the receive buffer: if a partial line grows beyond 4096 chars without a newline,
+                // discard it so a noisy/garbage serial stream cannot grow memory unbounded.
+                if (_receiveBuffer.Length > 4096)
+                {
+                    _receiveBuffer.Clear();
+                }
             }
 
             foreach (string message in messages)

@@ -256,7 +256,7 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
       return;
     }
     try {
-      const res = await fetch(`/api/enterprise/sub-users/${user.username}`, { method: 'DELETE' });
+      const res = await fetch(`/api/enterprise/sub-users/${encodeURIComponent(user.username)}`, { method: 'DELETE' });
       const json = await res.json();
       if (res.ok && json.success) {
         setMessage({ type: 'success', text: json.message });
@@ -272,7 +272,7 @@ export default function SubUsersTab({ currentUser, selectedClientId = 'ALL' }) {
   const handleToggleStatus = async (user) => {
     const newStatus = user.status === 'active' ? 'suspended' : 'active';
     try {
-      const res = await fetch(`/api/enterprise/sub-users/${user.username}`, {
+      const res = await fetch(`/api/enterprise/sub-users/${encodeURIComponent(user.username)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

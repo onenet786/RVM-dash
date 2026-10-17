@@ -9,6 +9,8 @@ public sealed class AppSettings
     public string ConnectionString { get; init; } = @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;";
     public string MachineId { get; init; } = "PECO-UNCONFIGURED";
     public string CentralApiUrl { get; init; } = "https://isprvm.binishaqsoft.com";
+    /// <summary>Shared kiosk secret sent as the x-kiosk-key header on every central API request. Never shown in UI.</summary>
+    public string KioskApiKey { get; init; } = "";
     public string ArduinoPort { get; init; } = "COM16";
     public int ArduinoBaud { get; init; } = 115200;
     public string CameraPort { get; init; } = "COM31";
@@ -46,6 +48,7 @@ public sealed class AppSettings
             ConnectionString = connectionString,
             MachineId = machineId,
             CentralApiUrl = NormalizeUrl(Get(values, "CentralApiUrl", "https://isprvm.binishaqsoft.com")),
+            KioskApiKey = Get(values, "KioskApiKey", "").Trim(),
             Location = GetFirst(values, ["Location", "MachineLocation", "Address", "RVM_Location", "Branch"], "Katra Neem Wala, Walled City, Lahore, Punjab, Pakistan"),
             Latitude = GetDoubleOrNull(values, "Latitude") ?? 31.5826,
             Longitude = GetDoubleOrNull(values, "Longitude") ?? 74.3276,
@@ -106,6 +109,18 @@ public sealed class AppSettings
 
     public static void SaveConfigToFile(Dictionary<string, string> configValues)
     {
+        // Preserve the kiosk secret when a caller saves a partial dictionary (the Admin config form never exposes it).
+        if (!configValues.ContainsKey("KioskApiKey") || string.IsNullOrWhiteSpace(configValues["KioskApiKey"]))
+        {
+            try
+            {
+                var existing = LoadRawConfig();
+                if (existing.TryGetValue("KioskApiKey", out string? existingKey) && !string.IsNullOrWhiteSpace(existingKey))
+                    configValues["KioskApiKey"] = existingKey.Trim();
+            }
+            catch { }
+        }
+
         var content = new StringBuilder();
         content.AppendLine("# Database connection settings.");
         content.AppendLine($"ConnectionString={configValues.GetValueOrDefault("ConnectionString", @"Server=.\SQLEXPRESS;Database=RVMDB;User ID=RVM;Password=RVM;Encrypt=False;TrustServerCertificate=True;")}");
@@ -123,6 +138,7 @@ public sealed class AppSettings
         content.AppendLine($"UiTheme = {configValues.GetValueOrDefault("UiTheme", "Modern")}");
         content.AppendLine($"MachineId = {configValues.GetValueOrDefault("MachineId", "RVM-RWP")}");
         content.AppendLine($"CentralApiUrl = {configValues.GetValueOrDefault("CentralApiUrl", "https://isprvm.binishaqsoft.com")}");
+        content.AppendLine($"KioskApiKey = {configValues.GetValueOrDefault("KioskApiKey", "")}");
         content.AppendLine($"Location = {configValues.GetValueOrDefault("Location", "Islamabad Campus")}");
         if (configValues.TryGetValue("Latitude", out string? latVal) && !string.IsNullOrWhiteSpace(latVal))
             content.AppendLine($"Latitude = {latVal}");

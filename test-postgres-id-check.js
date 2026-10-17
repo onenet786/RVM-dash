@@ -14,7 +14,7 @@ async function testPostgresIdCheck() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'onenet',
-        password: 'Admin&86',
+        password: (process.env.MASTER_DEV_PASSWORD || ''),
         targetPreset: 'rvm_postgres',
         pgHost: '127.0.0.1',
         pgPort: '5432',
@@ -48,7 +48,7 @@ async function testPostgresIdCheck() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'onenet',
-        password: 'Admin&86',
+        password: (process.env.MASTER_DEV_PASSWORD || ''),
         targetPreset: 'ONS-RVM'
       })
     });

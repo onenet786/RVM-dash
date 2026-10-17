@@ -150,7 +150,7 @@ public static class HeartbeatService
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = KioskHttp.CreateClient(TimeSpan.FromSeconds(5));
             string baseUrl = _serverUrl.TrimEnd('/');
             string localIp = GetLocalIpAddress();
             client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);

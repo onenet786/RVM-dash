@@ -18,6 +18,7 @@ import {
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { setAuthToken } from '../utility/authToken';
 import Icon from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
@@ -156,6 +157,9 @@ export default function LoginScreen({ navigation, route }) {
       ['user', JSON.stringify(normalizedUser)],
       ['token', token || '']
     ]);
+
+    // Make the JWT available to axios (global + profileApi instance) and fetch callers.
+    await setAuthToken(token);
 
     if (recycleData) {
       await AsyncStorage.setItem('recycleHistory', JSON.stringify(recycleData));

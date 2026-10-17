@@ -23,11 +23,11 @@ async function testDatabaseSwitcher() {
 
   // 2. Test valid credentials switching to ONS-RVM
   try {
-    console.log('\n--- Switching to ONS-RVM with credentials onenet / Admin&86 ---');
+    console.log('\n--- Switching to ONS-RVM with credentials onenet / MASTER_DEV_PASSWORD ---');
     const resOns = await fetch('http://localhost:5000/api/admin/switch-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86', targetPreset: 'ONS-RVM' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || ''), targetPreset: 'ONS-RVM' })
     });
     const onsJson = await resOns.json();
     console.log('ONS-RVM Switch Response:', onsJson);
@@ -37,11 +37,11 @@ async function testDatabaseSwitcher() {
 
   // 3. Test valid credentials switching to rvmapp
   try {
-    console.log('\n--- Switching to rvmapp with credentials onenet / Admin&86 ---');
+    console.log('\n--- Switching to rvmapp with credentials onenet / MASTER_DEV_PASSWORD ---');
     const resRvm = await fetch('http://localhost:5000/api/admin/switch-db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86', targetPreset: 'rvmapp' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || ''), targetPreset: 'rvmapp' })
     });
     const rvmJson = await resRvm.json();
     console.log('rvmapp Switch Response:', rvmJson);
@@ -51,11 +51,11 @@ async function testDatabaseSwitcher() {
 
   // 4. Test API Server Restart
   try {
-    console.log('\n--- Testing API Server Restart with credentials onenet / Admin&86 ---');
+    console.log('\n--- Testing API Server Restart with credentials onenet / MASTER_DEV_PASSWORD ---');
     const resRest = await fetch('http://localhost:5000/api/admin/restart-server', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'onenet', password: 'Admin&86' })
+      body: JSON.stringify({ username: 'onenet', password: (process.env.MASTER_DEV_PASSWORD || '') })
     });
     const restJson = await resRest.json();
     console.log('Restart Response:', restJson);

@@ -54,18 +54,31 @@ npm run build
 echo "🔒 [5/6] Verifying Environment Configuration..."
 if [ ! -f .env ]; then
   echo "Creating default production .env..."
-  cp .env.example .env 2>/dev/null || cat <<EOT > .env
+  # No credentials are baked into this script. A fresh .env gets random secrets; the operator must still
+  # set PG_PASSWORD, MASTER_DEV_PASSWORD and (optionally) MONGODB_URI_* / SMTP_* before the API is usable.
+  GEN_JWT=$(node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")
+  GEN_KIOSK=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+  cat <<EOT > .env
+NODE_ENV=production
 DB_TYPE=postgres
 PORT=5009
+PUBLIC_BASE_URL=https://isprvm.binishaqsoft.com
 PG_HOST=127.0.0.1
 PG_PORT=5432
 PG_USER=postgres
-PG_PASSWORD=Admin786
+PG_PASSWORD=${PG_PASSWORD:-CHANGE_ME}
 PG_DATABASE=rvmpg
-MONGODB_URI=mongodb+srv://aaqueelphotos_db_user:Z8NPUThldyeypEEQ@cluster0.ktted0m.mongodb.net/ONS-RVM?retryWrites=true&w=majority
+MONGODB_URI_ONS_RVM=${MONGODB_URI_ONS_RVM:-}
+MONGODB_URI_RVMAPP=${MONGODB_URI_RVMAPP:-}
 MONGODB_DBNAME=ONS-RVM
-JWT_SECRET=rvm-isp-production-secret-key-2026-aapanel
+JWT_SECRET=${JWT_SECRET:-$GEN_JWT}
+MASTER_DEV_USERNAME=onenet
+MASTER_DEV_PASSWORD=${MASTER_DEV_PASSWORD:-}
+KIOSK_API_KEY=${KIOSK_API_KEY:-$GEN_KIOSK}
+ENFORCE_MOBILE_AUTH=false
 EOT
+  chmod 600 .env
+  echo "!! Edit $PROJECT_DIR/.env and set PG_PASSWORD and MASTER_DEV_PASSWORD before starting the API. KIOSK_API_KEY=$GEN_KIOSK must be copied into each kiosk config.txt as KioskApiKey."
 fi
 
 # Fix aaPanel file ownership if running as root

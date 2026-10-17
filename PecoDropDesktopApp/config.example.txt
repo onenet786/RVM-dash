@@ -21,3 +21,5 @@ ModelPath=Models\rvm_classifier.onnx
 CaptureDirectory=Captures
 MachineId = RVM-RWP
 CentralApiUrl = https://isprvm.binishaqsoft.com
+# Shared kiosk secret sent as x-kiosk-key on every central API request (leave empty if the server has no KIOSK_API_KEY).
+KioskApiKey = 

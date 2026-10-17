@@ -315,6 +315,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         UpdateImpactMetrics();
 
         CentralSyncService.CentralApiUrl = settings.CentralApiUrl;
+        KioskHttp.Configure(settings);
         UpdateRvmNameDisplay(settings.MachineId);
 
         string configuredTheme = DatabaseManager.GetUiTheme(settings.MachineId);
@@ -2116,7 +2117,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         try
         {
             string serverUrl = settings.CentralApiUrl.TrimEnd('/');
-            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            using var client = KioskHttp.CreateClient(TimeSpan.FromSeconds(5));
             string localIp = HeartbeatService.GetLocalIpAddress();
             client.DefaultRequestHeaders.TryAddWithoutValidation("X-Local-IP", localIp);
 
@@ -2526,7 +2527,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         // Real-Time Live Sync to Central Server
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null;
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;
@@ -3029,7 +3030,7 @@ public partial class LandscapeWindow : Window, IKioskSimulatorTarget, IHardwareD
         // Real-Time Live Sync of accepted item to Central Master Dashboard & Mobile App
         string currentSessionId = sessionId.ToString();
         string currentMachineId = settings.MachineId;
-        string userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : "08884424625";
+        string? userIdentifier = !string.IsNullOrWhiteSpace(activeUserMobile) ? activeUserMobile : null;
         int curPlastic = plasticSmallCount + plasticMediumCount + plasticLargeCount;
         int curCan = canSmallCount + canMediumCount + canLargeCount;
         int curPaper = tetraPakSmallCount + tetraPakMediumCount + tetraPakLargeCount;

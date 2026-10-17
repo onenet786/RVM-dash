@@ -127,3 +127,40 @@ npm install
 pm2 reload all
 ```
 *(After reloading, log in once via the Dashboard to issue your new cryptographically signed JWT).*
+
+---
+
+# Phase 4 — Full Remediation (October 17, 2026)
+
+A second audit found that most of Phase 1–3 had been bypassed or never covered the enterprise, kiosk, and mobile surfaces. The following was applied in code. **Items marked OPERATOR must be done on the servers and kiosks by a human.**
+
+## Code changes (done)
+
+| Area | Fix |
+|---|---|
+| Authorization | `x-user-role` / `x-user-name` / body `isSuperAdmin` / `roleId` hints are no longer trusted anywhere. Super-admin, client-admin, org and machine scope come only from the verified JWT. `/api/auth/me` no longer accepts unsigned `token_onenet_*` strings. |
+| Secrets | No hardcoded JWT secret, PostgreSQL password, MongoDB URI, or master password remains in `server/`, `src/`, `ecosystem.config.cjs`, `deploy-aapanel.sh`, `.env.example`, helper scripts, or the desktop apps. A missing/weak `JWT_SECRET` now generates a random per-process secret and logs a warning. Only one JWT secret is accepted (the legacy multi-secret list is gone). `/api/admin/presets` requires super admin and never returns connection strings. |
+| Admin DB tooling | `switch-db`, `restart-server`, `sync-databases`, `sync-postgres`, `test-postgres` require a super-admin JWT, are rate limited, and `switch-db` still requires `MASTER_DEV_*` credentials as a second factor. Database names are validated before `CREATE DATABASE`. `.env` rewrites now preserve every other variable and never write a JWT secret or admin password. |
+| Passwords | Admin accounts, client admins, sub-users, mobile users, registration and password reset all use bcrypt. Legacy plaintext rows are upgraded on first successful login. The `adminpassword` fallback for password-less accounts is removed. Minimum lengths enforced. Auth cookie is `httpOnly` and `secure` behind HTTPS. |
+| Google / OTP | Google ID tokens are verified against Google's tokeninfo endpoint (issuer, expiry, email_verified, optional `GOOGLE_CLIENT_IDS` audience). OTP codes are never returned in HTTP responses. OTP send and verify routes are rate limited; stored OTPs are single-use with expiry; pending OTP maps are pruned. Dead duplicate SSO routes removed. |
+| Enterprise tenants | Org create/delete/bulk-delete/approve/reject/assign-machines: super admin only. Personalization, departments, employees, stats, bulk-import: authenticated and scoped to the caller's org. Sub-user create/update/delete: client admin of the same org or ISP admin; super-admin accounts can never be edited through sub-user routes. `GET /api/enterprise/organizations` returns public fields only to non-admins. Registration no longer accepts `userType`/`orgId` from the body and company codes must match exactly. |
+| Citizen data | Points, history, redemptions, profile, corporate link/unlink, heartbeat and vouchers are user-scoped via `requireMobileUser`; with `ENFORCE_MOBILE_AUTH=true` a token is mandatory and a citizen can only act on their own account. Redemptions and payouts use atomic conditional updates (no double spend). Leaderboard phone numbers are masked for non-admins. `/api/collections/:name` restricts PII/credential tables to ISP admins and strips passwords. |
+| Kiosks | All kiosk endpoints accept a shared `x-kiosk-key` header (`KIOSK_API_KEY` on the server, `KioskApiKey` in each kiosk `config.txt`). Until the key is configured the fleet keeps working unauthenticated. Machine registry checks fail closed. Config/point-settings/ads mutations require an admin JWT. Ad deletion matches exact ids/file names only. The fallback citizen account `08884424625` is gone from server and both kiosk apps; sessions without a known user are never credited, and the real user is credited the delta when the kiosk re-posts with the phone number. Machine totals are incremented by delta, not cumulatively. |
+| Bugs | `claim-points` inserted into non-existent columns (fixed), is now atomic and rejects anonymous ids. Restore-snapshot `ReferenceError` fixed. DB restore runs in a transaction, only touches JSON document tables, and releases the client. Point-settings for one machine no longer overwrite the global default. Analytics read endpoint no longer zeroes telemetry. Fabricated audit data replaced with empty, labelled datasets. Health endpoint no longer leaks schema to anonymous callers and no longer leaks connections. |
+| Performance | Heartbeat DDL runs once per process. Security seeding runs at most every 10 minutes. In-memory caches are bounded and pruned. Stale `STARTED` handshakes expire after 30 minutes. |
+| Frontend | Master password removed from the bundle; role headers removed; CSV cells escaped against formula injection; stale-response guards on polling tabs; token only attached to same-origin requests; 403 no longer logs the user out. |
+| Kiosk apps | Escape/Alt+F4 cannot exit the kiosk. B/C/U simulated deposits only work in demo mode. Admin login no longer prints default credentials and offline fallback only honours `AdminUsername`/`AdminPassword` from `config.txt`. In-flight guards on sync and handshake timers; shared `HttpClient`; ad file names sanitised; playlist cleanup only deletes `ad_*` files; serial and firmware input buffers capped. |
+| Mobile app | Sends `Authorization: Bearer <token>` on every request after login (new build required). |
+| Dependencies | `npm audit` production vulnerabilities: 7 → 0. |
+
+## OPERATOR actions (required)
+
+1. **Rotate every credential that was in git history**: PostgreSQL `postgres` password, both MongoDB Atlas users (`aaqueelphotos_db_user`, `mcsrwp_db_user`), the master developer password, and the Gmail app password. Then purge them from git history (e.g. `git filter-repo`) and force-push.
+2. On the production server create `.env` from `.env.example` with: a 64-hex `JWT_SECRET`, the new `PG_PASSWORD`, `MASTER_DEV_PASSWORD`, `MONGODB_URI_ONS_RVM` / `MONGODB_URI_RVMAPP` (only if Mongo sync is still needed), `PUBLIC_BASE_URL=https://isprvm.binishaqsoft.com`, and SMTP settings. `pm2 restart rvm-dash`.
+3. Generate `KIOSK_API_KEY` (32+ random hex chars), set it in `.env`, and add `KioskApiKey = <same value>` to `config.txt` on every RVM and PecoDrop kiosk. Deploy the rebuilt kiosk apps. Until the key is set, kiosk endpoints remain open.
+4. Build and publish the new mobile app (version 2.0.7 or later) from `mobile_app/`, then set `ENFORCE_MOBILE_AUTH=true` in `.env` and restart. Until then, citizen endpoints still accept identifiers without a token.
+5. Set `GOOGLE_CLIENT_IDS` to the OAuth client ids used by the mobile app and web portal to pin the Google token audience.
+6. Change the kiosk local SQL admin credential (`RVM` / `Admin786`) in `AdminCredentials` on each machine.
+7. Existing admin passwords are plaintext in `adminaccounts` until each user logs in once (auto-upgraded to bcrypt). Ask all admins to log in, or reset their passwords from the Security tab.
+8. Remove committed binaries from the repo (seven copies of a 54 MB APK, MP4s, `.tmp/` is now ignored) to shrink clones.
+9. `AGENTS.md` still documents the old PostgreSQL password in the "Live Database Verification Protocol" line; update it after rotation.
